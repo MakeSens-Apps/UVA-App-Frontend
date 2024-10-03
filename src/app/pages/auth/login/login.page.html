@@ -1,0 +1,20 @@
+
+
+<app-explore-container title="Hola de nuevo 👋" subTitle="Por favor ingresa tu número de teléfono.">
+  <form [formGroup]="form"> 
+    <div class="input-container">
+      <div class="content_label__start">
+        <ion-label >Número de teléfono</ion-label>
+      </div>
+      <ion-input class="border" type="tel" placeholder="XXXXXXXXXX" maxlength="10" formControlName="phone"></ion-input>
+    </div>
+    <ion-button expand="block" color="uva_green-700"  [disabled]="form.invalid" (click)="goToOtp()">Continuar</ion-button>
+    <p class="paragraph">Enviaremos un código a tus mensajes para que puedas ingresar</p>
+    <div class="container_link">
+      <p class="paragraph text-sm">
+        ¿No tienes cuenta?
+      </p>
+      <span class="ref paragraph text-sm" (click)="goToRegister()">Registrate aquí</span>
+    </div>
+  </form>
+</app-explore-container>
