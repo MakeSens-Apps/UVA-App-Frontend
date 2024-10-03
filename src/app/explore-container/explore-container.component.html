@@ -1,0 +1,28 @@
+
+
+  <section class="container_explore {{BgBlue ? 'bg_blue' : 'bg_green'}}">
+    <section class="card-content_gradient">
+      <div class="card">
+        @if (Icon) {
+          <ion-img class="icon" [src]="Icon"></ion-img>
+        } @else {
+          <ion-thumbnail>
+            <img [src]="'../../../../assets/icon-only.png' " />
+          </ion-thumbnail>
+        }
+        @if (title){
+          <h1>{{title}}</h1>
+        } @else if(titleHTML){
+          <div [innerHTML]="titleHTML"></div>
+        }
+        @if (subTitle){
+          <p class="subtitle" > {{subTitle}}</p>
+        }
+        @if (message){
+          <p class="message">{{message}}</p>
+        }
+        <ng-content></ng-content>
+       
+      </div>
+    </section>
+  </section>

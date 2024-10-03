@@ -1,0 +1,53 @@
+ion-modal {
+    --height: auto;
+    /* Valor por defecto, pero será sobrescrito dinámicamente */
+    --border-radius: 16px;
+    --width: 90%;
+    --min-height: auto;
+    --max-height: 80vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+
+
+    ion-button {
+        flex: 1;
+        text-transform: capitalize;
+
+    }
+
+    .button-container {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        width: 100%;
+    }
+
+    ion-card {
+        box-shadow: none;
+        --background: transparent;
+        margin: 20px;
+    }
+}
+
+.modal-wrapper {
+    width: auto;
+    height: var(--height);
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+
+
+}
+
+p {
+    font-size: 16px;
+    margin: 0;
+    margin-bottom: 20px;
+}
+
+h1 {
+    text-align: center;
+}

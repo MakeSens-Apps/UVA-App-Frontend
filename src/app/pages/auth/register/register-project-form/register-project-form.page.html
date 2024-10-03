@@ -1,0 +1,25 @@
+<app-explore-container title="Datos de ubicación" message="[Nombre] por favor completa los siguientes datos:" [Icon]="icon" [BgBlue]="true">
+  <form [formGroup]="form">
+    <div class="input-container">
+      <div class="content_label__start">
+        <ion-label >Nombre de la finca</ion-label>
+      </div>
+      <ion-input formControlName="nameFarm" class="border"   (ionInput)="setErrorInput($event,'nameFarm')" placeholder="Nombre de la finca"></ion-input>
+      
+    </div>
+    <div class="input-container">
+      <div class="content_label__start">
+        <ion-label >Nombre de la vereda</ion-label>
+      </div>
+      <ion-input formControlName="nameLane" class="border"  placeholder="Nombre de la vereda"(ionInput)="setErrorInput($event,'nameLane')"></ion-input>
+    </div>
+    <div class="input-container">
+      <div class="content_label__start">
+        <ion-label >Nombre del municipio</ion-label>
+      </div>
+      <ion-input formControlName="nameMunicipality" class="border"  placeholder="Nombre del municipio"(ionInput)="setErrorInput($event,'nameMunicipality')"></ion-input>
+    </div>
+    <ion-button [disabled]="form.invalid" expand="block" color="uva_green-700" (click)="goToCompleted()"  >Continuar</ion-button>
+
+  </form>
+</app-explore-container>

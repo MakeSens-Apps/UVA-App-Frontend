@@ -1,0 +1,314 @@
+/*
+ * App Global CSS
+ * ----------------------------------------------------------------------------
+ * Put style rules here that you want to apply globally. These styles are for
+ * the entire app and not just one component. Additionally, this file can be
+ * used as an entry point to import other CSS/Sass files to be included in the
+ * output CSS.
+ * For more information on global stylesheets, visit the documentation:
+ * https://ionicframework.com/docs/layout/global-stylesheets
+ */
+
+/* Core CSS required for Ionic components to work properly */
+@import "@ionic/angular/css/core.css";
+
+/* Basic CSS for apps built with Ionic */
+@import "@ionic/angular/css/normalize.css";
+@import "@ionic/angular/css/structure.css";
+@import "@ionic/angular/css/typography.css";
+@import "@ionic/angular/css/display.css";
+
+/* Optional CSS utils that can be commented out */
+@import "@ionic/angular/css/padding.css";
+@import "@ionic/angular/css/float-elements.css";
+@import "@ionic/angular/css/text-alignment.css";
+@import "@ionic/angular/css/text-transformation.css";
+@import "@ionic/angular/css/flex-utils.css";
+
+/**
+ * Ionic Dark Mode
+ * -----------------------------------------------------
+ * For more info, please see:
+ * https://ionicframework.com/docs/theming/dark-mode
+ */
+
+/* @import "@ionic/angular/css/palettes/dark.always.css"; */
+/* @import "@ionic/angular/css/palettes/dark.class.css"; */
+@import '@ionic/angular/css/palettes/dark.system.css';
+
+@font-face {
+    font-family: 'montserrat';
+    src: url('assets/fonts/Montserrat/Montserrat-VariableFont_wght.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'montserrat';
+    src: url('assets/fonts/Montserrat/Montserrat-Italic-VariableFont_wght.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: italic;
+}
+
+
+html,
+body {
+    font-family: 'montserrat', sans-serif;
+}
+
+@mixin align($padding: 0) {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    @if $padding !='0' {
+        padding: $padding;
+    }
+}
+
+@mixin text_base($font-size: 16px, $font-weigh: 500) {
+    font-size: $font-size;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    font-weight: $font-weigh;
+    line-height: normal;
+    font-style: normal;
+    max-width: 300px
+}
+
+.container_explore {
+    height: 100vh;
+    width: 100vw;
+    padding: 5vw;
+    display: flex;
+    flex-flow: column;
+    justify-content: center;
+    
+
+
+    &.bg_green {
+       // background: linear-gradient(to bottom, #40e0d0, #20b2aa);
+       background-image: url('assets/images/background.svg');
+       background-size: cover; 
+       background-repeat: no-repeat; 
+       background-position: center center;
+
+    }
+
+    &.bg_blue {
+        background: linear-gradient(to bottom, #e0f7fa, #b2ebf2, #80deea);
+
+    }
+}
+
+.container_explore::before {
+    /* Aplicar desenfoque */
+    z-index: -1; 
+}
+
+.card-content {
+    &_gradient {
+        border-radius: 20px;
+        background: var(--Linear-white, linear-gradient(180deg, rgba(255, 255, 255, 0.30) 0%, rgba(255, 255, 255, 0.80) 100%));
+
+        .card {
+            @include align(20px);
+            color: var(--Colors-Gray-700);
+            text-align: center;
+
+            form {
+                @include align;
+                width: 100%;
+            }
+
+            h1 {
+                @include text_base(20px, 600);
+                color: var(--Colors-Blue-800);
+                margin-block: 20px;
+            }
+
+            .subtitle,
+            .message {
+                @include text_base(16px, 500);
+                color: var(--Colors-Gray-700);
+                text-align: center;
+                line-height: 150%;
+                margin-top: 0;
+                margin-bottom: 10px;
+
+            }
+
+            .subtitle {
+                font-weight: 700;
+            }
+
+            .input-container {
+                border-radius: 10px;
+                padding-block: 10px;
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .content_label {
+                &__start {
+                    text-align: start;
+                }
+            }
+
+            ion-label {
+                color: var(--Colors-Gray-700);
+                font-size: 14px;
+                font-weight: 500;
+            }
+
+            ion-input {
+                font-size: 16px;
+                margin-top: 4px;
+                text-align: start;
+                --padding-top: 12px;
+                --padding-bottom: 12px;
+                --padding-start: 16px;
+                --padding-end: 16px;
+                --highlight-color-focused: var(--Colors-Blue-700);
+                --highlight-color-invalid: var(--Colors-Danger);
+                --highlight-color-valid: var(--Colors-Blue-500);
+
+                &.border {
+                    border-radius: var(--xl, 10px);
+                    border: 1px solid var(--Colors-Blue-500);
+                    background: var(--Colors-Gray-50, #F9FAFB);
+
+                    &.border_error {
+                        border: 1px solid var(--Colors-Danger);
+                    }
+
+                }
+
+            }
+
+            ion-button {
+                max-width: 300px;
+                width: 100%;
+                margin-top: 10px;
+                height: 44px;
+                text-transform: capitalize;
+                font-size: 16px;
+                font-weight: 500;
+                line-height: 150%;
+            }
+
+            .loader {
+                width: 78px;
+            }
+
+            ion-thumbnail {
+                --size: 70px;
+                --border-radius: 14px;
+                width: 70px;
+            }
+
+            .icon {
+                width: 70px;
+                height: 70px;
+            }
+        }
+    }
+
+}
+
+.card_error {
+    @include align(10px);
+    border-radius: var(--xl, 10px);
+    border: 1px solid var(--Gray-300, #D4D4D4);
+    background: var(--White, #FFF);
+    gap: 10px;
+    align-self: stretch;
+
+    .paragraph {
+        @include text_base(16px, 500);
+        color: #525252;
+        margin: 0;
+
+        &.title {
+            color: #E5245E;
+            font-size: 16px;
+            font-weight: 700;
+        }
+    }
+
+}
+
+.exit {
+    color: var(--Colors-Blue-800);
+}
+
+.paragraph {
+    @include text_base(14px, 500);
+
+
+    &.text {
+        @include text_base(16px, 500);
+        color: var(--gray-900);
+
+        /* 18px */
+        &-xs {
+            font-size: 12px;
+        }
+
+        &-sm {
+            font-size: 14px;
+        }
+
+        &-lg {
+            font-size: 18px;
+        }
+
+        &-base {
+            font-size: 16px;
+        }
+    }
+
+}
+
+h2,
+h1 {
+    @include text_base(20px, 600);
+    color: var(--gray-900);
+
+
+    &.text-xl {
+        font-size: 20px;
+    }
+
+    &.text-xxl {
+        font-size: 22px;
+    }
+}
+
+.ref {
+    @include text_base(14px, 500);
+    color: var(--Colors-Blue-800);
+    text-decoration: none;
+
+}
+
+app-pre-register {
+    .message {
+        margin-top: 0;
+    }
+}
+
+app-login {
+    h1 {
+        margin-block: 10px !important;
+    }
+
+    ion-button {
+        margin-top: 0px;
+    }
+
+    .message {
+        margin-bottom: 0;
+    }
+}
