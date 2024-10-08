@@ -1,31 +1,35 @@
 .splash-screen {
-    background-image: url('../../../assets/images/background.svg');
-    background-size: cover; 
-       background-repeat: no-repeat; 
-       background-position: center center;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-  }
-  
-  .leaf-icon {
-    width: 80px;
-    height: 80px;
-    background-color: white;
-    border-radius: 50%;
-    padding: 15px;
-    margin-bottom: 20px;
-  }
-  
-  .powered-by {
-    color: white;
-    font-size: 18px;
-    margin-bottom: 10px;
-  }
-  
-  .make-sens-logo {
-    width: 150px;
-  }
+  background-image: url('../../../assets/images/background.svg');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center center;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.leaf-icon {
+  width: 80px;
+  height: 80px;
+  background-color: white;
+  border-radius: 50%;
+  padding: 15px;
+  margin-bottom: 10px;
+}
+
+.powered-by {
+  color: white;
+  font-size: 20px;
+  margin-bottom: 0;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  margin-top: 0;
+}
+
+.make-sens-logo {
+  width: 150px;
+}

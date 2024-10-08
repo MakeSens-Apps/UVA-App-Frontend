@@ -15,6 +15,4 @@ import { ExploreContainerComponent } from '../../explore-container/explore-conta
 export class Tab1Page {
   constructor() {}
 
-  ngOnInit() {
-  }
 }

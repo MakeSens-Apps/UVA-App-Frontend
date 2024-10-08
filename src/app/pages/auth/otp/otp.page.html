@@ -6,6 +6,7 @@
         #otpInput
         [value]="digit"
         (ionInput)="onOtpChange($event, i)"
+        (ionFocus)="onOtpFocus($event, i)"
         maxlength="1"
         class="otp-input"
         inputmode="numeric"

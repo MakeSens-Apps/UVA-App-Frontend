@@ -4,7 +4,9 @@ import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, 
 import {  IonLabel, IonInput, IonButton, IonRouterOutlet } from '@ionic/angular/standalone';
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
 import { Router, RouterOutlet } from '@angular/router';
+import { Preferences } from '@capacitor/preferences';
 
+export const USER_KEY : string = 'user';
 @Component({
   selector: 'app-register',
   templateUrl: './register.page.html',
@@ -12,7 +14,7 @@ import { Router, RouterOutlet } from '@angular/router';
   standalone: true,
   imports: [IonRouterOutlet,  CommonModule, FormsModule, ExploreContainerComponent,IonLabel,IonInput,IonButton,ReactiveFormsModule, RouterOutlet]
 })
-export class RegisterPage implements OnInit {
+export class RegisterPage {
   form:FormGroup;
   constructor(private formBuilder : FormBuilder, private router : Router) { 
     this.form = this.formBuilder.group({
@@ -22,11 +24,13 @@ export class RegisterPage implements OnInit {
 
   }
 
-  ngOnInit() {
 
-  }
 
-  goToSetNumber(){
+  async goToSetNumber(){
+    await Preferences.set({
+      key: USER_KEY,
+      value: JSON.stringify({...this.form.value})
+    });
     this.router.navigate(['register','set-phone-register'])
   }
 

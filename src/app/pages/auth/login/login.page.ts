@@ -15,7 +15,7 @@ import { AlertComponent } from '@app/components/alert/alert.component';
   standalone: true,
   imports: [ExploreContainerComponent,IonLabel,IonInput, IonButton,ReactiveFormsModule,FormsModule]
 })
-export class LoginPage implements OnInit {
+export class LoginPage  {
   form:FormGroup;
   constructor(private router : Router,private formBuilder : FormBuilder, private modalCtrl: ModalController) {
     this.form = this.formBuilder.group({
@@ -23,8 +23,6 @@ export class LoginPage implements OnInit {
     });
    }
 
-  ngOnInit() {
-  }
 
   goToRegister(){
     this.router.navigate(['pre-register'])
