@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, QueryList, ViewChildren } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, OnInit, QueryList, ViewChildren } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonContent, IonHeader, IonLabel, IonTitle, IonToolbar, IonInput, IonButton } from '@ionic/angular/standalone';
@@ -18,7 +18,7 @@ export class OtpPage implements OnInit {
   phoneNumber: string = '318 522 8374';
   type
   showError: boolean = false;
-  constructor(private router : Router, private route : ActivatedRoute) { 
+  constructor(private router : Router, private route : ActivatedRoute,private ref: ChangeDetectorRef) { 
     this.type = this.route.snapshot.paramMap.get('type');
   }
   
@@ -31,10 +31,17 @@ export class OtpPage implements OnInit {
   startTimer() {
     const interval = setInterval(() => {
       this.timer--;
+      this.ref.detectChanges();
       if (this.timer === 0) {
         clearInterval(interval);
+        this.ref.detectChanges();
       }
     }, 1000);
+  }
+
+  onOtpFocus(event: any, index: number){
+    this.otp[index]='';
+    event.target.value = ''
   }
 
   onOtpChange(event: any, index: number): void {
@@ -82,6 +89,7 @@ export class OtpPage implements OnInit {
       // FIXME: Remove verification
       if (otpValue == '0000') {
         this.showError = true;
+        this.ref.detectChanges();
         // this.otp = ['', '', '', ''];
         return
       }
