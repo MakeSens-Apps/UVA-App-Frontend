@@ -15,11 +15,12 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 export class OtpPage implements OnInit {
   otp: string[] = ['', '', '', ''];
   timer: number = 60;
-  phoneNumber: string = '318 522 8374';
+  phone: string | null = '';
   type
   showError: boolean = false;
   constructor(private router : Router, private route : ActivatedRoute,private ref: ChangeDetectorRef) { 
     this.type = this.route.snapshot.paramMap.get('type');
+    this.phone = this.route.snapshot.paramMap.get('phone');
   }
   
   @ViewChildren('otpInput') otpInputs!: QueryList<IonInput>;
@@ -95,7 +96,7 @@ export class OtpPage implements OnInit {
       }
       // Aquí puedes enviar el formulario o realizar otras acciones
       console.log('Formulario válido');
-      this.router.navigate([`/otp/${this.type}/validate-code`]);
+      this.router.navigate([`/otp/${this.type}/${this.phone}/validate-code`]);
     } else {
       this.showError = false;
     }
