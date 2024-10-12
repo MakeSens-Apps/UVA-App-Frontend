@@ -1,11 +1,11 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
 import { IonButton, IonInput, IonLabel, ModalController } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
-import Swal from 'sweetalert2'
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AlertComponent } from '@app/components/alert/alert.component';
+import { USER_KEY } from '../register/register.page';
+import { Preferences } from '@capacitor/preferences';
 
 
 @Component({
@@ -30,7 +30,6 @@ export class LoginPage  {
 
   goToOtp(){  
     this.abrirModal();
-  //this.router.navigate(['otp/login'])
   }
 
   async abrirModal() {
@@ -47,14 +46,18 @@ export class LoginPage  {
     });
 
     // Recibir la respuesta del modal
-    modal.onDidDismiss().then((data) => {
+    modal.onDidDismiss().then(async (data) => {
       if (data.data.action === 'OK') {
          // FIXME: remove validation
        if (this.form.controls['phone'].value == '0000000000') {
         this.openModalNoRegister();
         return
        }
-        this.router.navigate(['otp/login'])
+       await Preferences.set({ 
+        key:USER_KEY,
+        value: JSON.stringify({...this.form.value})
+      });
+        this.router.navigate(['otp/login',this.form.controls['phone'].value])
       } 
     });
     

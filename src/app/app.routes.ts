@@ -18,7 +18,7 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/auth/register/register.page').then( m => m.RegisterPage)
   },
   {
-    path: 'otp/:type',
+    path: 'otp/:type/:phone',
     loadComponent: () => import('./pages/auth/otp/otp.page').then( m => m.OtpPage)
   },
   {
@@ -30,7 +30,7 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/auth/register/set-phone-register/set-phone-register.page').then( m => m.SetPhoneRegisterPage)
   },
   {
-    path: 'otp/:type/validate-code',
+    path: 'otp/:type/:phone/validate-code',
     loadComponent: () => import('./pages/auth/otp/validate-code/validate-code.page').then( m => m.ValidateCodePage)
   },
   {

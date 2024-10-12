@@ -49,12 +49,11 @@ async ngOnInit() {
     // Recibir la respuesta del modal
     modal.onDidDismiss().then(async (data) => {
       if (data.data.action === 'OK') {
-       // this.router.navigate(['otp/login'])
     await Preferences.set({
       key: USER_KEY,
       value: JSON.stringify({...this.user , ...this.form.value})
     });
-        this.router.navigate(['otp/register'])
+        this.router.navigate(['otp/register',this.form.controls['phone'].value])
       } 
     });
     
