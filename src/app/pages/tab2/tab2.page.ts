@@ -4,8 +4,7 @@ import { ExploreContainerComponent } from '../../explore-container/explore-conta
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 import { Router } from '@angular/router';
-import { Preferences } from '@capacitor/preferences';
-import { USER_KEY } from '../auth/register/register.page';
+import { SessionService } from '@app/core/services/session/session.service';
 
 @Component({
   selector: 'app-tab2',
@@ -16,12 +15,11 @@ import { USER_KEY } from '../auth/register/register.page';
 })
 export class Tab2Page implements OnInit {
 user:any
-  constructor(private router : Router) {}
+  constructor(private router : Router, private session: SessionService) {}
   
 
   async ngOnInit() {
-    const ret = await Preferences.get({ key: USER_KEY });
-    this.user = JSON.parse(ret.value ? ret.value : '');
+    this.user = this.session.getInfo();
     console.log("🚀 ~ Tab2Page ~ ngOnInit ~ this.user:", this.user)
   }
 

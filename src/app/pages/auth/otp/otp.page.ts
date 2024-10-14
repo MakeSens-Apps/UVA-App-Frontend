@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { IonContent, IonHeader, IonLabel, IonTitle, IonToolbar, IonInput, IonButton } from '@ionic/angular/standalone';
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { AuthService } from '@app/core/services/auth/auth.service';
 
 @Component({
   selector: 'app-otp',
@@ -13,7 +14,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
   imports: [IonButton, IonInput, IonContent, IonHeader, IonTitle, IonToolbar, CommonModule, FormsModule,ExploreContainerComponent, IonLabel, RouterLink]
 })
 export class OtpPage implements OnInit {
-  otp: string[] = ['', '', '', ''];
+  otp: string[] = ['', '', '', '','',''];
   timer: number = 60;
   phone: string | null = '';
   type
@@ -85,10 +86,10 @@ export class OtpPage implements OnInit {
   validateForm(){
     console.log('Formulario enviado:', this.otp.join(''));
     const otpValue = this.otp.join('');
-    if(otpValue.length === 4){
+    if(otpValue.length === 6){
 
       // FIXME: Remove verification
-      if (otpValue == '0000') {
+      if (otpValue == '000000') {
         this.showError = true;
         this.ref.detectChanges();
         // this.otp = ['', '', '', ''];
