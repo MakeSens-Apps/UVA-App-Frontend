@@ -4,8 +4,7 @@ import { ExploreContainerComponent } from '@app/explore-container/explore-contai
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Preferences } from '@capacitor/preferences';
-import { USER_KEY } from '../register.page';
+import { SetupService } from '@app/core/services/view/setup/setup.service';
 
 @Component({
   selector: 'app-project-vinculation',
@@ -18,7 +17,7 @@ export class ProjectVinculationPage implements OnInit {
   showError :boolean = false;
   form:FormGroup;
   user : any
-  constructor(private formBuilder : FormBuilder, private router : Router) { 
+  constructor(private formBuilder : FormBuilder, private router : Router, private service:SetupService) { 
     this.form = this.formBuilder.group({
       code: new FormControl('', Validators.compose([Validators.required, Validators.maxLength(6), Validators.minLength(6)])),
     });
@@ -26,8 +25,7 @@ export class ProjectVinculationPage implements OnInit {
 
 
   async ngOnInit() {
-    const ret = await Preferences.get({ key: USER_KEY });
-     this.user = JSON.parse(ret.value ? ret.value : '');
+     this.user = this.service.getParametersUser();
   }
 
   goToValidateProject(){

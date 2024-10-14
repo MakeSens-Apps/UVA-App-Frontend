@@ -4,9 +4,7 @@ import { IonButton, IonInput, IonLabel, ModalController } from '@ionic/angular/s
 import { Router } from '@angular/router';
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AlertComponent } from '@app/components/alert/alert.component';
-import { USER_KEY } from '../register/register.page';
-import { Preferences } from '@capacitor/preferences';
-
+import { SetupService } from '@app/core/services/view/setup/setup.service';
 
 @Component({
   selector: 'app-login',
@@ -17,7 +15,7 @@ import { Preferences } from '@capacitor/preferences';
 })
 export class LoginPage  {
   form:FormGroup;
-  constructor(private router : Router,private formBuilder : FormBuilder, private modalCtrl: ModalController) {
+  constructor(private router : Router,private formBuilder : FormBuilder, private modalCtrl: ModalController, private service:SetupService) {
     this.form = this.formBuilder.group({
       phone: new FormControl('', Validators.compose([Validators.required, Validators.maxLength(10), Validators.minLength(10)])),
     });
@@ -49,14 +47,11 @@ export class LoginPage  {
     modal.onDidDismiss().then(async (data) => {
       if (data.data.action === 'OK') {
          // FIXME: remove validation
-       if (this.form.controls['phone'].value == '0000000000') {
-        this.openModalNoRegister();
-        return
-       }
-       await Preferences.set({ 
-        key:USER_KEY,
-        value: JSON.stringify({...this.form.value})
-      });
+        const response = await this.service.signIn(this.form.controls['phone'].value);
+        if (response.error.name == "UserNotFoundException") {
+          this.openModalNoRegister();
+          return
+        }
         this.router.navigate(['otp/login',this.form.controls['phone'].value])
       } 
     });

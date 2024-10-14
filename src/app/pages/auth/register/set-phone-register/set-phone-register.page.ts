@@ -4,8 +4,7 @@ import { ExploreContainerComponent } from '@app/explore-container/explore-contai
 import { Router } from '@angular/router';
 import { ReactiveFormsModule, FormsModule, FormGroup, FormBuilder, FormControl, Validators } from '@angular/forms';
 import { AlertComponent } from '@app/components/alert/alert.component';
-import { Preferences } from '@capacitor/preferences';
-import { USER_KEY } from '../register.page';
+import { SetupService } from '@app/core/services/view/setup/setup.service';
 
 @Component({
   selector: 'app-set-phone-register',
@@ -17,7 +16,7 @@ import { USER_KEY } from '../register.page';
 export class SetPhoneRegisterPage implements OnInit  {
   form:FormGroup;
   user:any
-  constructor(private router : Router,private formBuilder : FormBuilder, private modalCtrl: ModalController) {
+  constructor(private router : Router,private formBuilder : FormBuilder, private modalCtrl: ModalController, private service : SetupService) {
     this.form = this.formBuilder.group({
       phone: new FormControl('', Validators.compose([Validators.required, Validators.maxLength(10), Validators.minLength(10)])),
     });
@@ -25,8 +24,7 @@ export class SetPhoneRegisterPage implements OnInit  {
 
 
 async ngOnInit() {
-  const ret = await Preferences.get({ key: USER_KEY });
-  this.user = JSON.parse(ret.value ? ret.value : '');
+  this.user = (await this.service.getParametersUser());
   console.log("🚀 ~ SetPhoneRegisterPage ~ modal.onDidDismiss ~ this.user:", this.user)
 }
   goToOtp(){
@@ -49,10 +47,9 @@ async ngOnInit() {
     // Recibir la respuesta del modal
     modal.onDidDismiss().then(async (data) => {
       if (data.data.action === 'OK') {
-    await Preferences.set({
-      key: USER_KEY,
-      value: JSON.stringify({...this.user , ...this.form.value})
-    });
+
+        const response = this.service.signUp('+57' + this.form.controls['phone'].value);
+        console.log(response);
         this.router.navigate(['otp/register',this.form.controls['phone'].value])
       } 
     });
