@@ -1,0 +1,55 @@
+@import 'src/theme/mixins.scss';
+
+.card_moon_container{
+    position: relative;
+    margin-block: 10px;
+}
+
+.card_moon {
+    display: flex;
+    padding: 0px 20px;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 16px;
+    background: var(--Colors-Gray-700);
+    margin-inline: 16px;
+    padding: 16px;
+   
+
+
+    .moon {
+        width: 56px;
+        height: 56px;
+    }
+
+    .card_text {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        .title{
+            line-height: 150%;
+            @include text_base(18px,600);
+            color: #fff;
+        }
+        .subTitle{
+            @include text_base(14px,500);
+            line-height: 150%;
+            color: var(--Colors-Gray-300);;
+        }
+    }
+
+    ion-icon{
+        color: white;
+    }
+}
+
+
+.eclipses{
+    position: absolute;
+    top: 0;
+    /* width: 91%; */
+    height: 100%;
+    margin-inline: 16px;
+
+}
