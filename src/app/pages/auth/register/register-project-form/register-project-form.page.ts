@@ -4,6 +4,7 @@ import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, 
 import { IonButton, IonContent, IonHeader, IonInput, IonLabel, IonTitle, IonToolbar } from '@ionic/angular/standalone';
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
 import { Router } from '@angular/router';
+import { SetupService } from '@app/core/services/view/setup/setup.service';
 
 @Component({
   selector: 'app-register-project-form',
@@ -12,21 +13,25 @@ import { Router } from '@angular/router';
   standalone: true,
   imports: [ CommonModule, FormsModule, ExploreContainerComponent,IonLabel,IonInput,IonButton,ReactiveFormsModule]
 })
-export class RegisterProjectFormPage implements OnInit {
+export class RegisterProjectFormPage  {
 
   icon : string = "../../../../../assets/images/LogoNaturaColombia.svg";
   form:FormGroup;
-  constructor(private formBuilder : FormBuilder, private router : Router) { 
+  user: any;
+  constructor(private formBuilder : FormBuilder, private router : Router, private service:SetupService) { 
     this.form = this.formBuilder.group({
       nameFarm: new FormControl('', [Validators.required, Validators.minLength(4)]),
       nameLane: new FormControl('',[Validators.required, Validators.minLength(4)]),
       nameMunicipality: new FormControl('',[Validators.required, Validators.minLength(4)])
     });
   }
-  ngOnInit() {
-  }
 
-  goToCompleted(){
+  async goToCompleted(){
+    this.user = this.service.getParametersUser();
+    /*await Preferences.set({ 
+      key:USER_KEY,
+      value: JSON.stringify({...this.user , ...this.form.value})
+    });*/
     this.router.navigate(['register','register-completed'])
   }
 

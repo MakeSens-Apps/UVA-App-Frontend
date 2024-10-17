@@ -10,7 +10,7 @@ import { IonButton, ModalController, IonContent, IonCard } from '@ionic/angular/
   standalone: true,
   encapsulation: ViewEncapsulation.None,
 })
-export class AlertComponent  implements OnInit {
+export class AlertComponent   {
   @Input() content: string = '';             // Contenido HTML dinámico del modal
   @Input() ShowCancelButton: boolean = true;             
   @Input() textCancelButton: string = '';             
@@ -20,8 +20,6 @@ export class AlertComponent  implements OnInit {
 
   constructor(private modalCtrl: ModalController) { }
 
-  ngOnInit() {
-  }
   // Cierra el modal
   dismiss(button:string) {
     this.modalCtrl.dismiss({ action: button });
