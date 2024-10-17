@@ -1,0 +1,23 @@
+<div class="cards">
+  @if(hasHeader){
+    <ng-content select="[header]"></ng-content>
+  }
+  
+  <ion-card-content>
+    <div class="calendar">
+      <div class="day" *ngFor="let day of ['D', 'L', 'M', 'M', 'J', 'V', 'S']">{{ day }}</div>
+        <div *ngFor="let date of calendar">
+          <app-day [day]="date.dayOfMonth!" [isToday]="date.dayOfMonth === today" [state]=" date.state"></app-day>
+        </div>
+       
+    </div>
+
+    <ng-content select="[footer]"></ng-content>
+    
+  
+  </ion-card-content>
+</div>
+
+
+
+
