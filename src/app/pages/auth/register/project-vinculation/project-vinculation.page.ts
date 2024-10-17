@@ -4,6 +4,7 @@ import { ExploreContainerComponent } from '@app/explore-container/explore-contai
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { SetupService } from '@app/core/services/view/setup/setup.service';
 
 @Component({
   selector: 'app-project-vinculation',
@@ -12,13 +13,19 @@ import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, 
   standalone: true,
   imports: [ExploreContainerComponent, IonLabel, IonInput, IonButton,CommonModule,FormsModule, ReactiveFormsModule,RouterLink]
 })
-export class ProjectVinculationPage  {
+export class ProjectVinculationPage implements OnInit {
   showError :boolean = false;
   form:FormGroup;
-  constructor(private formBuilder : FormBuilder, private router : Router) { 
+  user : any
+  constructor(private formBuilder : FormBuilder, private router : Router, private service:SetupService) { 
     this.form = this.formBuilder.group({
       code: new FormControl('', Validators.compose([Validators.required, Validators.maxLength(6), Validators.minLength(6)])),
     });
+  }
+
+
+  async ngOnInit() {
+     this.user = this.service.getParametersUser();
   }
 
   goToValidateProject(){

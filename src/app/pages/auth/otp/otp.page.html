@@ -1,4 +1,4 @@
-<app-explore-container title="Verifica tu teléfono" message="Ingresa el código de 4 dígitos que enviamos a tus mensajes al número: {{phoneNumber}}">
+<app-explore-container title="Verifica tu teléfono" message="Ingresa el código de 6 dígitos que enviamos a tus mensajes al número: {{phone}}">
   <form>
     <div class="otp-container">
       <ion-input
@@ -6,6 +6,7 @@
         #otpInput
         [value]="digit"
         (ionInput)="onOtpChange($event, i)"
+        (ionFocus)="onOtpFocus($event, i)"
         maxlength="1"
         class="otp-input"
         inputmode="numeric"
@@ -30,7 +31,7 @@
       </p>
     </div>
 
-    <ion-button expand="block" color="uva_green-700" *ngIf="!timer" (click)="resetTime()">Reenviar Codigo</ion-button>
+    <ion-button expand="block" color="uva_green-700" *ngIf="!timer" class="text-transform_none" (click)="resetTime()">Reenviar código</ion-button>
     <ion-button expand="block" class="exit"  fill="clear" routerLink="/login"> salir</ion-button>
   </form>
 </app-explore-container>

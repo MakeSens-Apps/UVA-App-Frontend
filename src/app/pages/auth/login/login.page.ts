@@ -1,12 +1,10 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
 import { IonButton, IonInput, IonLabel, ModalController } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
-import Swal from 'sweetalert2'
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AlertComponent } from '@app/components/alert/alert.component';
-
+import { SetupService } from '@app/core/services/view/setup/setup.service';
 
 @Component({
   selector: 'app-login',
@@ -15,16 +13,14 @@ import { AlertComponent } from '@app/components/alert/alert.component';
   standalone: true,
   imports: [ExploreContainerComponent,IonLabel,IonInput, IonButton,ReactiveFormsModule,FormsModule]
 })
-export class LoginPage implements OnInit {
+export class LoginPage  {
   form:FormGroup;
-  constructor(private router : Router,private formBuilder : FormBuilder, private modalCtrl: ModalController) {
+  constructor(private router : Router,private formBuilder : FormBuilder, private modalCtrl: ModalController, private service:SetupService) {
     this.form = this.formBuilder.group({
       phone: new FormControl('', Validators.compose([Validators.required, Validators.maxLength(10), Validators.minLength(10)])),
     });
    }
 
-  ngOnInit() {
-  }
 
   goToRegister(){
     this.router.navigate(['pre-register'])
@@ -32,7 +28,6 @@ export class LoginPage implements OnInit {
 
   goToOtp(){  
     this.abrirModal();
-  //this.router.navigate(['otp/login'])
   }
 
   async abrirModal() {
@@ -49,14 +44,15 @@ export class LoginPage implements OnInit {
     });
 
     // Recibir la respuesta del modal
-    modal.onDidDismiss().then((data) => {
+    modal.onDidDismiss().then(async (data) => {
       if (data.data.action === 'OK') {
          // FIXME: remove validation
-       if (this.form.controls['phone'].value == '0000000000') {
-        this.openModalNoRegister();
-        return
-       }
-        this.router.navigate(['otp/login'])
+        const response = await this.service.signIn(this.form.controls['phone'].value);
+        if (response.error.name == "UserNotFoundException") {
+          this.openModalNoRegister();
+          return
+        }
+        this.router.navigate(['otp/login',this.form.controls['phone'].value])
       } 
     });
     

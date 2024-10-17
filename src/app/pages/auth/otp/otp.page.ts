@@ -1,9 +1,10 @@
-import { Component, ElementRef, OnInit, QueryList, ViewChildren } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, OnInit, QueryList, ViewChildren } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonContent, IonHeader, IonLabel, IonTitle, IonToolbar, IonInput, IonButton } from '@ionic/angular/standalone';
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { AuthService } from '@app/core/services/auth/auth.service';
 
 @Component({
   selector: 'app-otp',
@@ -13,13 +14,14 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
   imports: [IonButton, IonInput, IonContent, IonHeader, IonTitle, IonToolbar, CommonModule, FormsModule,ExploreContainerComponent, IonLabel, RouterLink]
 })
 export class OtpPage implements OnInit {
-  otp: string[] = ['', '', '', ''];
+  otp: string[] = ['', '', '', '','',''];
   timer: number = 60;
-  phoneNumber: string = '318 522 8374';
+  phone: string | null = '';
   type
   showError: boolean = false;
-  constructor(private router : Router, private route : ActivatedRoute) { 
+  constructor(private router : Router, private route : ActivatedRoute,private ref: ChangeDetectorRef) { 
     this.type = this.route.snapshot.paramMap.get('type');
+    this.phone = this.route.snapshot.paramMap.get('phone');
   }
   
   @ViewChildren('otpInput') otpInputs!: QueryList<IonInput>;
@@ -31,10 +33,17 @@ export class OtpPage implements OnInit {
   startTimer() {
     const interval = setInterval(() => {
       this.timer--;
+      this.ref.detectChanges();
       if (this.timer === 0) {
         clearInterval(interval);
+        this.ref.detectChanges();
       }
     }, 1000);
+  }
+
+  onOtpFocus(event: any, index: number){
+    this.otp[index]='';
+    event.target.value = ''
   }
 
   onOtpChange(event: any, index: number): void {
@@ -77,17 +86,18 @@ export class OtpPage implements OnInit {
   validateForm(){
     console.log('Formulario enviado:', this.otp.join(''));
     const otpValue = this.otp.join('');
-    if(otpValue.length === 4){
+    if(otpValue.length === 6){
 
       // FIXME: Remove verification
-      if (otpValue == '0000') {
+      if (otpValue == '000000') {
         this.showError = true;
+        this.ref.detectChanges();
         // this.otp = ['', '', '', ''];
         return
       }
       // Aquí puedes enviar el formulario o realizar otras acciones
       console.log('Formulario válido');
-      this.router.navigate([`/otp/${this.type}/validate-code`]);
+      this.router.navigate([`/otp/${this.type}/${this.phone}/validate-code`]);
     } else {
       this.showError = false;
     }
