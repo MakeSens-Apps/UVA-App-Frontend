@@ -19,9 +19,17 @@ export class LoginPage  {
     this.form = this.formBuilder.group({
       phone: new FormControl('', Validators.compose([Validators.required, Validators.maxLength(10), Validators.minLength(10)])),
     });
+    this.service.currentAuthenticatedUser().then(response =>{
+      if(response){
+        this.goToHome();
+      }
+    });
+
    }
 
-
+   goToHome(){
+    this.router.navigate(['home']);
+   }
   goToRegister(){
     this.router.navigate(['pre-register'])
   }
@@ -47,10 +55,12 @@ export class LoginPage  {
     modal.onDidDismiss().then(async (data) => {
       if (data.data.action === 'OK') {
          // FIXME: remove validation
-        const response = await this.service.signIn(this.form.controls['phone'].value);
-        if (response.error.name == "UserNotFoundException") {
-          this.openModalNoRegister();
-          return
+        const response = await this.service.signIn("+57"+this.form.controls['phone'].value);
+        if(!response.success){
+          if(response.error.name == "UserNotFoundException"){
+            this.openModalNoRegister();
+            return
+          }
         }
         this.router.navigate(['otp/login',this.form.controls['phone'].value])
       } 
