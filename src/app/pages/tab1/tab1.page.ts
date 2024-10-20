@@ -16,7 +16,7 @@ import { MoonCardComponent } from "../../components/moon-card/moon-card.componen
   templateUrl: 'tab1.page.html',
   styleUrls: ['tab1.page.scss'],
   standalone: true,
-  imports: [IonHeader, IonToolbar, IonTitle, ExploreContainerComponent, CommonModule, IonicModule, CalendarComponent, HeaderComponent, ProgressBarComponent, MoonCardComponent]
+  imports: [ CommonModule, IonicModule, CalendarComponent, HeaderComponent, ProgressBarComponent, MoonCardComponent]
 
 })
 export class Tab1Page {

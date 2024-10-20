@@ -7,7 +7,7 @@ import { IonProgressBar } from '@ionic/angular/standalone';
   templateUrl: './progress-bar.component.html',
   styleUrls: ['./progress-bar.component.scss'],
   standalone: true,
-  imports:[IonicModule]
+  imports:[IonProgressBar]
 })
 export class ProgressBarComponent  implements OnInit {
 

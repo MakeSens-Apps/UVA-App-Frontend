@@ -52,16 +52,6 @@ ion-content {
   @include text_base(16px, 700);
 }
 
-ion-footer {
-  ion-toolbar {
-    --background: #16a085;
-    --color: #fff;
-
-    ion-button {
-      color: #fff;
-    }
-  }
-}
 
 // Add this to your global styles (src/global.scss) or adjust the component styles accordingly
 ion-content::part(background) {
