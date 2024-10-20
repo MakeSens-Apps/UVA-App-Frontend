@@ -135,7 +135,8 @@ export class OtpPage implements OnInit {
               this.ref.detectChanges();
               return
             }
-            console.log('Formulario válido');
+            console.log('Creando nuevo usaurio');
+            //CreateUSER
             this.router.navigate([`/otp/${this.type}/${this.phone}/validate-code`]);
           });
           break;

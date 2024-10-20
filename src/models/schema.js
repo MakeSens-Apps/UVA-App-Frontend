@@ -27,7 +27,7 @@ export const schema = {
                 "Configuration": {
                     "name": "Configuration",
                     "isArray": false,
-                    "type": "AWSJSON",
+                    "type": "String",
                     "isRequired": false,
                     "attributes": []
                 },
@@ -231,6 +231,13 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
+                "completedTasks": {
+                    "name": "completedTasks",
+                    "isArray": false,
+                    "type": "Int",
+                    "isRequired": false,
+                    "attributes": []
+                },
                 "userID": {
                     "name": "userID",
                     "isArray": false,
@@ -421,52 +428,45 @@ export const schema = {
                     "isRequired": true,
                     "attributes": []
                 },
-                "Latitude": {
-                    "name": "Latitude",
+                "latitude": {
+                    "name": "latitude",
                     "isArray": false,
                     "type": "String",
                     "isRequired": false,
                     "attributes": []
                 },
-                "Longitude": {
-                    "name": "Longitude",
+                "longitude": {
+                    "name": "longitude",
                     "isArray": false,
                     "type": "String",
                     "isRequired": false,
                     "attributes": []
                 },
-                "Altitude": {
-                    "name": "Altitude",
+                "altitude": {
+                    "name": "altitude",
                     "isArray": false,
                     "type": "String",
                     "isRequired": false,
                     "attributes": []
                 },
-                "FarmName": {
-                    "name": "FarmName",
+                "fields": {
+                    "name": "fields",
                     "isArray": false,
-                    "type": "String",
+                    "type": "AWSJSON",
                     "isRequired": false,
                     "attributes": []
                 },
-                "VillageName": {
-                    "name": "VillageName",
-                    "isArray": false,
-                    "type": "String",
-                    "isRequired": false,
-                    "attributes": []
-                },
-                "TownName": {
-                    "name": "TownName",
-                    "isArray": false,
-                    "type": "String",
-                    "isRequired": false,
-                    "attributes": []
-                },
-                "Enabled": {
-                    "name": "Enabled",
+                "enabled": {
+                    "name": "enabled",
                     "isArray": false,
                     "type": "Boolean",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "createdAt": {
+                    "name": "createdAt",
+                    "isArray": false,
+                    "type": "AWSDateTime",
                     "isRequired": false,
                     "attributes": []
                 },
@@ -515,14 +515,6 @@ export const schema = {
                     "isRequired": true,
                     "attributes": []
                 },
-                "createdAt": {
-                    "name": "createdAt",
-                    "isArray": false,
-                    "type": "AWSDateTime",
-                    "isRequired": false,
-                    "attributes": [],
-                    "isReadOnly": true
-                },
                 "updatedAt": {
                     "name": "updatedAt",
                     "isArray": false,
@@ -553,8 +545,10 @@ export const schema = {
                     "type": "key",
                     "properties": {
                         "name": "byRACIMO",
+                        "queryField": "UVAsByRacimoID",
                         "fields": [
-                            "racimoID"
+                            "racimoID",
+                            "createdAt"
                         ]
                     }
                 },
@@ -580,5 +574,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "6295a37dba1cc97bd2857fb3fb8c6b26"
+    "version": "e87ccb8815655d77ee3f635cdc86f5cb"
 };
