@@ -9,7 +9,8 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "lint": "eslint . --ext .ts"
+    "lint": "eslint . --ext .ts",
+    "update-graphql": "npx @aws-amplify/cli codegen"
   },
   "private": true,
   "dependencies": {

@@ -1,49 +1,16 @@
 {
-  "develop": {
+  "test": {
     "awscloudformation": {
-      "AuthRoleName": "amplify-uvav2-develop-d454f-authRole",
-      "UnauthRoleArn": "arn:aws:iam::913045965320:role/amplify-uvav2-develop-d454f-unauthRole",
-      "AuthRoleArn": "arn:aws:iam::913045965320:role/amplify-uvav2-develop-d454f-authRole",
+      "AuthRoleName": "amplify-uvav2-test-f6bfe-authRole",
+      "UnauthRoleArn": "arn:aws:iam::913045965320:role/amplify-uvav2-test-f6bfe-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::913045965320:role/amplify-uvav2-test-f6bfe-authRole",
       "Region": "us-east-1",
-      "DeploymentBucketName": "amplify-uvav2-develop-d454f-deployment",
-      "UnauthRoleName": "amplify-uvav2-develop-d454f-unauthRole",
-      "StackName": "amplify-uvav2-develop-d454f",
-      "StackId": "arn:aws:cloudformation:us-east-1:913045965320:stack/amplify-uvav2-develop-d454f/39b113a0-7e7e-11ef-836b-129c2a520219",
+      "DeploymentBucketName": "amplify-uvav2-test-f6bfe-deployment",
+      "UnauthRoleName": "amplify-uvav2-test-f6bfe-unauthRole",
+      "StackName": "amplify-uvav2-test-f6bfe",
+      "StackId": "arn:aws:cloudformation:us-east-1:913045965320:stack/amplify-uvav2-test-f6bfe/485231a0-7e7e-11ef-87d3-0affd3e6c83b",
       "AmplifyAppId": "d2l8hh51bqhq16",
-      "AuthTriggerTemplateURL": "https://s3.amazonaws.com/amplify-uvav2-develop-d454f-deployment/amplify-cfn-templates/auth/auth-trigger-cloudformation-template.json"
-    },
-    "categories": {
-      "auth": {
-        "UVAV2": {}
-      },
-      "function": {
-        "UVAV2PostConfirmation": {
-          "deploymentBucketName": "amplify-uvav2-develop-d454f-deployment",
-          "s3Key": "amplify-builds/UVAV2PostConfirmation-783079373272707a3777-build.zip"
-        },
-        "UVAV2PreAuthentication": {
-          "deploymentBucketName": "amplify-uvav2-develop-d454f-deployment",
-          "s3Key": "amplify-builds/UVAV2PreAuthentication-43505678674d73343846-build.zip"
-        }
-      }
-    }
-  },
-  "staging": {
-    "awscloudformation": {
-      "AuthRoleName": "amplify-uvav2-staging-87577-authRole",
-      "UnauthRoleArn": "arn:aws:iam::913045965320:role/amplify-uvav2-staging-87577-unauthRole",
-      "AuthRoleArn": "arn:aws:iam::913045965320:role/amplify-uvav2-staging-87577-authRole",
-      "Region": "us-east-1",
-      "DeploymentBucketName": "amplify-uvav2-staging-87577-deployment",
-      "UnauthRoleName": "amplify-uvav2-staging-87577-unauthRole",
-      "StackName": "amplify-uvav2-staging-87577",
-      "StackId": "arn:aws:cloudformation:us-east-1:913045965320:stack/amplify-uvav2-staging-87577/90fbea00-705e-11ef-a5ef-0ec9635c0aa1",
-      "AmplifyAppId": "d2l8hh51bqhq16"
-    },
-    "categories": {
-      "auth": {
-        "UVAV2": {}
-      }
+      "AuthTriggerTemplateURL": "https://s3.amazonaws.com/amplify-uvav2-test-f6bfe-deployment/amplify-cfn-templates/auth/auth-trigger-cloudformation-template.json"
     }
   }
 }
