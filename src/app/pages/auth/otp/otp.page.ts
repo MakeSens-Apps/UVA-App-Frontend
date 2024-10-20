@@ -1,29 +1,60 @@
-import { ChangeDetectorRef, Component, ElementRef, OnInit, QueryList, ViewChildren } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  OnInit,
+  QueryList,
+  ViewChildren,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonContent, IonHeader, IonLabel, IonTitle, IonToolbar, IonInput, IonButton } from '@ionic/angular/standalone';
+import {
+  IonContent,
+  IonHeader,
+  IonLabel,
+  IonTitle,
+  IonToolbar,
+  IonInput,
+  IonButton,
+} from '@ionic/angular/standalone';
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { AuthService } from '@app/core/services/auth/auth.service';
-
+import { SetupService } from '@app/core/services/view/setup/setup.service';
 @Component({
   selector: 'app-otp',
   templateUrl: './otp.page.html',
   styleUrls: ['./otp.page.scss'],
   standalone: true,
-  imports: [IonButton, IonInput, IonContent, IonHeader, IonTitle, IonToolbar, CommonModule, FormsModule,ExploreContainerComponent, IonLabel, RouterLink]
+  imports: [
+    IonButton,
+    IonInput,
+    IonContent,
+    IonHeader,
+    IonTitle,
+    IonToolbar,
+    CommonModule,
+    FormsModule,
+    ExploreContainerComponent,
+    IonLabel,
+    RouterLink,
+  ],
 })
 export class OtpPage implements OnInit {
-  otp: string[] = ['', '', '', '','',''];
+  otp: string[] = ['', '', '', '', '', ''];
   timer: number = 60;
   phone: string | null = '';
-  type
+  type;
   showError: boolean = false;
-  constructor(private router : Router, private route : ActivatedRoute,private ref: ChangeDetectorRef) { 
+  constructor(
+    private router: Router,
+    private route: ActivatedRoute,
+    private ref: ChangeDetectorRef,
+    private service: SetupService
+  ) {
     this.type = this.route.snapshot.paramMap.get('type');
     this.phone = this.route.snapshot.paramMap.get('phone');
   }
-  
+
   @ViewChildren('otpInput') otpInputs!: QueryList<IonInput>;
 
   ngOnInit() {
@@ -41,9 +72,9 @@ export class OtpPage implements OnInit {
     }, 1000);
   }
 
-  onOtpFocus(event: any, index: number){
-    this.otp[index]='';
-    event.target.value = ''
+  onOtpFocus(event: any, index: number) {
+    this.otp[index] = '';
+    event.target.value = '';
   }
 
   onOtpChange(event: any, index: number): void {
@@ -51,7 +82,7 @@ export class OtpPage implements OnInit {
 
     // Solo permitir dígitos y asegurarse de que no se ingrese más de un carácter
     if (value.length <= 1 && /^\d*$/.test(value)) {
-      this.otp[index] = value;  // Almacenar el valor en la posición correcta
+      this.otp[index] = value; // Almacenar el valor en la posición correcta
 
       // Si hay valor y no estamos en el último campo, mover al siguiente input
       if (value !== '' && index < this.otp.length - 1) {
@@ -62,9 +93,8 @@ export class OtpPage implements OnInit {
       }
       if (index === this.otp.length - 1) {
         // Si estamos en el último campo, enviar el formulario
-        this.validateForm()
+        this.validateForm();
       }
-
     } else {
       // Si el valor no es válido, vaciar el input
       this.otp[index] = '';
@@ -77,34 +107,50 @@ export class OtpPage implements OnInit {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   }
 
-  resetTime(){
-    this.timer = 60
+  resetTime() {
+    this.timer = 60;
     this.startTimer();
   }
 
-
-  validateForm(){
+  validateForm() {
     console.log('Formulario enviado:', this.otp.join(''));
     const otpValue = this.otp.join('');
-    if(otpValue.length === 6){
-
-      // FIXME: Remove verification
-      if (otpValue == '000000') {
-        this.showError = true;
-        this.ref.detectChanges();
-        // this.otp = ['', '', '', ''];
-        return
+    console.log(otpValue);
+    if (otpValue.length === 6) {
+      switch(this.type){
+        case 'login':
+          this.service.confirmSignIn(otpValue).then(response =>{
+            if(response == false){
+              this.showError = true;
+              this.ref.detectChanges();
+              return
+            }
+            this.router.navigate([`/home`]);
+          });
+          break;
+        case 'register':
+          this.service.confirmSignUp(otpValue).then(response =>{
+            if(response == false){
+              this.showError = true;
+              this.ref.detectChanges();
+              return
+            }
+            console.log('Formulario válido');
+            this.router.navigate([`/otp/${this.type}/${this.phone}/validate-code`]);
+          });
+          break;
+        default:
+          console.error("NO SE MAPEA EL TIPO DE OTP DE ESTA VISTA");
+          break
       }
-      // Aquí puedes enviar el formulario o realizar otras acciones
-      console.log('Formulario válido');
-      this.router.navigate([`/otp/${this.type}/${this.phone}/validate-code`]);
+      
+      
     } else {
       this.showError = false;
     }
-
   }
 
-  goToHome(){
+  goToHome() {
     this.router.navigate(['/login']);
   }
 
@@ -112,5 +158,3 @@ export class OtpPage implements OnInit {
     return index;
   }
 }
-
-
