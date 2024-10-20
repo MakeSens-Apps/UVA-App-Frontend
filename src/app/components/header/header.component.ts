@@ -8,10 +8,9 @@ import { IonChip, IonHeader, IonIcon, IonToolbar ,IonAvatar, IonLabel } from '@i
   standalone: true,
   imports:[ IonHeader,IonIcon,IonToolbar,IonChip ,IonAvatar,IonLabel]
 })
-export class HeaderComponent  implements OnInit {
+export class HeaderComponent  {
 
   constructor() { }
 
-  ngOnInit() {}
 
 }
