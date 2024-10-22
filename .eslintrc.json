@@ -1,28 +1,28 @@
 {
   "root": true,
   "parser": "@typescript-eslint/parser",
-  "ignorePatterns": ["projects/**/*"],
+  "ignorePatterns": ["projects/**/*", "*.spec.ts"],
   "plugins": [
     "@typescript-eslint"
   ],
-  "rules":{
-     // 1. Usar comillas simples
-     "quotes": ["warn", "single", { "avoidEscape": true, "allowTemplateLiterals": true }],
+  "rules": {
+    // 1. Usar comillas simples
+    "quotes": ["warn", "single", { "avoidEscape": true, "allowTemplateLiterals": true }],
     
-     // 2. Punto y coma obligatorio
-     "semi": ["error", "always"],
-     
-     // 3. No permitir `any`
-     "@typescript-eslint/no-explicit-any": "error",
-     
-     // 4. Añadir llaves en sentencias condicionales y bucles
-     "curly": ["error", "all"],
+    // 2. Punto y coma obligatorio
+    "semi": ["error", "always"],
+    
+    // 3. No permitir `any`
+    "@typescript-eslint/no-explicit-any": "error",
+    
+    // 4. Añadir llaves en sentencias condicionales y bucles
+    "curly": ["error", "all"],
  
-     // 5. No permitir interfaces vacías
-     "@typescript-eslint/no-empty-interface": "error",
-     
-     // 5. Evitar bloques vacíos en general
-     "no-empty": ["error", { "allowEmptyCatch": true }]
+    // 5. No permitir interfaces vacías
+    "@typescript-eslint/no-empty-interface": "error",
+    
+    // 6. Evitar bloques vacíos en general
+    "no-empty": ["error", { "allowEmptyCatch": true }]
   },
   "overrides": [
     {
