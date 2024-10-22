@@ -9,8 +9,7 @@
       "UnauthRoleName": "amplify-uvav2-test-f6bfe-unauthRole",
       "StackName": "amplify-uvav2-test-f6bfe",
       "StackId": "arn:aws:cloudformation:us-east-1:913045965320:stack/amplify-uvav2-test-f6bfe/485231a0-7e7e-11ef-87d3-0affd3e6c83b",
-      "AmplifyAppId": "d2l8hh51bqhq16",
-      "AuthTriggerTemplateURL": "https://s3.amazonaws.com/amplify-uvav2-test-f6bfe-deployment/amplify-cfn-templates/auth/auth-trigger-cloudformation-template.json"
+      "AmplifyAppId": "d2l8hh51bqhq16"
     }
   }
 }
