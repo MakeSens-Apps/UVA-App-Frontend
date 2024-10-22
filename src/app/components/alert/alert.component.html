@@ -1,19 +1,21 @@
-
-  <ion-card>
-     <div class="modal-container">
-      <div [innerHTML]="content"></div>
-      <div class="button-container">
-        @if(ShowCancelButton){
-          <ion-button fill="outline" (click)="actionButton('CANCEL')" color="uva_blue-500">{{textCancelButton}}</ion-button>
-  
-        }
-        <ion-button (click)="actionButton('OK')" color="uva_blue-500">{{textOkButton}}</ion-button>
-      </div>
+<ion-card>
+  <div class="modal-container">
+    <div [innerHTML]="content"></div>
+    <div class="button-container">
+      @if (ShowCancelButton) {
+        <ion-button
+          fill="outline"
+          (click)="actionButton('CANCEL')"
+          color="uva_blue-500"
+          >{{ textCancelButton }}</ion-button
+        >
+      }
+      <ion-button (click)="actionButton('OK')" color="uva_blue-500">{{
+        textOkButton
+      }}</ion-button>
     </div>
-  </ion-card> 
-   
-
-  
+  </div>
+</ion-card>
 
 <!-- <ion-content class="ion-padding">
   <div class="modal-header">

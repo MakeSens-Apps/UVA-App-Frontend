@@ -8,7 +8,6 @@ import { Session, sessionKeys } from 'src/models/session.model';
   providedIn: 'root',
 })
 export class SessionService {
-
   private keys = {
     userID: 'userID',
     name: 'name',
@@ -16,7 +15,7 @@ export class SessionService {
     phone: 'phone',
     racimoID: 'racimoID',
     uvaID: 'uvaID',
-    linkCode: 'linkCode'
+    linkCode: 'linkCode',
   };
 
   // Guardar información parcial o completa en Preferences
@@ -37,31 +36,29 @@ export class SessionService {
     // Recorre las claves del modelo y recupera los valores de Preferences
     for (const key of sessionKeys) {
       const { value } = await Preferences.get({ key: key as string });
-  
+
       // Solo asignamos si obtenemos un valor
       if (value) {
-        session[key] = value;  // Guardamos el valor en el campo correspondiente de session
+        session[key] = value; // Guardamos el valor en el campo correspondiente de session
       }
     }
-  
+
     return session;
   }
 
   // Guardar o actualizar un campo específico en Preferences
   async setInfoField(key: keyof Session, value: string | undefined) {
+    if (value !== undefined) {
+      // Solo actualizamos si el valor no es undefined
 
-  if (value !== undefined) {
-    // Solo actualizamos si el valor no es undefined
-
-    await Preferences.set({
-      key: key as string,  // Preferences requiere el key como string
-      value: value
-    });
-  } else {
-    // Si se pasa undefined, eliminamos el valor de Preferences
-    await Preferences.remove({ key: key as string });
-  }
-
+      await Preferences.set({
+        key: key as string, // Preferences requiere el key como string
+        value: value,
+      });
+    } else {
+      // Si se pasa undefined, eliminamos el valor de Preferences
+      await Preferences.remove({ key: key as string });
+    }
   }
 
   // Borrar toda la información almacenada (por ejemplo, al cerrar sesión)

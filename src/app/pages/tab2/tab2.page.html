@@ -4,7 +4,7 @@
     <div class="user-info">
       <span class="egg-count">3</span>
       <ion-icon name="egg-outline"></ion-icon>
-    <!--   <ion-avatar>
+      <!--   <ion-avatar>
         <img src="assets/avatar-placeholder.png" alt="User avatar">
       </ion-avatar> -->
     </div>
@@ -21,8 +21,17 @@
     </ion-card-header>
     <ion-card-content>
       <div class="calendar">
-        <div class="day" *ngFor="let day of ['D', 'L', 'M', 'M', 'J', 'V', 'S']">{{ day }}</div>
-        <div class="date" *ngFor="let date of [2, 3, 4, 5, 6, 7, 8]" [ngClass]="{'active': date <= 5, 'current': date === 6}">
+        <div
+          class="day"
+          *ngFor="let day of ['D', 'L', 'M', 'M', 'J', 'V', 'S']"
+        >
+          {{ day }}
+        </div>
+        <div
+          class="date"
+          *ngFor="let date of [2, 3, 4, 5, 6, 7, 8]"
+          [ngClass]="{'active': date <= 5, 'current': date === 6}"
+        >
           {{ date < 10 ? '0' + date : date }}
           <ion-icon name="checkmark-outline" *ngIf="date <= 5"></ion-icon>
         </div>
@@ -59,11 +68,11 @@
   </ion-card>
 
   {{user | json}}
-  <ion-button (click)="close()" color="uva_green-700" expand="block"  >
+  <ion-button (click)="close()" color="uva_green-700" expand="block">
     cerrar sección
   </ion-button>
 
-<!--   <ion-footer>
+  <!--   <ion-footer>
     <ion-toolbar>
       <ion-buttons slot="start">
         <ion-button>
