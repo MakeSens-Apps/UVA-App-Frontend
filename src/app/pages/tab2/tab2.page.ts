@@ -5,7 +5,7 @@ import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { SessionService } from '@app/core/services/session/session.service';
-
+import { SetupService } from '@app/core/services/view/setup/setup.service';
 @Component({
   selector: 'app-tab2',
   templateUrl: 'tab2.page.html',
@@ -15,7 +15,11 @@ import { SessionService } from '@app/core/services/session/session.service';
 })
 export class Tab2Page implements OnInit {
 user:any
-  constructor(private router : Router, private session: SessionService) {}
+  constructor(
+    private router : Router, 
+    private session: SessionService,
+    private service: SetupService
+  ) {}
   
 
   async ngOnInit() {
@@ -24,8 +28,13 @@ user:any
   }
 
   close() {
-    this.router.navigate([''],{
-      replaceUrl: true
-    })
+    this.service.signOut().then(response =>{
+      if(response){
+        this.session.clearSession();
+        this.router.navigate([''],{
+          replaceUrl: true
+        });
+      }
+    });
   }
 }

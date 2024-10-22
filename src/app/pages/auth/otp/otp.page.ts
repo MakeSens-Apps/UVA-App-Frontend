@@ -6,6 +6,8 @@ import {
   QueryList,
   ViewChildren,
 } from '@angular/core';
+import { AlertController } from '@ionic/angular';
+
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -49,7 +51,8 @@ export class OtpPage implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private ref: ChangeDetectorRef,
-    private service: SetupService
+    private service: SetupService,
+    private alertController: AlertController
   ) {
     this.type = this.route.snapshot.paramMap.get('type');
     this.phone = this.route.snapshot.paramMap.get('phone');
@@ -108,6 +111,17 @@ export class OtpPage implements OnInit {
   }
 
   resetTime() {
+    switch(this.type){
+      case 'login':
+        this.service.reSendCodeSignIn();
+        break;
+    case 'register':
+        this.service.reSendCodeSignUp();
+      break;
+    default :
+      break
+    }
+    
     this.timer = 60;
     this.startTimer();
   }
@@ -136,8 +150,22 @@ export class OtpPage implements OnInit {
               return
             }
             console.log('Creando nuevo usaurio');
-            //CreateUSER
-            this.router.navigate([`/otp/${this.type}/${this.phone}/validate-code`]);
+            this.service.createNewUser().then(isCreatedUser => {
+              if(isCreatedUser){
+                this.router.navigate([`/otp/${this.type}/${this.phone}/validate-code`]);
+              }
+              else{
+                this.alertController.create({
+                  header: 'Alerta',
+                  subHeader: 'Este es un subtítulo',
+                  message: 'Este es un mensaje de alerta.',
+                  buttons: ['Aceptar'] // O puedes usar un array de botones personalizados
+                }).then(alert =>{
+                  alert.present();
+                });
+              
+              }
+            });
           });
           break;
         default:
