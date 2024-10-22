@@ -2,13 +2,24 @@ import { Injectable } from '@angular/core';
 import { AuthService,AuthResponse } from '@app/core/services/auth/auth.service';
 import { SessionService } from '../../session/session.service';
 import { Session } from 'src/models/session.model';
-
+import { UserAPIService } from '../../api/user-api.service';
+import { UserProgressAPIService } from '../../api/user-progress-api.service';
 @Injectable({
   providedIn: 'root',
 })
 export class SetupService {
-  constructor(private auth: AuthService, private sesion: SessionService) {}
-
+  constructor(
+    private auth: AuthService, 
+    private sesion: SessionService, 
+    private userAPI: UserAPIService, 
+    private userProgressAPI: UserProgressAPIService
+  ) {}
+  
+  async signOut():Promise<boolean>{
+    const response = await this.auth.SignOut();
+    return response.success;
+  }
+  
   async signIn(phone: string): Promise<AuthResponse> {
     const response = await this.auth.SignIn(phone);
     if (response.success) {
@@ -23,7 +34,7 @@ export class SetupService {
     return response.success;
   }
 
-  async sendCodeConfirmation():Promise<boolean> {
+  async reSendCodeSignIn():Promise<boolean> {
     const phone: string = (await this.sesion.getInfo()).phone ?? '';
     if (phone != '') {
       return (await this.signIn(phone)).success;
@@ -62,13 +73,21 @@ export class SetupService {
   }
 
   async confirmSignUp(code: string): Promise<boolean> {
+    const phone:string = (await this.sesion.getInfo()).phone ?? '';
     const response = await this.auth.ConfirmSignUp(
-      (await this.sesion.getInfo()).phone ?? '',
+      phone,
       code
     );
     return response.success;
   }
   
+  async reSendCodeSignUp():Promise<boolean> {
+    const phone: string = (await this.sesion.getInfo()).phone ?? '';
+    if (phone != '') {
+      return (await this.signUp(phone));
+    }
+    return false;
+  }
   async currentAuthenticatedUser(): Promise<boolean> {
     const response = await this.auth.CurrentAuthenticatedUser();
     if(response.success && this.auth.isGetCurrentUserOutput(response.data)){
@@ -76,6 +95,29 @@ export class SetupService {
       this.sesion.setInfoField("phone", response.data.username);
     }
     return response.success;
+  }
+
+  async createNewUser():Promise<boolean>{
+    const userID = (await this.sesion.getInfo()).userID ?? '';
+    const name = (await this.sesion.getInfo()).name ?? '';
+    const lastName = (await this.sesion.getInfo()).lastName ?? '';
+    const phone = (await this.sesion.getInfo()).phone ?? '';
+
+    const response = await this.userAPI.createUser({
+      id: userID,
+      Name: name,
+      LastName: lastName,
+      PhoneNumber: phone,
+    });
+    if(response.success){
+      await this.userProgressAPI.createUserProgress({
+        userID: userID,
+        ts: new Date().toISOString(),
+        Seed: 0,
+        Streak: 0,
+      });
+    }
+    return true;
   }
 }
 
