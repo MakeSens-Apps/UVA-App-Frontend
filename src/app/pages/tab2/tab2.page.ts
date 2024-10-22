@@ -1,5 +1,10 @@
 import { Component, OnInit } from '@angular/core';
-import { IonHeader, IonToolbar, IonTitle, IonContent } from '@ionic/angular/standalone';
+import {
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonContent,
+} from '@ionic/angular/standalone';
 import { ExploreContainerComponent } from '../../explore-container/explore-container.component';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
@@ -11,28 +16,34 @@ import { SetupService } from '@app/core/services/view/setup/setup.service';
   templateUrl: 'tab2.page.html',
   styleUrls: ['tab2.page.scss'],
   standalone: true,
-  imports: [IonHeader, IonToolbar, IonTitle, ExploreContainerComponent,CommonModule, IonicModule]
+  imports: [
+    IonHeader,
+    IonToolbar,
+    IonTitle,
+    ExploreContainerComponent,
+    CommonModule,
+    IonicModule,
+  ],
 })
 export class Tab2Page implements OnInit {
-user:any
+  user: any;
   constructor(
-    private router : Router, 
+    private router: Router,
     private session: SessionService,
-    private service: SetupService
+    private service: SetupService,
   ) {}
-  
 
   async ngOnInit() {
     this.user = this.session.getInfo();
-    console.log("🚀 ~ Tab2Page ~ ngOnInit ~ this.user:", this.user)
+    console.log('🚀 ~ Tab2Page ~ ngOnInit ~ this.user:', this.user);
   }
 
   close() {
-    this.service.signOut().then(response =>{
-      if(response){
+    this.service.signOut().then((response) => {
+      if (response) {
         this.session.clearSession();
-        this.router.navigate([''],{
-          replaceUrl: true
+        this.router.navigate([''], {
+          replaceUrl: true,
         });
       }
     });

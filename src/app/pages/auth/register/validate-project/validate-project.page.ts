@@ -8,21 +8,21 @@ import { IonicModule } from '@ionic/angular';
   templateUrl: './validate-project.page.html',
   styleUrls: ['./validate-project.page.scss'],
   standalone: true,
-  imports: [ExploreContainerComponent, IonicModule, RouterLink]
+  imports: [ExploreContainerComponent, IonicModule, RouterLink],
 })
 export class ValidateProjectPage implements OnInit {
-  loader: string = '../../../../../assets/images/loader.gif'
-  timer :any;
+  loader: string = '../../../../../assets/images/loader.gif';
+  timer: any;
 
-  constructor(private router : Router) { }
+  constructor(private router: Router) {}
 
   ngOnInit() {
-   this.timer = setTimeout(() => {
-        this.router.navigate(['register','project-vinculation-done'])
+    this.timer = setTimeout(() => {
+      this.router.navigate(['register', 'project-vinculation-done']);
     }, 2 * 1000);
   }
 
   cancelTimer() {
-    clearTimeout(this.timer)
+    clearTimeout(this.timer);
   }
 }

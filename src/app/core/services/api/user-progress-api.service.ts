@@ -1,10 +1,13 @@
 import { Injectable } from '@angular/core';
 import { generateClient } from 'aws-amplify/api';
 import { createUserProgress } from 'src/graphql/mutations';
-import { CreateUserProgressInput,CreateUserProgressMutation } from 'src/API';
-import { handleAPIError, APIErrorResponse} from './errors-handle/errors-api.service'
+import { CreateUserProgressInput, CreateUserProgressMutation } from 'src/API';
+import {
+  handleAPIError,
+  APIErrorResponse,
+} from './errors-handle/errors-api.service';
 
-const client = generateClient()
+const client = generateClient();
 
 interface AuthSuccessResponse {
   success: true;
@@ -13,31 +16,27 @@ interface AuthSuccessResponse {
 export type APIUserProgressResponse = AuthSuccessResponse | APIErrorResponse;
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
-
-
 export class UserProgressAPIService {
+  constructor() {}
 
-  constructor() { }
-
-  async createUserProgress(userProgress:CreateUserProgressInput): Promise<APIUserProgressResponse>{
-    try{
+  async createUserProgress(
+    userProgress: CreateUserProgressInput,
+  ): Promise<APIUserProgressResponse> {
+    try {
       const response = await client.graphql({
         query: createUserProgress,
         variables: {
-          input:userProgress
-        }
+          input: userProgress,
+        },
       });
-      if(response.errors){
-        return {success:false, error:handleAPIError(response.errors)};
+      if (response.errors) {
+        return { success: false, error: handleAPIError(response.errors) };
       }
-      return {success: true, data:response.data};
+      return { success: true, data: response.data };
+    } catch (err) {
+      return { success: false, error: handleAPIError(err) };
     }
-    catch(err){
-      return {success:false, error:handleAPIError(err)};
-    }
-    
   }
-    
 }
