@@ -51,16 +51,15 @@ export class RegisterPage {
     });
   }
 
-  async goToSetNumber() {
-    console.log(this.form.value);
+  async goToSetNumber(): Promise<boolean> {
     await this.service.setParametersUser(
       this.form.value.name,
       this.form.value.lastName,
     );
-    this.router.navigate(['register', 'set-phone-register']);
+    return this.router.navigate(['register', 'set-phone-register']);
   }
 
-  setErrorInput($event: any, formName: string) {
+  setErrorInput($event: Event, formName: string): void {
     if (this.form.controls[formName].invalid) {
       ($event.target as HTMLInputElement).classList.add('border_error');
     } else {

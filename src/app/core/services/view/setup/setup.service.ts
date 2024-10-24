@@ -49,7 +49,7 @@ export class SetupService {
     return await this.sesion.getInfo();
   }
 
-  async setParametersUser(name: string, lastName: string) {
+  async setParametersUser(name: string, lastName: string): Promise<void> {
     await this.sesion.setInfoField('name', name);
     await this.sesion.setInfoField('lastName', lastName);
   }
@@ -89,8 +89,8 @@ export class SetupService {
   async currentAuthenticatedUser(): Promise<boolean> {
     const response = await this.auth.CurrentAuthenticatedUser();
     if (response.success && this.auth.isGetCurrentUserOutput(response.data)) {
-      this.sesion.setInfoField('userID', response.data.userId);
-      this.sesion.setInfoField('phone', response.data.username);
+      await this.sesion.setInfoField('userID', response.data.userId);
+      await this.sesion.setInfoField('phone', response.data.username);
     }
     return response.success;
   }

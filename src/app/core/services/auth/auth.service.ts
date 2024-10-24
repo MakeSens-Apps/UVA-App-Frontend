@@ -2,21 +2,23 @@ import { Injectable } from '@angular/core';
 import {
   signIn,
   getCurrentUser,
-  type SignInInput,
   confirmSignIn,
   signOut,
   SignInOutput,
-  ConfirmSignInInput,
 } from 'aws-amplify/auth';
 import {
   signUp,
   confirmSignUp,
   GetCurrentUserOutput,
-  type ConfirmSignUpInput,
   resendSignUpCode,
   SignUpOutput,
   AuthError,
 } from 'aws-amplify/auth';
+
+interface SignOutResult {
+  success: boolean;
+  error?: errorAuthResponse; // El campo 'error' es opcional ya que solo se incluye en caso de fallo
+}
 
 interface errorAuthResponse {
   mensage?: string;
@@ -45,9 +47,9 @@ export type AuthResponse = AuthSuccessResponse | AuthErrorResponse;
 export class AuthService {
   constructor() {}
   private handleAuthError(err: unknown): errorAuthResponse {
-    console.error(err);
     if (err instanceof AuthError) {
       // Manejo específico para AuthError
+      console.error(err.name);
       switch (err.name) {
         case 'UserNotFoundException':
           return {
@@ -65,8 +67,10 @@ export class AuthService {
           return { name: err.name, mensage: err.message, type: 'unknown' };
       }
     } else if (err instanceof Error) {
+      console.error('unexpecteError');
       return { name: 'unexpecteError', mensage: err.message, type: 'unknown' };
     } else {
+      console.error('unknownerror');
       return {
         name: 'unknownerror',
         mensage: 'unknown error',
@@ -75,7 +79,9 @@ export class AuthService {
     }
   }
   // Type Guard para GetCurrentUserOutput
-  isGetCurrentUserOutput(data: any): data is GetCurrentUserOutput {
+  isGetCurrentUserOutput(
+    data: SignInOutput | SignUpOutput | GetCurrentUserOutput,
+  ): data is GetCurrentUserOutput {
     return (data as GetCurrentUserOutput) !== undefined;
   }
 
@@ -115,9 +121,9 @@ export class AuthService {
    * Cierra la sesión del usuario actual.
    * @returns {Promise<AuthResponse>} La respuesta con el resultado de cerrar sesión.
    */
-  async SignOut(): Promise<any> {
+  async SignOut(): Promise<SignOutResult> {
     try {
-      signOut();
+      await signOut();
       return { success: true };
     } catch (err: unknown) {
       return { success: false, error: this.handleAuthError(err) };
@@ -184,11 +190,8 @@ export class AuthService {
   async ResendVerificationCode(phone: string): Promise<boolean> {
     try {
       await resendSignUpCode({ username: phone });
-      console.log('Verification code resent');
       return true;
     } catch (err) {
-      console.error('Error resending the code:', this.handleAuthError(err));
-      throw new Error('Error resending the code');
       return false;
     }
   }
@@ -196,7 +199,6 @@ export class AuthService {
   async CurrentAuthenticatedUser(): Promise<AuthResponse> {
     try {
       const currentUser = await getCurrentUser();
-      console.log('El usuario ya está autenticado:', currentUser);
       return { success: true, data: currentUser };
     } catch (err: unknown) {
       return { success: false, error: this.handleAuthError(err) };

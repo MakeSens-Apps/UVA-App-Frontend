@@ -2,32 +2,122 @@
   "root": true,
   "parser": "@typescript-eslint/parser",
   "ignorePatterns": ["projects/**/*", "*.spec.ts"],
-  "plugins": [
-    "@typescript-eslint"
-  ],
+  "env": {
+    "browser": true,
+    "node": true
+  },
+  "plugins": ["@typescript-eslint"],
   "rules": {
     // 1. Usar comillas simples
-    "quotes": ["warn", "single", { "avoidEscape": true, "allowTemplateLiterals": true }],
-    
+    "quotes": [
+      "warn",
+      "single",
+      { "avoidEscape": true, "allowTemplateLiterals": true }
+    ],
+    // Obliga a usar comillas simples para las cadenas de texto. Permite comillas dobles si hay que escapar o si se utilizan literales de plantilla.
+
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      { "argsIgnorePattern": "^_" }
+    ],
+    // Genera un error si hay variables no utilizadas. Permite ignorar argumentos que comienzan con "_" para facilitar el uso de funciones que no utilizan todos sus parámetros.
+
+    "@typescript-eslint/explicit-function-return-type": [
+      "error",
+      {
+        "allowExpressions": true
+      }
+    ],
+    // Obliga a que todas las funciones y métodos tengan un tipo de retorno explícito, salvo en expresiones. Esto mejora la claridad del código y ayuda a la inferencia de tipos.
+
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    // Permite el uso de console.warn y console.error, pero advierte sobre el uso de console.log para evitar la depuración accidental en producción.
+
+    "@typescript-eslint/ban-ts-comment": [
+      "error",
+      {
+        "ts-ignore": "allow-with-description"
+      }
+    ],
+    // Prohíbe el uso de comentarios @ts-ignore sin una descripción, lo que promueve una mejor documentación sobre por qué se ignoran ciertos errores de TypeScript.
+
+    "@typescript-eslint/no-empty-function": [
+      "error",
+      { "allow": ["constructors"] }
+    ],
+    // Prohíbe las funciones vacías a menos que sean constructores. Esto ayuda a evitar código innecesario o potencialmente problemático.
+
+    "@typescript-eslint/no-non-null-assertion": "error",
+    // Prohíbe el uso de aserciones no nulas (!) para prevenir errores en tiempo de ejecución al acceder a valores que pueden ser nulos o indefinidos.
+
+    "@typescript-eslint/consistent-type-assertions": "error",
+    // Obliga a usar un estilo consistente para las aserciones de tipo. Esto mejora la legibilidad y la mantenibilidad del código.
+
+    "@typescript-eslint/no-inferrable-types": "error",
+    // Prohíbe la declaración de tipos que se pueden inferir. Ayuda a reducir la redundancia y a mantener el código más limpio.
+
     // 2. Punto y coma obligatorio
     "semi": ["error", "always"],
-    
+    // Obliga a terminar todas las declaraciones con punto y coma. Esto previene errores de interpretación de JavaScript en ciertas situaciones.
+
     // 3. No permitir `any`
     "@typescript-eslint/no-explicit-any": "error",
-    
+    // Prohíbe el uso del tipo 'any', lo que promueve el uso de tipos más específicos y mejora la seguridad del tipo.
+
     // 4. Añadir llaves en sentencias condicionales y bucles
     "curly": ["error", "all"],
- 
+    // Obliga a usar llaves en todas las sentencias condicionales y bucles para mejorar la claridad y prevenir errores.
+
     // 5. No permitir interfaces vacías
     "@typescript-eslint/no-empty-interface": "error",
-    
+    // Prohíbe la creación de interfaces vacías, lo que fomenta la definición de tipos más significativos y útiles.
+
     // 6. Evitar bloques vacíos en general
-    "no-empty": ["error", { "allowEmptyCatch": true }]
+    "no-empty": ["error", { "allowEmptyCatch": true }],
+    // Prohíbe bloques vacíos, excepto los bloques catch vacíos, para evitar código innecesario.
+
+    "@typescript-eslint/type-annotation-spacing": [
+      "error",
+      { "after": true, "before": false }
+    ],
+    // Obliga a un espacio después de los dos puntos en las anotaciones de tipo, lo que mejora la legibilidad.
+
+    "@typescript-eslint/no-unused-expressions": "error",
+    // Prohíbe las expresiones no utilizadas, ayudando a mantener el código limpio y evitando errores lógicos.
+
+    "@typescript-eslint/consistent-indexed-object-style": ["error", "record"],
+    // Obliga a usar un estilo consistente para los objetos indexados, lo que ayuda a mantener un enfoque coherente en el código.
+
+    "@typescript-eslint/no-var-requires": "error",
+    // Prohíbe el uso de 'require' en lugar de 'import', promoviendo el uso de la sintaxis de módulo ES6.
+
+    "@typescript-eslint/prefer-optional-chain": "error",
+    // Promueve el uso de la cadena opcional (?.) en lugar de múltiples verificaciones nulas, lo que simplifica el código.
+
+    "@typescript-eslint/array-type": ["error", { "default": "array" }],
+    // Obliga a usar el estilo "T[]" para declarar tipos de matriz en lugar de 'Array<T>', lo que es más común en TypeScript.
+
+    "@typescript-eslint/no-floating-promises": "error",
+    // Prohíbe las promesas sin manejar, ayudando a asegurar que todas las promesas se manejen adecuadamente.
+
+    "@typescript-eslint/no-misused-promises": "error",
+    // Prohíbe el uso incorrecto de promesas, por ejemplo, en funciones que no son asíncronas. Esto ayuda a prevenir errores sutiles.
+
+    "@typescript-eslint/explicit-module-boundary-types": "error",
+    // Obliga a especificar tipos de retorno para funciones que se exportan, lo que mejora la claridad de la API del módulo.
+
+    "@typescript-eslint/naming-convention": [
+      "error",
+      { "selector": "variable", "format": ["camelCase"] },
+      { "selector": "function", "format": ["camelCase"] },
+      { "selector": "class", "format": ["PascalCase"] }
+    ]
+    // Prohíbe convenciones de nombres inconsistentes. Obliga a que las variables y funciones utilicen 'camelCase' y las clases 'PascalCase', lo que mejora la legibilidad y la coherencia del código.
   },
   "overrides": [
     {
       "files": ["*.ts"],
-      
+
       "parserOptions": {
         "project": ["tsconfig.json"],
         "createDefaultProgram": true

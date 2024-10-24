@@ -1,11 +1,4 @@
-import {
-  Component,
-  EventEmitter,
-  Input,
-  OnInit,
-  Output,
-  ViewEncapsulation,
-} from '@angular/core';
+import { Component, Input, ViewEncapsulation } from '@angular/core';
 
 import {
   IonButton,
@@ -23,23 +16,21 @@ import {
   encapsulation: ViewEncapsulation.None,
 })
 export class AlertComponent {
-  @Input() content: string = ''; // Contenido HTML dinámico del modal
-  @Input() ShowCancelButton: boolean = true;
-  @Input() textCancelButton: string = '';
-  @Input() textOkButton: string = '';
-
-  // @Output() ButtonSelected = new EventEmitter<string>();     // Para emitir qué botón fue seleccionado
+  @Input() content = ''; // Contenido HTML dinámico del modal
+  @Input() ShowCancelButton = true;
+  @Input() textCancelButton = '';
+  @Input() textOkButton = '';
 
   constructor(private modalCtrl: ModalController) {}
 
   // Cierra el modal
-  dismiss(button: string) {
-    this.modalCtrl.dismiss({ action: button });
+  dismiss(button: string): Promise<boolean> {
+    return this.modalCtrl.dismiss({ action: button });
   }
 
   // Ejecuta la acción del botón
-  actionButton(button: any) {
+  actionButton(button: string): Promise<Boolean> {
     // Emitir el rol del botón (puedes usar "aceptar", "cancelar", etc.)
-    this.dismiss(button); // Cerrar el modal después de la acción
+    return this.dismiss(button); // Cerrar el modal después de la acción
   }
 }

@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   IonButton,
@@ -30,12 +30,12 @@ export class PreRegisterPage {
     private ref: ChangeDetectorRef,
   ) {}
 
-  checkTerm($event: any) {
-    this.enabledButton = $event.target.checked;
+  checkTerm($event: Event): void {
+    this.enabledButton = ($event.target as HTMLInputElement).checked;
     this.ref.detectChanges();
   }
 
-  goToRegister() {
-    this.router.navigate(['register']);
+  goToRegister(): void {
+    void this.router.navigate(['register']);
   }
 }

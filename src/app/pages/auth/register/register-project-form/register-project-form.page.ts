@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -8,19 +8,11 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import {
-  IonButton,
-  IonContent,
-  IonHeader,
-  IonInput,
-  IonLabel,
-  IonTitle,
-  IonToolbar,
-} from '@ionic/angular/standalone';
+import { IonButton, IonInput, IonLabel } from '@ionic/angular/standalone';
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
 import { Router } from '@angular/router';
 import { SetupService } from '@app/core/services/view/setup/setup.service';
-
+import { Session } from 'src/models/session.model';
 @Component({
   selector: 'app-register-project-form',
   templateUrl: './register-project-form.page.html',
@@ -37,9 +29,9 @@ import { SetupService } from '@app/core/services/view/setup/setup.service';
   ],
 })
 export class RegisterProjectFormPage {
-  icon: string = '../../../../../assets/images/LogoNaturaColombia.svg';
+  icon = '../../../../../assets/images/LogoNaturaColombia.svg';
   form: FormGroup;
-  user: any;
+  user: Session | null = null;
   constructor(
     private formBuilder: FormBuilder,
     private router: Router,
@@ -61,16 +53,12 @@ export class RegisterProjectFormPage {
     });
   }
 
-  async goToCompleted() {
-    this.user = this.service.getParametersUser();
-    /*await Preferences.set({ 
-      key:USER_KEY,
-      value: JSON.stringify({...this.user , ...this.form.value})
-    });*/
-    this.router.navigate(['register', 'register-completed']);
+  async goToCompleted(): Promise<void> {
+    this.user = await this.service.getParametersUser();
+    await this.router.navigate(['register', 'register-completed']);
   }
 
-  setErrorInput($event: any, formName: string) {
+  setErrorInput($event: Event, formName: string): void {
     if (this.form.controls[formName].invalid) {
       ($event.target as HTMLInputElement).classList.add('border_error');
     } else {
