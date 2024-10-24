@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 
 import { Preferences } from '@capacitor/preferences';
-import { SequenceError } from 'rxjs';
 import { Session, sessionKeys } from 'src/models/session.model';
 
 @Injectable({
@@ -19,7 +18,7 @@ export class SessionService {
   };
 
   // Guardar información parcial o completa en Preferences
-  async setInfo(userInfo: Session) {
+  async setInfo(userInfo: Session): Promise<void> {
     // Recorre las claves del objeto `userInfo` y guarda los valores en Preferences
     for (const key of Object.keys(userInfo)) {
       const value = userInfo[key as keyof Session];
@@ -47,7 +46,10 @@ export class SessionService {
   }
 
   // Guardar o actualizar un campo específico en Preferences
-  async setInfoField(key: keyof Session, value: string | undefined) {
+  async setInfoField(
+    key: keyof Session,
+    value: string | undefined,
+  ): Promise<void> {
     if (value !== undefined) {
       // Solo actualizamos si el valor no es undefined
 
@@ -62,7 +64,7 @@ export class SessionService {
   }
 
   // Borrar toda la información almacenada (por ejemplo, al cerrar sesión)
-  async clearSession() {
-    await Preferences.clear();
+  clearSession(): void {
+    void Preferences.clear();
   }
 }

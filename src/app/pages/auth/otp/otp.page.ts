@@ -1,7 +1,6 @@
 import {
   ChangeDetectorRef,
   Component,
-  ElementRef,
   OnInit,
   QueryList,
   ViewChildren,
@@ -43,10 +42,10 @@ import { SetupService } from '@app/core/services/view/setup/setup.service';
 })
 export class OtpPage implements OnInit {
   otp: string[] = ['', '', '', '', '', ''];
-  timer: number = 60;
+  timer = 60;
   phone: string | null = '';
   type;
-  showError: boolean = false;
+  showError = false;
   constructor(
     private router: Router,
     private route: ActivatedRoute,
@@ -60,11 +59,11 @@ export class OtpPage implements OnInit {
 
   @ViewChildren('otpInput') otpInputs!: QueryList<IonInput>;
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.startTimer();
   }
 
-  startTimer() {
+  startTimer(): void {
     const interval = setInterval(() => {
       this.timer--;
       this.ref.detectChanges();
@@ -75,13 +74,13 @@ export class OtpPage implements OnInit {
     }, 1000);
   }
 
-  onOtpFocus(event: any, index: number) {
+  onOtpFocus(event: Event, index: number): void {
     this.otp[index] = '';
-    event.target.value = '';
+    (event.target as HTMLInputElement).value = '';
   }
 
-  onOtpChange(event: any, index: number): void {
-    const value = event.target.value;
+  onOtpChange(event: Event, index: number): void {
+    const value = (event.target as HTMLInputElement).value;
 
     // Solo permitir dígitos y asegurarse de que no se ingrese más de un carácter
     if (value.length <= 1 && /^\d*$/.test(value)) {
@@ -91,12 +90,12 @@ export class OtpPage implements OnInit {
       if (value !== '' && index < this.otp.length - 1) {
         const nextInput = this.otpInputs.toArray()[index + 1];
         if (nextInput) {
-          nextInput.setFocus();
+          void nextInput.setFocus();
         }
       }
       if (index === this.otp.length - 1) {
         // Si estamos en el último campo, enviar el formulario
-        this.validateForm();
+        void this.validateForm();
       }
     } else {
       // Si el valor no es válido, vaciar el input
@@ -110,13 +109,13 @@ export class OtpPage implements OnInit {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   }
 
-  resetTime() {
+  async resetTime(): Promise<void> {
     switch (this.type) {
       case 'login':
-        this.service.reSendCodeSignIn();
+        await this.service.reSendCodeSignIn();
         break;
       case 'register':
-        this.service.reSendCodeSignUp();
+        await this.service.reSendCodeSignUp();
         break;
       default:
         break;
@@ -126,49 +125,48 @@ export class OtpPage implements OnInit {
     this.startTimer();
   }
 
-  validateForm() {
-    console.log('Formulario enviado:', this.otp.join(''));
+  async validateForm(): Promise<void> {
     const otpValue = this.otp.join('');
-    console.log(otpValue);
     if (otpValue.length === 6) {
       switch (this.type) {
-        case 'login':
-          this.service.confirmSignIn(otpValue).then((response) => {
-            if (response == false) {
-              this.showError = true;
-              this.ref.detectChanges();
-              return;
-            }
-            this.router.navigate([`/home`]);
-          });
+        case 'login': {
+          const responseLogin = await this.service.confirmSignIn(otpValue);
+          if (responseLogin == false) {
+            this.showError = true;
+            this.ref.detectChanges();
+            return;
+          }
+          await this.router.navigate([`/home`]);
           break;
+        }
         case 'register':
-          this.service.confirmSignUp(otpValue).then((response) => {
-            if (response == false) {
+          {
+            const responseRegister = await this.service.confirmSignUp(otpValue);
+            if (responseRegister == false) {
               this.showError = true;
               this.ref.detectChanges();
               return;
             }
-            console.log('Creando nuevo usaurio');
-            this.service.createNewUser().then((isCreatedUser) => {
-              if (isCreatedUser) {
-                this.router.navigate([
-                  `/otp/${this.type}/${this.phone}/validate-code`,
-                ]);
-              } else {
-                this.alertController
-                  .create({
-                    header: 'Alerta',
-                    subHeader: 'Este es un subtítulo',
-                    message: 'Este es un mensaje de alerta.',
-                    buttons: ['Aceptar'], // O puedes usar un array de botones personalizados
-                  })
-                  .then((alert) => {
-                    alert.present();
-                  });
-              }
-            });
-          });
+            const responseNewUser = await this.service.createNewUser();
+            if (responseNewUser) {
+              await this.router.navigate([
+                `/otp/${this.type}/${this.phone}/validate-code`,
+              ]);
+            } else {
+              //FIXME: Hay que desplegar una alerta real en relacion a la no creacion del usuario y manejar el error
+              await this.alertController
+                .create({
+                  header: 'Alerta',
+                  subHeader: 'Este es un subtítulo',
+                  message: 'Este es un mensaje de alerta.',
+                  buttons: ['Aceptar'], // O puedes usar un array de botones personalizados
+                })
+                .then((alert) => {
+                  void alert.present();
+                });
+            }
+          }
+
           break;
         default:
           console.error('NO SE MAPEA EL TIPO DE OTP DE ESTA VISTA');
@@ -179,11 +177,11 @@ export class OtpPage implements OnInit {
     }
   }
 
-  goToHome() {
-    this.router.navigate(['/login']);
+  goToHome(): void {
+    void this.router.navigate(['/login']);
   }
 
-  trackByIndex(index: number, item: any): number {
+  trackByIndex(index: number): number {
     return index;
   }
 }

@@ -11,18 +11,20 @@ import { IonicModule } from '@ionic/angular';
   imports: [ExploreContainerComponent, IonicModule, RouterLink],
 })
 export class ValidateProjectPage implements OnInit {
-  loader: string = '../../../../../assets/images/loader.gif';
-  timer: any;
+  loader = '../../../../../assets/images/loader.gif';
+  timer: ReturnType<typeof setTimeout> | undefined;
 
   constructor(private router: Router) {}
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.timer = setTimeout(() => {
-      this.router.navigate(['register', 'project-vinculation-done']);
+      void this.router.navigate(['register', 'project-vinculation-done']);
     }, 2 * 1000);
   }
 
-  cancelTimer() {
-    clearTimeout(this.timer);
+  cancelTimer(): void {
+    if (this.timer !== undefined) {
+      clearTimeout(this.timer);
+    }
   }
 }

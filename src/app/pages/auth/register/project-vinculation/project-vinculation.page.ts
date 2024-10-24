@@ -12,7 +12,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { SetupService } from '@app/core/services/view/setup/setup.service';
-
+import { Session } from 'src/models/session.model';
 @Component({
   selector: 'app-project-vinculation',
   templateUrl: './project-vinculation.page.html',
@@ -30,9 +30,9 @@ import { SetupService } from '@app/core/services/view/setup/setup.service';
   ],
 })
 export class ProjectVinculationPage implements OnInit {
-  showError: boolean = false;
+  showError = false;
   form: FormGroup;
-  user: any;
+  user: Session | null = null;
   constructor(
     private formBuilder: FormBuilder,
     private router: Router,
@@ -50,11 +50,11 @@ export class ProjectVinculationPage implements OnInit {
     });
   }
 
-  async ngOnInit() {
-    this.user = this.service.getParametersUser();
+  async ngOnInit(): Promise<void> {
+    this.user = await this.service.getParametersUser();
   }
 
-  goToValidateProject() {
+  goToValidateProject(): void {
     if (this.form.value.code == '000000') {
       console.log(
         '🚀 ~ ProjectVinculationPage ~ goToValidateProject ~ this.form.value:',
@@ -63,6 +63,6 @@ export class ProjectVinculationPage implements OnInit {
       this.showError = true;
       return;
     }
-    this.router.navigate(['register/validate-project']);
+    void this.router.navigate(['register/validate-project']);
   }
 }

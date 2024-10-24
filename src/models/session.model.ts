@@ -7,7 +7,7 @@ export interface Session {
   uvaID?: string;
   linkCode?: string;
 }
-export const sessionKeys: Array<keyof Session> = [
+export const sessionKeys: (keyof Session)[] = [
   'userID',
   'name',
   'lastName',

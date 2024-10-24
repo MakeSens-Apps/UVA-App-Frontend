@@ -50,25 +50,30 @@ export class LoginPage {
         ]),
       ),
     });
-    this.service.currentAuthenticatedUser().then((response) => {
-      if (response) {
-        this.goToHome();
-      }
-    });
+    this.service
+      .currentAuthenticatedUser()
+      .then((response) => {
+        if (response) {
+          void this.goToHome();
+        }
+      })
+      .catch((err) => {
+        console.error('No encontro un usuario', err);
+      });
   }
 
-  goToHome() {
-    this.router.navigate(['home']);
+  goToHome(): Promise<boolean> {
+    return this.router.navigate(['home']);
   }
-  goToRegister() {
-    this.router.navigate(['pre-register']);
-  }
-
-  goToOtp() {
-    this.abrirModal();
+  goToRegister(): Promise<boolean> {
+    return this.router.navigate(['pre-register']);
   }
 
-  async abrirModal() {
+  goToOtp(): void {
+    void this.abrirModal();
+  }
+
+  async abrirModal(): Promise<void> {
     const modal = await this.modalCtrl.create({
       component: AlertComponent,
       componentProps: {
@@ -81,26 +86,33 @@ export class LoginPage {
     });
 
     // Recibir la respuesta del modal
-    modal.onDidDismiss().then(async (data) => {
-      if (data.data.action === 'OK') {
-        // FIXME: remove validation
-        const response = await this.service.signIn(
-          '+57' + this.form.controls['phone'].value,
-        );
-        if (!response.success) {
-          if (response.error.name == 'UserNotFoundException') {
-            this.openModalNoRegister();
-            return;
+    modal
+      .onDidDismiss()
+      .then(async (data) => {
+        if (data.data.action === 'OK') {
+          const response = await this.service.signIn(
+            '+57' + this.form.controls['phone'].value,
+          );
+          if (!response.success) {
+            if (response.error.name == 'UserNotFoundException') {
+              await this.openModalNoRegister();
+              return;
+            }
           }
+          await this.router.navigate([
+            'otp/login',
+            this.form.controls['phone'].value,
+          ]);
         }
-        this.router.navigate(['otp/login', this.form.controls['phone'].value]);
-      }
-    });
+      })
+      .catch((err) => {
+        console.error('No proceso respuesta de modal', err);
+      });
 
     await modal.present();
   }
 
-  async openModalNoRegister() {
+  async openModalNoRegister(): Promise<void> {
     const modal = await this.modalCtrl.create({
       component: AlertComponent,
       componentProps: {
@@ -116,11 +128,16 @@ export class LoginPage {
     });
 
     // Recibir la respuesta del modal
-    modal.onDidDismiss().then((data) => {
-      if (data.data.action === 'OK') {
-        this.goToRegister();
-      }
-    });
+    modal
+      .onDidDismiss()
+      .then(async (data) => {
+        if (data.data.action === 'OK') {
+          await this.goToRegister();
+        }
+      })
+      .catch((err) => {
+        console.error('No proceso modal de registro', err);
+      });
 
     await modal.present();
   }

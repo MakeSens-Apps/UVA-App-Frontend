@@ -17,7 +17,7 @@ import {
 } from '@angular/forms';
 import { AlertComponent } from '@app/components/alert/alert.component';
 import { SetupService } from '@app/core/services/view/setup/setup.service';
-
+import { Session } from 'src/models/session.model';
 @Component({
   selector: 'app-set-phone-register',
   templateUrl: './set-phone-register.page.html',
@@ -34,7 +34,7 @@ import { SetupService } from '@app/core/services/view/setup/setup.service';
 })
 export class SetPhoneRegisterPage implements OnInit {
   form: FormGroup;
-  user: any;
+  user: Session | null = null;
   constructor(
     private router: Router,
     private formBuilder: FormBuilder,
@@ -53,18 +53,18 @@ export class SetPhoneRegisterPage implements OnInit {
     });
   }
 
-  async ngOnInit() {
+  async ngOnInit(): Promise<void> {
     this.user = await this.service.getParametersUser();
     console.log(
       '🚀 ~ SetPhoneRegisterPage ~ modal.onDidDismiss ~ this.user:',
       this.user,
     );
   }
-  goToOtp() {
-    this.abrirModal();
+  goToOtp(): void {
+    void this.abrirModal();
   }
 
-  async abrirModal() {
+  async abrirModal(): Promise<void> {
     const modal = await this.modalCtrl.create({
       component: AlertComponent,
       componentProps: {
@@ -77,18 +77,27 @@ export class SetPhoneRegisterPage implements OnInit {
     });
 
     // Recibir la respuesta del modal
-    modal.onDidDismiss().then(async (data) => {
-      if (data.data.action === 'OK') {
-        const response = this.service.signUp(
-          '+57' + this.form.controls['phone'].value,
-        );
-        console.log(response);
-        this.router.navigate([
-          'otp/register',
-          this.form.controls['phone'].value,
-        ]);
-      }
-    });
+    modal
+      .onDidDismiss()
+      .then(async (data) => {
+        if (data.data.action === 'OK') {
+          const response = await this.service.signUp(
+            '+57' + this.form.controls['phone'].value,
+          );
+          if (response) {
+            await this.router.navigate([
+              'otp/register',
+              this.form.controls['phone'].value,
+            ]);
+          } else {
+            //FIXME: Deberia abrir una ventana emergente con "El numero {####} ya esta registrado"
+            console.error('El numero ya esta registrado');
+          }
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+      });
 
     await modal.present();
   }

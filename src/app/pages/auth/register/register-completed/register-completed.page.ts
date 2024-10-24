@@ -11,12 +11,12 @@ import { IonImg } from '@ionic/angular/standalone';
   imports: [IonImg, ExploreContainerComponent],
 })
 export class RegisterCompletedPage implements OnInit {
-  icon: string = '../../../../../assets/images/LogoNaturaColombia.svg';
+  icon = '../../../../../assets/images/LogoNaturaColombia.svg';
   constructor(private router: Router) {}
 
-  ngOnInit() {
+  ngOnInit(): void {
     setTimeout(() => {
-      this.router.navigate(['app/tabs/tab2']);
+      void this.router.navigate(['app/tabs/tab2']);
     }, 3 * 1000);
   }
 }

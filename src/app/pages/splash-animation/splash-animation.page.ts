@@ -7,13 +7,6 @@ import {
   IonTitle,
   IonToolbar,
 } from '@ionic/angular/standalone';
-import {
-  trigger,
-  state,
-  style,
-  animate,
-  transition,
-} from '@angular/animations';
 
 import { Animation, AnimationController } from '@ionic/angular';
 import { Router } from '@angular/router';
@@ -42,15 +35,15 @@ export class SplashAnimationPage implements OnInit {
     private router: Router,
   ) {}
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.setupAnimations();
   }
 
-  ionViewDidEnter() {
-    this.playAnimations();
+  ionViewDidEnter(): void {
+    void this.playAnimations();
   }
 
-  setupAnimations() {
+  setupAnimations(): void {
     const leafIcon = document.querySelector('.leaf-icon');
     const poweredBy = document.querySelector('.powered-by');
     const makeSensLogo = document.querySelector('.make-sens-logo');
@@ -84,14 +77,18 @@ export class SplashAnimationPage implements OnInit {
     }
   }
 
-  playAnimations() {
-    this.leafIconAnimation?.play();
-    this.poweredByAnimation?.play();
-    this.makeSensLogoAnimation?.play();
-    this.makeSensLogoAnimation?.onFinish(() => {
-      setTimeout(() => {
-        this.router.navigate(['/login']);
-      }, 1000);
-    });
+  playAnimations(): void {
+    try {
+      void this.leafIconAnimation?.play();
+      void this.poweredByAnimation?.play();
+      void this.makeSensLogoAnimation?.play();
+      void this.makeSensLogoAnimation?.onFinish(() => {
+        setTimeout(() => {
+          void this.router.navigate(['/login']);
+        }, 1000);
+      });
+    } catch {
+      console.error('Error en la animacion');
+    }
   }
 }
