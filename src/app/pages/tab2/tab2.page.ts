@@ -23,17 +23,34 @@ import { Session } from 'src/models/session.model';
 })
 export class Tab2Page implements OnInit {
   user: Session | null = null;
+  /**
+   * Creates an instance of Tab2Page.
+   * @param {Router} router Redireccion a otras vistas
+   * @param {SessionService} session Servicio para manejar datos en cache del usuario
+   * @param {SetupService} service  Servicio para manejar las funcionalidades del flujo de setup del usuario
+   * @memberof Tab2Page
+   */
   constructor(
     private router: Router,
     private session: SessionService,
     private service: SetupService,
   ) {}
 
+  /**
+   *
+   * @returns {Promise<void>}
+   * @memberof Tab2Page
+   */
   async ngOnInit(): Promise<void> {
     this.user = await this.session.getInfo();
     console.log('🚀 ~ Tab2Page ~ ngOnInit ~ this.user:', this.user);
   }
 
+  /**
+   *
+   * @returns {Promise<void>}
+   * @memberof Tab2Page
+   */
   async close(): Promise<void> {
     const response = await this.service.signOut();
     if (response) {

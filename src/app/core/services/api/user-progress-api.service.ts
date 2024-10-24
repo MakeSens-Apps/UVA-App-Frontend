@@ -19,8 +19,17 @@ export type APIUserProgressResponse = AuthSuccessResponse | APIErrorResponse;
   providedIn: 'root',
 })
 export class UserProgressAPIService {
+  /**
+   * Creates an instance of UserProgressAPIService.
+   * @memberof UserProgressAPIService
+   */
   constructor() {}
 
+  /**
+   * Crea el progreso del usuario enviando la información a través de una consulta GraphQL.
+   * @param {CreateUserProgressInput} userProgress - Objeto que contiene la información del progreso del usuario a crear.
+   * @returns {Promise<APIUserProgressResponse>} Una promesa que se resuelve con la respuesta de la API, que incluye el éxito de la operación y, en caso de error, los detalles del error.
+   */
   async createUserProgress(
     userProgress: CreateUserProgressInput,
   ): Promise<APIUserProgressResponse> {

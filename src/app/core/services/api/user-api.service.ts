@@ -21,8 +21,19 @@ export type APIUserResponse = AuthSuccessResponse | APIErrorResponse;
   providedIn: 'root',
 })
 export class UserAPIService {
+  /**
+   * Creates an instance of UserAPIService.
+   * @memberof UserAPIService
+   */
   constructor() {}
-
+  /**
+   * Creates a new user in the system.
+   * This method sends a GraphQL request to create a user and handles any potential errors
+   * that may arise during the request.
+   * @param {CreateUserInput} user - The input data required to create the user.
+   * @returns {Promise<APIUserResponse>} A promise that resolves to an object containing the
+   * success status and either the user data or an error message.
+   */
   async createUser(user: CreateUserInput): Promise<APIUserResponse> {
     try {
       const response = await client.graphql({

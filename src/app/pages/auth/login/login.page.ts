@@ -32,8 +32,20 @@ import { SetupService } from '@app/core/services/view/setup/setup.service';
     FormsModule,
   ],
 })
+/**
+ * Class representing the login page.
+ * Handles user login, validation, and navigation.
+ */
 export class LoginPage {
   form: FormGroup;
+  /**
+   * Constructs the LoginPage component.
+   * Initializes the form and checks if there is a current authenticated user.
+   * @param {Router} router - The Angular Router for navigation.
+   * @param {FormBuilder} formBuilder - The Angular FormBuilder for creating reactive forms.
+   * @param {ModalController} modalCtrl - The Ionic ModalController to manage modals.
+   * @param {SetupService} service - The SetupService to handle authentication and session management.
+   */
   constructor(
     private router: Router,
     private formBuilder: FormBuilder,
@@ -50,6 +62,7 @@ export class LoginPage {
         ]),
       ),
     });
+    // Check if there's an authenticated user. If yes, navigate to the home page.
     this.service
       .currentAuthenticatedUser()
       .then((response) => {
@@ -62,17 +75,35 @@ export class LoginPage {
       });
   }
 
+  /**
+   * Navigates the user to the home page.
+   * @returns {Promise<boolean>} A promise that resolves to true if navigation was successful.
+   */
   goToHome(): Promise<boolean> {
     return this.router.navigate(['home']);
   }
+
+  /**
+   * Navigates the user to the pre-registration page.
+   * @returns {Promise<boolean>} A promise that resolves to true if navigation was successful.
+   */
   goToRegister(): Promise<boolean> {
     return this.router.navigate(['pre-register']);
   }
 
+  /**
+   * Opens the OTP (One-Time Password) modal for the user.
+   */
   goToOtp(): void {
     void this.abrirModal();
   }
 
+  /**
+   * Opens a modal asking the user to confirm their phone number before signing in.
+   * If the user confirms, it attempts to sign them in and navigate to the OTP page.
+   * If the user is not found, it opens a registration modal.
+   * @returns {Promise<void>} A promise that resolves once the modal has been processed.
+   */
   async abrirModal(): Promise<void> {
     const modal = await this.modalCtrl.create({
       component: AlertComponent,
@@ -112,6 +143,11 @@ export class LoginPage {
     await modal.present();
   }
 
+  /**
+   * Opens a modal notifying the user that their phone number is not registered.
+   * Asks if the user wants to register. If the user confirms, they are navigated to the registration page.
+   * @returns {Promise<void>} A promise that resolves once the modal has been processed.
+   */
   async openModalNoRegister(): Promise<void> {
     const modal = await this.modalCtrl.create({
       component: AlertComponent,

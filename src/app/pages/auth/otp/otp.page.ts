@@ -46,6 +46,15 @@ export class OtpPage implements OnInit {
   phone: string | null = '';
   type;
   showError = false;
+
+  /**
+   * Crea una instancia de OtpPage.
+   * @param {Router} router - El router de Angular para la navegación.
+   * @param {ActivatedRoute} route - La ruta activa para obtener parámetros de la URL.
+   * @param {ChangeDetectorRef} ref - Referencia al ChangeDetector para detectar cambios en la vista.
+   * @param {SetupService} service - Servicio para manejar la configuración de OTP.
+   * @param {AlertController} alertController - Controlador de alertas para mostrar mensajes.
+   */
   constructor(
     private router: Router,
     private route: ActivatedRoute,
@@ -58,11 +67,17 @@ export class OtpPage implements OnInit {
   }
 
   @ViewChildren('otpInput') otpInputs!: QueryList<IonInput>;
-
+  /**
+   * Método del ciclo de vida de Angular que se ejecuta al inicializar el componente.
+   * Comienza el temporizador para la entrada OTP.
+   */
   ngOnInit(): void {
     this.startTimer();
   }
 
+  /**
+   * Inicia un temporizador que cuenta regresivamente desde 60 segundos.
+   */
   startTimer(): void {
     const interval = setInterval(() => {
       this.timer--;
@@ -74,11 +89,23 @@ export class OtpPage implements OnInit {
     }, 1000);
   }
 
+  /**
+   * Maneja el evento de enfoque en los campos OTP.
+   * Limpia el valor del campo correspondiente al enfocar.
+   * @param {Event} event - Evento de enfoque.
+   * @param {number} index - Índice del campo OTP que está siendo enfocado.
+   */
   onOtpFocus(event: Event, index: number): void {
     this.otp[index] = '';
     (event.target as HTMLInputElement).value = '';
   }
 
+  /**
+   * Maneja el evento de cambio en los campos OTP.
+   * Almacena el valor ingresado y mueve el foco al siguiente campo si es necesario.
+   * @param {Event} event - Evento de cambio.
+   * @param {number} index - Índice del campo OTP que está siendo editado.
+   */
   onOtpChange(event: Event, index: number): void {
     const value = (event.target as HTMLInputElement).value;
 
@@ -103,12 +130,21 @@ export class OtpPage implements OnInit {
     }
   }
 
+  /**
+   * Formatea el tiempo restante en minutos y segundos.
+   * @param {number} seconds - Tiempo en segundos.
+   * @returns {string} - El tiempo formateado como "mm:ss".
+   */
   formatTime(seconds: number): string {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   }
 
+  /**
+   * Reinicia el temporizador y vuelve a enviar el código según el tipo de operación.
+   * @returns {Promise<void>} - Una promesa que se resuelve cuando se completa la operación.
+   */
   async resetTime(): Promise<void> {
     switch (this.type) {
       case 'login':
@@ -125,6 +161,10 @@ export class OtpPage implements OnInit {
     this.startTimer();
   }
 
+  /**
+   * Valida el formulario OTP y maneja el flujo de inicio de sesión o registro.
+   * @returns {Promise<void>} - Una promesa que se resuelve cuando se completa la validación.
+   */
   async validateForm(): Promise<void> {
     const otpValue = this.otp.join('');
     if (otpValue.length === 6) {
@@ -177,10 +217,18 @@ export class OtpPage implements OnInit {
     }
   }
 
+  /**
+   * Navega a la página de inicio de sesión.
+   */
   goToHome(): void {
     void this.router.navigate(['/login']);
   }
 
+  /**
+   * Devuelve el índice del elemento para optimizar el seguimiento en *ngFor.
+   * @param {number} index - Índice del elemento.
+   * @returns {number} - El índice del elemento.
+   */
   trackByIndex(index: number): number {
     return index;
   }

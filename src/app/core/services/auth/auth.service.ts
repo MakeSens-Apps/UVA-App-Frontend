@@ -45,7 +45,17 @@ export type AuthResponse = AuthSuccessResponse | AuthErrorResponse;
   providedIn: 'root',
 })
 export class AuthService {
+  /**
+   * Creates an instance of AuthService.
+   * @memberof AuthService
+   */
   constructor() {}
+  /**
+   * Maneja errores de autenticación específicos y genera una respuesta de error.
+   * @param {unknown} err - El error capturado durante el proceso de autenticación.
+   * @returns {errorAuthResponse} Un objeto que contiene detalles del error de autenticación.
+   * @private
+   */
   private handleAuthError(err: unknown): errorAuthResponse {
     if (err instanceof AuthError) {
       // Manejo específico para AuthError
@@ -78,7 +88,12 @@ export class AuthService {
       };
     }
   }
-  // Type Guard para GetCurrentUserOutput
+  /**
+   * Verifica si los datos recibidos son del tipo `GetCurrentUserOutput`.
+   * @param {SignInOutput | SignUpOutput | GetCurrentUserOutput} data - Datos a verificar.
+   * @returns {data is GetCurrentUserOutput} True si los datos son del tipo `GetCurrentUserOutput`.
+   * @private
+   */
   isGetCurrentUserOutput(
     data: SignInOutput | SignUpOutput | GetCurrentUserOutput,
   ): data is GetCurrentUserOutput {
@@ -195,7 +210,10 @@ export class AuthService {
       return false;
     }
   }
-
+  /**
+   * Obtiene el usuario actualmente autenticado.
+   * @returns {Promise<AuthResponse>} La respuesta con el resultado de la operación y el usuario actual.
+   */
   async CurrentAuthenticatedUser(): Promise<AuthResponse> {
     try {
       const currentUser = await getCurrentUser();

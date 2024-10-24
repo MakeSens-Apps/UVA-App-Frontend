@@ -19,6 +19,10 @@ import { triangle, ellipse, square } from 'ionicons/icons';
 export class TabsPage {
   public environmentInjector = inject(EnvironmentInjector);
 
+  /**
+   * Creates an instance of TabsPage.
+   * @memberof TabsPage
+   */
   constructor() {
     addIcons({ triangle, ellipse, square });
   }

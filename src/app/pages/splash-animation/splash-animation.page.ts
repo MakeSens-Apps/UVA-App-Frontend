@@ -30,19 +30,39 @@ export class SplashAnimationPage implements OnInit {
   private poweredByAnimation: Animation | undefined;
   private makeSensLogoAnimation: Animation | undefined;
 
+  /**
+   * Crea una instancia de SplashAnimationPage.
+   * @param {AnimationController} animationCtrl - Controlador de animaciones de Ionic.
+   * @param {Router} router - Módulo de navegación para redirigir a diferentes páginas.
+   * @memberof SplashAnimationPage
+   */
   constructor(
     private animationCtrl: AnimationController,
     private router: Router,
   ) {}
-
+  /**
+   * Método que se ejecuta al inicializar el componente.
+   * Llama al método para configurar las animaciones
+   * @memberof SplashAnimationPage
+   */
   ngOnInit(): void {
     this.setupAnimations();
   }
 
+  /**
+   * Método que se ejecuta cuando la vista ha terminado de cargarse.
+   * Llama al método para iniciar las animaciones.
+   * @memberof SplashAnimationPage
+   */
   ionViewDidEnter(): void {
     void this.playAnimations();
   }
 
+  /**
+   * Configura las animaciones para los diferentes elementos de la página de splash.
+   * Define las animaciones de la hoja, el texto "Powered by" y el logo de MakeSens.
+   * @memberof SplashAnimationPage
+   */
   setupAnimations(): void {
     const leafIcon = document.querySelector('.leaf-icon');
     const poweredBy = document.querySelector('.powered-by');
@@ -77,6 +97,12 @@ export class SplashAnimationPage implements OnInit {
     }
   }
 
+  /**
+   * Ejecuta las animaciones de los elementos en la página de splash.
+   * Inicia las animaciones del ícono de la hoja, el texto "Powered by" y el logo de MakeSens,
+   * y navega a la página de inicio de sesión al finalizar.
+   * @memberof SplashAnimationPage
+   */
   playAnimations(): void {
     try {
       void this.leafIconAnimation?.play();

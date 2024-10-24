@@ -58,7 +58,7 @@
     "@typescript-eslint/parser": "^6.21.0",
     "eslint": "^8.57.1",
     "eslint-plugin-import": "^2.29.1",
-    "eslint-plugin-jsdoc": "^48.2.1",
+    "eslint-plugin-jsdoc": "^48.11.0",
     "eslint-plugin-prefer-arrow": "1.2.2",
     "husky": "^9.1.6",
     "jasmine-core": "~5.1.0",

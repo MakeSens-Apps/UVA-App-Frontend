@@ -8,6 +8,10 @@ import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
   imports: [IonApp, IonRouterOutlet],
 })
 export class AppComponent {
+  /**
+   * Creates an instance of AppComponent.
+   * @memberof AppComponent
+   */
   constructor() {
     // this.initializeApp();
   }
