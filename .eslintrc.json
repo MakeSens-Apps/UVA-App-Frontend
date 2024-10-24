@@ -6,7 +6,7 @@
     "browser": true,
     "node": true
   },
-  "plugins": ["@typescript-eslint"],
+  "plugins": ["@typescript-eslint", "jsdoc"],
   "rules": {
     // 1. Usar comillas simples
     "quotes": [
@@ -111,8 +111,26 @@
       { "selector": "variable", "format": ["camelCase"] },
       { "selector": "function", "format": ["camelCase"] },
       { "selector": "class", "format": ["PascalCase"] }
-    ]
+    ],
     // Prohíbe convenciones de nombres inconsistentes. Obliga a que las variables y funciones utilicen 'camelCase' y las clases 'PascalCase', lo que mejora la legibilidad y la coherencia del código.
+    "jsdoc/check-tag-names": [
+      "error",
+      {
+        "definedTags": ["return"] // Acepta el uso de @return
+      }
+    ],
+    "jsdoc/require-jsdoc": [
+      "error",
+      {
+        "require": {
+          "FunctionDeclaration": true,
+          "MethodDefinition": true,
+          "ClassDeclaration": false,
+          "ArrowFunctionExpression": false,
+          "FunctionExpression": false
+        }
+      }
+    ]
   },
   "overrides": [
     {
@@ -125,7 +143,8 @@
       "extends": [
         "eslint:recommended",
         "plugin:@angular-eslint/recommended",
-        "plugin:@angular-eslint/template/process-inline-templates"
+        "plugin:@angular-eslint/template/process-inline-templates",
+        "plugin:jsdoc/recommended" // Añade las reglas recomendadas de JSDoc
       ],
       "rules": {
         "@typescript-eslint/no-unused-vars": "error",

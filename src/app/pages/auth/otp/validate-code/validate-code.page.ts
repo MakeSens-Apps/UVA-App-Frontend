@@ -13,6 +13,12 @@ import { ActivatedRoute, Router } from '@angular/router';
 export class ValidateCodePage implements OnInit {
   loader = '../../../../../assets/images/loader.gif';
   type;
+  /**
+   * Crea una instancia de ValidateCodePage.
+   * @param {Router} router - El servicio de enrutamiento para navegar entre páginas.
+   * @param {ActivatedRoute} route - El servicio que contiene información sobre la ruta activa.
+   * @memberof ValidateCodePage
+   */
   constructor(
     private router: Router,
     private route: ActivatedRoute,
@@ -20,6 +26,11 @@ export class ValidateCodePage implements OnInit {
     this.type = this.route.snapshot.paramMap.get('type');
   }
 
+  /**
+   * Inicia temporizador para redirigir en función de si es inicio de sesión o registro.
+   * @memberof ValidateCodePage
+   * @returns {void} - No retorna ningún valor.
+   */
   ngOnInit(): void {
     setTimeout(() => {
       if (this.type == 'login') {

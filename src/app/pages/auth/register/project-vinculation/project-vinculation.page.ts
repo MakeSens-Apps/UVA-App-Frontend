@@ -33,6 +33,14 @@ export class ProjectVinculationPage implements OnInit {
   showError = false;
   form: FormGroup;
   user: Session | null = null;
+
+  /**
+   * Crea una instancia de ProjectVinculationPage.
+   * @param {FormBuilder} formBuilder - Servicio para construir formularios reactivos.
+   * @param {Router} router - Servicio de enrutamiento para navegar entre páginas.
+   * @param {SetupService} service - Servicio para gestionar la configuración del usuario.
+   * @memberof ProjectVinculationPage
+   */
   constructor(
     private formBuilder: FormBuilder,
     private router: Router,
@@ -50,10 +58,22 @@ export class ProjectVinculationPage implements OnInit {
     });
   }
 
+  /**
+   * Método del ciclo de vida que se ejecuta al inicializar la página.
+   * Obtiene los parámetros del usuario al iniciar.
+   * @memberof ProjectVinculationPage
+   * @returns {Promise<void>} - Promesa que no retorna ningún valor.
+   */
   async ngOnInit(): Promise<void> {
     this.user = await this.service.getParametersUser();
   }
 
+  /**
+   * Método para validar el código ingresado y navegar a la página de validación del proyecto.
+   * Si el código es '000000', se muestra un mensaje de error en lugar de navegar.
+   * @memberof ProjectVinculationPage
+   * @returns {void} - No retorna ningún valor.
+   */
   goToValidateProject(): void {
     if (this.form.value.code == '000000') {
       console.log(

@@ -12,8 +12,20 @@ import { Router } from '@angular/router';
 })
 export class ProjectVinculationDonePage implements OnInit {
   icon = '../../../../../assets/images/LogoNaturaColombia.svg';
+
+  /**
+   * Crea una instancia de ProjectVinculationDonePage.
+   * @param {Router} router - El servicio de enrutamiento para navegar entre páginas.
+   * @memberof ProjectVinculationDonePage
+   */
   constructor(private router: Router) {}
 
+  /**
+   * Método del ciclo de vida que se ejecuta al inicializar la página.
+   * Establece un temporizador para redirigir a la página de formulario de registro de proyecto después de 3 segundos.
+   * @memberof ProjectVinculationDonePage
+   * @returns {void} - No retorna ningún valor.
+   */
   ngOnInit(): void {
     setTimeout(() => {
       void this.router.navigate(['register/register-project-form']);

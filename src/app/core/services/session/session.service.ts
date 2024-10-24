@@ -17,9 +17,13 @@ export class SessionService {
     linkCode: 'linkCode',
   };
 
-  // Guardar información parcial o completa en Preferences
+  /**
+   * Guarda información parcial o completa en Preferences.
+   * Recorre las claves del objeto `userInfo` y guarda los valores correspondientes.
+   * @param {Session} userInfo - Objeto que contiene la información del usuario a guardar.
+   * @returns {Promise<void>} Promesa que se resuelve cuando se completa la operación de guardado.
+   */
   async setInfo(userInfo: Session): Promise<void> {
-    // Recorre las claves del objeto `userInfo` y guarda los valores en Preferences
     for (const key of Object.keys(userInfo)) {
       const value = userInfo[key as keyof Session];
       if (value) {
@@ -28,7 +32,11 @@ export class SessionService {
     }
   }
 
-  // Obtener información parcial o completa
+  /**
+   * Obtiene información parcial o completa desde Preferences.
+   * Recorre las claves del modelo y recupera los valores almacenados.
+   * @returns {Promise<Session>} Promesa que se resuelve con el objeto `Session` que contiene la información recuperada.
+   */
   async getInfo(): Promise<Session> {
     let session: Session = {};
 
@@ -45,7 +53,12 @@ export class SessionService {
     return session;
   }
 
-  // Guardar o actualizar un campo específico en Preferences
+  /**
+   * Guarda o actualiza un campo específico en Preferences.
+   * @param {keyof Session} key - La clave del campo que se va a guardar o actualizar.
+   * @param {string | undefined} value - El valor que se va a guardar. Si es `undefined`, se eliminará el valor almacenado.
+   * @returns {Promise<void>} Promesa que se resuelve cuando se completa la operación de guardado.
+   */
   async setInfoField(
     key: keyof Session,
     value: string | undefined,
@@ -63,7 +76,11 @@ export class SessionService {
     }
   }
 
-  // Borrar toda la información almacenada (por ejemplo, al cerrar sesión)
+  /**
+   * Borra toda la información almacenada en Preferences.
+   * Se utiliza, por ejemplo, al cerrar sesión
+   * @returns {void} No devuelve nada.
+   */
   clearSession(): void {
     void Preferences.clear();
   }

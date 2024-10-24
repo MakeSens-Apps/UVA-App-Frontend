@@ -35,6 +35,15 @@ import { Session } from 'src/models/session.model';
 export class SetPhoneRegisterPage implements OnInit {
   form: FormGroup;
   user: Session | null = null;
+
+  /**
+   * Crea una instancia de SetPhoneRegisterPage.
+   * @param {Router} router - El servicio de enrutamiento para navegar entre páginas.
+   * @param {FormBuilder} formBuilder - El servicio para construir formularios reactivos.
+   * @param {ModalController} modalCtrl - El servicio para crear y gestionar modales.
+   * @param {SetupService} service - El servicio que gestiona la lógica de configuración de usuario.
+   * @memberof SetPhoneRegisterPage
+   */
   constructor(
     private router: Router,
     private formBuilder: FormBuilder,
@@ -53,6 +62,12 @@ export class SetPhoneRegisterPage implements OnInit {
     });
   }
 
+  /**
+   * Método del ciclo de vida que se ejecuta al inicializar el componente.
+   * Obtiene los parámetros del usuario a través del servicio.
+   * @memberof SetPhoneRegisterPage
+   * @returns {Promise<void>} - No retorna ningún valor.
+   */
   async ngOnInit(): Promise<void> {
     this.user = await this.service.getParametersUser();
     console.log(
@@ -60,10 +75,22 @@ export class SetPhoneRegisterPage implements OnInit {
       this.user,
     );
   }
+
+  /**
+   * Navega a la pantalla de OTP (One-Time Password).
+   * @memberof SetPhoneRegisterPage
+   * @returns {void} - No retorna ningún valor.
+   */
   goToOtp(): void {
     void this.abrirModal();
   }
 
+  /**
+   * Abre un modal para confirmar el número de teléfono ingresado.
+   * Si el usuario confirma, se registra el número de teléfono y se navega a la página de OTP.
+   * @memberof SetPhoneRegisterPage
+   * @returns {Promise<void>} - No retorna ningún valor.
+   */
   async abrirModal(): Promise<void> {
     const modal = await this.modalCtrl.create({
       component: AlertComponent,
