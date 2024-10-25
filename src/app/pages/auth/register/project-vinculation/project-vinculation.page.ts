@@ -13,6 +13,7 @@ import {
 } from '@angular/forms';
 import { SetupService } from '@app/core/services/view/setup/setup.service';
 import { Session } from 'src/models/session.model';
+import { SetupRacimoService } from '@app/core/services/view/setup/setup-racimo.service';
 @Component({
   selector: 'app-project-vinculation',
   templateUrl: './project-vinculation.page.html',
@@ -35,16 +36,17 @@ export class ProjectVinculationPage implements OnInit {
   user: Session | null = null;
 
   /**
-   * Crea una instancia de ProjectVinculationPage.
-   * @param {FormBuilder} formBuilder - Servicio para construir formularios reactivos.
-   * @param {Router} router - Servicio de enrutamiento para navegar entre páginas.
-   * @param {SetupService} service - Servicio para gestionar la configuración del usuario.
-   * @memberof ProjectVinculationPage
+   * Creates an instance of ProjectVinculationPage.
+   * @param {FormBuilder} formBuilder - Service for building reactive forms.
+   * @param {Router} router - Router service to handle page navigation.
+   * @param {SetupService} service - Service to manage user setup.
+   * @param {SetupRacimoService} serviceRacimo - Service to manage UVA and RACIMO data.
    */
   constructor(
     private formBuilder: FormBuilder,
     private router: Router,
     private service: SetupService,
+    private serviceRacimo: SetupRacimoService,
   ) {
     this.form = this.formBuilder.group({
       code: new FormControl(
@@ -59,30 +61,39 @@ export class ProjectVinculationPage implements OnInit {
   }
 
   /**
-   * Método del ciclo de vida que se ejecuta al inicializar la página.
-   * Obtiene los parámetros del usuario al iniciar.
-   * @memberof ProjectVinculationPage
-   * @returns {Promise<void>} - Promesa que no retorna ningún valor.
+   * Lifecycle hook that executes when initializing the page.
+   * Retrieves the user session parameters on load and redirects if a valid user ID is found.
+   * @returns {Promise<void>} - Resolves with no return value.
    */
   async ngOnInit(): Promise<void> {
     this.user = await this.service.getParametersUser();
+    if (this.user.userID) {
+      const response = await this.serviceRacimo.getUVA(this.user.userID);
+      if (response) {
+        void this.router.navigate(['/home']);
+      }
+    } else {
+      //FIXME: Adicionar evento de error ya que no tiene un ID de usuario
+    }
   }
 
   /**
-   * Método para validar el código ingresado y navegar a la página de validación del proyecto.
-   * Si el código es '000000', se muestra un mensaje de error en lugar de navegar.
-   * @memberof ProjectVinculationPage
-   * @returns {void} - No retorna ningún valor.
+   * Validates the entered code and navigates to the project validation page.
+   * If the code is '000000', displays an error message instead of navigating.
+   * @returns {void} - Does not return a value.
    */
   goToValidateProject(): void {
-    if (this.form.value.code == '000000') {
-      console.log(
-        '🚀 ~ ProjectVinculationPage ~ goToValidateProject ~ this.form.value:',
-        this.form.value,
-      );
-      this.showError = true;
-      return;
-    }
-    void this.router.navigate(['register/validate-project']);
+    this.serviceRacimo
+      .getRACIMOByCode(this.form.value.code)
+      .then((response) => {
+        if (response) {
+          void this.router.navigate(['register/validate-project']);
+        } else {
+          this.showError = true;
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+      });
   }
 }

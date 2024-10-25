@@ -34,7 +34,7 @@ export class ValidateCodePage implements OnInit {
   ngOnInit(): void {
     setTimeout(() => {
       if (this.type == 'login') {
-        void this.router.navigate(['app/tabs/tab2']);
+        void this.router.navigate(['register/project-vinculation']);
       } else if (this.type == 'register') {
         console.log('🚀 ~ ValidateCodePage ~ setTimeout ~ type: is Register');
 
