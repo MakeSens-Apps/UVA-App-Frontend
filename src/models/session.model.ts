@@ -5,8 +5,11 @@ export interface Session {
   phone?: string;
   racimoID?: string;
   uvaID?: string;
-  linkCode?: string;
+  racimoName?: string;
+  racimoLinkCode?: string;
+  racimoConfiguration?: string;
 }
+
 export const sessionKeys: (keyof Session)[] = [
   'userID',
   'name',
@@ -14,5 +17,4 @@ export const sessionKeys: (keyof Session)[] = [
   'phone',
   'racimoID',
   'uvaID',
-  'linkCode',
 ];
