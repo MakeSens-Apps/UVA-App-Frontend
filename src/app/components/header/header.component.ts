@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component,  } from '@angular/core';
 import { IonChip, IonHeader, IonIcon, IonToolbar ,IonAvatar, IonLabel } from '@ionic/angular/standalone';
-
+import { Router } from '@angular/router';
 @Component({
   selector: 'app-header',
   templateUrl: './header.component.html',
@@ -10,7 +10,18 @@ import { IonChip, IonHeader, IonIcon, IonToolbar ,IonAvatar, IonLabel } from '@i
 })
 export class HeaderComponent  {
 
-  constructor() { }
+  /**
+   *
+   * @param router
+   */
+  constructor(private router: Router) { }
 
+
+  /**
+   *
+   */
+  goToProfile(): void{
+  void this.router.navigate(['/profile']);
+  }
 
 }
