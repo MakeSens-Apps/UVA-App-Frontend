@@ -1,19 +1,35 @@
-
 <app-explore-container title="¡Conozcámonos!" message="¿Cómo es tu nombre?">
   <form [formGroup]="form">
     <div class="input-container">
       <div class="content_label__start">
-        <ion-label >Nombres</ion-label>
+        <ion-label>Nombres</ion-label>
       </div>
-      <ion-input formControlName="name" class="border" type="text" placeholder="Ingresa tus nombres"(ionInput)="setErrorInput($event,'name')"></ion-input>
+      <ion-input
+        formControlName="name"
+        class="border"
+        type="text"
+        placeholder="Ingresa tus nombres"
+        (ionInput)="setErrorInput($event,'name')"
+      ></ion-input>
     </div>
     <div class="input-container">
       <div class="content_label__start">
-        <ion-label >Apellidos</ion-label>
+        <ion-label>Apellidos</ion-label>
       </div>
-      <ion-input formControlName="lastName" class="border" type="text" placeholder="Ingresa tus apellidos"(ionInput)="setErrorInput($event,'lastName')"></ion-input>
+      <ion-input
+        formControlName="lastName"
+        class="border"
+        type="text"
+        placeholder="Ingresa tus apellidos"
+        (ionInput)="setErrorInput($event,'lastName')"
+      ></ion-input>
     </div>
-    <ion-button [disabled]="form.invalid" expand="block" color="uva_green-700" (click)="goToSetNumber()" >Continuar</ion-button>
-
+    <ion-button
+      [disabled]="form.invalid"
+      expand="block"
+      color="uva_green-700"
+      (click)="goToSetNumber()"
+      >Continuar</ion-button
+    >
   </form>
 </app-explore-container>

@@ -1,1 +1,5 @@
 src/models/models
+node_modules/
+build/
+*.spec.ts
+**/*.test.ts

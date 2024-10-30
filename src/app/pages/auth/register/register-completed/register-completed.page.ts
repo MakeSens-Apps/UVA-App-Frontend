@@ -1,23 +1,34 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
-import { IonImg } from "@ionic/angular/standalone";
+import { IonImg } from '@ionic/angular/standalone';
 
 @Component({
   selector: 'app-register-completed',
   templateUrl: './register-completed.page.html',
   styleUrls: ['./register-completed.page.scss'],
   standalone: true,
-  imports: [IonImg, ExploreContainerComponent]
+  imports: [IonImg, ExploreContainerComponent],
 })
 export class RegisterCompletedPage implements OnInit {
-  icon : string = "../../../../../assets/images/LogoNaturaColombia.svg";
-  constructor(private router : Router) { }
+  icon = '../../../../../assets/images/LogoNaturaColombia.svg';
 
-  ngOnInit() {
+  /**
+   * Crea una instancia de RegisterCompletedPage.
+   * @param {Router} router - El servicio de enrutamiento para navegar entre páginas.
+   * @memberof RegisterCompletedPage
+   */
+  constructor(private router: Router) {}
+
+  /**
+   * Método del ciclo de vida de Angular que se ejecuta al inicializar el componente.
+   * Redirige automáticamente al usuario a la pestaña principal después de 3 segundos.
+   * @memberof RegisterCompletedPage
+   * @returns {void} - No retorna ningún valor.
+   */
+  ngOnInit(): void {
     setTimeout(() => {
-      this.router.navigate(['app/tabs/tab1'])
-  }, 3*1000);
+      void this.router.navigate(['app/tabs/tab1']);
+    }, 3 * 1000);
   }
-
 }
