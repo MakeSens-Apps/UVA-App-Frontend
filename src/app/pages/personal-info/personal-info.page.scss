@@ -118,7 +118,8 @@
     line-height: 150%; /* 21px */
   }
   .form-sub1{
-    margin-right: 60%;
+    text-align: start;
+    margin-inline: 10px;
     color: var(--Gray-700, #404040);
     font-size: 14px;
     font-style: normal;
@@ -126,13 +127,17 @@
     line-height: 150%; /* 21px */
   }
   .form-sub2{
-    margin-top: -12px;
-    margin-right:44%;
-    color: #CA514A;;
+    margin-top: 0;
+    color: #CA514A;
     font-size: 14px;
     font-style: normal;
     font-weight: 500;
-    line-height: 150%; /* 21px */
+    line-height: 150%;
+    width: 60%;
+    display: flex;
+  }
+  .footer{
+    padding-inline: 10px;
   }
 
   .padding-b{
@@ -163,8 +168,7 @@ ion-footer {
   }
   .radius{
     --border-radius: 8px;
-    margin-left: 4%;
-    margin-right: 4%;
+
   }
   .text-transform_none{
     font-size: 16px;
