@@ -86,9 +86,13 @@ ion-content::part(background) {
     justify-content: space-between;
     align-items: center;
     align-self: stretch;
-
+    ion-icon{
+      width: 20px;
+      height: 20px;
+    };
     ion-button {
-      margin: 0
+      margin: 0;
+      width: 36px;
     }
   }
 }
@@ -163,4 +167,7 @@ ion-content::part(background) {
 ion-modal {
   --height: auto;
 
+}
+ion-button {
+  text-transform: capitalize;
 }
