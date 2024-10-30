@@ -1,91 +1,225 @@
 import { Injectable } from '@angular/core';
-import { signIn, type SignInInput, confirmSignIn, signOut, ConfirmSignInInput, } from 'aws-amplify/auth';
-import { signUp,confirmSignUp, type ConfirmSignUpInput, resendSignUpCode, AuthError } from 'aws-amplify/auth';
+import {
+  signIn,
+  getCurrentUser,
+  confirmSignIn,
+  signOut,
+  SignInOutput,
+} from 'aws-amplify/auth';
+import {
+  signUp,
+  confirmSignUp,
+  GetCurrentUserOutput,
+  resendSignUpCode,
+  SignUpOutput,
+  AuthError,
+} from 'aws-amplify/auth';
 
+interface SignOutResult {
+  success: boolean;
+  error?: errorAuthResponse; // El campo 'error' es opcional ya que solo se incluye en caso de fallo
+}
+
+interface errorAuthResponse {
+  mensage?: string;
+  name?: string;
+  type?: 'validation' | 'network' | 'authentication' | 'unknown';
+}
+
+// Tipo para la respuesta exitosa
+interface AuthSuccessResponse {
+  success: true;
+  data: SignInOutput | SignUpOutput | GetCurrentUserOutput;
+}
+
+// Tipo para la respuesta de error
+interface AuthErrorResponse {
+  success: false;
+  error: errorAuthResponse;
+}
+
+// Unión de ambos tipos en la interfaz principal
+export type AuthResponse = AuthSuccessResponse | AuthErrorResponse;
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AuthService {
-
-  constructor() { }
-  // Handle Sign In
-  async SignIn(phone:string): Promise<any> {
-    try {
-      
-      const { isSignedIn, nextStep } = await signIn({ username : phone, password: phone });
-      return { isSignedIn, nextStep };
-    } catch (error) {
-      return {error};
+  /**
+   * Creates an instance of AuthService.
+   * @memberof AuthService
+   */
+  constructor() {}
+  /**
+   * Maneja errores de autenticación específicos y genera una respuesta de error.
+   * @param {unknown} err - El error capturado durante el proceso de autenticación.
+   * @returns {errorAuthResponse} Un objeto que contiene detalles del error de autenticación.
+   * @private
+   */
+  private handleAuthError(err: unknown): errorAuthResponse {
+    if (err instanceof AuthError) {
+      // Manejo específico para AuthError
+      console.error(err.name);
+      switch (err.name) {
+        case 'UserNotFoundException':
+          return {
+            name: err.name,
+            mensage: err.message,
+            type: 'authentication',
+          };
+        case 'NotAuthorizedException':
+          return { name: err.name, mensage: err.message, type: 'validation' };
+        case 'CodeMismatchException':
+          return { name: err.name, mensage: err.message, type: 'validation' };
+        case 'NetworkError':
+          return { name: err.name, mensage: err.message, type: 'network' };
+        default:
+          return { name: err.name, mensage: err.message, type: 'unknown' };
+      }
+    } else if (err instanceof Error) {
+      console.error('unexpecteError');
+      return { name: 'unexpecteError', mensage: err.message, type: 'unknown' };
+    } else {
+      console.error('unknownerror');
+      return {
+        name: 'unknownerror',
+        mensage: 'unknown error',
+        type: 'unknown',
+      };
     }
   }
-  // Handle Confirm Sign In (for challenges like MFA)
-  async ConfirmSignIn( code : string): Promise<any> {
+  /**
+   * Verifica si los datos recibidos son del tipo `GetCurrentUserOutput`.
+   * @param {SignInOutput | SignUpOutput | GetCurrentUserOutput} data - Datos a verificar.
+   * @returns {data is GetCurrentUserOutput} True si los datos son del tipo `GetCurrentUserOutput`.
+   * @private
+   */
+  isGetCurrentUserOutput(
+    data: SignInOutput | SignUpOutput | GetCurrentUserOutput,
+  ): data is GetCurrentUserOutput {
+    return (data as GetCurrentUserOutput) !== undefined;
+  }
+
+  /**
+   * Inicia sesión con el número de teléfono del usuario.
+   * @param {string} phone - El número de teléfono del usuario.
+   * @returns {Promise<AuthResponse>} La respuesta con el resultado del inicio de sesión.
+   */
+  async SignIn(phone: string): Promise<AuthResponse> {
     try {
-      const { isSignedIn, nextStep } = await confirmSignIn( {challengeResponse: code} );
-      return { isSignedIn, nextStep };
-    } catch (error) {
-      return {error};
+      return {
+        success: true,
+        data: await signIn({ username: phone, password: phone }),
+      };
+    } catch (err: unknown) {
+      return { success: false, error: this.handleAuthError(err) };
     }
   }
 
-  // Handle Sign Out
-  async SignOut(): Promise<any> {
+  /**
+   * Confirma el inicio de sesión con un código de desafío.
+   * @param {string} code - El código de confirmación enviado al usuario.
+   * @returns {Promise<AuthResponse>} La respuesta con el resultado de la confirmación.
+   */
+  async ConfirmSignIn(code: string): Promise<AuthResponse> {
+    try {
+      return {
+        success: true,
+        data: await confirmSignIn({ challengeResponse: code }),
+      };
+    } catch (err: unknown) {
+      return { success: false, error: this.handleAuthError(err) };
+    }
+  }
+
+  /**
+   * Cierra la sesión del usuario actual.
+   * @returns {Promise<AuthResponse>} La respuesta con el resultado de cerrar sesión.
+   */
+  async SignOut(): Promise<SignOutResult> {
     try {
       await signOut();
-      return {message: "Sesion cerrada correctamente"};
-    } catch (error) {
-      return {error};
+      return { success: true };
+    } catch (err: unknown) {
+      return { success: false, error: this.handleAuthError(err) };
     }
   }
 
-  async SignUp(name:string, phone:string, lastName:string){
+  /**
+   * Registra a un nuevo usuario.
+   * @param {string} name - El nombre del usuario.
+   * @param {string} phone - El número de teléfono del usuario.
+   * @param {string} lastName - El apellido del usuario.
+   * @returns {Promise<AuthResponse>} La respuesta con el resultado del registro.
+   */
+  async SignUp(
+    name: string,
+    phone: string,
+    lastName: string,
+  ): Promise<AuthResponse> {
     try {
-      const { isSignUpComplete, userId, nextStep } = await signUp({
-        username: phone,
-        password: phone,
-        options: {
-          userAttributes: {
-            phone_number: phone, // E.164 number convention
-            family_name: lastName,
-            name: name
+      return {
+        success: true,
+        data: await signUp({
+          username: phone,
+          password: phone,
+          options: {
+            userAttributes: {
+              phone_number: phone,
+              family_name: lastName,
+              name: name,
+            },
           },
-          // optional
-          //autoSignIn: true // or SignInOptions e.g { authFlowType: "USER_SRP_AUTH" }
-        }
-      });
-
-      
-      return { isSignUpComplete, userId, nextStep };
-    } catch (error : any ) {
-      return {error};
-    }
-  }
-  
-  async ConfirmSignUp( phone:string, confirmationCode:string  ) {
-    try {
-      const { isSignUpComplete, nextStep } = await confirmSignUp({
-        username:phone,
-        confirmationCode:confirmationCode
-      });
-      return { isSignUpComplete, nextStep } ;
-
-    } catch (error) {
-      
-      return {error};
+        }),
+      };
+    } catch (err: unknown) {
+      return { success: false, error: this.handleAuthError(err) };
     }
   }
 
-  // Método para reenviar el código de verificación al usuario
-  async ResendVerificationCode(phone: string): Promise<void> {
+  /**
+   * Confirma el registro del usuario con un código de verificación.
+   * @param {string} phone - El número de teléfono del usuario.
+   * @param {string} confirmationCode - El código de confirmación enviado al usuario.
+   * @returns {Promise<AuthResponse>} La respuesta con el resultado de la confirmación de registro.
+   */
+  async ConfirmSignUp(
+    phone: string,
+    confirmationCode: string,
+  ): Promise<AuthResponse> {
     try {
-      // Reenvía el código de verificación
-      await resendSignUpCode({username:phone});
-      console.log('Código de verificación reenviado');
-    } catch (error) {
-      console.error('Error reenviando el código:', error);
-      throw new Error('Error reenviando el código');
+      return {
+        success: true,
+        data: await confirmSignUp({ username: phone, confirmationCode }),
+      };
+    } catch (err: unknown) {
+      return { success: false, error: this.handleAuthError(err) };
+    }
+  }
+
+  /**
+   * Reenvía el código de verificación de registro al usuario.
+   * @param {string} phone - El número de teléfono del usuario.
+   * @returns {Promise<void>} No devuelve nada si la operación tiene éxito, pero lanza un error si falla.
+   */
+  async ResendVerificationCode(phone: string): Promise<boolean> {
+    try {
+      await resendSignUpCode({ username: phone });
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+  /**
+   * Obtiene el usuario actualmente autenticado.
+   * @returns {Promise<AuthResponse>} La respuesta con el resultado de la operación y el usuario actual.
+   */
+  async CurrentAuthenticatedUser(): Promise<AuthResponse> {
+    try {
+      const currentUser = await getCurrentUser();
+      return { success: true, data: currentUser };
+    } catch (err: unknown) {
+      return { success: false, error: this.handleAuthError(err) };
     }
   }
 }
-

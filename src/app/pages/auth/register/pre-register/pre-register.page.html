@@ -1,13 +1,23 @@
-<app-explore-container titleHTML="<h1>Hola 👋 es un gusto <br> tenerte aquí! </h1>"
-  message="Uva App, es tu aplicación de monitoreo del clima">
-  <form >
-
+<app-explore-container
+  titleHTML="<h1>Hola 👋 es un gusto <br> tenerte aquí! </h1>"
+  message="Uva App, es tu aplicación de monitoreo del clima"
+>
+  <form>
     <div class="ion-margin-bottom">
-      <ion-checkbox labelPlacement="end" color="uva_blue-500" (ionChange)="checkTerm($event)"  >Aceptar <span class="ref">términos y
-          condiciones</span></ion-checkbox>
+      <ion-checkbox
+        labelPlacement="end"
+        color="uva_blue-500"
+        (ionChange)="checkTerm($event)"
+        >Aceptar <span class="ref">términos y condiciones</span></ion-checkbox
+      >
     </div>
 
-    <ion-button [disabled]="!enabledButton" expand="block" color="uva_green-700" (click)="goToRegister()">Continuar</ion-button>
-
+    <ion-button
+      [disabled]="!enabledButton"
+      expand="block"
+      color="uva_green-700"
+      (click)="goToRegister()"
+      >Continuar</ion-button
+    >
   </form>
 </app-explore-container>

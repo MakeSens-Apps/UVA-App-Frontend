@@ -1,5 +1,4 @@
-import {  AfterViewInit, Component, OnInit} from '@angular/core';
-import { SplashScreen } from '@capacitor/splash-screen';
+import { Component } from '@angular/core';
 import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
 
 @Component({
@@ -8,12 +7,12 @@ import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
   standalone: true,
   imports: [IonApp, IonRouterOutlet],
 })
-export class AppComponent   {
+export class AppComponent {
+  /**
+   * Creates an instance of AppComponent.
+   * @memberof AppComponent
+   */
   constructor() {
     // this.initializeApp();
-   
   }
-
-
-
 }
