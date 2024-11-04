@@ -5,13 +5,13 @@ import { CommonModule } from '@angular/common';
 import { CalendarComponent } from '@app/components/calendar/calendar.component';
 
 @Component({
-  selector: 'app-tab3',
-  templateUrl: 'tab3.page.html',
-  styleUrls: ['tab3.page.scss'],
+  selector: 'app-historical',
+  templateUrl: 'historical.page.html',
+  styleUrls: ['historical.page.scss'],
   standalone: true,
   imports: [CommonModule, IonicModule, HeaderComponent, CalendarComponent],
 })
-export class Tab3Page {
+export class HistoricalPage {
   /**
    *
    */
