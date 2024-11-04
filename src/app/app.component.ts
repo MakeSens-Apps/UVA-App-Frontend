@@ -11,6 +11,7 @@ export class AppComponent {
   /**
    * Creates an instance of AppComponent.
    * @memberof AppComponent
+   * @param {ConfigurationAppService} configuration Configuretion Service to load branding/Colors
    */
   constructor(private configuration: ConfigurationAppService) {
     void this.configuration.loadBranding();
