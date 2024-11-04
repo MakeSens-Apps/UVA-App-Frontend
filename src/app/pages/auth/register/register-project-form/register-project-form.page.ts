@@ -68,6 +68,7 @@ export class RegisterProjectFormPage implements OnInit {
    * @returns {void} - No retorna ningún valor.
    */
   async ngOnInit(): Promise<void> {
+    this.user = await this.service.getParametersUser();
     const config = await this.configuration.getConfigurationApp();
     if (config) {
       const img = await this.configuration.loadImage(config.branding.logo);

@@ -7,6 +7,7 @@ import { SessionService } from '../../session/session.service';
 import { Session } from 'src/models/session.model';
 import { UserAPIService } from '../../api/user-api.service';
 import { UserProgressAPIService } from '../../api/user-progress-api.service';
+import { SignInOutput } from 'aws-amplify/auth';
 @Injectable({
   providedIn: 'root',
 })
@@ -47,7 +48,7 @@ export class SetupService {
    * @returns {Promise<AuthResponse>} Respuesta de la autenticación.
    * @memberof SetupService
    */
-  async signIn(phone: string): Promise<AuthResponse> {
+  async signIn(phone: string): Promise<AuthResponse<SignInOutput>> {
     const response = await this.auth.SignIn(phone);
     if (response.success) {
       await this.sesion.setInfoField('phone', phone);
@@ -64,6 +65,9 @@ export class SetupService {
    */
   async confirmSignIn(code: string): Promise<boolean> {
     const response = await this.auth.ConfirmSignIn(code);
+    if (response.success) {
+      await this.currentAuthenticatedUser();
+    }
     return response.success;
   }
 
@@ -135,6 +139,9 @@ export class SetupService {
   async confirmSignUp(code: string): Promise<boolean> {
     const phone: string = (await this.sesion.getInfo()).phone ?? '';
     const response = await this.auth.ConfirmSignUp(phone, code);
+    if (response.success) {
+      await this.currentAuthenticatedUser();
+    }
     return response.success;
   }
 
@@ -159,8 +166,13 @@ export class SetupService {
   async currentAuthenticatedUser(): Promise<boolean> {
     const response = await this.auth.CurrentAuthenticatedUser();
     if (response.success && this.auth.isGetCurrentUserOutput(response.data)) {
+      const attributes = await this.auth.CurrentUserAttributes();
       await this.sesion.setInfoField('userID', response.data.userId);
       await this.sesion.setInfoField('phone', response.data.username);
+      if (attributes.success) {
+        await this.sesion.setInfoField('name', attributes.data.name);
+        await this.sesion.setInfoField('lastName', attributes.data.family_name);
+      }
     }
     return response.success;
   }
