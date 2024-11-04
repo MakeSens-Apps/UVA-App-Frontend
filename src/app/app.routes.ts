@@ -87,7 +87,9 @@ export const routes: Routes = [
   {
     path: 'home',
     loadComponent: () =>
-      import('./pages/measurement/tab2.page').then((m) => m.Tab2Page),
+      import('./pages/measurement/measurement.page').then(
+        (m) => m.MeasurementPage,
+      ),
   },
   {
     path: 'profile',

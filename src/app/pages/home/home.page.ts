@@ -9,9 +9,9 @@ import { es } from 'date-fns/locale/es';
 import { MoonCardComponent } from '../../components/moon-card/moon-card.component';
 
 @Component({
-  selector: 'app-tab1',
-  templateUrl: 'tab1.page.html',
-  styleUrls: ['tab1.page.scss'],
+  selector: 'app-home',
+  templateUrl: 'home.page.html',
+  styleUrls: ['home.page.scss'],
   standalone: true,
   imports: [
     CommonModule,
@@ -22,7 +22,7 @@ import { MoonCardComponent } from '../../components/moon-card/moon-card.componen
     MoonCardComponent,
   ],
 })
-export class Tab1Page {
+export class HomePage {
   today: string;
   modals = {
     modal_Days: false,
@@ -32,7 +32,7 @@ export class Tab1Page {
   };
 
   /**
-   * Creates an instance of Tab1Page.
+   * Creates an instance of HomePage.
    * Initializes the formatted date string using date-fns with Spanish locale.
    *
    */
