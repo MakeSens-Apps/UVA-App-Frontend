@@ -89,18 +89,29 @@ export class FileSystemService {
    * Reads data from a file in the specified directory.
    * @param {string} path - The path of the file to read.
    * @param {Directory} directory - The directory where the file is stored.
+   * @param {boolean} code64 - The format to return
    * @returns {Promise<FileSystemResponse>} A promise that resolves to a FileSystemResponse containing the file data or an error.
    */
   async readFile(
     path: string,
     directory: Directory,
+    code64?: boolean,
   ): Promise<FileSystemResponse<ReadFileResult>> {
     try {
-      const result = await Filesystem.readFile({
-        path: path,
-        directory: directory,
-        encoding: Encoding.UTF8,
-      });
+      let result;
+      if (code64) {
+        result = await Filesystem.readFile({
+          path: path,
+          directory: directory,
+        });
+      } else {
+        result = await Filesystem.readFile({
+          path: path,
+          directory: directory,
+          encoding: Encoding.UTF8,
+        });
+      }
+
       return { success: true, data: result }; // Return success response
     } catch (err) {
       return { success: false, error: this.handleAuthError(err) }; // Handle error response

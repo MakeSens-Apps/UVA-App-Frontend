@@ -12,7 +12,7 @@ interface dataDownloadString {
 }
 interface dataDownloadBlob {
   type: 'BLOB';
-  content: string;
+  content: Blob;
 }
 
 export type dataDownload = dataDownloadString | dataDownloadBlob;
@@ -148,7 +148,7 @@ export class S3Service {
             success: true,
             data: {
               type: 'BLOB',
-              content: await (await response.body.blob()).text(),
+              content: await response.body.blob(),
             },
           };
 

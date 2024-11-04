@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -13,6 +13,7 @@ import { ExploreContainerComponent } from '@app/explore-container/explore-contai
 import { Router } from '@angular/router';
 import { SetupService } from '@app/core/services/view/setup/setup.service';
 import { Session } from 'src/models/session.model';
+import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
 @Component({
   selector: 'app-register-project-form',
   templateUrl: './register-project-form.page.html',
@@ -28,7 +29,7 @@ import { Session } from 'src/models/session.model';
     ReactiveFormsModule,
   ],
 })
-export class RegisterProjectFormPage {
+export class RegisterProjectFormPage implements OnInit {
   icon = '../../../../../assets/images/LogoNaturaColombia.svg';
   form: FormGroup;
   user: Session | null = null;
@@ -38,11 +39,13 @@ export class RegisterProjectFormPage {
    * @param {FormBuilder} formBuilder - El servicio para construir formularios reactivos.
    * @param {Router} router - El servicio de enrutamiento para navegar entre páginas.
    * @param {SetupService} service - El servicio que gestiona la lógica de configuración de usuario.
+   * @param {ConfigurationAppService}  configuration El servicio para cargar la configuracion de la app
    */
   constructor(
     private formBuilder: FormBuilder,
     private router: Router,
     private service: SetupService,
+    private configuration: ConfigurationAppService,
   ) {
     this.form = this.formBuilder.group({
       nameFarm: new FormControl('', [
@@ -58,6 +61,22 @@ export class RegisterProjectFormPage {
         Validators.minLength(4),
       ]),
     });
+  }
+
+  /**
+   * @memberof RegisterProjectFormPage
+   * @returns {void} - No retorna ningún valor.
+   */
+  async ngOnInit(): Promise<void> {
+    const config = await this.configuration.getConfigurationApp();
+    if (config) {
+      const img = await this.configuration.loadImage(config.branding.logo);
+      if (img) {
+        this.icon = img;
+      }
+    }
+    console.log('Icon:', this.icon);
+    console.log('User:', this.user);
   }
   /**
    * Obtiene los parámetros del usuario y navega a la página de registro completado.
