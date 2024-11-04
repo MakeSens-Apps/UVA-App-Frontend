@@ -9,8 +9,11 @@ import { CalendarComponent } from '@app/components/calendar/calendar.component';
   templateUrl: 'tab3.page.html',
   styleUrls: ['tab3.page.scss'],
   standalone: true,
-  imports: [CommonModule, IonicModule,HeaderComponent, CalendarComponent]
+  imports: [CommonModule, IonicModule, HeaderComponent, CalendarComponent],
 })
 export class Tab3Page {
+  /**
+   *
+   */
   constructor() {}
 }

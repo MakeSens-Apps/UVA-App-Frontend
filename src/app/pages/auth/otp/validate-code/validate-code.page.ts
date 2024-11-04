@@ -36,8 +36,6 @@ export class ValidateCodePage implements OnInit {
       if (this.type == 'login') {
         void this.router.navigate(['app/tabs/home']);
       } else if (this.type == 'register') {
-        console.log('🚀 ~ ValidateCodePage ~ setTimeout ~ type: is Register');
-
         void this.router.navigate(['register/project-vinculation']);
       }
     }, 2 * 1000);

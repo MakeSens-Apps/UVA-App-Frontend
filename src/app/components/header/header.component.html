@@ -1,17 +1,19 @@
 <ion-header [translucent]="true">
   <ion-toolbar color="uva_blue-500">
     <div class="header">
-      <p class="title">Inicio</p>
+      <p class="title">{{ title }}</p>
       <div class="user-info">
         <ion-chip (click)="goToProfile()">
-          <ion-label>3
-          </ion-label>
+          <ion-label>3 </ion-label>
           <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
           <ion-avatar>
-            <img src="../../../assets/images/icons/user-circle.svg" alt="User avatar">
-          </ion-avatar> 
+            <img
+              src="../../../assets/images/icons/user-circle.svg"
+              alt="User avatar"
+            />
+          </ion-avatar>
         </ion-chip>
-      <!--   <span class="egg-count">3</span>
+        <!--   <span class="egg-count">3</span>
            -->
       </div>
     </div>

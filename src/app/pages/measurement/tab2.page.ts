@@ -12,7 +12,7 @@ import { Session } from 'src/models/session.model';
   templateUrl: 'tab2.page.html',
   styleUrls: ['tab2.page.scss'],
   standalone: true,
-  imports: [CommonModule, IonicModule,HeaderComponent]
+  imports: [CommonModule, IonicModule, HeaderComponent],
 })
 export class Tab2Page implements OnInit {
   user: Session | null = null;
@@ -36,7 +36,6 @@ export class Tab2Page implements OnInit {
    */
   async ngOnInit(): Promise<void> {
     this.user = await this.session.getInfo();
-    console.log('🚀 ~ Tab2Page ~ ngOnInit ~ this.user:', this.user);
   }
 
   /**
@@ -53,6 +52,4 @@ export class Tab2Page implements OnInit {
       });
     }
   }
-
-
 }
