@@ -14,14 +14,14 @@ interface BrandingModel {
 }
 
 // Interface para cada campo en "fieldsUVA"
-interface Field {
+export interface Field {
   enabled: boolean;
   fieldId: string;
   displayText: string;
 }
 
 // Interface para el objeto "fieldsUVA", usando Record para los campos
-type FieldsUVA = Record<string, Field>;
+export type FieldsUVA = Record<string, Field>;
 
 // Interface para el objeto "measurementRegistration"
 interface MeasurementRegistration {

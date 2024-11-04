@@ -1,10 +1,12 @@
 import { Injectable } from '@angular/core';
 import { generateClient } from 'aws-amplify/api';
-import { createUVA } from 'src/graphql/mutations';
+import { createUVA, updateUVA } from 'src/graphql/mutations';
 import { UVAbyUserID, UVAsByRacimoID } from 'src/graphql/queries';
 import {
   CreateUVAInput,
   CreateUVAMutation,
+  UpdateUVAInput,
+  UpdateUVAMutation,
   UVAbyUserIDQuery,
   UVAbyUserIDQueryVariables,
   UVAsByRacimoIDQuery,
@@ -115,6 +117,35 @@ export class UvaAPIService {
         },
       });
       if (response.data.createUVA) {
+        return { success: true, data: response.data };
+      }
+      if (response.errors) {
+        return { success: false, error: handleAPIError(response.errors) };
+      }
+      return { success: false, error: handleAPIError('No create uva') };
+    } catch (err) {
+      return { success: false, error: handleAPIError(err) };
+    }
+  }
+
+  /**
+   * Updates UVA (Unit Value Added) information by sending a GraphQL mutation request.
+   * @async
+   * @param {UpdateUVAInput} uva - The UVA data to be updated.
+   * @returns {Promise<APIUVAResponse<UpdateUVAMutation>>} - A promise that resolves to an object containing
+   *          the success status and data of the mutation if successful, or an error message if it fails.
+   */
+  async updateUVA(
+    uva: UpdateUVAInput,
+  ): Promise<APIUVAResponse<UpdateUVAMutation>> {
+    try {
+      const response = await client.graphql({
+        query: updateUVA,
+        variables: {
+          input: uva,
+        },
+      });
+      if (response.data.updateUVA) {
         return { success: true, data: response.data };
       }
       if (response.errors) {

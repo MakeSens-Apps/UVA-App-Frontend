@@ -7,6 +7,7 @@ import { Router } from '@angular/router';
 import { SessionService } from '@app/core/services/session/session.service';
 import { SetupService } from '@app/core/services/view/setup/setup.service';
 import { Session } from 'src/models/session.model';
+import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
 @Component({
   selector: 'app-tab2',
   templateUrl: 'tab2.page.html',
@@ -28,12 +29,14 @@ export class Tab2Page implements OnInit {
    * @param {Router} router Redireccion a otras vistas
    * @param {SessionService} session Servicio para manejar datos en cache del usuario
    * @param {SetupService} service  Servicio para manejar las funcionalidades del flujo de setup del usuario
+   * @param {ConfigurationAppService} configuration Servicio para obtener datos de configuracion en filestore
    * @memberof Tab2Page
    */
   constructor(
     private router: Router,
     private session: SessionService,
     private service: SetupService,
+    private configuration: ConfigurationAppService,
   ) {}
 
   /**
@@ -43,7 +46,11 @@ export class Tab2Page implements OnInit {
    */
   async ngOnInit(): Promise<void> {
     this.user = await this.session.getInfo();
-    console.log('🚀 ~ Tab2Page ~ ngOnInit ~ this.user:', this.user);
+    await this.configuration.getConfigurationApp();
+    await this.configuration.getConfigurationMeasurement();
+    await this.configuration.getConfigurationColors();
+
+    await this.configuration.loadBranding();
   }
 
   /**
@@ -59,5 +66,16 @@ export class Tab2Page implements OnInit {
         replaceUrl: true,
       });
     }
+  }
+  /**
+   * Downloads and loads configuration and branding data asynchronously.
+   * @async
+   * @returns {Promise<void>} - A promise that resolves once the data download and branding load are complete.
+   * @description This function triggers the downloading of configuration data by calling `downLoadData`
+   * and then applies branding settings by calling `loadBranding` from the `configuration` service.
+   */
+  async DownloadData(): Promise<void> {
+    await this.configuration.downLoadData();
+    await this.configuration.loadBranding();
   }
 }
