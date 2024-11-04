@@ -5,37 +5,19 @@
   [BgBlue]="true"
 >
   <form [formGroup]="form">
-    <div class="input-container">
+    <div
+      class="input-container"
+      *ngFor="let field of configModel?.fieldsUVA | keyvalue"
+    >
       <div class="content_label__start">
-        <ion-label>Nombre de la finca</ion-label>
+        <ion-label>{{ field.value.displayText }}</ion-label>
       </div>
       <ion-input
-        formControlName="nameFarm"
+        [formControlName]="field.value.fieldId"
         class="border"
-        (ionInput)="setErrorInput($event,'nameFarm')"
-        placeholder="Nombre de la finca"
-      ></ion-input>
-    </div>
-    <div class="input-container">
-      <div class="content_label__start">
-        <ion-label>Nombre de la vereda</ion-label>
-      </div>
-      <ion-input
-        formControlName="nameLane"
-        class="border"
-        placeholder="Nombre de la vereda"
-        (ionInput)="setErrorInput($event,'nameLane')"
-      ></ion-input>
-    </div>
-    <div class="input-container">
-      <div class="content_label__start">
-        <ion-label>Nombre del municipio</ion-label>
-      </div>
-      <ion-input
-        formControlName="nameMunicipality"
-        class="border"
-        placeholder="Nombre del municipio"
-        (ionInput)="setErrorInput($event,'nameMunicipality')"
+        type="text"
+        (ionInput)="setErrorInput($event, field.value.fieldId)"
+        [placeholder]="field.value.displayText"
       ></ion-input>
     </div>
     <ion-button

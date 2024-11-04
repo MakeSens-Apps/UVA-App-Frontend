@@ -123,8 +123,6 @@ export class SetupRacimoService {
         const newNumber = currentNumber + 1;
         const newNumberFormatted = newNumber.toString().padStart(5, '0');
         newIdUVA = `UVA_${codeRacimo}_${newNumberFormatted}`;
-
-        console.log(newIdUVA);
       } else {
         console.error(
           'No se encontró un número de 5 dígitos al final de la cadena.',
@@ -141,7 +139,38 @@ export class SetupRacimoService {
       racimoID: racimoID,
       enabled: true,
     });
+    if (createUVAResponse.success) {
+      await this.session.setInfoField('uvaID', newIdUVA);
+    }
     return createUVAResponse.success;
+  }
+  /**
+   * Updates the UVA (Unit Value Added) information with specified fields and location data.
+   * @async
+   * @param {string} [fields] - Optional fields to update in the UVA data.
+   * @param {string} [latitude] - Optional latitude coordinate for the UVA location.
+   * @param {string} [longitude] - Optional longitude coordinate for the UVA location.
+   * @param {string} [altitude] - Optional altitude for the UVA location.
+   * @returns {Promise<boolean>} - A promise that resolves to `true` if the update was successful, or `false` if the update failed or the UVA ID was not found.
+   */
+  async updateUVA(
+    fields?: string,
+    latitude?: string,
+    longitude?: string,
+    altitude?: string,
+  ): Promise<boolean> {
+    const uvaId = (await this.session.getInfo()).uvaID;
+    if (uvaId) {
+      const updateUVAResponse = await this.uvaAPI.updateUVA({
+        id: uvaId,
+        fields: fields,
+        latitude: latitude,
+        longitude: longitude,
+        altitude: altitude,
+      });
+      return updateUVAResponse.success;
+    }
+    return false;
   }
 
   /**
