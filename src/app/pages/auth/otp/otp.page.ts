@@ -176,7 +176,7 @@ export class OtpPage implements OnInit {
             this.ref.detectChanges();
             return;
           }
-          await this.router.navigate([`/home`]);
+          await this.router.navigate([`app/tabs/home`]);
           break;
         }
         case 'register':

@@ -1,0 +1,40 @@
+@import './day.mixin.scss';
+
+.date {
+    @include dayCalendar;
+    border-radius: 50%;
+    position: relative;
+
+    &.complete {
+        background-color: var(--Colors-Blue-600);
+        color: #fff;
+    }
+
+    &.current {
+        border: 2px dashed var(--Colors-Blue-700);
+        background-color: transparent;
+    }
+
+    &.incomplete {
+        border: 2px solid var(--Colors-Blue-700);
+        background-color: transparent;
+       color: var(--Colors-Blue-900);
+
+    }
+    &.future {
+       color: var(--Colors-Gray-400);
+    }
+    &.normal {
+       color: var(--Colors-Blue-900);
+    }
+
+
+    ion-icon {
+        position: absolute;
+        bottom: 0px;
+        right: 0px;
+        background-color: #fff;
+        border-radius: 50%;
+        font-size: 14px;
+    }
+}

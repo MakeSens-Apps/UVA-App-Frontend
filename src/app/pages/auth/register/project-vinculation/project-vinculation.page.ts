@@ -76,10 +76,6 @@ export class ProjectVinculationPage implements OnInit {
    */
   goToValidateProject(): void {
     if (this.form.value.code == '000000') {
-      console.log(
-        '🚀 ~ ProjectVinculationPage ~ goToValidateProject ~ this.form.value:',
-        this.form.value,
-      );
       this.showError = true;
       return;
     }
