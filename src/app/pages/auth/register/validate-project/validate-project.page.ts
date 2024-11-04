@@ -1,8 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
 import { IonicModule } from '@ionic/angular';
-
+import { SessionService } from '@app/core/services/session/session.service';
 @Component({
   selector: 'app-validate-project',
   templateUrl: './validate-project.page.html',
@@ -16,23 +17,66 @@ export class ValidateProjectPage implements OnInit {
 
   /**
    * Creates an instance of ValidateProjectPage.
-   * @param {Router} router Redireccion a otras vistas
+   * @param {Router} router The Angular router used for view redirection.
+   * @param {ConfigurationAppService} config The service handling application configuration and data download.
+   *  @param {SessionService} session The service from session
    * @memberof ValidateProjectPage
    */
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private config: ConfigurationAppService,
+    private session: SessionService,
+  ) {}
 
   /**
-   * Inicia un timer pare retener la vista y luego continuar a "project-vinculation-done"
+   * Angular lifecycle hook that runs on component initialization.
+   * Starts a timer and triggers the download of necessary data.
+   * If both the timer and download complete successfully, navigates to the "project-vinculation-done" page.
+   * @returns {void}
    * @memberof ValidateProjectPage
    */
   ngOnInit(): void {
-    this.timer = setTimeout(() => {
-      void this.router.navigate(['register', 'project-vinculation-done']);
-    }, 2 * 1000);
+    void this.startTimerAndDownload();
   }
 
   /**
-   * Detiene el timer y lo elimna
+   * Initiates both a timer and a data download operation simultaneously.
+   * Navigates to the "project-vinculation-done" page if both operations complete successfully,
+   * otherwise navigates to "project-vinculation" if the download fails.
+   * @private
+   * @async
+   * @returns {Promise<void>}
+   * @memberof ValidateProjectPage
+   */
+  private async startTimerAndDownload(): Promise<void> {
+    // Inicia el temporizador
+    const timerPromise = new Promise<void>((resolve) => {
+      this.timer = setTimeout(() => {
+        resolve();
+      }, 2 * 1000);
+    });
+
+    const session = await this.session.getInfo();
+    let downloadSuccess = false;
+    if (session.racimoLinkCode) {
+      downloadSuccess = await this.config.downLoadData(session.racimoLinkCode);
+    }
+
+    // Espera a que ambas tareas terminen
+    await timerPromise;
+
+    // Si ambas tareas completaron con éxito, navega
+    if (downloadSuccess) {
+      await this.config.loadBranding();
+      void this.router.navigate(['register', 'project-vinculation-done']);
+    } else {
+      void this.router.navigate(['register', 'project-vinculation']);
+    }
+  }
+
+  /**
+   * Cancels the timer if it is currently running, clearing the timeout.
+   * @returns {void}
    * @memberof ValidateProjectPage
    */
   cancelTimer(): void {

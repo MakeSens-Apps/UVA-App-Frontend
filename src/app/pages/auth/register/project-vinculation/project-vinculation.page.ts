@@ -14,6 +14,8 @@ import {
 import { SetupService } from '@app/core/services/view/setup/setup.service';
 import { Session } from 'src/models/session.model';
 import { SetupRacimoService } from '@app/core/services/view/setup/setup-racimo.service';
+import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
+
 @Component({
   selector: 'app-project-vinculation',
   templateUrl: './project-vinculation.page.html',
@@ -41,12 +43,14 @@ export class ProjectVinculationPage implements OnInit {
    * @param {Router} router - Router service to handle page navigation.
    * @param {SetupService} service - Service to manage user setup.
    * @param {SetupRacimoService} serviceRacimo - Service to manage UVA and RACIMO data.
+   * @param {ConfigurationAppService} configuration -Service to manage S3 y FileSystem
    */
   constructor(
     private formBuilder: FormBuilder,
     private router: Router,
     private service: SetupService,
     private serviceRacimo: SetupRacimoService,
+    private configuration: ConfigurationAppService,
   ) {
     this.form = this.formBuilder.group({
       code: new FormControl(
@@ -82,7 +86,7 @@ export class ProjectVinculationPage implements OnInit {
    * If the code is '000000', displays an error message instead of navigating.
    * @returns {void} - Does not return a value.
    */
-  goToValidateProject(): void {
+  async goToValidateProject(): Promise<void> {
     this.serviceRacimo
       .getRACIMOByCode(this.form.value.code)
       .then((response) => {

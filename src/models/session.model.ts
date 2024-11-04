@@ -17,4 +17,7 @@ export const sessionKeys: (keyof Session)[] = [
   'phone',
   'racimoID',
   'uvaID',
+  'racimoName',
+  'racimoLinkCode',
+  'racimoConfiguration',
 ];
