@@ -110,11 +110,11 @@ export class S3Service {
         options: {
           onProgress: (progress) => {
             if (progress.totalBytes && progress.totalBytes > 0) {
-              console.log(
+              console.info(
                 `Download progress: ${(progress.transferredBytes / progress.totalBytes) * 100}%`,
               );
             } else {
-              console.log('No es un archivo');
+              console.info('No es un archivo');
             }
           },
         },
