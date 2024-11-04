@@ -28,7 +28,7 @@ export class RegisterCompletedPage implements OnInit {
    */
   ngOnInit(): void {
     setTimeout(() => {
-      void this.router.navigate(['app/tabs/tab2']);
+      void this.router.navigate(['app/tabs/home']);
     }, 3 * 1000);
   }
 }

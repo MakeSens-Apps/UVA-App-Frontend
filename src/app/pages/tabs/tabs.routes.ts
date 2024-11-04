@@ -7,15 +7,32 @@ export const routes: Routes = [
     component: TabsPage,
     children: [
       {
-        path: 'tab2',
+        path: 'home',
         loadComponent: () =>
-          import('../tab2/tab2.page').then((m) => m.Tab2Page),
+          import('../home/home.page').then((m) => m.HomePage),
+      },
+      {
+        path: 'register',
+        loadComponent: () =>
+          import('../measurement/measurement.page').then(
+            (m) => m.MeasurementPage,
+          ),
+      },
+      {
+        path: 'history',
+        loadComponent: () =>
+          import('../historical/historical.page').then((m) => m.HistoricalPage),
+      },
+      {
+        path: '',
+        redirectTo: '/tabs/home',
+        pathMatch: 'full',
       },
     ],
   },
   {
     path: '',
-    redirectTo: '/tabs/tab2',
+    redirectTo: '/tabs/home',
     pathMatch: 'full',
   },
 ];

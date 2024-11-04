@@ -1,0 +1,18 @@
+<div
+  class="date"
+  [ngClass]="{
+    complete: state === 'complete',
+    current: isToday,
+    incomplete: state === 'incomplete',
+    future: state === 'future',
+    normal: state === 'normal',
+  }"
+>
+  @if (day) {
+    {{ day < 10 ? '0' + day : day }}
+    <ion-icon
+      *ngIf="state === 'complete'"
+      src="./../../../assets/images/icons/check.svg"
+    ></ion-icon>
+  }
+</div>
