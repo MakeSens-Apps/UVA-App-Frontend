@@ -9,8 +9,8 @@ describe('DayComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ DayComponent ],
-      imports: [IonicModule.forRoot()]
+      declarations: [DayComponent],
+      imports: [IonicModule.forRoot()],
     }).compileComponents();
 
     fixture = TestBed.createComponent(DayComponent);

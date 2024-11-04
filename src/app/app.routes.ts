@@ -87,22 +87,32 @@ export const routes: Routes = [
   {
     path: 'home',
     loadComponent: () =>
-      import('./pages/tab2/tab2.page').then((m) => m.Tab2Page),
+      import('./pages/measurement/tab2.page').then((m) => m.Tab2Page),
   },
   {
     path: 'profile',
-    loadComponent: () => import('./pages/profile/profile.page').then( m => m.ProfilePage)
+    loadComponent: () =>
+      import('./pages/profile/profile.page').then((m) => m.ProfilePage),
   },
   {
     path: 'achievement',
-    loadComponent: () => import('./pages/achievement/achievement.page').then( m => m.AchievementPage)
+    loadComponent: () =>
+      import('./pages/profile/achievement/achievement.page').then(
+        (m) => m.AchievementPage,
+      ),
   },
   {
     path: 'configuration',
-    loadComponent: () => import('./pages/configuration/configuration.page').then( m => m.ConfigurationPage)
+    loadComponent: () =>
+      import('./pages/profile/configuration/configuration.page').then(
+        (m) => m.ConfigurationPage,
+      ),
   },
   {
     path: 'personal-info',
-    loadComponent: () => import('./pages/personal-info/personal-info.page').then( m => m.PersonalInfoPage)
+    loadComponent: () =>
+      import('./pages/profile/personal-info/personal-info.page').then(
+        (m) => m.PersonalInfoPage,
+      ),
   },
 ];

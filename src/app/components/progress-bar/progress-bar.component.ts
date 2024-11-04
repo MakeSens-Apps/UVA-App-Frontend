@@ -1,18 +1,21 @@
-import { Component, OnInit } from '@angular/core';
-import { IonicModule } from '@ionic/angular';
+import { Component } from '@angular/core';
 import { IonProgressBar } from '@ionic/angular/standalone';
 
+/**
+ * @class ProgressBarComponent
+ * @description A component that displays a progress bar, typically used to indicate loading or completion status.
+ */
 @Component({
   selector: 'app-progress-bar',
   templateUrl: './progress-bar.component.html',
   styleUrls: ['./progress-bar.component.scss'],
   standalone: true,
-  imports:[IonProgressBar]
+  imports: [IonProgressBar],
 })
-export class ProgressBarComponent  implements OnInit {
-
-  constructor() { }
-
-  ngOnInit() {}
-
+export class ProgressBarComponent {
+  /**
+   * @constructs
+   * Creates an instance of ProgressBarComponent.
+   */
+  constructor() {}
 }

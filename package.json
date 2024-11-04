@@ -10,6 +10,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint --fix . --ext .ts",
     "update-graphql": "npx @aws-amplify/cli codegen",
     "format": "prettier --write 'src/**/*.{js,ts,html,css}'"
   },

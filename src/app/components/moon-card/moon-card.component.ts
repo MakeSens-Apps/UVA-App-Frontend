@@ -1,6 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 
+/**
+ * @class MoonCardComponent
+ * @description A component that represents a card displaying moon-related information.
+ */
 @Component({
   selector: 'app-moon-card',
   templateUrl: './moon-card.component.html',
@@ -8,10 +12,10 @@ import { IonicModule } from '@ionic/angular';
   standalone: true,
   imports: [IonicModule],
 })
-export class MoonCardComponent  implements OnInit {
-
-  constructor() { }
-
-  ngOnInit() {}
-
+export class MoonCardComponent {
+  /**
+   * @constructs
+   * Creates an instance of MoonCardComponent.
+   */
+  constructor() {}
 }

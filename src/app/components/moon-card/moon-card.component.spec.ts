@@ -9,8 +9,8 @@ describe('MoonCardComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ MoonCardComponent ],
-      imports: [IonicModule.forRoot()]
+      declarations: [MoonCardComponent],
+      imports: [IonicModule.forRoot()],
     }).compileComponents();
 
     fixture = TestBed.createComponent(MoonCardComponent);
