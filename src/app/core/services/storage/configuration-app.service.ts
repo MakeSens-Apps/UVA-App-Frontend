@@ -5,7 +5,8 @@ import { Directory } from '@capacitor/filesystem';
 import { ConfigModel } from 'src/models/configuration/config.model';
 import { ColorsModel } from 'src/models/configuration/colors.model';
 import { MeasurementModel } from 'src/models/configuration/measurements.model';
-//import { Config } from '@ionic/angular';
+import { Capacitor } from '@capacitor/core';
+import { SessionService } from '../session/session.service';
 
 @Injectable({
   providedIn: 'root',
@@ -21,31 +22,44 @@ export class ConfigurationAppService {
    * Service constructor.
    * @param {S3Service} s3 - Service for S3 storage interaction.
    * @param {FileSystemService} fileSystem - Service for file system management.
+   * @param {SessionService} session - Service for session management.
    */
   constructor(
     private s3: S3Service,
     private fileSystem: FileSystemService,
+    private session: SessionService,
   ) {}
 
   /**
    * Downloads configuration data associated with a cluster code.
-   * @param {string} racimoCode - Cluster code.
    * @returns {Promise<boolean>} - Returns `true` if all files were successfully downloaded, `false` if any failed.
    */
-  async downLoadData(racimoCode: string): Promise<boolean> {
-    const path = `${this.basePath}/${racimoCode}`;
-    this.pathRacimo = path;
-    const listFiles = await this.s3.listFiles(path);
+  async downLoadData(): Promise<boolean> {
+    if (!(await this.getPathRacimo())) {
+      return false;
+    }
+    const listFiles = await this.s3.listFiles(this.pathRacimo);
     if (listFiles.success) {
       for (const item of listFiles.data) {
         const file = await this.s3.getFile(item.path);
 
         if (file.success) {
-          await this.fileSystem.writeFile(
-            item.path,
-            file.data.content,
-            Directory.Data,
-          );
+          let content = '';
+          switch (file.data.type) {
+            case 'TXT':
+            case 'JSON':
+              content = file.data.content;
+              break;
+            case 'BLOB': {
+              const arrayBuffer = await file.data.content.arrayBuffer();
+              const uint8Array = new Uint8Array(arrayBuffer);
+              content = uint8Array.toString();
+              break;
+            }
+            default:
+              break;
+          }
+          await this.fileSystem.writeFile(item.path, content, Directory.Data);
         } else {
           console.error(`${item.path} Not found`);
           return false;
@@ -62,7 +76,7 @@ export class ConfigurationAppService {
    */
   async getConfigurationApp(): Promise<ConfigModel | null> {
     if (this.configApp === null) {
-      const path = `public/racimos/NAT001/config.json`;
+      const path = `${this.pathRacimo}/config.json`;
       const response = await this.fileSystem.readFile(path, Directory.Data);
       if (response.success) {
         try {
@@ -82,8 +96,11 @@ export class ConfigurationAppService {
    * @returns {Promise<MeasurementModel | null>} - Measurement configuration or `null` if not found.
    */
   async getConfigurationMeasurement(): Promise<MeasurementModel | null> {
+    if (!(await this.getPathRacimo())) {
+      return null;
+    }
     if (this.configMeasurement === null) {
-      const path = `public/racimos/NAT001/measurementRegistration/measurementsRegistration.json`;
+      const path = `${this.pathRacimo}/measurementRegistration/measurementsRegistration.json`;
       const response = await this.fileSystem.readFile(path, Directory.Data);
       if (response.success) {
         this.configMeasurement = JSON.parse(
@@ -101,8 +118,11 @@ export class ConfigurationAppService {
    * @returns {Promise<ColorsModel | null>} - Branding color configuration or `null` if not found.
    */
   async getConfigurationColors(): Promise<ColorsModel | null> {
+    if (!(await this.getPathRacimo())) {
+      return null;
+    }
     if (this.configColors === null) {
-      const path = `public/racimos/NAT001/branding/colors.json`;
+      const path = `${this.pathRacimo}/branding/colors.json`;
       const response = await this.fileSystem.readFile(path, Directory.Data);
       if (response.success) {
         this.configColors = JSON.parse(
@@ -129,6 +149,76 @@ export class ConfigurationAppService {
   }
 
   /**
+   * Loads an image file based on the specified platform and returns its URI or Blob URL.
+   * @param {string} pathFile - The path of the image file.
+   * @returns {Promise<string | null>} - Image URI or Blob URL, or `null` if not found.
+   */
+  async loadImage(pathFile: string): Promise<string | null> {
+    const path = `${this.pathRacimo}/${pathFile}`;
+    const platform = Capacitor.getPlatform();
+
+    switch (platform) {
+      case 'android':
+      case 'ios':
+        return await this.loadUriFromFilesystem(path);
+      case 'web':
+        return await this.loadBlobFromFilesystem(path);
+      default:
+        console.error('Plataforma no soportada:', platform);
+        return null;
+    }
+  }
+
+  /**
+   * Loads an image file as a URI on Android and iOS platforms.
+   * @private
+   * @param {string} fileName - The file name to load.
+   * @returns {Promise<string | null>} - File URI or `null` if there was an error.
+   */ private async loadUriFromFilesystem(
+    fileName: string,
+  ): Promise<string | null> {
+    const fileUri = await this.fileSystem.getFileUri(fileName, Directory.Data);
+    if (fileUri.success) {
+      return Capacitor.convertFileSrc(fileUri.data.uri);
+    }
+    console.error('Error obteniendo la URI de la imagen:', fileName);
+    return null;
+  }
+
+  /**
+   * Loads an image file as a Blob on Web platforms.
+   * @private
+   * @param {string} fileName - The file name to load.
+   * @returns {Promise<string | null>} - Blob URL or `null` if there was an error.
+   */
+  private async loadBlobFromFilesystem(
+    fileName: string,
+  ): Promise<string | null> {
+    const fileData = await this.fileSystem.readFile(
+      fileName,
+      Directory.Data,
+      true,
+    );
+
+    if (fileData.success) {
+      try {
+        const byteCharacters = fileData.data.data.toString();
+        const binaryData = new Uint8Array(
+          byteCharacters.split(',').map(Number),
+        );
+        const blob = new Blob([binaryData], { type: 'image/png' });
+        return URL.createObjectURL(blob);
+      } catch (error) {
+        console.error('Error leyendo la imagen como Blob:', error);
+        return null;
+      }
+    }
+
+    console.error('Error leyendo la imagen como Blob:', fileName);
+    return null;
+  }
+
+  /**
    * Applies colors as CSS variables in the document.
    * @private
    * @param {ColorsModel} colors - Colors model to apply.
@@ -145,5 +235,19 @@ export class ConfigurationAppService {
         document.documentElement.style.setProperty(cssVarName, rgbValue);
       }
     });
+  }
+
+  /**
+   * Sets the racimo path based on the session's racimo link code.
+   * @private
+   * @returns {Promise<boolean>} - Returns `true` if the racimo path is set, `false` otherwise.
+   */
+  private async getPathRacimo(): Promise<boolean> {
+    const session = await this.session.getInfo();
+    if (!session.racimoLinkCode) {
+      return false;
+    }
+    this.pathRacimo = `${this.basePath}/${session.racimoLinkCode}`;
+    return true;
   }
 }

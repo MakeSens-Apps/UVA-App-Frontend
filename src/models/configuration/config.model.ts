@@ -7,7 +7,9 @@ interface RacimoModel {
 
 // Interface para el objeto "branding"
 interface BrandingModel {
-  colors: string;
+  colors: {
+    path: string;
+  };
   logo: string;
 }
 
@@ -21,6 +23,11 @@ interface Field {
 // Interface para el objeto "fieldsUVA", usando Record para los campos
 type FieldsUVA = Record<string, Field>;
 
+// Interface para el objeto "measurementRegistration"
+interface MeasurementRegistration {
+  path: string;
+}
+
 // Interface para el objeto "gamification" -> "streakReward"
 interface StreakReward {
   streakDaysRequired: number;
@@ -29,7 +36,7 @@ interface StreakReward {
 
 // Interface para cada "milestone" en "gamification"
 interface MilestoneModel {
-  milestoneName: string;
+  name: string;
   lowerBound: number | null;
   upperBound: number | null;
   icon: string;
@@ -51,7 +58,7 @@ export interface ConfigModel {
   racimo: RacimoModel;
   branding: BrandingModel;
   fieldsUVA: FieldsUVA;
-  measurementRegistration: string;
+  measurementRegistration: MeasurementRegistration;
   components: Record<string, boolean>;
   documentation: string;
   gamification: GamificationModel;

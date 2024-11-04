@@ -56,11 +56,7 @@ export class ValidateProjectPage implements OnInit {
       }, 2 * 1000);
     });
 
-    const session = await this.session.getInfo();
-    let downloadSuccess = false;
-    if (session.racimoLinkCode) {
-      downloadSuccess = await this.config.downLoadData(session.racimoLinkCode);
-    }
+    const downloadSuccess = await this.config.downLoadData();
 
     // Espera a que ambas tareas terminen
     await timerPromise;
