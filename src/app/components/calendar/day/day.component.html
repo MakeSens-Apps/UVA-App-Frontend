@@ -6,13 +6,16 @@
     incomplete: state === 'incomplete',
     future: state === 'future',
     normal: state === 'normal',
+    none: state === 'none',
+    isMoonCalendar: isMoonCalendar,
   }"
 >
   @if (day) {
     {{ day < 10 ? '0' + day : day }}
     <ion-icon
-      *ngIf="state === 'complete'"
-      src="./../../../assets/images/icons/check.svg"
+      *ngIf="state === 'complete' || customIcon"
+      [src]="icon"
+      [ngClass]="{ top: iconPosition === 'top' }"
     ></ion-icon>
   }
 </div>

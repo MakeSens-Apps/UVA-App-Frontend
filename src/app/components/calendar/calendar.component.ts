@@ -19,7 +19,7 @@ interface calendar {
   /** Day of the week (0 = Sunday, 1 = Monday, etc.) */
   dayOfWeek: number | null;
   /** The state of the day, used to mark completion or status */
-  state?: 'complete' | 'incomplete' | 'future' | 'normal';
+  state?: 'complete' | 'incomplete' | 'future' | 'normal' | 'none' | undefined;
 }
 
 /**
@@ -43,6 +43,9 @@ export class CalendarComponent implements OnInit {
   /** Array representing the calendar days with their properties and states */
   calendar: calendar[] = [];
 
+  /** Defines the type of calendar (e.g., moon or normal) */
+  @Input() typeCalendar = 'normal';
+  
   /**
    * Defines the calendar view mode.
    * Accepts 'month' for a full month view or 'week' for a weekly view.
@@ -63,10 +66,12 @@ export class CalendarComponent implements OnInit {
   today = new Date().getDate();
 
   /** Days marked as completed */
-  daysComplete = [15, 14, 11];
+  daysComplete = [3, 5, 11];
 
   /** Days marked as incomplete */
-  daysIncomplete = [13, 12];
+  daysIncomplete = [6, 12];
+
+  icon = './../../../assets/images/icons/Moon/full.svg';
 
   /**
    * Lifecycle hook that initializes the calendar based on the view mode.
@@ -119,7 +124,11 @@ export class CalendarComponent implements OnInit {
         //FIXME: hacer mergue de status
         // state: i > this.today ? 'future' : 'normal',
         state:
-          day.getDate() > this.today ? 'future' : this.getStatus(day.getDate()),
+          this.typeCalendar === 'moon'
+            ? 'none'
+            : day.getDate() > this.today
+              ? 'future'
+              : this.getStatus(day.getDate()),
 
         // incomplete: i == 11
       });
@@ -161,7 +170,11 @@ export class CalendarComponent implements OnInit {
         dayOfMonth: day.getDate(),
         dayOfWeek: day.getDay(),
         state:
-          day.getDate() > this.today ? 'future' : this.getStatus(day.getDate()),
+          this.typeCalendar === 'moon'
+            ? 'none'
+            : day.getDate() > this.today
+              ? 'future'
+              : this.getStatus(day.getDate()),
       };
     });
   }

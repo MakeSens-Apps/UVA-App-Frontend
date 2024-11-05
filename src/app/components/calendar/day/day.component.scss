@@ -13,20 +13,30 @@
     &.current {
         border: 2px dashed var(--Colors-Blue-700);
         background-color: transparent;
+        &.isMoonCalendar {
+            background-color: var(--Colors-Blue-600);
+            border:none;
+        }
+    
     }
 
     &.incomplete {
         border: 2px solid var(--Colors-Blue-700);
         background-color: transparent;
-       color: var(--Colors-Blue-900);
+        color: var(--Colors-Blue-900);
 
     }
+
     &.future {
-       color: var(--Colors-Gray-400);
+        color: var(--Colors-Gray-400);
     }
+
     &.normal {
-       color: var(--Colors-Blue-900);
+        color: var(--Colors-Blue-900);
     }
+   
+
+    
 
 
     ion-icon {
@@ -36,5 +46,11 @@
         background-color: #fff;
         border-radius: 50%;
         font-size: 14px;
+
+        &.top {
+            bottom: auto;
+            right: auto;
+            top: -5px;
+        }
     }
 }

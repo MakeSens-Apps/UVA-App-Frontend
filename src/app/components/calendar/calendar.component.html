@@ -1,21 +1,46 @@
-<div class="cards">
+<div [ngClass]="{ card: typeCalendar !== 'moon' }">
   @if (hasHeader) {
     <ng-content select="[header]"></ng-content>
   }
 
   <ion-card-content>
-    <div class="calendar">
-      <div class="day" *ngFor="let day of ['D', 'L', 'M', 'M', 'J', 'V', 'S']">
-        {{ day }}
+    @if (typeCalendar === 'normal') {
+      <div class="calendar">
+        <div
+          class="day"
+          *ngFor="let day of ['D', 'L', 'M', 'M', 'J', 'V', 'S']"
+        >
+          {{ day }}
+        </div>
+        <div *ngFor="let date of calendar">
+          <app-day
+            [day]="date.dayOfMonth!"
+            [isToday]="date.dayOfMonth === today"
+            [state]="date.state"
+          ></app-day>
+        </div>
       </div>
-      <div *ngFor="let date of calendar">
-        <app-day
-          [day]="date.dayOfMonth!"
-          [isToday]="date.dayOfMonth === today"
-          [state]="date.state"
-        ></app-day>
+    } @else if (typeCalendar === 'moon') {
+      <div class="calendar moon">
+        <div
+          class="day header"
+          *ngFor="let day of ['D', 'L', 'M', 'M', 'J', 'V', 'S']"
+        >
+          {{ day }}
+        </div>
+        <div *ngFor="let date of calendar">
+          <app-day
+            [day]="date.dayOfMonth!"
+            [isToday]="date.dayOfMonth === today"
+            [state]="date.state"
+            [customIcon]="true"
+            [icon]="icon"
+            iconPosition="top"
+            [isMoonCalendar]="true"
+          ></app-day>
+        </div>
       </div>
-    </div>
+    }
 
     <ng-content select="[footer]"></ng-content>
   </ion-card-content>
