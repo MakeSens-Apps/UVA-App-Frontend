@@ -45,7 +45,7 @@ export class CalendarComponent implements OnInit {
 
   /** Defines the type of calendar (e.g., moon or normal) */
   @Input() typeCalendar = 'normal';
-  
+
   /**
    * Defines the calendar view mode.
    * Accepts 'month' for a full month view or 'week' for a weekly view.
