@@ -1,4 +1,8 @@
-<app-header title="Calendario lunar"></app-header>
+<app-header
+  title="Calendario lunar"
+  [hasBackButton]="true"
+  routerBackButton="/app/tabs/home"
+></app-header>
 
 <ion-content [fullscreen]="true">
   <h2 class="date-header">{{month}}</h2>

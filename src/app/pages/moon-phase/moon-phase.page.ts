@@ -44,30 +44,30 @@ const meses: any = {
   ],
 })
 export class MoonPhasePage {
-   /**
+  /**
    * The current month name in Spanish.
    * @type {string}
    */
-   month: string;
+  month: string;
 
-   /**
-    * The current lunar phase, represented as a key in LUNAR_PHASE_NAME.
-    * @type {keyof typeof LUNAR_PHASE_NAME}
-    * @default 'FULL_MOON'
-    */
-   phase: keyof typeof LUNAR_PHASE_NAME = 'FULL_MOON';
- 
-   /**
-    * The name of the current lunar phase.
-    * Derived from the LUNAR_PHASE_NAME constant based on the phase.
-    * @type {string}
-    */
-   phaseName = LUNAR_PHASE_NAME[this.phase];
- 
-   /**
-    * @constructs MoonPhasePage
-    * Initializes the MoonPhasePage component, setting the current month name based on the system date.
-    */
+  /**
+   * The current lunar phase, represented as a key in LUNAR_PHASE_NAME.
+   * @type {keyof typeof LUNAR_PHASE_NAME}
+   * @default 'FULL_MOON'
+   */
+  phase: keyof typeof LUNAR_PHASE_NAME = 'FULL_MOON';
+
+  /**
+   * The name of the current lunar phase.
+   * Derived from the LUNAR_PHASE_NAME constant based on the phase.
+   * @type {string}
+   */
+  phaseName = LUNAR_PHASE_NAME[this.phase];
+
+  /**
+   * @constructs MoonPhasePage
+   * Initializes the MoonPhasePage component, setting the current month name based on the system date.
+   */
   constructor() {
     const month = new Date().getMonth();
     this.month = meses[month];

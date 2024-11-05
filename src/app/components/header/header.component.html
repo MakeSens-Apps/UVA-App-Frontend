@@ -1,6 +1,14 @@
 <ion-header [translucent]="true">
   <ion-toolbar color="uva_blue-500">
     <div class="header">
+      @if (hasBackButton) {
+        <ion-buttons slot="start">
+          <ion-button (click)="goBack(routerBackButton)" fill="clear">
+            <ion-icon name="arrow-back-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      }
+
       <p class="title">{{ title }}</p>
       <div class="user-info">
         <ion-chip (click)="goToProfile()">

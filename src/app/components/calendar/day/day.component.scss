@@ -13,9 +13,11 @@
     &.current {
         border: 2px dashed var(--Colors-Blue-700);
         background-color: transparent;
+        color: var(--Colors-Blue-900, #164551);
         &.isMoonCalendar {
             background-color: var(--Colors-Blue-600);
             border:none;
+            color: #fff;
         }
     
     }
