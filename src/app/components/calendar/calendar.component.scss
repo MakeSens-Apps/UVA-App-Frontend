@@ -1,4 +1,5 @@
 @import'./day/day.mixin.scss';
+
 .calendar {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -14,39 +15,21 @@
 
 
     .day {
-    @include dayCalendar;
+        @include dayCalendar;
     }
 
-/*     .date {
-        // background-color: #e0e0e0;
-        border-radius: 50%;
-        position: relative;
+    &.moon {
+        border: none;
+        border-radius: var(--4xl, 16px);
+        background: var(--Colors-Blue-800, #1A6270);
+        color: white;
+        padding: 20px 10px 10px 10px;
+        gap: 6px;
 
-        &.active {
-            background-color: var(--Colors-Blue-600);
-            color: #fff;
+        .header {
+            margin-bottom: 10px;
         }
 
-        &.current {
-            border: 2px dashed var(--Colors-Blue-700);
-            background-color: transparent;
-        }
-
-        &.incomplete {
-            border: 2px solid var(--Colors-Blue-700);
-            background-color: transparent;
-        }
-
-        ion-icon {
-            position: absolute;
-            bottom: 0px;
-            right: 0px;
-            background-color: #fff;
-            border-radius: 50%;
-            font-size: 14px;
-        }
     }
- */
 
 }
-

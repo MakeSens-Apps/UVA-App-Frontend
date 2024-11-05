@@ -7,6 +7,7 @@ import { ProgressBarComponent } from '../../components/progress-bar/progress-bar
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import { MoonCardComponent } from '../../components/moon-card/moon-card.component';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-home',
@@ -36,7 +37,11 @@ export class HomePage {
    * Initializes the formatted date string using date-fns with Spanish locale.
    *
    */
-  constructor() {
+  constructor(private router: Router) {
     this.today = format(new Date(), " EEEE dd 'de' MMMM", { locale: es });
+  }
+
+  goToMoonCalendar(): void {
+    void this.router.navigate(['/app/tabs/home/moon-phase']);
   }
 }

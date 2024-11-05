@@ -117,4 +117,9 @@ export const routes: Routes = [
         (m) => m.PersonalInfoPage,
       ),
   },
+  {
+    path: 'moon-phase',
+    loadComponent: () =>
+      import('./pages/moon-phase/moon-phase.page').then((m) => m.MoonPhasePage),
+  },
 ];

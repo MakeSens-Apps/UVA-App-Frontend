@@ -1,15 +1,12 @@
 <div class="card_moon_container">
-  <div class="card_moon">
-    <ion-img
-      class="moon"
-      src="./../../../assets/images/Moon/llena.svg"
-    ></ion-img>
+  <div class="card_moon" [class]="{ green: background === 'green' }">
+    <ion-img class="moon" [src]="phaseIcon"></ion-img>
 
     <div class="card_text">
       <p class="subTitle">
         Fase lunar
         <br />
-        <span class="title"> Luna llena </span>
+        <span class="title"> {{ phaseName }} </span>
       </p>
     </div>
 
