@@ -1,0 +1,52 @@
+@import'./day/day.mixin.scss';
+.calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    margin-bottom: 10px;
+    padding: 8px;
+    color: var(--Colors-Gray-400);
+
+
+    border-radius: 10px;
+    border: 1px solid var(--Colors-Gray-200);
+    background: var(--White, #FFF);
+
+
+    .day {
+    @include dayCalendar;
+    }
+
+/*     .date {
+        // background-color: #e0e0e0;
+        border-radius: 50%;
+        position: relative;
+
+        &.active {
+            background-color: var(--Colors-Blue-600);
+            color: #fff;
+        }
+
+        &.current {
+            border: 2px dashed var(--Colors-Blue-700);
+            background-color: transparent;
+        }
+
+        &.incomplete {
+            border: 2px solid var(--Colors-Blue-700);
+            background-color: transparent;
+        }
+
+        ion-icon {
+            position: absolute;
+            bottom: 0px;
+            right: 0px;
+            background-color: #fff;
+            border-radius: 50%;
+            font-size: 14px;
+        }
+    }
+ */
+
+}
+

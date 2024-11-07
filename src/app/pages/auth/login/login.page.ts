@@ -80,7 +80,7 @@ export class LoginPage {
    * @returns {Promise<boolean>} A promise that resolves to true if navigation was successful.
    */
   goToHome(): Promise<boolean> {
-    return this.router.navigate(['home']);
+    return this.router.navigate(['app/tabs/home']);
   }
 
   /**
