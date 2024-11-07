@@ -6,8 +6,14 @@
 
 <ion-content [fullscreen]="true">
   <h2 class="date-header">{{month}}</h2>
-  <app-moon-card background="green" [phase]="phase"></app-moon-card>
-  <app-calendar typeCalendar="moon"> </app-calendar>
+  <app-moon-card
+    background="green"
+    [phase]="phase"
+    [hasArrow]="false"
+  ></app-moon-card>
+  <div class="ion-padding-horizontal">
+    <app-calendar typeCalendar="moon"> </app-calendar>
+  </div>
 
   <section class="cards">
     <div class="text_container">

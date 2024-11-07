@@ -69,6 +69,12 @@ export class MoonCardComponent {
   @Input() phaseIcon = LUNAR_PHASE[this._phase];
 
   /**
+   * toggle for arrow icon .
+   * @type {boolean}
+   */
+  @Input() hasArrow = true;
+
+  /**
    * Creates an instance of MoonCardComponent.
    * @constructs MoonCardComponent
    */

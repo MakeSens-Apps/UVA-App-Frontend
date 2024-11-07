@@ -11,7 +11,9 @@
     </div>
 
     <div>
-      <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
+      @if (hasArrow) {
+        <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
+      }
     </div>
   </div>
   <ion-img
