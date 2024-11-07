@@ -70,10 +70,6 @@ export class SetPhoneRegisterPage implements OnInit {
    */
   async ngOnInit(): Promise<void> {
     this.user = await this.service.getParametersUser();
-    console.log(
-      '🚀 ~ SetPhoneRegisterPage ~ modal.onDidDismiss ~ this.user:',
-      this.user,
-    );
   }
 
   /**

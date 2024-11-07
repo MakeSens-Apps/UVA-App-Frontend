@@ -1,36 +1,29 @@
 import { Component, OnInit } from '@angular/core';
-import { IonHeader, IonToolbar, IonTitle } from '@ionic/angular/standalone';
-import { ExploreContainerComponent } from '../../explore-container/explore-container.component';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { SessionService } from '@app/core/services/session/session.service';
+import { HeaderComponent } from '@app/components/header/header.component';
+
 import { SetupService } from '@app/core/services/view/setup/setup.service';
 import { Session } from 'src/models/session.model';
 import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
 @Component({
-  selector: 'app-tab2',
-  templateUrl: 'tab2.page.html',
-  styleUrls: ['tab2.page.scss'],
+  selector: 'app-measurement',
+  templateUrl: 'measurement.page.html',
+  styleUrls: ['measurement.page.scss'],
   standalone: true,
-  imports: [
-    IonHeader,
-    IonToolbar,
-    IonTitle,
-    ExploreContainerComponent,
-    CommonModule,
-    IonicModule,
-  ],
+  imports: [CommonModule, IonicModule, HeaderComponent],
 })
-export class Tab2Page implements OnInit {
+export class MeasurementPage implements OnInit {
   user: Session | null = null;
   /**
-   * Creates an instance of Tab2Page.
+   * Creates an instance of MeasurementPage.
    * @param {Router} router Redireccion a otras vistas
    * @param {SessionService} session Servicio para manejar datos en cache del usuario
    * @param {SetupService} service  Servicio para manejar las funcionalidades del flujo de setup del usuario
    * @param {ConfigurationAppService} configuration Servicio para obtener datos de configuracion en filestore
-   * @memberof Tab2Page
+   * @memberof MeasurementPage
    */
   constructor(
     private router: Router,
@@ -42,7 +35,7 @@ export class Tab2Page implements OnInit {
   /**
    *
    * @returns {Promise<void>}
-   * @memberof Tab2Page
+   * @memberof MeasurementPage
    */
   async ngOnInit(): Promise<void> {
     this.user = await this.session.getInfo();
@@ -56,7 +49,7 @@ export class Tab2Page implements OnInit {
   /**
    *
    * @returns {Promise<void>}
-   * @memberof Tab2Page
+   * @memberof MeasurementPage
    */
   async close(): Promise<void> {
     const response = await this.service.signOut();
