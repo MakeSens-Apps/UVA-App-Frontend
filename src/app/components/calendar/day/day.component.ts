@@ -43,10 +43,11 @@ export class DayComponent {
 
   /**
    * Path to the icon displayed on the day component, typically representing status.
-   * @type {string}
+   * @type {string | null | undefined}
    * @default './../../../../assets/images/icons/check.svg'
    */
-  @Input() icon = './../../../../assets/images/icons/check.svg';
+  @Input() icon: string | null | undefined =
+    './../../../../assets/images/icons/check.svg';
 
   /**
    * Flag to specify if a custom icon is used instead of the default icon.
