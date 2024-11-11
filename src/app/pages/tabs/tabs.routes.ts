@@ -24,6 +24,13 @@ export const routes: Routes = [
           import('../historical/historical.page').then((m) => m.HistoricalPage),
       },
       {
+        path: 'history/detail',
+        loadComponent: () =>
+          import(
+            '../historical//measurement-detail/measurement-detail.page'
+          ).then((m) => m.MeasurementDetailPage),
+      },
+      {
         path: '',
         redirectTo: '/tabs/home',
         pathMatch: 'full',

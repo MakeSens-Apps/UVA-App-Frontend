@@ -6,6 +6,8 @@ import {
   IonToolbar,
   IonAvatar,
   IonLabel,
+  IonButtons,
+  IonButton,
 } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
 
@@ -18,7 +20,16 @@ import { Router } from '@angular/router';
   templateUrl: './header.component.html',
   styleUrls: ['./header.component.scss'],
   standalone: true,
-  imports: [IonHeader, IonIcon, IonToolbar, IonChip, IonAvatar, IonLabel],
+  imports: [
+    IonHeader,
+    IonIcon,
+    IonToolbar,
+    IonChip,
+    IonAvatar,
+    IonLabel,
+    IonButtons,
+    IonButton,
+  ],
 })
 export class HeaderComponent {
   /**
@@ -27,6 +38,10 @@ export class HeaderComponent {
    * @default 'Inicio'
    */
   @Input() title = 'Inicio';
+
+  @Input() hasBackButton = false;
+  @Input() routerBackButton = '/';
+  @Input() hasProfileButton = true;
 
   /**
    * @param {Router} router Angular Router instance used for navigation.
@@ -39,5 +54,17 @@ export class HeaderComponent {
    */
   goToProfile(): void {
     void this.router.navigate(['/profile']);
+  }
+
+  /**
+   * Navigates back to the specified URL, with additional logic for logging out if the URL is '/login'.
+   * @param {string} url - The URL to navigate back to.
+   * @returns {void}
+   */
+  goBack(url?: string): void {
+    if (url == '/login') {
+      // Lógica de deslogueo
+    }
+    void this.router.navigate([url]);
   }
 }

@@ -2,10 +2,11 @@
   class="date"
   [ngClass]="{
     complete: state === 'complete',
-    current: isToday,
+    current: state === 'today',
     incomplete: state === 'incomplete',
     future: state === 'future',
     normal: state === 'normal',
+    mini: isMiniCalendar,
   }"
 >
   @if (day) {

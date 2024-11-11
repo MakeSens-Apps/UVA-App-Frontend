@@ -117,4 +117,11 @@ export const routes: Routes = [
         (m) => m.PersonalInfoPage,
       ),
   },
+  {
+    path: 'measurement-detail',
+    loadComponent: () =>
+      import(
+        './pages/historical/measurement-detail/measurement-detail.page'
+      ).then((m) => m.MeasurementDetailPage),
+  },
 ];
