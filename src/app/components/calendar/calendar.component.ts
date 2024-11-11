@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import {
   addDays,
@@ -9,9 +9,11 @@ import {
   getDaysInMonth,
   startOfMonth,
   startOfWeek,
+  isFuture,
+  isToday,
 } from 'date-fns';
 import { DayComponent } from './day/day.component';
-interface calendar {
+export interface calendar {
   /** The date object representing the day */
   date: Date | null;
   /** Day of the month (1-31) */
@@ -19,7 +21,7 @@ interface calendar {
   /** Day of the week (0 = Sunday, 1 = Monday, etc.) */
   dayOfWeek: number | null;
   /** The state of the day, used to mark completion or status */
-  state?: 'complete' | 'incomplete' | 'future' | 'normal';
+  state?: 'today' | 'complete' | 'incomplete' | 'future' | 'normal';
 }
 
 /**
@@ -38,7 +40,7 @@ interface calendar {
 })
 export class CalendarComponent implements OnInit {
   /** Title of the component */
-  title = 'calendar';
+  @Input() title = 'Enero';
 
   /** Array representing the calendar days with their properties and states */
   calendar: calendar[] = [];
@@ -51,35 +53,56 @@ export class CalendarComponent implements OnInit {
   @Input() calendarView = 'month';
 
   /**
+   * Defines the calendar view mode.
+   * Accepts 'month' for a full month view or 'week' for a weekly view.
+   * @type {string}
+   */
+  @Input() IsMini = false;
+
+  /**
    * Indicates whether the calendar includes a header.
    * @type {boolean}
    */
   @Input() hasHeader = false;
+  /**
+   * Indicates whether the calendar includes a header.
+   * @type {boolean}
+   */
+  @Input() hasTitle = false;
 
   /** The date being viewed in the calendar */
-  viewDate = new Date();
+  @Input() viewDate = new Date();
 
   /** Today's date (day of the month) */
   today = new Date().getDate();
 
   /** Days marked as completed */
-  daysComplete = [15, 14, 11];
+  @Input() daysComplete = [8, 7, 5];
 
   /** Days marked as incomplete */
-  daysIncomplete = [13, 12];
+  @Input() daysIncomplete = [3, 2];
+
+  @Output() dayClick = new EventEmitter<calendar | null>();
 
   /**
-   * Lifecycle hook that initializes the calendar based on the view mode.
-   * Determines whether to generate a monthly or weekly calendar.
+   * Lifecycle hook that initializes the calendar
    * @returns {void}
    */
   ngOnInit(): void {
+    this.generateCalendars();
+  }
+
+  /**
+   * Generate calendar based on the view mode.
+   * Determines whether to generate a monthly or weekly calendar.
+   * @returns {void}
+   */
+  generateCalendars(): void {
     if (this.calendarView === 'month') {
       this.generateCalendarMonth();
     } else if (this.calendarView === 'week') {
       this.generateCalendarWeek();
     }
-    // Generate the calendar for the current month
   }
 
   /**
@@ -111,17 +134,17 @@ export class CalendarComponent implements OnInit {
       end: endDate,
     });
 
-    daysArray.forEach((day) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    daysArray.forEach((day: any) => {
       this.calendar.push({
         date: day,
         dayOfMonth: day.getDate(),
         dayOfWeek: day.getDay(),
-        //FIXME: hacer mergue de status
-        // state: i > this.today ? 'future' : 'normal',
-        state:
-          day.getDate() > this.today ? 'future' : this.getStatus(day.getDate()),
-
-        // incomplete: i == 11
+        state: isToday(day)
+          ? 'today'
+          : isFuture(day)
+            ? 'future'
+            : this.getStatus(day.getDate()),
       });
     });
   }
@@ -155,14 +178,22 @@ export class CalendarComponent implements OnInit {
       end: endDate,
     });
 
-    this.calendar = daysArray.map((day) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.calendar = daysArray.map((day: any) => {
       return {
         date: day,
         dayOfMonth: day.getDate(),
         dayOfWeek: day.getDay(),
-        state:
-          day.getDate() > this.today ? 'future' : this.getStatus(day.getDate()),
+        state: isToday(day)
+          ? 'today'
+          : isFuture(day)
+            ? 'future'
+            : this.getStatus(day.getDate()),
       };
     });
+  }
+
+  dayClicked(date: calendar | null): void {
+    this.dayClick.emit(date);
   }
 }

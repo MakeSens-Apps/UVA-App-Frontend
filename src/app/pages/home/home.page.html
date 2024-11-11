@@ -1,31 +1,33 @@
 <app-header></app-header>
 <ion-content [fullscreen]="true">
   <h2 class="date-header">Hoy,{{today}}</h2>
-  <app-calendar calendarView="week" [hasHeader]="true">
-    <section header>
-      <ion-card-header>
-        <ion-card-title class="title_series">
-          Tienes 2 Días de racha 😌
-        </ion-card-title>
-        <ion-icon
-          src="./../../../assets/images/icons/information-circle.svg"
-          (click)="modals.modal_Days = true"
-          class="info-icon"
-        ></ion-icon>
-      </ion-card-header>
-    </section>
+  <div class="cards">
+    <app-calendar calendarView="week" [hasHeader]="true">
+      <section header>
+        <ion-card-header>
+          <ion-card-title class="title_series">
+            Tienes 2 Días de racha 😌
+          </ion-card-title>
+          <ion-icon
+            src="./../../../assets/images/icons/information-circle.svg"
+            (click)="modals.modal_Days = true"
+            class="info-icon"
+          ></ion-icon>
+        </ion-card-header>
+      </section>
 
-    <section footer>
-      <ion-button
-        expand="block"
-        color="uva_blue-600"
-        href="app/tabs/history"
-        class="text-transform_none"
-        >Ver historial
-        <ion-icon name="arrow-forward-outline" slot="end"></ion-icon
-      ></ion-button>
-    </section>
-  </app-calendar>
+      <section footer>
+        <ion-button
+          expand="block"
+          color="uva_blue-600"
+          href="app/tabs/history"
+          class="text-transform_none"
+          >Ver historial
+          <ion-icon name="arrow-forward-outline" slot="end"></ion-icon
+        ></ion-button>
+      </section>
+    </app-calendar>
+  </div>
 
   <div class="cards ion-margin-top">
     <ion-card-header>

@@ -13,12 +13,21 @@
     &.current {
         border: 2px dashed var(--Colors-Blue-700);
         background-color: transparent;
+        &.mini {
+            border-radius: 33.058px;
+            border: 0.661px dashed var(--Colors-Blue-700, #14788A);
+        }
+
     }
 
     &.incomplete {
         border: 2px solid var(--Colors-Blue-700);
         background-color: transparent;
        color: var(--Colors-Blue-900);
+       &.mini {
+        border-radius: 33.058px;
+        border: 0.661px solid var(--Colors-Blue-700, #14788A);
+    }
 
     }
     &.future {
@@ -26,6 +35,23 @@
     }
     &.normal {
        color: var(--Colors-Blue-900);
+    }
+    &.mini {
+        width: 13.223px;
+        height: 13.223px;
+        padding: 4.298px 5.62px;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 3.306px;
+        min-width: 13px; 
+        min-height: 13px;
+        font-size: 4.628px;
+
+        ion-icon {
+            width: 4.628px;
+            height: 4.628px;
+        }
     }
 
 

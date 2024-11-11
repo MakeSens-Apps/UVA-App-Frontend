@@ -22,19 +22,24 @@ export class DayComponent {
   @Input() day = 0;
 
   /**
-   * Indicates whether this day is today.
+   * Indicates whether this is a small calendar "mini calendar".
    * @type {boolean}
    * @default false
    */
-  @Input() isToday = false;
+  @Input() isMiniCalendar = false;
 
   /**
    * The state of the day, which can be 'complete', 'incomplete', 'future', or 'normal'.
    * @type {'complete' | 'incomplete' | 'future' | 'normal' | undefined}
    * @default 'normal'
    */
-  @Input() state: 'complete' | 'incomplete' | 'future' | 'normal' | undefined =
-    'normal';
+  @Input() state:
+    | 'complete'
+    | 'incomplete'
+    | 'future'
+    | 'normal'
+    | 'today'
+    | undefined = 'normal';
 
   /**
    * @constructs
