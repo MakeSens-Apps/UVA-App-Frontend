@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, ViewChild } from '@angular/core';
 import { HeaderComponent } from '@app/components/header/header.component';
 import { CommonModule } from '@angular/common';
 import {
@@ -18,7 +18,7 @@ import {
 } from '@ionic/angular/standalone';
 import { FormsModule } from '@angular/forms';
 import { AreachartComponent } from '@app/components/areachart/areachart.component';
-import { Router, UrlSerializer } from '@angular/router';
+import { Router } from '@angular/router';
 
 interface variable {
   name: string;
@@ -80,6 +80,11 @@ export const monthsNames = [
     FormsModule,
   ],
 })
+
+/**
+ * Component for displaying historical data, including measurements and calendar-based data views.
+ * Provides functionality to switch between month and year views, and toggles between chart and calendar displays.
+ */
 export class HistoricalPage implements OnInit {
   segment: 'mes' | 'año' = 'mes';
   modeData: 'calendar' | 'chart' = 'calendar';
@@ -93,11 +98,21 @@ export class HistoricalPage implements OnInit {
   monthsNames = monthsNames;
   @ViewChild(CalendarComponent) calendarComponent!: CalendarComponent;
   @ViewChild(AreachartComponent) areaChartComponent!: AreachartComponent;
-  /**
-   *
-   */
-  constructor(private router: Router) {}
 
+  /**
+   * Initializes component with router and change detector.
+   * @param {Router} router - Provides navigation between pages.
+   * @param {ChangeDetectorRef} ref - Detects changes in component data.
+   */
+  constructor(
+    private router: Router,
+    private ref: ChangeDetectorRef,
+  ) {}
+
+  /**
+   * OnInit lifecycle hook. Sets the initial state of the historical and measurement data.
+   * @returns {void}
+   */
   ngOnInit(): void {
     this.historical = data.historical;
     this.currentMonth = this.historical.find(
@@ -126,10 +141,35 @@ export class HistoricalPage implements OnInit {
     );
   }
 
+  /**
+   * Toggles the view mode between calendar and chart.
+   * @returns {void}
+   */
   changeModeData(): void {
     this.modeData = this.modeData === 'calendar' ? 'chart' : 'calendar';
+    this.ref.detectChanges();
   }
 
+  /**
+   * Changes the segment view between month and year.
+   * @param {'mes' | 'año'} type - The segment type to switch to.
+   * @returns {void}
+   */
+  changeSegment(type: 'mes' | 'año'): void {
+    if (type) {
+      this.segment = type;
+    } else {
+      this.segment = this.segment === 'mes' ? 'año' : 'mes';
+    }
+
+    this.ref.detectChanges();
+  }
+
+  /**
+   * Sets the current month for displaying data and updates the calendar component.
+   * @param {number} index - The index of the month to display.
+   * @returns {void}
+   */
   setCurrentMonth(index: number): void {
     if (index === this.currentMonthIndex) {
       return;
@@ -155,8 +195,16 @@ export class HistoricalPage implements OnInit {
         return;
       }
       this.calendarComponent.generateCalendars();
+      this.ref.detectChanges();
     }, 0.3 * 1000);
+    this.ref.detectChanges();
   }
+
+  /**
+   * Updates the area chart component with the provided color settings for the selected measurement.
+   * @param {variable} measurement - The selected measurement for updating chart colors.
+   * @returns {void}
+   */
   changeColorChart(measurement: variable): void {
     if (!this.areaChartComponent) {
       return;
@@ -168,15 +216,20 @@ export class HistoricalPage implements OnInit {
       measurement.borderColor.colorHex,
     );
   }
+
+  /**
+   * Navigates to the detail page for a selected calendar entry if it is not in the future.
+   * @param {calendar | null} $event - The selected calendar entry event data.
+   * @returns {Promise<void>}
+   */
   async goToDetail($event: calendar | null): Promise<void> {
     if (!$event || $event.state === 'future' || $event.state === 'normal') {
       return;
     }
-    await this.router.navigate(['app/tabs/history/detail'],
-      {
-        queryParams: $event
-      });
-    }
+    await this.router.navigate(['app/tabs/history/detail'], {
+      queryParams: $event,
+    });
+  }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

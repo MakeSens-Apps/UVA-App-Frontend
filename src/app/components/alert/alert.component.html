@@ -1,10 +1,13 @@
 <ion-card>
   <div class="modal-container">
     <div [innerHTML]="content"></div>
-    <div class="button-container" [ngStyle]="{'flex-direction' :reverseButton ? 'row-reverse' : 'row'}">
+    <div
+      class="button-container"
+      [ngStyle]="{ 'flex-direction': reverseButton ? 'row-reverse' : 'row' }"
+    >
       @if (ShowCancelButton) {
         <ion-button
-          [fill]="bordersInCancelBtn ? 'outline':'clear'" 
+          [fill]="bordersInCancelBtn ? 'outline' : 'clear'"
           (click)="actionButton('CANCEL')"
           [color]="colorBtn"
           >{{ textCancelButton }}</ion-button
@@ -16,4 +19,3 @@
     </div>
   </div>
 </ion-card>
-
