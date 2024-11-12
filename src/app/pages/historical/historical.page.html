@@ -1,11 +1,19 @@
 <app-header title="Historial de registros"></app-header>
 <ion-content [fullscreen]="true">
   <section class="segment_content">
-    <ion-segment value="mew" [(ngModel)]="segment" class="segment">
-      <ion-segment-button value="mes" layout="icon-hide">
+    <ion-segment value="mes" [(ngModel)]="segment" class="segment">
+      <ion-segment-button
+        value="mes"
+        layout="icon-hide"
+        (click)="changeSegment('mes')"
+      >
         <ion-label>Mes</ion-label>
       </ion-segment-button>
-      <ion-segment-button value="año" layout="icon-hide">
+      <ion-segment-button
+        value="año"
+        layout="icon-hide"
+        (click)="changeSegment('año')"
+      >
         <ion-label>año</ion-label>
       </ion-segment-button>
     </ion-segment>

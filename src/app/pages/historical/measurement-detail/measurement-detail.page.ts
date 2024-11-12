@@ -21,6 +21,11 @@ import { es } from 'date-fns/locale/es';
 import { AlertComponent } from '@app/components/alert/alert.component';
 setDefaultOptions({ locale: es });
 
+/**
+ * Component representing the measurement details page.
+ * This component displays details of a selected date and provides
+ * an option to pay and recover a streak.
+ */
 @Component({
   selector: 'app-measurement-detail',
   templateUrl: './measurement-detail.page.html',
@@ -45,13 +50,23 @@ export class MeasurementDetailPage implements OnInit {
   date: calendar | undefined;
   dateFormatted: string | undefined;
   showAlert_incomplete = true;
-  showAlert_complete_seed = false ;
+  showAlert_complete_seed = false;
 
+  /**
+   * Constructor to inject ActivatedRoute and ModalController services.
+   * @param {ActivatedRoute} route - Service for accessing the route parameters.
+   * @param {ModalController} modalCtrl - Service for handling modals.
+   */
   constructor(
     private route: ActivatedRoute,
     private modalCtrl: ModalController,
   ) {}
 
+  /**
+   * Lifecycle hook that runs after component initialization.
+   * Subscribes to query parameters and sets formatted date if available.
+   * @returns {void}
+   */
   ngOnInit(): void {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.route.queryParams.subscribe((params: any) => {
@@ -64,6 +79,14 @@ export class MeasurementDetailPage implements OnInit {
       }
     });
   }
+
+  /**
+   * Opens a modal to allow the user to pay to restore a streak.
+   * If the modal action is confirmed, updates the date status and
+   * displays the complete-seed alert.
+   * @async
+   * @returns {Promise<void>} Resolves when modal is closed and processed.
+   */
   async openModal(): Promise<void> {
     const modal = await this.modalCtrl.create({
       component: AlertComponent,
@@ -72,13 +95,12 @@ export class MeasurementDetailPage implements OnInit {
         <h2 style="color:  var(--Colors-Blue-900);"> Recupera tu racha pagando: </h2>
         <h2> <span>5</span>  <img src="../../../../assets/images/icons/semilla.svg" alt="seed" style="width: 100px; height: 100px; margin: 10px 0;"></h2>
         <p> ¿Quieres pagar 5 semillas para recuperar tu racha?</p>
-        `
-        ,
+        `,
         textCancelButton: 'omitir',
         textOkButton: 'Pagar',
-        reverseButton : true,
-        bordersInCancelBtn : false,
-        colorBtn:'uva_blue-600'
+        reverseButton: true,
+        bordersInCancelBtn: false,
+        colorBtn: 'uva_blue-600',
       },
       cssClass: 'custom-modal_recover-series',
       backdropDismiss: false,

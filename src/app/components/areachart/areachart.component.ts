@@ -1,4 +1,10 @@
-import { Component, ElementRef, Input, OnInit, ViewChild } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  Input,
+  ViewChild,
+} from '@angular/core';
 // import Chart from 'chart.js/auto';
 import {
   Chart,
@@ -36,10 +42,26 @@ Chart.register(
   standalone: true,
   imports: [],
 })
-export class AreachartComponent {
+export class AreachartComponent implements AfterViewInit {
+  /**
+   * Reference to the canvas element for rendering the chart.
+   * @type {ElementRef<HTMLCanvasElement>}
+   */
   @ViewChild('chartCanvas', { static: true })
   chartCanvas!: ElementRef<HTMLCanvasElement>;
+
+  /**
+   * Data points for the chart.
+   * @type {number[]}
+   * @default [10, 30, 25, 60, 60, 75, 100, 80]
+   */
   @Input() chartData: number[] = [10, 30, 25, 60, 60, 75, 100, 80];
+
+  /**
+   * Labels for the chart's X-axis.
+   * @type {string[]}
+   * @default ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Ago']
+   */
   @Input() chartLabels: string[] = [
     'Enero',
     'Febrero',
@@ -51,16 +73,45 @@ export class AreachartComponent {
     'Ago',
   ];
 
+  /**
+   * Background color for the area under the chart line in hex format.
+   * @type {string}
+   * @default '#FBA641'
+   */
   @Input() background = '#FBA641';
+
+  /**
+   * Border color for the chart line in hex format.
+   * @type {string}
+   * @default '#FBA641'
+   */
   @Input() borderColor = '#FBA641';
+
+  /**
+   * Holds the instance of the chart for updating and management.
+   * @type {Chart}
+   */
   private chart!: Chart;
 
+  /**
+   * Creates an instance of AreachartComponent.
+   * @memberof AreachartComponent
+   */
   constructor() {}
 
+  /**
+   * Lifecycle hook that initializes the chart after the view has been initialized.
+   * @returns {void}
+   */
   ngAfterViewInit(): void {
     this.createChart();
   }
 
+  /**
+   * Creates the area chart with gradient fill and specified options.
+   * Initializes `this.chart` with the created chart instance.
+   * @returns {void}
+   */
   createChart(): void {
     const ctx = this.chartCanvas.nativeElement.getContext('2d');
     if (!ctx) {
@@ -113,6 +164,15 @@ export class AreachartComponent {
     this.chart = new Chart(ctx, config);
   }
 
+  /**
+   * Updates the chart with new data, labels, background color, or border color.
+   * Adjusts the chart's dataset and refreshes it.
+   * @param {string[]} [labels] - Optional new labels for the X-axis.
+   * @param {number[]} [data] - Optional new data points.
+   * @param {string} [background] - Optional new background color in hex format.
+   * @param {string} [borderColor] - Optional new border color in hex format.
+   * @returns {void}
+   */
   UpdateChart(
     labels?: string[],
     data?: number[],
@@ -145,7 +205,12 @@ export class AreachartComponent {
     this.chart.update(); // Refresca el gráfico con los nuevos datos
   }
 
-  // Función para convertir Hex a RGBA
+  /**
+   * Converts a hex color code to RGBA format.
+   * @param {string} hex - Hexadecimal color code (e.g., `#FFFFFF`).
+   * @param {number} alpha - Alpha value for transparency (0 to 1).
+   * @returns {string} RGBA color string.
+   */
   hexToRgba(hex: string, alpha: number): string {
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);

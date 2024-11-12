@@ -193,6 +193,11 @@ export class CalendarComponent implements OnInit {
     });
   }
 
+  /**
+   * Handles the click event for a day in the calendar, emitting the selected date.
+   * @param {calendar | null} date - The calendar day object or null if no date.
+   * @returns {void}
+   */
   dayClicked(date: calendar | null): void {
     this.dayClick.emit(date);
   }

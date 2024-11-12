@@ -12,7 +12,7 @@ import {
   selector: 'app-alert',
   templateUrl: './alert.component.html',
   styleUrls: ['./alert.component.scss'],
-  imports: [IonCard, IonContent, IonButton,CommonModule],
+  imports: [IonCard, IonContent, IonButton, CommonModule],
   standalone: true,
   encapsulation: ViewEncapsulation.None,
 })
