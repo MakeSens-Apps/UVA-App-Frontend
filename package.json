@@ -12,7 +12,8 @@
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint --fix . --ext .ts",
     "update-graphql": "npx @aws-amplify/cli codegen",
-    "format": "prettier --write 'src/**/*.{js,ts,html,css}'"
+    "format": "prettier --write 'src/**/*.{js,ts,html,css}'",
+    "build-android-debug": "ionic capacitor build android --prod --no-open && cd android && ./gradlew assembleDebug"
   },
   "private": true,
   "dependencies": {

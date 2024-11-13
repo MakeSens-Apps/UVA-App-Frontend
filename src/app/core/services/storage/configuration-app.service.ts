@@ -45,21 +45,40 @@ export class ConfigurationAppService {
 
         if (file.success) {
           let content = '';
+          let isBase64 = false;
           switch (file.data.type) {
             case 'TXT':
             case 'JSON':
-              content = file.data.content;
+              isBase64 = false;
+              if (typeof file.data.content === 'object') {
+                content = JSON.stringify(file.data.content); // Convierte el objeto a cadena JSON
+              } else {
+                content = file.data.content; // Si ya es una cadena, lo dejamos tal cual
+              }
+              await this.fileSystem.writeFile(
+                item.path,
+                content,
+                Directory.Data,
+                isBase64,
+              );
               break;
             case 'BLOB': {
+              isBase64 = true;
               const arrayBuffer = await file.data.content.arrayBuffer();
-              const uint8Array = new Uint8Array(arrayBuffer);
-              content = uint8Array.toString();
+              content = btoa(
+                String.fromCharCode(...new Uint8Array(arrayBuffer)),
+              );
+              await this.fileSystem.writeFile(
+                item.path,
+                content,
+                Directory.Data,
+                isBase64,
+              );
               break;
             }
             default:
               break;
           }
-          await this.fileSystem.writeFile(item.path, content, Directory.Data);
         } else {
           console.error(`${item.path} Not found`);
           return false;
@@ -81,7 +100,7 @@ export class ConfigurationAppService {
       if (response.success) {
         try {
           this.configApp = JSON.parse(
-            JSON.stringify(response.data.data),
+            response.data.data.toString(),
           ) as ConfigModel;
         } catch (err) {}
       } else {
@@ -202,11 +221,17 @@ export class ConfigurationAppService {
 
     if (fileData.success) {
       try {
-        const byteCharacters = fileData.data.data.toString();
-        const binaryData = new Uint8Array(
-          byteCharacters.split(',').map(Number),
-        );
+        // Decodifica la cadena Base64 en bytes binarios
+        const binaryString = atob(fileData.data.data.toString());
+        const binaryData = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          binaryData[i] = binaryString.charCodeAt(i);
+        }
+
+        // Crea un Blob a partir de los datos binarios
         const blob = new Blob([binaryData], { type: 'image/png' });
+
+        // Genera una URL de objeto que puedas usar en la etiqueta <img>
         return URL.createObjectURL(blob);
       } catch (error) {
         console.error('Error leyendo la imagen como Blob:', error);

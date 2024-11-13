@@ -107,17 +107,16 @@ export class S3Service {
     try {
       const response = await downloadData({
         path: path,
-        options: {
+        /*options: {
           onProgress: (progress) => {
             if (progress.totalBytes && progress.totalBytes > 0) {
               console.info(
                 `Download progress: ${(progress.transferredBytes / progress.totalBytes) * 100}%`,
               );
             } else {
-              console.info('No es un archivo');
             }
           },
-        },
+        },*/
       }).result;
 
       // Extraer la extensión del archivo

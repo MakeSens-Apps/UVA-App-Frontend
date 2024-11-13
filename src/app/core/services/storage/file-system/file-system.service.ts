@@ -64,21 +64,34 @@ export class FileSystemService {
    * @param {string} path - The path of the file to write to.
    * @param {string} data - The data to write to the file.
    * @param {Directory} directory - The directory where the file will be stored.
+   * @param {boolean} isBase64 - Is Write in Base65/img?
    * @returns {Promise<FileSystemResponse>} A promise that resolves to a FileSystemResponse indicating success or failure.
    */
   async writeFile(
     path: string,
     data: string,
     directory: Directory,
+    isBase64: boolean,
   ): Promise<FileSystemResponse<WriteFileResult>> {
     try {
-      const result = await Filesystem.writeFile({
-        path: path,
-        data: data,
-        directory: directory,
-        encoding: Encoding.UTF8,
-        recursive: true,
-      });
+      let result: WriteFileResult;
+      if (isBase64) {
+        result = await Filesystem.writeFile({
+          path: path,
+          data: data,
+          directory: directory,
+          recursive: true,
+        });
+      } else {
+        result = await Filesystem.writeFile({
+          path: path,
+          data: data,
+          directory: directory,
+          encoding: Encoding.UTF8,
+          recursive: true,
+        });
+      }
+
       return { success: true, data: result }; // Return success response
     } catch (err) {
       return { success: false, error: this.handleAuthError(err) }; // Handle error response
