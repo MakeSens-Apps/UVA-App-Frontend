@@ -74,7 +74,7 @@ export class ProjectVinculationPage implements OnInit {
     if (this.user.userID) {
       const response = await this.serviceRacimo.getUVA(this.user.userID);
       if (response) {
-        void this.router.navigate(['/home']);
+        void this.router.navigate(['app/tabs/home']);
       }
     } else {
       //FIXME: Adicionar evento de error ya que no tiene un ID de usuario
