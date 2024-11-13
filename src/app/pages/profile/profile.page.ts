@@ -97,7 +97,7 @@ export class ProfilePage {
   /**
    * @param {Router} router - Angular Router instance used for navigation.
    * @param {SessionService} session -Manage Sesionids .
-   * @param {SetupServicev} service -Manage Sesion setup/login/logout .
+   * @param {SetupService} service -Manage Sesion setup/login/logout .
    * @param {ConfigurationAppService} configuration -Get configuration app .
    */
   constructor(
