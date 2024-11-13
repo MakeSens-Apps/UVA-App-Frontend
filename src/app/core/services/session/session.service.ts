@@ -7,16 +7,6 @@ import { Session, sessionKeys } from 'src/models/session.model';
   providedIn: 'root',
 })
 export class SessionService {
-  private keys = {
-    userID: 'userID',
-    name: 'name',
-    lastName: 'lastName',
-    phone: 'phone',
-    racimoID: 'racimoID',
-    uvaID: 'uvaID',
-    linkCode: 'linkCode',
-  };
-
   /**
    * Guarda información parcial o completa en Preferences.
    * Recorre las claves del objeto `userInfo` y guarda los valores correspondientes.

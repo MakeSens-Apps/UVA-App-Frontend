@@ -176,7 +176,9 @@ export class OtpPage implements OnInit {
             this.ref.detectChanges();
             return;
           }
-          await this.router.navigate([`app/tabs/home`]);
+          await this.router.navigate([
+            `/otp/${this.type}/${this.phone}/validate-code`,
+          ]);
           break;
         }
         case 'register':
