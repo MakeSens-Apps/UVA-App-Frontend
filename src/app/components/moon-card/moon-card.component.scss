@@ -11,11 +11,13 @@
     justify-content: space-between;
     align-items: center;
     border-radius: 16px;
-    background: var(--Colors-Gray-700);
+    background: var( --Colors-Gray-700);
     margin-inline: 16px;
     padding: 16px;
    
-
+&.green{
+    background: var(--Colors-Blue-800);
+}
 
     .moon {
         width: 56px;

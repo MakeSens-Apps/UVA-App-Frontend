@@ -21,7 +21,10 @@ export interface calendar {
   /** Day of the week (0 = Sunday, 1 = Monday, etc.) */
   dayOfWeek: number | null;
   /** The state of the day, used to mark completion or status */
-  state?: 'today' | 'complete' | 'incomplete' | 'future' | 'normal';
+  state?: 'today' | 'complete' | 'incomplete' | 'future' | 'normal'| 'none' | undefined;
+
+  /** The icon to be displayed on the day */
+  icon?: string | null;
 }
 
 /**
@@ -44,6 +47,9 @@ export class CalendarComponent implements OnInit {
 
   /** Array representing the calendar days with their properties and states */
   calendar: calendar[] = [];
+
+  /** Defines the type of calendar (e.g., moon or normal) */
+  @Input() typeCalendar = 'normal';
 
   /**
    * Defines the calendar view mode.
@@ -83,6 +89,44 @@ export class CalendarComponent implements OnInit {
   @Input() daysIncomplete = [3, 2];
 
   @Output() dayClick = new EventEmitter<calendar | null>();
+
+
+  /** Days phase calendar */
+  @Input() phaseMoonDays = [
+    { day: 1, status: 'new-moon' },
+    { day: 2, status: 'new-moon' },
+    { day: 3, status: 'new-moon' },
+    { day: 4, status: 'waning-crescent' },
+    { day: 5, status: 'waning-crescent' },
+    { day: 6, status: 'waning-crescent' },
+    { day: 7, status: 'waning-crescent' },
+    { day: 8, status: 'first-quarter' },
+    { day: 9, status: 'first-quarter' },
+    { day: 10, status: 'first-quarter' },
+    { day: 11, status: 'first-quarter' },
+    { day: 12, status: 'first-quarter' },
+    { day: 13, status: 'first-quarter' },
+    { day: 14, status: 'full-moon' },
+    { day: 15, status: 'full-moon' },
+    { day: 16, status: 'full-moon' },
+    { day: 17, status: 'full-moon' },
+    { day: 18, status: 'full-moon' },
+    { day: 19, status: 'last-quarter' },
+    { day: 20, status: 'last-quarter' },
+    { day: 21, status: 'last-quarter' },
+    { day: 22, status: 'last-quarter' },
+    { day: 23, status: 'last-quarter' },
+    { day: 24, status: 'waning-gibbous' },
+    { day: 25, status: 'waning-gibbous' },
+    { day: 26, status: 'waning-gibbous' },
+    { day: 27, status: 'waning-gibbous' },
+    { day: 28, status: 'new-moon' },
+    { day: 29, status: 'new-moon' },
+    { day: 30, status: 'waning-crescent' },
+    { day: 31, status: 'waning-crescent' },
+  ];
+
+  icon = './../../../assets/images/icons/Moon/full.svg';
 
   /**
    * Lifecycle hook that initializes the calendar
@@ -140,11 +184,27 @@ export class CalendarComponent implements OnInit {
         date: day,
         dayOfMonth: day.getDate(),
         dayOfWeek: day.getDay(),
-        state: isToday(day)
-          ? 'today'
-          : isFuture(day)
-            ? 'future'
-            : this.getStatus(day.getDate()),
+        //FIXME: hacer mergue de status
+        // state: i > this.today ? 'future' : 'normal',
+        icon:
+          this.typeCalendar === 'moon'
+            ? this.setIconPhase(
+                this.phaseMoonDays.find(
+                  (phase) => phase.day - 1 === day.getDate(),
+                )?.status || 'new-moon',
+              )
+            : null,
+
+        state:
+          this.typeCalendar === 'moon'
+            ? 'none'
+            : isToday(day)
+            ? 'today'
+            : isFuture(day)
+              ? 'future'
+              : this.getStatus(day.getDate()),
+
+        // incomplete: i == 11
       });
     });
   }
@@ -165,6 +225,37 @@ export class CalendarComponent implements OnInit {
   }
 
   /**
+   * Sets the appropriate moon phase icon based on the given phase.
+   * @param {string} phase  - A string representing the moon phase.
+   * @returns {string}  A string containing the path to the corresponding moon phase icon.
+   * @description This function maps different moon phases to their respective icon file paths. It uses an object literal to store the mapping between phase names and icon paths.
+   * Supported moon phases:
+   * - new-moon
+   * - waning-crescent
+   * - first-quarter
+   * - full-moon
+   * - last-quarter
+   * - waning-gibbous
+   * @example
+   * // Usage
+   * const iconPath = setIconPhase('full-moon');
+   * console.log(iconPath); // Outputs: './../../../assets/images/icons/Moon/full.svg'
+   * @throws {TypeError} If an unsupported phase is provided, this function will return undefined.
+   */
+  setIconPhase(phase: string): string {
+    const iconPhase = {
+      'new-moon': './../../../assets/images/icons/Moon/new.svg',
+      'waning-crescent':
+        './../../../assets/images/icons/Moon/Gibosa_crescent.svg',
+      'first-quarter': './../../../assets/images/icons/Moon/crescent.svg',
+      'full-moon': './../../../assets/images/icons/Moon/full.svg',
+      'last-quarter': './../../../assets/images/icons/Moon/declining.svg',
+      'waning-gibbous':
+        './../../../assets/images/icons/Moon/Gibosa_declining.svg',
+    };
+    return iconPhase[phase as keyof typeof iconPhase];
+  }
+  /**
    * Generates a weekly calendar view for the current week.
    * Adds each day in the week and assigns its state.
    * @returns {void}
@@ -184,11 +275,14 @@ export class CalendarComponent implements OnInit {
         date: day,
         dayOfMonth: day.getDate(),
         dayOfWeek: day.getDay(),
-        state: isToday(day)
-          ? 'today'
-          : isFuture(day)
-            ? 'future'
-            : this.getStatus(day.getDate()),
+        state:
+          this.typeCalendar === 'moon'
+            ? 'none'
+            :isToday(day)
+            ? 'today'
+            : isFuture(day)
+              ? 'future'
+              : this.getStatus(day.getDate()),
       };
     });
   }
