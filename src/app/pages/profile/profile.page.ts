@@ -24,6 +24,9 @@ import {
 import { Router } from '@angular/router';
 import { Share } from '@capacitor/share';
 import { Clipboard } from '@capacitor/clipboard';
+import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
+import { SetupService } from '@app/core/services/view/setup/setup.service';
+import { SessionService } from '@app/core/services/session/session.service';
 
 /**
  * @class ProfilePage
@@ -93,8 +96,16 @@ export class ProfilePage {
 
   /**
    * @param {Router} router - Angular Router instance used for navigation.
+   * @param {SessionService} session -Manage Sesionids .
+   * @param {SetupService} service -Manage Sesion setup/login/logout .
+   * @param {ConfigurationAppService} configuration -Get configuration app .
    */
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private session: SessionService,
+    private service: SetupService,
+    private configuration: ConfigurationAppService,
+  ) {}
 
   // Método para compartir en WhatsApp
   /**
@@ -133,11 +144,17 @@ export class ProfilePage {
   /**
    * Navigates back to the specified URL, with additional logic for logging out if the URL is '/login'.
    * @param {string} url - The URL to navigate back to.
-   * @returns {void}
+   * @returns {Promise<void>}
    */
-  goBack(url: string): void {
+  async goBack(url: string): Promise<void> {
     if (url == '/login') {
-      // Lógica de deslogueo
+      const response = await this.service.signOut();
+      if (response) {
+        this.session.clearSession();
+        await this.router.navigate([''], {
+          replaceUrl: true,
+        });
+      }
     }
     void this.router.navigate([url]);
   }

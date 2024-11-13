@@ -5,6 +5,10 @@ import {
   confirmSignIn,
   signOut,
   SignInOutput,
+  fetchUserAttributes,
+  FetchUserAttributesOutput,
+  ConfirmSignInOutput,
+  ConfirmSignUpOutput,
 } from 'aws-amplify/auth';
 import {
   signUp,
@@ -27,9 +31,9 @@ interface errorAuthResponse {
 }
 
 // Tipo para la respuesta exitosa
-interface AuthSuccessResponse {
+interface AuthSuccessResponse<T> {
   success: true;
-  data: SignInOutput | SignUpOutput | GetCurrentUserOutput;
+  data: T;
 }
 
 // Tipo para la respuesta de error
@@ -39,7 +43,7 @@ interface AuthErrorResponse {
 }
 
 // Unión de ambos tipos en la interfaz principal
-export type AuthResponse = AuthSuccessResponse | AuthErrorResponse;
+export type AuthResponse<T> = AuthSuccessResponse<T> | AuthErrorResponse;
 
 @Injectable({
   providedIn: 'root',
@@ -105,7 +109,7 @@ export class AuthService {
    * @param {string} phone - El número de teléfono del usuario.
    * @returns {Promise<AuthResponse>} La respuesta con el resultado del inicio de sesión.
    */
-  async SignIn(phone: string): Promise<AuthResponse> {
+  async SignIn(phone: string): Promise<AuthResponse<SignInOutput>> {
     try {
       return {
         success: true,
@@ -121,7 +125,9 @@ export class AuthService {
    * @param {string} code - El código de confirmación enviado al usuario.
    * @returns {Promise<AuthResponse>} La respuesta con el resultado de la confirmación.
    */
-  async ConfirmSignIn(code: string): Promise<AuthResponse> {
+  async ConfirmSignIn(
+    code: string,
+  ): Promise<AuthResponse<ConfirmSignInOutput>> {
     try {
       return {
         success: true,
@@ -156,7 +162,7 @@ export class AuthService {
     name: string,
     phone: string,
     lastName: string,
-  ): Promise<AuthResponse> {
+  ): Promise<AuthResponse<SignUpOutput>> {
     try {
       return {
         success: true,
@@ -186,7 +192,7 @@ export class AuthService {
   async ConfirmSignUp(
     phone: string,
     confirmationCode: string,
-  ): Promise<AuthResponse> {
+  ): Promise<AuthResponse<ConfirmSignUpOutput>> {
     try {
       return {
         success: true,
@@ -214,9 +220,26 @@ export class AuthService {
    * Obtiene el usuario actualmente autenticado.
    * @returns {Promise<AuthResponse>} La respuesta con el resultado de la operación y el usuario actual.
    */
-  async CurrentAuthenticatedUser(): Promise<AuthResponse> {
+  async CurrentAuthenticatedUser(): Promise<
+    AuthResponse<GetCurrentUserOutput>
+  > {
     try {
       const currentUser = await getCurrentUser();
+      return { success: true, data: currentUser };
+    } catch (err: unknown) {
+      return { success: false, error: this.handleAuthError(err) };
+    }
+  }
+
+  /**
+   * Obtiene el usuario actualmente autenticado.
+   * @returns {Promise<AuthResponse>} La respuesta con el resultado de la operación y el usuario actual.
+   */
+  async CurrentUserAttributes(): Promise<
+    AuthResponse<FetchUserAttributesOutput>
+  > {
+    try {
+      const currentUser = await fetchUserAttributes();
       return { success: true, data: currentUser };
     } catch (err: unknown) {
       return { success: false, error: this.handleAuthError(err) };
