@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -13,6 +13,9 @@ import { ExploreContainerComponent } from '@app/explore-container/explore-contai
 import { Router } from '@angular/router';
 import { SetupService } from '@app/core/services/view/setup/setup.service';
 import { Session } from 'src/models/session.model';
+import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
+import { ConfigModel } from 'src/models/configuration/config.model';
+import { SetupRacimoService } from '@app/core/services/view/setup/setup-racimo.service';
 @Component({
   selector: 'app-register-project-form',
   templateUrl: './register-project-form.page.html',
@@ -28,36 +31,65 @@ import { Session } from 'src/models/session.model';
     ReactiveFormsModule,
   ],
 })
-export class RegisterProjectFormPage {
+export class RegisterProjectFormPage implements OnInit {
   icon = '../../../../../assets/images/LogoNaturaColombia.svg';
   form: FormGroup;
   user: Session | null = null;
+  configModel: ConfigModel | null = null;
 
   /**
    * Crea una instancia de RegisterProjectFormPage.
    * @param {FormBuilder} formBuilder - El servicio para construir formularios reactivos.
    * @param {Router} router - El servicio de enrutamiento para navegar entre páginas.
    * @param {SetupService} service - El servicio que gestiona la lógica de configuración de usuario.
+   * @param {SetupRacimoService} serviceRacimo - El servicio que gestiona la lógica de configuración de usuario.
+   * @param {ConfigurationAppService}  configuration El servicio para cargar la configuracion de la app
    */
   constructor(
     private formBuilder: FormBuilder,
     private router: Router,
     private service: SetupService,
+    private serviceRacimo: SetupRacimoService,
+    private configuration: ConfigurationAppService,
   ) {
-    this.form = this.formBuilder.group({
-      nameFarm: new FormControl('', [
-        Validators.required,
-        Validators.minLength(4),
-      ]),
-      nameLane: new FormControl('', [
-        Validators.required,
-        Validators.minLength(4),
-      ]),
-      nameMunicipality: new FormControl('', [
-        Validators.required,
-        Validators.minLength(4),
-      ]),
-    });
+    this.form = this.formBuilder.group({});
+  }
+
+  /**
+   * @memberof RegisterProjectFormPage
+   * @returns {Promise<void>} - No retorna ningún valor.
+   */
+  async ngOnInit(): Promise<void> {
+    this.user = await this.service.getParametersUser();
+    this.configModel = await this.configuration.getConfigurationApp();
+    if (this.configModel) {
+      this.buildForm();
+      const img = await this.configuration.loadImage(
+        this.configModel.branding.logo,
+      );
+      if (img) {
+        this.icon = img;
+      }
+    }
+  }
+  /**
+   * Builds a form dynamically by adding controls based on the fields defined in the `configModel`.
+   * @returns {void}
+   * @description Iterates over each field in `configModel.fieldsUVA` and, if the field exists,
+   * adds a control to the form with the field's ID. Each control includes validators for required status and minimum length.
+   */
+  buildForm(): void {
+    if (this.configModel) {
+      Object.keys(this.configModel.fieldsUVA).forEach((key) => {
+        const field = this.configModel?.fieldsUVA[key];
+        if (field) {
+          this.form.addControl(
+            field.fieldId,
+            new FormControl('', [Validators.required, Validators.minLength(4)]),
+          );
+        }
+      });
+    }
   }
   /**
    * Obtiene los parámetros del usuario y navega a la página de registro completado.
@@ -65,7 +97,17 @@ export class RegisterProjectFormPage {
    */
   async goToCompleted(): Promise<void> {
     this.user = await this.service.getParametersUser();
-    await this.router.navigate(['register', 'register-completed']);
+    const formValues = this.form.value;
+    const newUVAResponse = await this.serviceRacimo.createNewUVA();
+    const updateUVAResponse = await this.serviceRacimo.updateUVA(
+      JSON.stringify(formValues),
+    );
+
+    if (newUVAResponse && updateUVAResponse) {
+      await this.router.navigate(['register', 'register-completed']);
+    } else {
+      await this.router.navigate(['register', 'register-project-form']);
+    }
   }
 
   /**

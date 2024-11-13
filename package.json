@@ -12,7 +12,8 @@
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint --fix . --ext .ts",
     "update-graphql": "npx @aws-amplify/cli codegen",
-    "format": "prettier --write 'src/**/*.{js,ts,html,css}'"
+    "format": "prettier --write 'src/**/*.{js,ts,html,css}'",
+    "build-android-debug": "ionic capacitor build android --prod --no-open && cd android && ./gradlew assembleDebug"
   },
   "private": true,
   "dependencies": {
@@ -28,6 +29,7 @@
     "@capacitor/app": "6.0.1",
     "@capacitor/clipboard": "^6.0.1",
     "@capacitor/core": "6.1.2",
+    "@capacitor/filesystem": "^6.0.1",
     "@capacitor/haptics": "6.0.1",
     "@capacitor/keyboard": "6.0.2",
     "@capacitor/preferences": "^6.0.2",
