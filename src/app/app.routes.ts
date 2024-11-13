@@ -123,7 +123,8 @@ export const routes: Routes = [
       import(
         './pages/historical/measurement-detail/measurement-detail.page'
       ).then((m) => m.MeasurementDetailPage),
-    },{
+  },
+  {
     path: 'moon-phase',
     loadComponent: () =>
       import('./pages/moon-phase/moon-phase.page').then((m) => m.MoonPhasePage),

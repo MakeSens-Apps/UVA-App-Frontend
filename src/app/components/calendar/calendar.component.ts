@@ -21,7 +21,14 @@ export interface calendar {
   /** Day of the week (0 = Sunday, 1 = Monday, etc.) */
   dayOfWeek: number | null;
   /** The state of the day, used to mark completion or status */
-  state?: 'today' | 'complete' | 'incomplete' | 'future' | 'normal'| 'none' | undefined;
+  state?:
+    | 'today'
+    | 'complete'
+    | 'incomplete'
+    | 'future'
+    | 'normal'
+    | 'none'
+    | undefined;
 
   /** The icon to be displayed on the day */
   icon?: string | null;
@@ -89,7 +96,6 @@ export class CalendarComponent implements OnInit {
   @Input() daysIncomplete = [3, 2];
 
   @Output() dayClick = new EventEmitter<calendar | null>();
-
 
   /** Days phase calendar */
   @Input() phaseMoonDays = [
@@ -195,11 +201,10 @@ export class CalendarComponent implements OnInit {
               )
             : null,
 
-        state:
-          this.typeCalendar === 'moon'
+        state: isToday(day)
+          ? 'today'
+          : this.typeCalendar === 'moon'
             ? 'none'
-            : isToday(day)
-            ? 'today'
             : isFuture(day)
               ? 'future'
               : this.getStatus(day.getDate()),
@@ -275,11 +280,10 @@ export class CalendarComponent implements OnInit {
         date: day,
         dayOfMonth: day.getDate(),
         dayOfWeek: day.getDay(),
-        state:
-          this.typeCalendar === 'moon'
+        state: isToday(day)
+          ? 'today'
+          : this.typeCalendar === 'moon'
             ? 'none'
-            :isToday(day)
-            ? 'today'
             : isFuture(day)
               ? 'future'
               : this.getStatus(day.getDate()),
