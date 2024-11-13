@@ -29,6 +29,11 @@
             height: 120px;
         }
 
+        &.moon{
+            border: none;
+            background: none;
+        }
+
     }
 
     &.mini {
@@ -57,11 +62,12 @@
 
     &.moon {
         border: none;
-        border-radius: var(--4xl, 16px);
         background: var(--Colors-Blue-800, #1A6270);
+        border-radius: var(--4xl, 16px);
         color: white;
         padding: 20px 10px 10px 10px;
         gap: 6px;
+        margin-inline: 10px;
 
         .header {
             margin-bottom: 10px;
@@ -69,4 +75,8 @@
 
     }
 
+}
+
+ion-card-content{
+    padding-inline: 0;
 }
