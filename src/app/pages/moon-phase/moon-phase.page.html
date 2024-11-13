@@ -1,0 +1,28 @@
+<app-header
+  title="Calendario lunar"
+  [hasBackButton]="true"
+  routerBackButton="/app/tabs/home"
+></app-header>
+
+<ion-content [fullscreen]="true">
+  <h2 class="date-header">{{month}}</h2>
+  <app-moon-card
+    background="green"
+    [phase]="phase"
+    [hasArrow]="false"
+  ></app-moon-card>
+  <div class="ion-padding-horizontal">
+    <app-calendar typeCalendar="moon"> </app-calendar>
+  </div>
+
+  <section class="cards">
+    <div class="text_container">
+      <h2>{{phaseName}}</h2>
+      <p>Sab, 08 de {{month}}</p>
+    </div>
+    <div class="text_container">
+      <h2>Luna Nueva</h2>
+      <p>Sab, 08 de {{month}}</p>
+    </div>
+  </section>
+</ion-content>

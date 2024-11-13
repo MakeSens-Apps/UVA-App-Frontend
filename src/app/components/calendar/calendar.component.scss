@@ -53,5 +53,20 @@
         }
     }
 
+    
+
+    &.moon {
+        border: none;
+        border-radius: var(--4xl, 16px);
+        background: var(--Colors-Blue-800, #1A6270);
+        color: white;
+        padding: 20px 10px 10px 10px;
+        gap: 6px;
+
+        .header {
+            margin-bottom: 10px;
+        }
+
+    }
 
 }

@@ -4,7 +4,7 @@ import { IonicModule } from '@ionic/angular';
 
 /**
  * @class DayComponent
- * @description A component that represents a single day in a calendar view, displaying information such as the date and its status.
+ * @description A component representing a single day in a calendar view, displaying the day's number, status, and optional icons.
  */
 @Component({
   selector: 'app-day',
@@ -15,7 +15,7 @@ import { IonicModule } from '@ionic/angular';
 })
 export class DayComponent {
   /**
-   * The day of the month represented by this component.
+   * The day of the month displayed in this component.
    * @type {number}
    * @default 0
    */
@@ -29,8 +29,8 @@ export class DayComponent {
   @Input() isMiniCalendar = false;
 
   /**
-   * The state of the day, which can be 'complete', 'incomplete', 'future', or 'normal'.
-   * @type {'complete' | 'incomplete' | 'future' | 'normal' | undefined}
+   * The status of the day, which can indicate task completion, future dates, or other states.
+   * @type {'complete' | 'incomplete' | 'future' | 'normal' | 'none' | undefined}
    * @default 'normal'
    */
   @Input() state:
@@ -39,11 +39,42 @@ export class DayComponent {
     | 'future'
     | 'normal'
     | 'today'
+    | 'none'
     | undefined = 'normal';
 
   /**
-   * @constructs
-   * Creates an instance of DayComponent.
+   * Path to the icon displayed on the day component, typically representing status.
+   * @type {string | null | undefined}
+   * @default './../../../../assets/images/icons/check.svg'
    */
-  constructor() {}
+  @Input() icon: string | null | undefined =
+    './../../../../assets/images/icons/check.svg';
+
+  /**
+   * Flag to specify if a custom icon is used instead of the default icon.
+   * @type {boolean}
+   * @default false
+   */
+  @Input() customIcon = false;
+
+  /**
+   * Position of the icon on the day component.
+   * Accepts 'top', 'bottom-left', and other positions as specified.
+   * @type {'top' | 'bottom-left'}
+   * @default 'bottom-left'
+   */
+  @Input() iconPosition: 'top' | 'bottom-left' = 'bottom-left';
+  //FIXME: set config by: |'bottom'|'left'|'right'|'top-left'|'top-right'|'bottom-right'
+
+  /**
+   * Indicates if the day component is part of a moon phase calendar.
+   * @type {boolean}
+   * @default false
+   */
+  @Input() isMoonCalendar = false;
+
+  /**
+   * @constructs DayComponent
+   * Creates an instance of DayComponent.
+   */ constructor() {}
 }

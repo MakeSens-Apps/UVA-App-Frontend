@@ -7,7 +7,14 @@ import { ProgressBarComponent } from '../../components/progress-bar/progress-bar
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import { MoonCardComponent } from '../../components/moon-card/moon-card.component';
+import { Router } from '@angular/router';
 
+/**
+ * @class HomePage
+ * @description Component for the main homepage of the app. Displays the current date,
+ * a progress bar, calendar, and lunar phase card, with modals for various information.
+ * It also manages modals and navigation to the moon calendar page.
+ */
 @Component({
   selector: 'app-home',
   templateUrl: 'home.page.html',
@@ -23,7 +30,20 @@ import { MoonCardComponent } from '../../components/moon-card/moon-card.componen
   ],
 })
 export class HomePage {
+  /**
+   * Formatted string representing today's date in Spanish.
+   * @type {string}
+   */
   today: string;
+
+  /**
+   * Object representing the visibility state of various modals.
+   * - `modal_Days`: Controls visibility for days modal.
+   * - `modal_Days_question`: Controls visibility for days question modal.
+   * - `modal_token`: Controls visibility for token modal.
+   * - `modal_token_2`: Controls visibility for a secondary token modal.
+   * @type {{ modal_Days: boolean; modal_Days_question: boolean; modal_token: boolean; modal_token_2: boolean; }}
+   */
   modals = {
     modal_Days: false,
     modal_Days_question: false,
@@ -32,11 +52,21 @@ export class HomePage {
   };
 
   /**
-   * Creates an instance of HomePage.
-   * Initializes the formatted date string using date-fns with Spanish locale.
-   *
+   * @constructs HomePage
+   * Initializes an instance of HomePage and sets the formatted date string.
+   * The date is formatted in Spanish using date-fns.
+   * @param {Router} router - Angular Router for handling navigation.
    */
-  constructor() {
+  constructor(private router: Router) {
     this.today = format(new Date(), " EEEE dd 'de' MMMM", { locale: es });
+  }
+
+  /**
+   * Navigates to the moon calendar page.
+   * Uses Angular Router to navigate to the specified path.
+   * @returns {void}
+   */
+  goToMoonCalendar(): void {
+    void this.router.navigate(['/app/tabs/home/moon-phase']);
   }
 }
