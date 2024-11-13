@@ -274,8 +274,8 @@ export class FileSystemService {
    */
   private handleAuthError(err: unknown): ErrorFileSystemResponse {
     if (err instanceof Error) {
-      console.error('Error');
-      return { name: 'unexpecteError', mensage: err.message, type: 'unknown' };
+      console.error('Error: ', err.message);
+      return { name: err.name, mensage: err.message, type: 'unknown' };
     } else {
       console.error('unknownerror');
       return {
