@@ -123,7 +123,7 @@ export class ConfigurationAppService {
       const response = await this.fileSystem.readFile(path, Directory.Data);
       if (response.success) {
         this.configMeasurement = JSON.parse(
-          JSON.stringify(response.data.data),
+          response.data.data.toString(),
         ) as MeasurementModel;
       } else {
         this.configMeasurement = null;
@@ -145,7 +145,7 @@ export class ConfigurationAppService {
       const response = await this.fileSystem.readFile(path, Directory.Data);
       if (response.success) {
         this.configColors = JSON.parse(
-          JSON.stringify(response.data.data),
+          response.data.data.toString(),
         ) as ColorsModel;
       } else {
         this.configColors = null;

@@ -2,20 +2,72 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
-import * as APITypes from '../API';
+import * as APITypes from "../API";
 type GeneratedQuery<InputType, OutputType> = string & {
   __generatedQueryInput: InputType;
   __generatedQueryOutput: OutputType;
 };
 
-export const getMoonPhase =
-  /* GraphQL */ `query GetMoonPhase($year: Int!, $month: Int!) {
+export const getMoonPhase = /* GraphQL */ `query GetMoonPhase($year: Int!, $month: Int!) {
   getMoonPhase(year: $year, month: $month)
 }
 ` as GeneratedQuery<
-    APITypes.GetMoonPhaseQueryVariables,
-    APITypes.GetMoonPhaseQuery
-  >;
+  APITypes.GetMoonPhaseQueryVariables,
+  APITypes.GetMoonPhaseQuery
+>;
+export const createNewUser = /* GraphQL */ `query CreateNewUser(
+  $userID: ID!
+  $name: String!
+  $lastName: String!
+  $phoneNumber: AWSPhone!
+  $rank: String!
+) {
+  createNewUser(
+    userID: $userID
+    name: $name
+    lastName: $lastName
+    phoneNumber: $phoneNumber
+    rank: $rank
+  ) {
+    id
+    Name
+    LastName
+    PhoneNumber
+    Email
+    Rank
+    UserProgresses {
+      nextToken
+      startedAt
+      __typename
+    }
+    UVA {
+      id
+      latitude
+      longitude
+      altitude
+      fields
+      enabled
+      createdAt
+      userID
+      racimoID
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+    createdAt
+    updatedAt
+    _version
+    _deleted
+    _lastChangedAt
+    __typename
+  }
+}
+` as GeneratedQuery<
+  APITypes.CreateNewUserQueryVariables,
+  APITypes.CreateNewUserQuery
+>;
 export const getRACIMO = /* GraphQL */ `query GetRACIMO($id: ID!) {
   getRACIMO(id: $id) {
     id
@@ -103,7 +155,7 @@ export const getMeasurement = /* GraphQL */ `query GetMeasurement($id: ID!) {
     data
     logs
     ts
-    ts_sync
+    task
     uvaID
     createdAt
     updatedAt
@@ -129,7 +181,7 @@ export const listMeasurements = /* GraphQL */ `query ListMeasurements(
       data
       logs
       ts
-      ts_sync
+      task
       uvaID
       createdAt
       updatedAt
@@ -165,7 +217,7 @@ export const syncMeasurements = /* GraphQL */ `query SyncMeasurements(
       data
       logs
       ts
-      ts_sync
+      task
       uvaID
       createdAt
       updatedAt
@@ -183,8 +235,7 @@ export const syncMeasurements = /* GraphQL */ `query SyncMeasurements(
   APITypes.SyncMeasurementsQueryVariables,
   APITypes.SyncMeasurementsQuery
 >;
-export const measurementsByUvaIDAndTs =
-  /* GraphQL */ `query MeasurementsByUvaIDAndTs(
+export const measurementsByUvaIDAndTs = /* GraphQL */ `query MeasurementsByUvaIDAndTs(
   $uvaID: ID!
   $ts: ModelStringKeyConditionInput
   $sortDirection: ModelSortDirection
@@ -206,7 +257,7 @@ export const measurementsByUvaIDAndTs =
       data
       logs
       ts
-      ts_sync
+      task
       uvaID
       createdAt
       updatedAt
@@ -221,9 +272,9 @@ export const measurementsByUvaIDAndTs =
   }
 }
 ` as GeneratedQuery<
-    APITypes.MeasurementsByUvaIDAndTsQueryVariables,
-    APITypes.MeasurementsByUvaIDAndTsQuery
-  >;
+  APITypes.MeasurementsByUvaIDAndTsQueryVariables,
+  APITypes.MeasurementsByUvaIDAndTsQuery
+>;
 export const getUserProgress = /* GraphQL */ `query GetUserProgress($id: ID!) {
   getUserProgress(id: $id) {
     id
@@ -311,8 +362,7 @@ export const syncUserProgresses = /* GraphQL */ `query SyncUserProgresses(
   APITypes.SyncUserProgressesQueryVariables,
   APITypes.SyncUserProgressesQuery
 >;
-export const userProgressesByUserIDAndTs =
-  /* GraphQL */ `query UserProgressesByUserIDAndTs(
+export const userProgressesByUserIDAndTs = /* GraphQL */ `query UserProgressesByUserIDAndTs(
   $userID: ID!
   $ts: ModelStringKeyConditionInput
   $sortDirection: ModelSortDirection
@@ -349,9 +399,9 @@ export const userProgressesByUserIDAndTs =
   }
 }
 ` as GeneratedQuery<
-    APITypes.UserProgressesByUserIDAndTsQueryVariables,
-    APITypes.UserProgressesByUserIDAndTsQuery
-  >;
+  APITypes.UserProgressesByUserIDAndTsQueryVariables,
+  APITypes.UserProgressesByUserIDAndTsQuery
+>;
 export const getUser = /* GraphQL */ `query GetUser($id: ID!) {
   getUser(id: $id) {
     id
@@ -486,8 +536,7 @@ export const getUVA = /* GraphQL */ `query GetUVA($id: ID!) {
   }
 }
 ` as GeneratedQuery<APITypes.GetUVAQueryVariables, APITypes.GetUVAQuery>;
-export const listUVAS =
-  /* GraphQL */ `query ListUVAS($filter: ModelUVAFilterInput, $limit: Int, $nextToken: String) {
+export const listUVAS = /* GraphQL */ `query ListUVAS($filter: ModelUVAFilterInput, $limit: Int, $nextToken: String) {
   listUVAS(filter: $filter, limit: $limit, nextToken: $nextToken) {
     items {
       id
