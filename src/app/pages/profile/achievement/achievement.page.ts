@@ -22,11 +22,15 @@ export class AchievementPage {
     { icon: '../../../../assets/images/icons/platula.svg' },
     { icon: '../../../../assets/images/icons/flor.svg' },
     { icon: '../../../../assets/images/icons/platula.svg' },
+    { icon: '../../../../assets/images/icons/brote1.png' },
+    { icon: '../../../../assets/images/icons/platula.svg' },
+    { icon: '../../../../assets/images/icons/flor.svg' },
+    { icon: '../../../../assets/images/icons/platula.svg' },
   ];
 
   modals = {
-    modal_show: false,
-    modal_show_2: false,
+    modal_token: false,
+    modal_token_2: false,
   };
 
   /**

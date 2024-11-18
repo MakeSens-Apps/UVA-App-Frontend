@@ -12,130 +12,149 @@
     </div>
   </ion-toolbar>
 </ion-header>
-<ion-content>
-  <!-- Sección de Activar Notificaciones -->
-  <ion-card class="card">
-    <ion-item lines="none" class="notification-item">
-      <p><strong> Activar notificaciones</strong></p>
+<ion-content [fullscreen]="true" class="content">
+  <div class="profile-content">
+    <div class="profile-card"> 
+      <div class="content-items">
+        <div class="form">
+          <ion-list class="menu-list" lines="none">
+            <div  class="div_items">
+              <div class="items-titles">
+                <ion-label><strong>
+                  Activar notificaciones
+                </strong></ion-label>
 
-      <ion-toggle
-        slot="end"
-        color="uva_blue-500"
-        [checked]="isNotificationsActive"
-        (ionChange)="activeNoti($event)"
-      ></ion-toggle>
-    </ion-item>
-
-    <div class="modal_show">
-      <div class="container_text container_text-b">
-        <p>
-          Al mantener las notificaciones activas, podrás recibir alertas de
-          cuando debes hacer tus registros.
-        </p>
+                 <ion-toggle
+                slot="end"
+                color="uva_blue-500"
+                [checked]="isNotificationsActive"
+                (ionChange)="activeNoti($event)"
+              ></ion-toggle>
+              </div>
+              
+              <ion-item class="ion-item ion-item-w">
+                <ion-label>
+                  Al mantener las notificaciones <br> activas, 
+                  podrás recibir alertas de<br>
+                  cuando debes hacer tus registros.
+                </ion-label>
+              </ion-item>
+            </div>
+          </ion-list>
+          
+        </div>
       </div>
+      <div class="content-items">
+        <div class="form">
+          <ion-list class="menu-list" lines="none">
+            <div  class="div_items">
+              <div class="items-titles">
+                <ion-label><strong>
+                  Subida de datos
+                </strong></ion-label>
+              </div>
+              <ion-label class="cursive">
+                <ion-icon
+                  slot="start"
+                  src="../../../../assets/images/icons/checkmark-circle.svg"
+                ></ion-icon>
+              Sin sincronizaciones pendientes
+              </ion-label>
+              <div class="paddingB"></div>
+              <ion-button
+              expand="block"
+              color="uva_blue-600"
+              class="text-transform_none"
+              (click)="uploadData()"
+              [disabled]="isDisabled"
+            >
+            <ion-icon src="../../../../assets/images/icons/cloud.svg"></ion-icon>
+                Sincronizar con la nube
+            <ion-icon
+              src="../../../../assets/images/icons/refresh.svg"
+            ></ion-icon>
+            </ion-button>
+            </div>
+          </ion-list>
+          
+        </div>
+      </div>
+
+      <div class="content-items">
+        <div class="form">
+          <ion-list class="menu-list" lines="none">
+            <div  class="div_items">
+              <div class="items-titles">
+                <ion-label><strong>
+                  Bajada de datos
+                </strong></ion-label>
+              </div>
+              <ion-label class="cursive">
+                <ion-icon
+                  slot="start"
+                  src="../../../../assets/images/icons/checkmark-circle.svg"
+                ></ion-icon>
+                Sin sincronizaciones pendientes
+              </ion-label>
+              <div class="paddingB"></div>
+              <ion-button
+              expand="block"
+              color="uva_blue-600"
+              class="text-transform_none"
+              (click)="downloadData()"
+              [disabled]="isDisabled"
+            >
+            <ion-icon src="../../../../assets/images/icons/cloud.svg"></ion-icon>
+                Sincronizar con la nube
+            <ion-icon
+              src="../../../../assets/images/icons/refresh.svg"
+            ></ion-icon>
+            </ion-button>
+            </div>
+          </ion-list>
+          
+        </div>
+      </div>
+
+
+      <div class="content-items">
+        <div class="form">
+          <ion-list class="menu-list" lines="none">
+            <div  class="div_items">
+              <div class="items-titles">
+                <ion-label><strong>
+                  Actualizaciones
+                </strong></ion-label>
+              </div>
+              <ion-button
+              expand="block"
+              color="uva_blue-600"
+              class="text-transform_none"
+              (click)="downloadData()"
+              [disabled]="isDisabled"
+            >
+            <ion-icon src="../../../../assets/images/icons/cloud.svg"></ion-icon>
+               actualizar configuraciones
+            <ion-icon
+              src="../../../../assets/images/icons/refresh.svg"
+            ></ion-icon>
+            </ion-button>
+            <div class="paddingB"></div>
+            <ion-label class="cursive  warning-text">
+              <ion-icon
+                slot="start"
+                class="warning-icon"
+                src="../../../../assets/images/icons/exclamation.svg"
+              ></ion-icon>
+              Con acrualizaciones pendientes
+            </ion-label>
+            </div>
+          </ion-list>
+          
+        </div>
+      </div>
+     
     </div>
-  </ion-card>
-
-  <!-- Sección de Subida de Datos -->
-  <ion-card class="card">
-    <ion-item lines="none" class="notification-item">
-      <p><strong> Subida de datos</strong></p>
-    </ion-item>
-    <div class="modal_show">
-      <div class="container_text">
-        <ion-icon
-          slot="start"
-          src="../../../../assets/images/icons/checkmark-circle.svg"
-        ></ion-icon>
-        <p class="cursive">Sin sincronizaciones pendientes</p>
-      </div>
-      <div class="container_button">
-        <ion-button
-          (click)="uploadData()"
-          [disabled]="isDisabled"
-          class="text-transform_none custom-button"
-          id="open-modal_show_2"
-          color="uva_blue-600"
-          expand="block"
-        >
-          <ion-icon src="../../../../assets/images/icons/cloud.svg"></ion-icon>
-          <p class="text-button">Sincronizar con la nube</p>
-          <ion-icon
-            src="../../../../assets/images/icons/refresh.svg"
-          ></ion-icon>
-        </ion-button>
-      </div>
-    </div>
-  </ion-card>
-
-  <!-- Sección de bajada de Data -->
-  <ion-card class="card">
-    <ion-item lines="none" class="notification-item">
-      <p><strong> Bajada de datos</strong></p>
-    </ion-item>
-
-    <div class="modal_show">
-      <div class="container_text">
-        <ion-icon
-          slot="start"
-          src="../../../../assets/images/icons/checkmark-circle.svg"
-        ></ion-icon>
-        <p class="cursive">Sin sincronizaciones pendientes</p>
-      </div>
-      <div class="container_button">
-        <ion-button
-          (click)="downloadData()"
-          [disabled]="isDisabled"
-          class="custom-button"
-          class="text-transform_none"
-          id="open-modal_show_2"
-          color="uva_blue-600"
-          expand="block"
-        >
-          <ion-icon src="../../../../assets/images/icons/cloud.svg"></ion-icon>
-          <p class="text-button">Sincronizar con la nube</p>
-          <ion-icon
-            src="../../../../assets/images/icons/refresh.svg"
-          ></ion-icon>
-        </ion-button>
-      </div>
-    </div>
-  </ion-card>
-
-  <!-- Sección de sincronizacion de data -->
-  <ion-card class="card">
-    <p><strong> Actualizaciones</strong></p>
-    <div class="modal_show">
-      <div class="container_text">
-        <ion-icon
-          slot="start"
-          src="../../../../assets/images/icons/checkmark-circle.svg"
-        ></ion-icon>
-        <p class="cursive">Sin sincronizaciones pendientes</p>
-      </div>
-      <div class="container_button">
-        <ion-button
-          (click)="synchronizeData()"
-          class="custom-button"
-          class="text-transform_none"
-          id="open-modal_show_2"
-          color="uva_blue-600"
-          expand="block"
-        >
-          <ion-icon src="../../../../assets/images/icons/cloud.svg"></ion-icon>
-          <p class="text-button">Actualizar configuraciones</p>
-          <ion-icon
-            src="../../../../assets/images/icons/refresh.svg"
-          ></ion-icon>
-        </ion-button>
-      </div>
-      <div class="container_text">
-        <ion-icon
-          class="warning-icon"
-          src="../../../../assets/images/icons/exclamation.svg"
-        ></ion-icon>
-        <p class="cursive warning-text">Con actualizaciones pendientes</p>
-      </div>
-    </div>
-  </ion-card>
+  </div>
 </ion-content>
+

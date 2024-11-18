@@ -15,8 +15,7 @@ import {
   IonLabel,
   IonCardContent,
   IonCardHeader,
-  IonCardTitle,
-} from '@ionic/angular/standalone';
+  IonCardTitle, IonModal, IonFooter, IonList, IonInput } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
 
 /**
@@ -28,7 +27,7 @@ import { Router } from '@angular/router';
   templateUrl: './configuration.page.html',
   styleUrls: ['./configuration.page.scss'],
   standalone: true,
-  imports: [
+  imports: [IonInput, IonList, IonFooter, IonModal, 
     IonCardTitle,
     IonCardHeader,
     IonCardContent,

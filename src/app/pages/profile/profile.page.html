@@ -13,128 +13,100 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="profile-page">
-  <br />
-  <ion-card class="profile-card">
-    <ion-avatar class="profile-avatar">
-      <img
-        src="../../../assets/images/icons/user-circle.png"
-        alt="User avatar"
-      />
-    </ion-avatar>
-    <p class="profile-name">[Nombre]</p>
-
-    <div class="status-container">
-      <ion-chip color="uva_blue-500" class="status-chip">
-        <ion-label>Graduado 🎓</ion-label>
-      </ion-chip>
-      <ion-chip color="uva_blue-500" class="status-chip">
-        <ion-label>Semillas: <strong class="color-700">3</strong></ion-label
-        ><img class="icon-s" src="../../../assets/images/icons/semilla.svg" />
-      </ion-chip>
-    </div>
-
-    <ion-list class="options-list" lines="none">
-      <ion-item (click)="goBack('/personal-info')" class="custom-item">
-        <ion-label>Información personal</ion-label>
-        <img
-          class="icon-s"
-          src="../../../assets/images/icons/profile/Arrow-forward.png"
-        />
-      </ion-item>
-      <ion-item (click)="goBack('/achievement')" class="custom-item">
-        <ion-label>Tus logros</ion-label>
-        <img
-          class="icon-s"
-          src="../../../assets/images/icons/profile/Medal.png"
-        />
-      </ion-item>
-      <ion-item (click)="goBack('/configuration')" class="custom-item">
-        <ion-label>Configuración</ion-label>
-        <img
-          class="icon-s"
-          src="../../../assets/images/icons/profile/Options.png"
-        />
-      </ion-item>
-      <ion-item (click)="modals.modal_show = true" class="custom-item">
-        <ion-label>Comparte la aplicación</ion-label>
-        <img
-          class="icon-s"
-          src="../../../assets/images/icons/profile/Share-social.png"
-        />
-      </ion-item>
-      <ion-item (click)="goUrl()" class="custom-item">
-        <ion-label>Soporte documental</ion-label>
-        <img
-          class="icon-s"
-          src="../../../assets/images/icons/profile/Open.png"
-        />
-      </ion-item>
-    </ion-list>
-    <div class="ion-start">
-      <ion-button
-        (click)="goBack('/login')"
-        fill="outline"
-        expand="block"
-        color="uva_blue-500"
-        class="logout-button"
-      >
-        Cerrar sesión
-        <img
-          class="icon-s-s"
-          src="../../../assets/images/icons/profile/logout.png"
-        />
-      </ion-button>
-    </div>
-
-    <ion-modal
-      #modal_show
-      [isOpen]="modals.modal_show"
-      (ionModalDidDismiss)="modals.modal_show = false"
-      [initialBreakpoint]="1"
-      [breakpoints]="[0, 1]"
-    >
-      <ng-template>
-        <div class="modal_show" line="none">
-          <div class="container_text">
-            <ion-item lines="none">
-              <ion-icon
-                size="large"
-                slot="start"
-                src="../../../assets/images/icons/logop.svg"
-              ></ion-icon>
-              <p class="s-p">
-                Hola, cónoce la aplicación Uva-App para registrar tus datos del
-                clima!
-              </p>
-            </ion-item>
-            <ion-grid>
-              <!-- Primera Fila de Iconos -->
-              <ion-row>
-                <ion-col
-                  size="4"
-                  class="share-option"
-                  *ngFor="let option of shareOptions"
-                >
-                  <ion-icon
-                    (click)="option.action()"
-                    [src]="option.icon"
-                    size="large"
-                  ></ion-icon>
-                  <p class="s-p">{{ option.label }}</p>
-                </ion-col>
-              </ion-row>
-            </ion-grid>
+<ion-content [fullscreen]="true" class="content">
+  <div class="profile-content">
+    <div class="profile-card">
+      <!-- Avatar y Nombre -->
+      <div class="profile-header">
+        <img class="avatar" src="../../../assets/images/icons/user-circle.png" alt="User Avatar" />
+        <p class="user-name">[Nombre]</p>
+        <div class="status-container">
+          <div class="status-item">
+            Graduado 🎓
+          </div>
+          <div class="status-item">
+            Semillas: <strong class="colorB">3</strong> <img src="../../../assets/images/icons/semilla.svg" alt="Semilla Icon" class="seed-icon" /> 
           </div>
         </div>
-      </ng-template>
-    </ion-modal>
-  </ion-card>
-
-  <div class="footer-logo">
-    <img
-      src="../../../assets/images/LogoNaturaColombia.svg"
-      alt="Fundación Natura Colombia"
-    /><br />
+      </div>
+  
+      <!-- Opciones de Menú -->
+      <ion-list class="menu-list" lines="none">
+        <ion-item (click)="goBack('/personal-info')">
+          <ion-label>Información personal</ion-label>
+          <ion-icon slot="end"  src="../../../assets/images/icons/profile/arrow-forward.svg"></ion-icon>
+        </ion-item>
+        <ion-item (click)="goBack('/achievement')" >
+          <ion-label>Tus logros</ion-label>
+          <ion-icon slot="end"  src="../../../assets/images/icons/profile/Medal.svg"></ion-icon>
+        </ion-item>
+        <ion-item (click)="goBack('/configuration')">
+          <ion-label>Configuración</ion-label>
+          <ion-icon slot="end"  src="../../../assets/images/icons/profile/Options.svg"></ion-icon>
+        </ion-item>
+        <ion-item (click)="modals.modal_show = true" >
+          <ion-label>Comparte la aplicación</ion-label>
+          <ion-icon slot="end"  src="../../../assets/images/icons/profile/share-social.svg"></ion-icon>
+        </ion-item>
+        <ion-item (click)="goUrl()" >
+          <ion-label>Soporte documental</ion-label>
+          <ion-icon slot="end"  src="../../../assets/images/icons/profile/Open.svg"></ion-icon>
+        </ion-item>
+      </ion-list>
+  
+      <!-- Cerrar Sesión -->
+      <div class="a-left">
+        <ion-button  (click)="goBack('/login')" size="small" expand="block" fill="outline"  class="logout-button">
+          <ion-label> Cerrar sesión</ion-label>
+          <ion-icon  src="../../../assets/images/icons/profile/logout.svg" slot="end"></ion-icon>
+        </ion-button>
+      </div>
+    </div>
+    <div class="footer-logo">
+      <img src="../../../assets/images/LogoNaturaColombia.svg" alt="Fundación Natura Logo" />
+    </div>
   </div>
+  <ion-modal
+  #modal_show
+  [isOpen]="modals.modal_show"
+  (ionModalDidDismiss)="modals.modal_show = false"
+  [initialBreakpoint]="1"
+  [breakpoints]="[0, 1]"
+>
+  <ng-template>
+    <div class="modal_show" line="none">
+      <div class="container_text">
+        <ion-item lines="none">
+          <ion-icon
+            size="large"
+            slot="start"
+            src="../../../assets/images/icons/logop.svg"
+          ></ion-icon>
+          <p class="s-p">
+            Hola, cónoce la aplicación Uva-App para registrar tus datos del
+            clima!
+          </p>
+        </ion-item>
+        <ion-grid>
+          <hr class="divider" />
+          <ion-row>
+            <ion-col
+              size="4"
+              class="share-option"
+              *ngFor="let option of shareOptions"
+            >
+              <ion-icon
+                (click)="option.action()"
+                [src]="option.icon"
+                size="large"
+              ></ion-icon>
+              <p class="s-p">{{ option.label }}</p>
+            </ion-col>
+          </ion-row>
+          <hr class="divider" />
+        </ion-grid>
+      </div>
+    </div>
+  </ng-template>
+</ion-modal>
 </ion-content>

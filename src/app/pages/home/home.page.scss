@@ -129,6 +129,7 @@ ion-content::part(background) {
 
 #modal_token, #modal_token_2 {
   .container_text {
+    width: 100%;
     margin-block: 0px;
     display: flex;
     flex-direction: column;
