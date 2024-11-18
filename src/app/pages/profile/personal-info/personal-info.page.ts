@@ -10,6 +10,7 @@ import {
 import { IonicModule, AlertController, InputChangeEventDetail } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { IonInputCustomEvent } from '@ionic/core';
+import { SessionService } from '@app/core/services/session/session.service';
 
 // Definición de los campos de usuario
 const userFields = [
@@ -30,6 +31,7 @@ const userFields = [
     label: 'Teléfono',
     type: 'string',
     placeholder: '3183766489',
+    disabled: true,
   },
   {
     key: 'userEmail',
@@ -63,6 +65,9 @@ export class PersonalInfoPage implements OnInit {
   userForm!: FormGroup;
   fields = userFields;
   isEditable: boolean = false;
+  name: string ="";
+  lastName: string ="";
+  phone: string ="";
   modals = {
     modal_Delete: false,
     modal_show_2: false,
@@ -73,11 +78,13 @@ export class PersonalInfoPage implements OnInit {
    * @param {Router} router - Angular Router instance used for navigation.
    * @param {FormBuilder} fb - FormBuilder instance to create reactive forms.
    * @param {AlertController} alertController - Controller to manage alert popups.
+   * @param {SessionService} session -Manage Sesionids .
    */
   constructor(
     private router: Router,
     private fb: FormBuilder,
     private alertController: AlertController,
+    private session: SessionService,
   ) {}
 
   /**
@@ -85,21 +92,42 @@ export class PersonalInfoPage implements OnInit {
    * Initializes the user form.
    * @returns {void}
    */
-  ngOnInit(): void {
-    this.initializeForm();
+  async ngOnInit(){
+    this.userForm = this.createEmptyForm();
+    await this.updateFormWithUserData();
+  }
+
+ 
+  /**
+   * Create an empty form based on `userFields`.
+   */
+  createEmptyForm(): FormGroup {
+    const formControls: Record<string, any> = {};
+
+    this.fields.forEach((field) => {
+      formControls[field.key] = [
+        { value: '', disabled: !!field.disabled },
+        Validators.required, 
+      ];
+    });
+
+    return this.fb.group(formControls);
   }
 
   /**
-   * Initializes the reactive form with user fields and validation.
-   * @returns {void}
+   * Update the form with the user's data.
    */
-  initializeForm(): void {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const formControls: Record<string, any> = {}; // Definir tipo explícito
-    this.fields.forEach((field) => {
-      formControls[field.key] = ['', Validators.required];
+  async updateFormWithUserData(): Promise<void> {
+    const dataUser = await this.session.getInfo();
+
+    this.userForm.patchValue({
+      userName: dataUser.name || '',
+      userLastName: dataUser.lastName || '',
+      userPhoneNumber: dataUser.phone || '',
     });
-    this.userForm = this.fb.group(formControls);
+
+    console.log('Formulario Actualizado:', this.userForm.value);
+
   }
 
   /**
@@ -110,7 +138,7 @@ export class PersonalInfoPage implements OnInit {
     if (this.userForm.valid) {
       // Aquí puedes enviar los datos a tu endpoint
     } else {
-      await this.showAlert(); // Llamar a la función que muestra la alerta
+      await this.showAlert(); 
     }
   }
 
@@ -140,50 +168,43 @@ export class PersonalInfoPage implements OnInit {
   /**
  * Alternar entre editar y solo lectura
  */
-toggleEdit() {
-  this.isEditable = !this.isEditable;
+  toggleEdit(): void {
+    this.isEditable = !this.isEditable;
 
-  if (this.isEditable) {
-    // Enfocar el primer campo y agregar la clase focused
-    setTimeout(() => {
-      const firstItem = document.querySelector('ion-item');
-      if (firstItem) {
-        firstItem.classList.add('focused');
-        const firstInput = firstItem.querySelector('ion-input input') as HTMLInputElement | null;
-        if (firstInput) {
-          firstInput.focus();
+    if (this.isEditable) {
+      setTimeout(() => {
+        const firstEditableInput = document.querySelector('ion-input:not([readonly]) input') as HTMLInputElement | null;
+        if (firstEditableInput) {
+          firstEditableInput.focus();
         }
-      }
-    }, 100);
-  } else {
-    this.onSubmit();
-    this.clearFocus(); // Limpia el foco al guardar
+      }, 100);
+    } else {
+      this.userForm.markAsPristine();
+    }
   }
-}
-
+  
 
 /**
  * Manejar foco de un campo
  * @param event - Evento de foco de Ionic
  */
-handleFocus(event: IonInputCustomEvent<FocusEvent>): void {
-  const parentItem = (event.target as HTMLElement).closest('ion-item');
-  if (parentItem) {
-    parentItem.classList.add('focused');
-  }
+  handleFocus(event: IonInputCustomEvent<FocusEvent>): void {
+    const parentItem = (event.target as HTMLElement).closest('ion-item');
+    if (parentItem) {
+      parentItem.classList.add('focused');
+    }
 }
 
-/**
- * Manejar desenfoque de un campo
- * @param event - Evento de desenfoque de Ionic
- */
-handleBlur(event: IonInputCustomEvent<FocusEvent>): void {
-  const parentItem = (event.target as HTMLElement).closest('ion-item');
-  
-  if (parentItem) {
-    parentItem.classList.remove('focused');
+  /**
+   * Manejar desenfoque de un campo
+   * @param event - Evento de desenfoque de Ionic
+   */
+  handleBlur(event: IonInputCustomEvent<FocusEvent>): void {
+    const parentItem = (event.target as HTMLElement).closest('ion-item');
+    if (parentItem) {
+      parentItem.classList.remove('focused');
+    }
   }
-}
 
 
   /**

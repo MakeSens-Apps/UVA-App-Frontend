@@ -25,18 +25,15 @@ ion-content {
 
   }
 
-  .content{
+  .content {
     background-image: url('../../../../assets/images/icons/back.png');
-    background-repeat: no-repeat; 
-    background-size: cover; 
-    background-position: center; 
-    width: 100%; 
-    height: 100%; 
-    display: flex;
-    align-items: center; 
-    justify-content: center; 
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    width: 100%;
+    height: 100%;
+    padding-top: 2px; /* Espaciado entre el contenido y el header */
   }
-
   .floating-button {
     position: fixed; 
     bottom: 20px; 
@@ -232,34 +229,35 @@ ion-button {
 
 
 .achievements-container {
-  display: flex; 
-  flex-wrap: wrap; 
-  gap: 14px; 
-  justify-content: center; 
-  margin-top: -60vh;
+  display: flex; /* Usamos flexbox para organizar los elementos */
+  flex-wrap: wrap; /* Permitir que los elementos pasen a la siguiente fila */
+  gap: 14px; /* Espacio entre los ítems */
+  justify-content: center; /* Centra horizontalmente los ítems */
+  padding: 16px;
 
   .achievement-item {
-    display: flex;
-    width: 70px; 
+    flex: 1 1 calc(25% - 14px); /* Cada ítem ocupa el 25% del ancho menos el gap */
+    max-width: calc(25% - 14px); /* Asegura un tamaño máximo */
     height: 70px; 
-    flex-direction: column; 
-    justify-content: center; 
-    align-items: center; 
-    gap: 14px; 
-    border-radius: 14px; 
-    background: rgba(242, 249, 236, 0.7); 
-    box-shadow: 2px 4px 6px rgba(0, 0, 0, 0.1); 
-    transition: transform 0.3s ease-in-out; 
+    width: 70px; 
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    border-radius: 14px;
+    background: rgba(242, 249, 236, 0.7); /* Fondo semitransparente */
+    box-shadow: 2px 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease-in-out;
 
     img {
-      margin-top: 15%;
-      width: 70px; 
-      height: 70px;
-      object-fit: contain; 
+      width: 56px; 
+      height: 56px;
+      object-fit: contain;
     }
 
     &:hover {
-      transform: scale(1.1); 
+      transform: scale(1.1); /* Efecto de agrandamiento */
     }
   }
 }
