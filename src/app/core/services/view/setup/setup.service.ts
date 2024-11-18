@@ -177,7 +177,7 @@ export class SetupService {
       }
       const userProfile = {
         userID: response.data.userId,
-        name: response.data.username,
+        name: (await this.sesion.getInfo()).name ?? '',
         lastName: (await this.sesion.getInfo()).lastName ?? '',
         phone: (await this.sesion.getInfo()).phone ?? '',
       };
