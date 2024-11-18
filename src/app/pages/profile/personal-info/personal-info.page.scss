@@ -144,8 +144,12 @@
             gap: 32px;
             align-self: stretch;
             &.focused {
-              border-color: #10BCCA; /* Borde azul para el campo con foco */
-              background: white; /* Cambiar fondo al enfocarse */
+              border-color: #10BCCA; 
+              background: white;
+            }
+            &[readonly] {
+              color: #999999; 
+              pointer-events: none; 
             }
 
             ion-input {
@@ -156,7 +160,12 @@
               font-family: Montserrat, sans-serif;
               font-size: 14px;
               &.focused {
-                border-color: #10BCCA; /* Color del borde cuando tiene el foco */
+                border: 1px solid #10BCCA; 
+                transition: border-color 0.3s ease-in-out;
+              }
+              &[readonly] {
+                color: #999999; 
+                pointer-events: none; 
               }
             }
         
@@ -362,5 +371,6 @@
       }
 
       .focused{
-        background-color:#10BCCA;
+        border: 1px solid #10BCCA; 
+        transition: border-color 0.3s ease-in-out;
       }

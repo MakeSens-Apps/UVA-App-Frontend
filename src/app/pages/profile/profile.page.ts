@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -57,7 +57,8 @@ import { SessionService } from '@app/core/services/session/session.service';
     FormsModule,
   ],
 })
-export class ProfilePage {
+export class ProfilePage implements OnInit {
+  name:string | undefined
   shareOptions = [
     {
       label: 'WhatsApp',
@@ -104,6 +105,10 @@ export class ProfilePage {
     private service: SetupService,
     private configuration: ConfigurationAppService,
   ) {}
+  async ngOnInit(): Promise<void> {
+    const dataUser = await this.session.getInfo();
+    this.name = dataUser.name
+  }
 
   // Método para compartir en WhatsApp
   /**

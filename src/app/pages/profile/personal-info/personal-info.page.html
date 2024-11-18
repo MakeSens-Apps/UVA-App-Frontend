@@ -18,7 +18,7 @@
     <div class="profile-card">
       <div class="profile-header">
         <img class="avatar" src="../../../assets/images/icons/user-circle.png" alt="User Avatar" />
-        <p class="user-name">[Nombre]</p>
+        <p class="user-name">{{name}}</p>
         <div class="status-container">
           <div class="status-item">Graduado 🎓</div>
           <div class="status-item">
@@ -31,32 +31,25 @@
       <form [formGroup]="userForm">
         <div class="form">
           <ion-list class="menu-list" lines="none">
-            <div *ngFor="let field of fields; let i = index" class="div_form">
+            <div *ngFor="let field of fields" class="div_form">
               <ion-label>{{ field.label }}</ion-label>
               <ion-item>
                 <ion-input
                   *ngIf="field.type === 'string'"
                   [formControlName]="field.key"
                   [placeholder]="field.placeholder"
-                  [readonly]="!isEditable"
-                  (ionFocus)="handleFocus($event)"
-                  (ionBlur)="handleBlur($event)"
-                ></ion-input>
-                <ion-input
-                  *ngIf="field.type === 'int'"
-                  type="number"
-                  [formControlName]="field.key"
-                  [placeholder]="field.placeholder"
-                  [readonly]="!isEditable"
+                  [readonly]="!isEditable || userForm.get(field.key)?.disabled"
                   (ionFocus)="handleFocus($event)"
                   (ionBlur)="handleBlur($event)"
                 ></ion-input>
               </ion-item>
             </div>
           </ion-list>
-          
         </div>
       </form>
+      
+      
+            
       <p class="form-title color-n">Otras acciones</p>
       <div class="a-left">
         <a
