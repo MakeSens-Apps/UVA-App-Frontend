@@ -60,7 +60,6 @@ export class ConfigurationPage {
   /**
    *  @param {Router} router - Angular Router instance used for navigation.
    *  @param {ConfigurationAppService} config The service handling application configuration and data download.
-   *  @param {SessionService} session The service from session
    *  @param {MoonPhaseService} moonphase The service from moon Phase
    *  @param {ToastController} toastController Manage Alerts
    *  @param {LoadingController} loadingController Manage loading
