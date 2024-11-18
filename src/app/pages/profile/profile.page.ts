@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -19,8 +18,7 @@ import {
   IonModal,
   IonGrid,
   IonRow,
-  IonCol,
-} from '@ionic/angular/standalone';
+  IonCol, IonItemDivider } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
 import { Share } from '@capacitor/share';
 import { Clipboard } from '@capacitor/clipboard';
@@ -37,7 +35,7 @@ import { SessionService } from '@app/core/services/session/session.service';
   templateUrl: './profile.page.html',
   styleUrls: ['./profile.page.scss'],
   standalone: true,
-  imports: [
+  imports: [IonItemDivider, 
     IonCol,
     IonRow,
     IonGrid,
