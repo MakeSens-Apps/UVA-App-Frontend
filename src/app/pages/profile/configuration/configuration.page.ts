@@ -48,7 +48,7 @@ import { Router } from '@angular/router';
 })
 export class ConfigurationPage {
   isDisabled = true;
-  isNotificationsActive = false;
+  isNotificationsActive = true;
 
   /**
    * @param {Router} router - Angular Router instance used for navigation.

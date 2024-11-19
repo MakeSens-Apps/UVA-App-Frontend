@@ -16,21 +16,19 @@
 <ion-content [fullscreen]="true" class="content">
   <div class="profile-content">
     <div class="profile-card">
-      <!-- Avatar y Nombre -->
       <div class="profile-header">
         <img class="avatar" src="../../../assets/images/icons/user-circle.png" alt="User Avatar" />
         <p class="user-name">{{name}}</p>
         <div class="status-container">
-          <div class="status-item">
+          <div class="status-item" *ngIf="isRanking">
             Graduado 🎓
           </div>
-          <div class="status-item">
-            Semillas: <strong class="colorB">3</strong> <img src="../../../assets/images/icons/semilla.svg" alt="Semilla Icon" class="seed-icon" /> 
+          <div class="status-item"  *ngIf="isSeed">
+            Semillas: <strong class="colorB">{{seed}}</strong> <img [src]="seedIcon" alt="Semilla Icon" class="seed-icon" /> 
           </div>
         </div>
       </div>
   
-      <!-- Opciones de Menú -->
       <ion-list class="menu-list" lines="none">
         <ion-item (click)="goBack('/personal-info')">
           <ion-label>Información personal</ion-label>
@@ -44,7 +42,7 @@
           <ion-label>Configuración</ion-label>
           <ion-icon slot="end"  src="../../../assets/images/icons/profile/Options.svg"></ion-icon>
         </ion-item>
-        <ion-item (click)="modals.modal_show = true" >
+        <ion-item (click)="openModal()" >
           <ion-label>Comparte la aplicación</ion-label>
           <ion-icon slot="end"  src="../../../assets/images/icons/profile/share-social.svg"></ion-icon>
         </ion-item>
@@ -67,14 +65,14 @@
     </div>
   </div>
   <ion-modal
-  #modal_show
-  [isOpen]="modals.modal_show"
-  (ionModalDidDismiss)="modals.modal_show = false"
+  #modal_show_comparte
+  [isOpen]="modals.modal_show_comparte"
+  (ionModalDidDismiss)="onModalDismiss('modal_show_comparte')"
   [initialBreakpoint]="1"
   [breakpoints]="[0, 1]"
 >
   <ng-template>
-    <div class="modal_show" line="none">
+    <div class="modal_show_comparte" line="none">
       <div class="container_text">
         <ion-item lines="none">
           <ion-icon

@@ -24,12 +24,13 @@
                   Activar notificaciones
                 </strong></ion-label>
 
-                 <ion-toggle
+               <ion-toggle 
+               mode="ios"
                 slot="end"
-                color="uva_blue-500"
+                color="uva_blue-600"
                 [checked]="isNotificationsActive"
-                (ionChange)="activeNoti($event)"
-              ></ion-toggle>
+                (ionChange)="activeNoti($event)">
+              </ion-toggle >
               </div>
               
               <ion-item class="ion-item ion-item-w">
@@ -94,7 +95,7 @@
                   slot="start"
                   src="../../../../assets/images/icons/checkmark-circle.svg"
                 ></ion-icon>
-                Sin sincronizaciones pendientes
+                 Sin sincronizaciones pendientes
               </ion-label>
               <div class="paddingB"></div>
               <ion-button
@@ -126,12 +127,21 @@
                   Actualizaciones
                 </strong></ion-label>
               </div>
+              <ion-label class="cursive  warning-text" *ngIf="isDisabled">
+                <ion-icon
+                  slot="start"
+                  class="warning-icon"
+                  src="../../../../assets/images/icons/exclamation.svg"
+                ></ion-icon>
+                Con actualizaciones pendientes
+              </ion-label>
+              <div class="paddingB"></div>
               <ion-button
               expand="block"
               color="uva_blue-600"
               class="text-transform_none"
               (click)="downloadData()"
-              [disabled]="isDisabled"
+              [disabled]="!isDisabled"
             >
             <ion-icon src="../../../../assets/images/icons/cloud.svg"></ion-icon>
                Actualizar configuraciones
@@ -139,15 +149,6 @@
               src="../../../../assets/images/icons/refresh.svg"
             ></ion-icon>
             </ion-button>
-            <div class="paddingB"></div>
-            <ion-label class="cursive  warning-text">
-              <ion-icon
-                slot="start"
-                class="warning-icon"
-                src="../../../../assets/images/icons/exclamation.svg"
-              ></ion-icon>
-              Con actualizaciones pendientes
-            </ion-label>
             </div>
           </ion-list>
           

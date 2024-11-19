@@ -179,7 +179,7 @@ ion-content::part(background) {
   }
 }
 
-#modal_token, #modal_token_2 {
+#modal_token_a, #modal_token_b {
   .container_text {
     width: 100%;
     margin-block: 0px;
@@ -197,8 +197,8 @@ ion-content::part(background) {
   }
 }
 
-.modal_token,
-.modal_token_2 {
+.modal_token_a,
+.modal_token_b {
   @extend %modalCommons;
   text-align: center;
   align-items: center;
@@ -251,8 +251,8 @@ ion-button {
     transition: transform 0.3s ease-in-out;
 
     img {
-      width: 56px; 
-      height: 56px;
+      width: 53px; 
+      height: 52px;
       object-fit: contain;
     }
 

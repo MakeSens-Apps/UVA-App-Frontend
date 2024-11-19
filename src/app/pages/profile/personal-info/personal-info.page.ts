@@ -1,4 +1,4 @@
-import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormsModule,
@@ -34,19 +34,11 @@ const userFields = [
     disabled: true,
   },
   {
-    key: 'userEmail',
+    key: 'userEmail',  
     label: 'Email',
     type: 'string',
     placeholder: 'Correo@example.com',
-  },
-  {
-    key: 'latitude',
-    label: 'Latitud',
-    type: 'string',
-    placeholder: '70 55’ 30”',
-  },
-  { key: 'longitude', label: 'Longitud', type: 'string', placeholder: '90°' },
-  { key: 'altitude', label: 'Altitud', type: 'string', placeholder: '850 m' },
+  }
 ];
 
 /**
@@ -68,9 +60,13 @@ export class PersonalInfoPage implements OnInit {
   name: string ="";
   lastName: string ="";
   phone: string ="";
-  modals = {
+  isRanking: boolean = false;
+  isSeed: boolean = false;
+  seed: number= 0;
+  seedIcon: string = "";
+  modals:any = {
     modal_Delete: false,
-    modal_show_2: false,
+    modal_Delete_2: false,
   };
   deleteConfirmationInput: string = ''; // Almacena el texto ingresado
   isInputValid: boolean = false; // Controla si el botón debe habilitarse
@@ -79,12 +75,14 @@ export class PersonalInfoPage implements OnInit {
    * @param {FormBuilder} fb - FormBuilder instance to create reactive forms.
    * @param {AlertController} alertController - Controller to manage alert popups.
    * @param {SessionService} session -Manage Sesionids .
+   * @param {ChangeDetectorRef} ChangeDetectorRef Angular detecte change in app.
    */
   constructor(
     private router: Router,
     private fb: FormBuilder,
     private alertController: AlertController,
     private session: SessionService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   /**
@@ -119,6 +117,11 @@ export class PersonalInfoPage implements OnInit {
    */
   async updateFormWithUserData(): Promise<void> {
     const dataUser = await this.session.getInfo();
+    this.isRanking = true;
+    this.isSeed = true;
+    this.seed = 3;
+    this.seedIcon= "../../../assets/images/icons/semilla.svg";
+    console.log(dataUser)
 
     this.userForm.patchValue({
       userName: dataUser.name || '',
@@ -233,5 +236,38 @@ export class PersonalInfoPage implements OnInit {
       console.log('Cuenta eliminada');
       // Aquí puedes agregar tu lógica para eliminar la cuenta
     }
+  }
+
+    /**
+ * Open a modal by key
+ * @param modalKey - Key of the modal to open
+ */
+  openModal(modalKey: string): void {
+    this.modals[modalKey] = true;
+    this.cdr.detectChanges()
+  }
+
+/**
+ * Close a modal by key
+ * @param modalKey - Key of the modal to close
+ */
+  onModalDismiss(modalKey: string): void {
+    this.modals[modalKey] = false;
+    this.cdr.detectChanges()
+  }
+
+  /**
+ * Close a modal and open another one
+ * @param currentModalKey - Modal key to close
+ * @param nextModalKey - Modal key to open
+ */
+  onCloseAndOpen(currentModalKey: string, nextModalKey: string): void {
+    this.modals[currentModalKey] = false;
+
+    // Ensure Angular detects the change before opening the next modal
+    setTimeout(() => {
+      this.modals[nextModalKey] = true;
+      this.cdr.detectChanges()
+    }, 300); // Delay to avoid race conditions
   }
 }
