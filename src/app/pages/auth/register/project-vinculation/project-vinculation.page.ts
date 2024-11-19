@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { IonButton, IonInput, IonLabel } from '@ionic/angular/standalone';
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
 import { Router, RouterLink } from '@angular/router';
@@ -15,7 +15,7 @@ import { SetupService } from '@app/core/services/view/setup/setup.service';
 import { Session } from 'src/models/session.model';
 import { SetupRacimoService } from '@app/core/services/view/setup/setup-racimo.service';
 import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
-
+import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.service'; 
 @Component({
   selector: 'app-project-vinculation',
   templateUrl: './project-vinculation.page.html',
@@ -44,6 +44,8 @@ export class ProjectVinculationPage implements OnInit {
    * @param {SetupService} service - Service to manage user setup.
    * @param {SetupRacimoService} serviceRacimo - Service to manage UVA and RACIMO data.
    * @param {ConfigurationAppService} configuration -Service to manage S3 y FileSystem
+    *@param {ChangeDetectorRef} ChangeDetectorRef Angular detecte change in app.
+   * @param {AppMinimizeService} minimizeService - The AppMinimizeService.
    */
   constructor(
     private formBuilder: FormBuilder,
@@ -51,6 +53,8 @@ export class ProjectVinculationPage implements OnInit {
     private service: SetupService,
     private serviceRacimo: SetupRacimoService,
     private configuration: ConfigurationAppService,
+    private cdr: ChangeDetectorRef,
+    private minimizeService: AppMinimizeService,
   ) {
     this.form = this.formBuilder.group({
       code: new FormControl(
@@ -70,6 +74,9 @@ export class ProjectVinculationPage implements OnInit {
    * @returns {Promise<void>} - Resolves with no return value.
    */
   async ngOnInit(): Promise<void> {
+    this.minimizeService.initializeBackButtonHandler()
+   
+
     this.user = await this.service.getParametersUser();
     if (this.user.userID) {
       const response = await this.serviceRacimo.getUVA(this.user.userID);

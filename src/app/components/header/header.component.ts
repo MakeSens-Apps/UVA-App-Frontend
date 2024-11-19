@@ -8,7 +8,6 @@ import {
   IonLabel,
 } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
-import { App } from '@capacitor/app';
 /**
  * @class HeaderComponent
  *  a header component with navigation functionality,using various Ionic components such as header,icon,chip,avatar,and label.
@@ -30,7 +29,6 @@ export class HeaderComponent {
 
   /**
    * @param {Router} router Angular Router instance used for navigation.
-   * @param {ChangeDetectorRef} ChangeDetectorRef Angular detecte change in app.
    */
   constructor(
     private router: Router,
@@ -45,13 +43,4 @@ export class HeaderComponent {
     void this.router.navigate(['/profile']);
   }
 
-  /**
-   * Navigates to home cellphone.
-   * @returns {void}
-   */
-  goToMinimize(): void {
-  
-      App.exitApp(); 
-      this.cdr.detectChanges()
-  }
 }

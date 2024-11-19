@@ -11,40 +11,77 @@ import { IonicModule, AlertController, InputChangeEventDetail } from '@ionic/ang
 import { Router } from '@angular/router';
 import { IonInputCustomEvent } from '@ionic/core';
 import { SessionService } from '@app/core/services/session/session.service';
-
-// Definición de los campos de usuario
-const userFields = [
+// Define user personal fields
+const userPersonalFields = [
   {
     key: 'userName',
-    label: 'Nombres',
+    label: 'Name',
     type: 'string',
-    placeholder: '[Nombres del monitor]',
+    placeholder: '[Enter user name]',
   },
   {
     key: 'userLastName',
-    label: 'Apellidos',
+    label: 'Last Name',
     type: 'string',
-    placeholder: '[Apellidos del monitor]',
+    placeholder: '[Enter user last name]',
   },
   {
     key: 'userPhoneNumber',
-    label: 'Teléfono',
+    label: 'Phone Number',
     type: 'string',
     placeholder: '3183766489',
     disabled: true,
   },
   {
-    key: 'userEmail',  
+    key: 'userEmail',
     label: 'Email',
     type: 'string',
-    placeholder: 'Correo@example.com',
+    placeholder: 'example@domain.com',
   }
 ];
 
-/**
- * @class PersonalInfoPage
- * @description A page component for capturing personal information with form validation.
- */
+// Define user location fields
+const userLocationFields = [
+  {
+    key: 'finca',
+    label: 'Nombre de la finca',
+    type: 'string',
+    placeholder: '[Nombre de la finca]',
+  },
+  {
+    key: 'vereda',
+    label: 'Nombre de la vereda',
+    type: 'string',
+    placeholder: '[Nombre de la vereda]',
+  },
+  {
+    key: 'municipio',
+    label: 'Nombre del municipio',
+    type: 'string',
+    placeholder: '[Nombre del municipio]',
+  },
+  {
+    key: 'latitude',
+    label: 'Latitud',
+    type: 'string',
+    placeholder: '70° 55’ 30”',
+    onLine:true
+  },
+  {
+    key: 'longitude',
+    label: 'Longitud',
+    type: 'string',
+    placeholder: '90°',
+    onLine:true
+  },
+  {
+    key: 'altitude',
+    label: 'Altitud',
+    type: 'string',
+    placeholder: '850 m',
+  }
+];
+
 @Component({
   selector: 'app-personal-info',
   templateUrl: './personal-info.page.html',
@@ -54,28 +91,30 @@ const userFields = [
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class PersonalInfoPage implements OnInit {
-  userForm!: FormGroup;
-  fields = userFields;
+  userPersonalForm!: FormGroup;
+  userLocationForm!: FormGroup;
+  fieldsPersonal = userPersonalFields;
+  fieldsLocation = userLocationFields;
   isEditable: boolean = false;
-  name: string ="";
-  lastName: string ="";
-  phone: string ="";
+  name: string = '';
+  lastName: string = '';
+  phone: string = '';
   isRanking: boolean = false;
   isSeed: boolean = false;
-  seed: number= 0;
-  seedIcon: string = "";
-  modals:any = {
+  seed: number = 0;
+  seedIcon: string = '';
+  modals: any = {
     modal_Delete: false,
     modal_Delete_2: false,
   };
-  deleteConfirmationInput: string = ''; // Almacena el texto ingresado
-  isInputValid: boolean = false; // Controla si el botón debe habilitarse
+  isInputValid: boolean = false; 
+  deleteConfirmationInput: string = '';
   /**
-   * @param {Router} router - Angular Router instance used for navigation.
-   * @param {FormBuilder} fb - FormBuilder instance to create reactive forms.
-   * @param {AlertController} alertController - Controller to manage alert popups.
-   * @param {SessionService} session -Manage Sesionids .
-   * @param {ChangeDetectorRef} ChangeDetectorRef Angular detecte change in app.
+   * @param {Router} router - Angular Router instance for navigation.
+   * @param {FormBuilder} fb - FormBuilder instance for form creation.
+   * @param {AlertController} alertController - AlertController instance for handling alerts.
+   * @param {SessionService} session - Service to manage session-related tasks.
+   * @param {ChangeDetectorRef} cdr - ChangeDetectorRef for manually triggering Angular's change detection.
    */
   constructor(
     private router: Router,
@@ -86,26 +125,29 @@ export class PersonalInfoPage implements OnInit {
   ) {}
 
   /**
-   * Lifecycle hook that is called after data-bound properties are initialized.
-   * Initializes the user form.
-   * @returns {void}
+   * Angular lifecycle hook that initializes the component and its forms.
    */
-  async ngOnInit(){
-    this.userForm = this.createEmptyForm();
-    await this.updateFormWithUserData();
+  async ngOnInit(): Promise<void> {
+    // Initialize both forms as empty
+    this.userPersonalForm = this.createEmptyForm(this.fieldsPersonal);
+    this.userLocationForm = this.createEmptyForm(this.fieldsLocation);
+
+    // Populate forms with user data
+    await this.updateFormsWithUserData();
   }
 
- 
   /**
-   * Create an empty form based on `userFields`.
+   * Creates an empty form based on the provided fields.
+   * @param {Array} fields - List of fields to create form controls.
+   * @returns {FormGroup} - The generated empty form.
    */
-  createEmptyForm(): FormGroup {
+  createEmptyForm(fields: any[]): FormGroup {
     const formControls: Record<string, any> = {};
 
-    this.fields.forEach((field) => {
+    fields.forEach((field) => {
       formControls[field.key] = [
         { value: '', disabled: !!field.disabled },
-        Validators.required, 
+        Validators.required,
       ];
     });
 
@@ -113,46 +155,50 @@ export class PersonalInfoPage implements OnInit {
   }
 
   /**
-   * Update the form with the user's data.
+   * Populates the forms with data retrieved from the session.
+   * @returns {Promise<void>}
    */
-  async updateFormWithUserData(): Promise<void> {
+  async updateFormsWithUserData(): Promise<void> {
     const dataUser = await this.session.getInfo();
-    this.isRanking = true;
-    this.isSeed = true;
-    this.seed = 3;
-    this.seedIcon= "../../../assets/images/icons/semilla.svg";
-    console.log(dataUser)
-
-    this.userForm.patchValue({
+    // Update personal form with user data
+    this.userPersonalForm.patchValue({
       userName: dataUser.name || '',
       userLastName: dataUser.lastName || '',
       userPhoneNumber: dataUser.phone || '',
     });
 
-    console.log('Formulario Actualizado:', this.userForm.value);
+    // Update location form with user location data
+    this.userLocationForm.patchValue({
+     
+    });
 
+    console.log('Personal Form Data:', this.userPersonalForm.value);
+    console.log('Location Form Data:', this.userLocationForm.value);
   }
 
   /**
-   * Submits the user form and handles validation.
+   * Handles form submission and ensures both forms are valid.
    * @returns {Promise<void>}
    */
   async onSubmit(): Promise<void> {
-    if (this.userForm.valid) {
-      // Aquí puedes enviar los datos a tu endpoint
+    if (this.userPersonalForm.valid && this.userLocationForm.valid) {
+      // Process the data if both forms are valid
+      console.log('Personal Form:', this.userPersonalForm.value);
+      console.log('Location Form:', this.userLocationForm.value);
     } else {
-      await this.showAlert(); 
+      // Show an alert if any form is invalid
+      await this.showAlert();
     }
   }
 
   /**
-   * Displays an alert when the form is invalid.
+   * Displays an alert when a form is invalid.
    * @returns {Promise<void>}
    */
   async showAlert(): Promise<void> {
     const alert = await this.alertController.create({
       header: 'Error',
-      message: 'Por favor, complete todos los campos obligatorios.',
+      message: 'Para guadar todos los datos deben ser completados.',
       buttons: ['OK'],
     });
 
@@ -160,34 +206,30 @@ export class PersonalInfoPage implements OnInit {
   }
 
   /**
-   * Navigates back to the specified URL.
-   * @param {string} url - The URL to navigate back to.
-   * @returns {void}
+   * Toggles the edit mode for the forms.
    */
-  goBack(url: string): void {
-    void this.router.navigate([url]);
-  }
-
-  /**
- * Alternar entre editar y solo lectura
- */
   toggleEdit(): void {
     this.isEditable = !this.isEditable;
 
     if (this.isEditable) {
       setTimeout(() => {
-        const firstEditableInput = document.querySelector('ion-input:not([readonly]) input') as HTMLInputElement | null;
+        const firstEditableInput = document.querySelector(
+          'ion-input:not([readonly]) input'
+        ) as HTMLInputElement | null;
         if (firstEditableInput) {
           firstEditableInput.focus();
+          this.cdr.detectChanges();
         }
       }, 100);
     } else {
-      this.userForm.markAsPristine();
+      this.onSubmit()
+      this.userPersonalForm.markAsPristine();
+      this.userLocationForm.markAsPristine();
+      this.cdr.detectChanges();
     }
   }
-  
 
-/**
+  /**
  * Manejar foco de un campo
  * @param event - Evento de foco de Ionic
  */
@@ -195,6 +237,7 @@ export class PersonalInfoPage implements OnInit {
     const parentItem = (event.target as HTMLElement).closest('ion-item');
     if (parentItem) {
       parentItem.classList.add('focused');
+      this.cdr.detectChanges();
     }
 }
 
@@ -206,6 +249,7 @@ export class PersonalInfoPage implements OnInit {
     const parentItem = (event.target as HTMLElement).closest('ion-item');
     if (parentItem) {
       parentItem.classList.remove('focused');
+      this.cdr.detectChanges();
     }
   }
 
@@ -216,6 +260,7 @@ export class PersonalInfoPage implements OnInit {
   clearFocus(): void {
     const items = document.querySelectorAll('ion-item');
     items.forEach((item) => item.classList.remove('focused'));
+    this.cdr.detectChanges();
   }
 
 
@@ -225,6 +270,7 @@ export class PersonalInfoPage implements OnInit {
    */
   validateInput() {
     this.isInputValid = this.deleteConfirmationInput === 'ELIMINAR CUENTA';
+    this.cdr.detectChanges();
   }
 
   /**
@@ -234,40 +280,58 @@ export class PersonalInfoPage implements OnInit {
   goDeleteAccount(): void {
     if (this.isInputValid) {
       console.log('Cuenta eliminada');
+      this.cdr.detectChanges();
       // Aquí puedes agregar tu lógica para eliminar la cuenta
     }
   }
 
-    /**
- * Open a modal by key
- * @param modalKey - Key of the modal to open
- */
-  openModal(modalKey: string): void {
-    this.modals[modalKey] = true;
-    this.cdr.detectChanges()
-  }
 
-/**
- * Close a modal by key
- * @param modalKey - Key of the modal to close
- */
-  onModalDismiss(modalKey: string): void {
-    this.modals[modalKey] = false;
-    this.cdr.detectChanges()
+  /**
+   * Navigates back to the specified URL.
+   * @param {string} url - URL to navigate back to.
+   */
+  goBack(url: string): void {
+    void this.router.navigate([url]);
   }
 
   /**
- * Close a modal and open another one
- * @param currentModalKey - Modal key to close
- * @param nextModalKey - Modal key to open
- */
+   * Opens a modal by its key.
+   * @param {string} modalKey - Key of the modal to open.
+   */
+  openModal(modalKey: string): void {
+    this.modals[modalKey] = true;
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Dismisses a modal by its key.
+   * @param {string} modalKey - Key of the modal to dismiss.
+   */
+  onModalDismiss(modalKey: string): void {
+    this.modals[modalKey] = false;
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Closes one modal and opens another.
+   * @param {string} currentModalKey - Key of the modal to close.
+   * @param {string} nextModalKey - Key of the modal to open.
+   */
   onCloseAndOpen(currentModalKey: string, nextModalKey: string): void {
     this.modals[currentModalKey] = false;
 
-    // Ensure Angular detects the change before opening the next modal
     setTimeout(() => {
       this.modals[nextModalKey] = true;
-      this.cdr.detectChanges()
-    }, 300); // Delay to avoid race conditions
+      this.cdr.detectChanges();
+    }, 300);
+  }
+
+  /**
+ * Retrieves a field configuration object by its key.
+ * @param {string} key - The unique key of the field to retrieve.
+ * @returns {any} The field object matching the provided key, or an empty object if not found.
+ */
+  getField(key: string): any {
+    return this.fieldsLocation.find((field) => field.key === key) || {};
   }
 }
