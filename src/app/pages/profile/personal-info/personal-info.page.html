@@ -28,10 +28,10 @@
         </div>
       </div>
       <p class="form-title color-g">Datos personales</p>
-      <form [formGroup]="userForm">
+      <form [formGroup]="userPersonalForm">
         <div class="form">
           <ion-list class="menu-list" lines="none">
-            <div *ngFor="let field of fields" class="div_form">
+            <div *ngFor="let field of fieldsPersonal" class="div_form">
               <ion-label>{{ field.label }}</ion-label>
               <div class="margin-top"></div>
               <ion-item>
@@ -39,7 +39,7 @@
                   *ngIf="field.type === 'string'"
                   [formControlName]="field.key"
                   [placeholder]="field.placeholder"
-                  [readonly]="!isEditable || userForm.get(field.key)?.disabled"
+                  [readonly]="!isEditable || userPersonalForm.get(field.key)?.disabled"
                   (ionFocus)="handleFocus($event)"
                   (ionBlur)="handleBlur($event)"
                 ></ion-input>
@@ -48,9 +48,58 @@
           </ion-list>
         </div>
       </form>
+      <p class="form-title color-g">Datos de ubicación</p>
+  
+      <form [formGroup]="userLocationForm">
+        <div class="form">
+          <ion-list class="menu-list" lines="none">
+            <div *ngFor="let field of fieldsLocation" class="div_form">
+              <!-- Para campos que no están en línea -->
+              <ion-label *ngIf="!field.onLine">{{ field.label }}</ion-label>
+              <div class="margin-top"></div>
+              <ion-item *ngIf="!field.onLine">
+                <ion-input
+                  *ngIf="field.type === 'string'"
+                  [formControlName]="field.key"
+                  [placeholder]="field.placeholder"
+                  [readonly]="!isEditable || userLocationForm.get(field.key)?.disabled"
+                  (ionFocus)="handleFocus($event)"
+                  (ionBlur)="handleBlur($event)"
+                ></ion-input>
+              </ion-item>
       
+              <!-- Agrupación explícita para campos en línea -->
+              <div class="flex-container" *ngIf="field.key === 'latitude'">
+                <div class="flex-item">
+                  <ion-label>{{ field.label }}</ion-label>
+                  <ion-item>
+                    <ion-input
+                      [formControlName]="'latitude'"
+                      [placeholder]="field.placeholder"
+                      [readonly]="!isEditable || userLocationForm.get('latitude')?.disabled"
+                      (ionFocus)="handleFocus($event)"
+                      (ionBlur)="handleBlur($event)"
+                    ></ion-input>
+                  </ion-item>
+                </div>
+                <div class="flex-item">
+                  <ion-label>{{ getField('longitude').label }}</ion-label>
+                  <ion-item>
+                    <ion-input
+                      [formControlName]="'longitude'"
+                      [placeholder]="getField('longitude').placeholder"
+                      [readonly]="!isEditable || userLocationForm.get('longitude')?.disabled"
+                      (ionFocus)="handleFocus($event)"
+                      (ionBlur)="handleBlur($event)"
+                    ></ion-input>
+                  </ion-item>
+                </div>
+              </div>
+            </div>
+          </ion-list>
+        </div>
+      </form>
       
-            
       <p class="form-title color-n">Otras acciones</p>
       <div class="a-left">
         <a

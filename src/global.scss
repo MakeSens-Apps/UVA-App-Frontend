@@ -384,6 +384,8 @@ ion-tab-bar {
 }
 
 
-#ion-overlay-3 > div.alert-wrapper.ion-overlay-wrapper.sc-ion-alert-md > div.alert-button-group.sc-ion-alert-md > button{
+#ion-overlay-3 > div.alert-wrapper.ion-overlay-wrapper.sc-ion-alert-md > div.alert-button-group.sc-ion-alert-md > button,
+#ion-overlay-1 > div.alert-wrapper.ion-overlay-wrapper.sc-ion-alert-md > div.alert-button-group.sc-ion-alert-md > button 
+{
     color:  #14788A !important;
-  }
+}

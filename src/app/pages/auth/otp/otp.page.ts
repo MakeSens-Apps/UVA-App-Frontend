@@ -21,6 +21,7 @@ import {
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { SetupService } from '@app/core/services/view/setup/setup.service';
+import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.service'; 
 @Component({
   selector: 'app-otp',
   templateUrl: './otp.page.html',
@@ -54,6 +55,7 @@ export class OtpPage implements OnInit {
    * @param {ChangeDetectorRef} ref - Referencia al ChangeDetector para detectar cambios en la vista.
    * @param {SetupService} service - Servicio para manejar la configuración de OTP.
    * @param {AlertController} alertController - Controlador de alertas para mostrar mensajes.
+   * @param {AppMinimizeService} minimizeService - The AppMinimizeService.
    */
   constructor(
     private router: Router,
@@ -61,9 +63,11 @@ export class OtpPage implements OnInit {
     private ref: ChangeDetectorRef,
     private service: SetupService,
     private alertController: AlertController,
+    private minimizeService: AppMinimizeService,
   ) {
     this.type = this.route.snapshot.paramMap.get('type');
     this.phone = this.route.snapshot.paramMap.get('phone');
+    this.minimizeService.initializeBackButtonHandler()
   }
 
   @ViewChildren('otpInput') otpInputs!: QueryList<IonInput>;
