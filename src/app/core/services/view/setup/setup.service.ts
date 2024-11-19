@@ -168,10 +168,10 @@ export class SetupService {
     if (response.success && this.auth.isGetCurrentUserOutput(response.data)) {
       const attributes = await this.auth.CurrentUserAttributes();
       await this.sesion.setInfoField('userID', response.data.userId);
-      await this.sesion.setInfoField('phone', response.data.username);
       if (attributes.success) {
         await this.sesion.setInfoField('name', attributes.data.name);
         await this.sesion.setInfoField('lastName', attributes.data.family_name);
+        await this.sesion.setInfoField('phone', attributes.data.phone_number);
       }
     }
     return response.success;
@@ -187,7 +187,15 @@ export class SetupService {
     const name = (await this.sesion.getInfo()).name ?? '';
     const lastName = (await this.sesion.getInfo()).lastName ?? '';
     const phone = (await this.sesion.getInfo()).phone ?? '';
-
+    const userExist = await this.userAPI.getUser({ id: userID });
+    if (userExist.success) {
+      if (userExist.data.getUser) {
+        //Existe un usuario no es necesario crearlo
+        return true;
+      }
+    } else {
+      return false;
+    }
     const response = await this.userAPI.createUser({
       id: userID,
       Name: name,
@@ -201,7 +209,9 @@ export class SetupService {
         Seed: 0,
         Streak: 0,
       });
+      return true;
+    } else {
+      return false;
     }
-    return true;
   }
 }
