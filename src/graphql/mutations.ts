@@ -2,7 +2,7 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
-import * as APITypes from '../API';
+import * as APITypes from "../API";
 type GeneratedMutation<InputType, OutputType> = string & {
   __generatedMutationInput: InputType;
   __generatedMutationOutput: OutputType;
@@ -96,13 +96,14 @@ export const createMeasurement = /* GraphQL */ `mutation CreateMeasurement(
     data
     logs
     ts
-    ts_sync
+    task
     uvaID
     createdAt
     updatedAt
     _version
     _deleted
     _lastChangedAt
+    owner
     __typename
   }
 }
@@ -120,13 +121,14 @@ export const updateMeasurement = /* GraphQL */ `mutation UpdateMeasurement(
     data
     logs
     ts
-    ts_sync
+    task
     uvaID
     createdAt
     updatedAt
     _version
     _deleted
     _lastChangedAt
+    owner
     __typename
   }
 }
@@ -144,13 +146,14 @@ export const deleteMeasurement = /* GraphQL */ `mutation DeleteMeasurement(
     data
     logs
     ts
-    ts_sync
+    task
     uvaID
     createdAt
     updatedAt
     _version
     _deleted
     _lastChangedAt
+    owner
     __typename
   }
 }
@@ -267,6 +270,7 @@ export const createUser = /* GraphQL */ `mutation CreateUser(
     _version
     _deleted
     _lastChangedAt
+    owner
     __typename
   }
 }
@@ -311,6 +315,7 @@ export const updateUser = /* GraphQL */ `mutation UpdateUser(
     _version
     _deleted
     _lastChangedAt
+    owner
     __typename
   }
 }
@@ -355,6 +360,7 @@ export const deleteUser = /* GraphQL */ `mutation DeleteUser(
     _version
     _deleted
     _lastChangedAt
+    owner
     __typename
   }
 }
@@ -387,6 +393,7 @@ export const createUVA = /* GraphQL */ `mutation CreateUVA(
       _version
       _deleted
       _lastChangedAt
+      owner
       __typename
     }
     Measurements {
@@ -431,6 +438,7 @@ export const updateUVA = /* GraphQL */ `mutation UpdateUVA(
       _version
       _deleted
       _lastChangedAt
+      owner
       __typename
     }
     Measurements {
@@ -475,6 +483,7 @@ export const deleteUVA = /* GraphQL */ `mutation DeleteUVA(
       _version
       _deleted
       _lastChangedAt
+      owner
       __typename
     }
     Measurements {

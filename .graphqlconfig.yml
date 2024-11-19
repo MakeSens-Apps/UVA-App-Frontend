@@ -16,3 +16,6 @@ projects:
         frontend: javascript
         framework: ionic
         maxDepth: 2
+extensions:
+  amplify:
+    version: 3

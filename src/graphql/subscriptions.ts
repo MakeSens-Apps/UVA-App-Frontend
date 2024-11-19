@@ -2,14 +2,13 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
-import * as APITypes from '../API';
+import * as APITypes from "../API";
 type GeneratedSubscription<InputType, OutputType> = string & {
   __generatedSubscriptionInput: InputType;
   __generatedSubscriptionOutput: OutputType;
 };
 
-export const onCreateRACIMO =
-  /* GraphQL */ `subscription OnCreateRACIMO($filter: ModelSubscriptionRACIMOFilterInput) {
+export const onCreateRACIMO = /* GraphQL */ `subscription OnCreateRACIMO($filter: ModelSubscriptionRACIMOFilterInput) {
   onCreateRACIMO(filter: $filter) {
     id
     Name
@@ -29,11 +28,10 @@ export const onCreateRACIMO =
   }
 }
 ` as GeneratedSubscription<
-    APITypes.OnCreateRACIMOSubscriptionVariables,
-    APITypes.OnCreateRACIMOSubscription
-  >;
-export const onUpdateRACIMO =
-  /* GraphQL */ `subscription OnUpdateRACIMO($filter: ModelSubscriptionRACIMOFilterInput) {
+  APITypes.OnCreateRACIMOSubscriptionVariables,
+  APITypes.OnCreateRACIMOSubscription
+>;
+export const onUpdateRACIMO = /* GraphQL */ `subscription OnUpdateRACIMO($filter: ModelSubscriptionRACIMOFilterInput) {
   onUpdateRACIMO(filter: $filter) {
     id
     Name
@@ -53,11 +51,10 @@ export const onUpdateRACIMO =
   }
 }
 ` as GeneratedSubscription<
-    APITypes.OnUpdateRACIMOSubscriptionVariables,
-    APITypes.OnUpdateRACIMOSubscription
-  >;
-export const onDeleteRACIMO =
-  /* GraphQL */ `subscription OnDeleteRACIMO($filter: ModelSubscriptionRACIMOFilterInput) {
+  APITypes.OnUpdateRACIMOSubscriptionVariables,
+  APITypes.OnUpdateRACIMOSubscription
+>;
+export const onDeleteRACIMO = /* GraphQL */ `subscription OnDeleteRACIMO($filter: ModelSubscriptionRACIMOFilterInput) {
   onDeleteRACIMO(filter: $filter) {
     id
     Name
@@ -77,86 +74,89 @@ export const onDeleteRACIMO =
   }
 }
 ` as GeneratedSubscription<
-    APITypes.OnDeleteRACIMOSubscriptionVariables,
-    APITypes.OnDeleteRACIMOSubscription
-  >;
-export const onCreateMeasurement =
-  /* GraphQL */ `subscription OnCreateMeasurement(
+  APITypes.OnDeleteRACIMOSubscriptionVariables,
+  APITypes.OnDeleteRACIMOSubscription
+>;
+export const onCreateMeasurement = /* GraphQL */ `subscription OnCreateMeasurement(
   $filter: ModelSubscriptionMeasurementFilterInput
+  $owner: String
 ) {
-  onCreateMeasurement(filter: $filter) {
+  onCreateMeasurement(filter: $filter, owner: $owner) {
     id
     type
     data
     logs
     ts
-    ts_sync
+    task
     uvaID
     createdAt
     updatedAt
     _version
     _deleted
     _lastChangedAt
+    owner
     __typename
   }
 }
 ` as GeneratedSubscription<
-    APITypes.OnCreateMeasurementSubscriptionVariables,
-    APITypes.OnCreateMeasurementSubscription
-  >;
-export const onUpdateMeasurement =
-  /* GraphQL */ `subscription OnUpdateMeasurement(
+  APITypes.OnCreateMeasurementSubscriptionVariables,
+  APITypes.OnCreateMeasurementSubscription
+>;
+export const onUpdateMeasurement = /* GraphQL */ `subscription OnUpdateMeasurement(
   $filter: ModelSubscriptionMeasurementFilterInput
+  $owner: String
 ) {
-  onUpdateMeasurement(filter: $filter) {
+  onUpdateMeasurement(filter: $filter, owner: $owner) {
     id
     type
     data
     logs
     ts
-    ts_sync
+    task
     uvaID
     createdAt
     updatedAt
     _version
     _deleted
     _lastChangedAt
+    owner
     __typename
   }
 }
 ` as GeneratedSubscription<
-    APITypes.OnUpdateMeasurementSubscriptionVariables,
-    APITypes.OnUpdateMeasurementSubscription
-  >;
-export const onDeleteMeasurement =
-  /* GraphQL */ `subscription OnDeleteMeasurement(
+  APITypes.OnUpdateMeasurementSubscriptionVariables,
+  APITypes.OnUpdateMeasurementSubscription
+>;
+export const onDeleteMeasurement = /* GraphQL */ `subscription OnDeleteMeasurement(
   $filter: ModelSubscriptionMeasurementFilterInput
+  $owner: String
 ) {
-  onDeleteMeasurement(filter: $filter) {
+  onDeleteMeasurement(filter: $filter, owner: $owner) {
     id
     type
     data
     logs
     ts
-    ts_sync
+    task
     uvaID
     createdAt
     updatedAt
     _version
     _deleted
     _lastChangedAt
+    owner
     __typename
   }
 }
 ` as GeneratedSubscription<
-    APITypes.OnDeleteMeasurementSubscriptionVariables,
-    APITypes.OnDeleteMeasurementSubscription
-  >;
-export const onCreateUserProgress =
-  /* GraphQL */ `subscription OnCreateUserProgress(
+  APITypes.OnDeleteMeasurementSubscriptionVariables,
+  APITypes.OnDeleteMeasurementSubscription
+>;
+export const onCreateUserProgress = /* GraphQL */ `subscription OnCreateUserProgress(
   $filter: ModelSubscriptionUserProgressFilterInput
+  $userID: String
 ) {
-  onCreateUserProgress(filter: $filter) {
+  onCreateUserProgress(filter: $filter, userID: $userID) {
     id
     ts
     Seed
@@ -173,14 +173,14 @@ export const onCreateUserProgress =
   }
 }
 ` as GeneratedSubscription<
-    APITypes.OnCreateUserProgressSubscriptionVariables,
-    APITypes.OnCreateUserProgressSubscription
-  >;
-export const onUpdateUserProgress =
-  /* GraphQL */ `subscription OnUpdateUserProgress(
+  APITypes.OnCreateUserProgressSubscriptionVariables,
+  APITypes.OnCreateUserProgressSubscription
+>;
+export const onUpdateUserProgress = /* GraphQL */ `subscription OnUpdateUserProgress(
   $filter: ModelSubscriptionUserProgressFilterInput
+  $userID: String
 ) {
-  onUpdateUserProgress(filter: $filter) {
+  onUpdateUserProgress(filter: $filter, userID: $userID) {
     id
     ts
     Seed
@@ -197,14 +197,14 @@ export const onUpdateUserProgress =
   }
 }
 ` as GeneratedSubscription<
-    APITypes.OnUpdateUserProgressSubscriptionVariables,
-    APITypes.OnUpdateUserProgressSubscription
-  >;
-export const onDeleteUserProgress =
-  /* GraphQL */ `subscription OnDeleteUserProgress(
+  APITypes.OnUpdateUserProgressSubscriptionVariables,
+  APITypes.OnUpdateUserProgressSubscription
+>;
+export const onDeleteUserProgress = /* GraphQL */ `subscription OnDeleteUserProgress(
   $filter: ModelSubscriptionUserProgressFilterInput
+  $userID: String
 ) {
-  onDeleteUserProgress(filter: $filter) {
+  onDeleteUserProgress(filter: $filter, userID: $userID) {
     id
     ts
     Seed
@@ -221,12 +221,14 @@ export const onDeleteUserProgress =
   }
 }
 ` as GeneratedSubscription<
-    APITypes.OnDeleteUserProgressSubscriptionVariables,
-    APITypes.OnDeleteUserProgressSubscription
-  >;
-export const onCreateUser =
-  /* GraphQL */ `subscription OnCreateUser($filter: ModelSubscriptionUserFilterInput) {
-  onCreateUser(filter: $filter) {
+  APITypes.OnDeleteUserProgressSubscriptionVariables,
+  APITypes.OnDeleteUserProgressSubscription
+>;
+export const onCreateUser = /* GraphQL */ `subscription OnCreateUser(
+  $filter: ModelSubscriptionUserFilterInput
+  $owner: String
+) {
+  onCreateUser(filter: $filter, owner: $owner) {
     id
     Name
     LastName
@@ -259,16 +261,19 @@ export const onCreateUser =
     _version
     _deleted
     _lastChangedAt
+    owner
     __typename
   }
 }
 ` as GeneratedSubscription<
-    APITypes.OnCreateUserSubscriptionVariables,
-    APITypes.OnCreateUserSubscription
-  >;
-export const onUpdateUser =
-  /* GraphQL */ `subscription OnUpdateUser($filter: ModelSubscriptionUserFilterInput) {
-  onUpdateUser(filter: $filter) {
+  APITypes.OnCreateUserSubscriptionVariables,
+  APITypes.OnCreateUserSubscription
+>;
+export const onUpdateUser = /* GraphQL */ `subscription OnUpdateUser(
+  $filter: ModelSubscriptionUserFilterInput
+  $owner: String
+) {
+  onUpdateUser(filter: $filter, owner: $owner) {
     id
     Name
     LastName
@@ -301,16 +306,19 @@ export const onUpdateUser =
     _version
     _deleted
     _lastChangedAt
+    owner
     __typename
   }
 }
 ` as GeneratedSubscription<
-    APITypes.OnUpdateUserSubscriptionVariables,
-    APITypes.OnUpdateUserSubscription
-  >;
-export const onDeleteUser =
-  /* GraphQL */ `subscription OnDeleteUser($filter: ModelSubscriptionUserFilterInput) {
-  onDeleteUser(filter: $filter) {
+  APITypes.OnUpdateUserSubscriptionVariables,
+  APITypes.OnUpdateUserSubscription
+>;
+export const onDeleteUser = /* GraphQL */ `subscription OnDeleteUser(
+  $filter: ModelSubscriptionUserFilterInput
+  $owner: String
+) {
+  onDeleteUser(filter: $filter, owner: $owner) {
     id
     Name
     LastName
@@ -343,16 +351,19 @@ export const onDeleteUser =
     _version
     _deleted
     _lastChangedAt
+    owner
     __typename
   }
 }
 ` as GeneratedSubscription<
-    APITypes.OnDeleteUserSubscriptionVariables,
-    APITypes.OnDeleteUserSubscription
-  >;
-export const onCreateUVA =
-  /* GraphQL */ `subscription OnCreateUVA($filter: ModelSubscriptionUVAFilterInput) {
-  onCreateUVA(filter: $filter) {
+  APITypes.OnDeleteUserSubscriptionVariables,
+  APITypes.OnDeleteUserSubscription
+>;
+export const onCreateUVA = /* GraphQL */ `subscription OnCreateUVA(
+  $filter: ModelSubscriptionUVAFilterInput
+  $userID: String
+) {
+  onCreateUVA(filter: $filter, userID: $userID) {
     id
     latitude
     longitude
@@ -373,6 +384,7 @@ export const onCreateUVA =
       _version
       _deleted
       _lastChangedAt
+      owner
       __typename
     }
     Measurements {
@@ -389,12 +401,14 @@ export const onCreateUVA =
   }
 }
 ` as GeneratedSubscription<
-    APITypes.OnCreateUVASubscriptionVariables,
-    APITypes.OnCreateUVASubscription
-  >;
-export const onUpdateUVA =
-  /* GraphQL */ `subscription OnUpdateUVA($filter: ModelSubscriptionUVAFilterInput) {
-  onUpdateUVA(filter: $filter) {
+  APITypes.OnCreateUVASubscriptionVariables,
+  APITypes.OnCreateUVASubscription
+>;
+export const onUpdateUVA = /* GraphQL */ `subscription OnUpdateUVA(
+  $filter: ModelSubscriptionUVAFilterInput
+  $userID: String
+) {
+  onUpdateUVA(filter: $filter, userID: $userID) {
     id
     latitude
     longitude
@@ -415,6 +429,7 @@ export const onUpdateUVA =
       _version
       _deleted
       _lastChangedAt
+      owner
       __typename
     }
     Measurements {
@@ -431,12 +446,14 @@ export const onUpdateUVA =
   }
 }
 ` as GeneratedSubscription<
-    APITypes.OnUpdateUVASubscriptionVariables,
-    APITypes.OnUpdateUVASubscription
-  >;
-export const onDeleteUVA =
-  /* GraphQL */ `subscription OnDeleteUVA($filter: ModelSubscriptionUVAFilterInput) {
-  onDeleteUVA(filter: $filter) {
+  APITypes.OnUpdateUVASubscriptionVariables,
+  APITypes.OnUpdateUVASubscription
+>;
+export const onDeleteUVA = /* GraphQL */ `subscription OnDeleteUVA(
+  $filter: ModelSubscriptionUVAFilterInput
+  $userID: String
+) {
+  onDeleteUVA(filter: $filter, userID: $userID) {
     id
     latitude
     longitude
@@ -457,6 +474,7 @@ export const onDeleteUVA =
       _version
       _deleted
       _lastChangedAt
+      owner
       __typename
     }
     Measurements {
@@ -473,6 +491,6 @@ export const onDeleteUVA =
   }
 }
 ` as GeneratedSubscription<
-    APITypes.OnDeleteUVASubscriptionVariables,
-    APITypes.OnDeleteUVASubscription
-  >;
+  APITypes.OnDeleteUVASubscriptionVariables,
+  APITypes.OnDeleteUVASubscription
+>;
