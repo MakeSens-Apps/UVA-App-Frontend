@@ -176,9 +176,25 @@ export class OtpPage implements OnInit {
             this.ref.detectChanges();
             return;
           }
-          await this.router.navigate([
-            `/otp/${this.type}/${this.phone}/validate-code`,
-          ]);
+          const responseNewUser = await this.service.createNewUser();
+          if (responseNewUser) {
+            await this.router.navigate([
+              `/otp/${this.type}/${this.phone}/validate-code`,
+            ]);
+          } else {
+            //FIXME: Hay que desplegar una alerta real en relacion a la no creacion del usuario y manejar el error
+            await this.alertController
+              .create({
+                header: 'Alerta',
+                subHeader: 'No se pudo crear el usuario',
+                message: 'No createUser',
+                buttons: ['Aceptar'], // O puedes usar un array de botones personalizados
+              })
+              .then((alert) => {
+                void alert.present();
+              });
+          }
+
           break;
         }
         case 'register':
@@ -189,24 +205,9 @@ export class OtpPage implements OnInit {
               this.ref.detectChanges();
               return;
             }
-            const responseNewUser = await this.service.createNewUser();
-            if (responseNewUser) {
-              await this.router.navigate([
-                `/otp/${this.type}/${this.phone}/validate-code`,
-              ]);
-            } else {
-              //FIXME: Hay que desplegar una alerta real en relacion a la no creacion del usuario y manejar el error
-              await this.alertController
-                .create({
-                  header: 'Alerta',
-                  subHeader: 'Este es un subtítulo',
-                  message: 'Este es un mensaje de alerta.',
-                  buttons: ['Aceptar'], // O puedes usar un array de botones personalizados
-                })
-                .then((alert) => {
-                  void alert.present();
-                });
-            }
+            await this.router.navigate([
+              `/otp/${this.type}/${this.phone}/validate-code`,
+            ]);
           }
 
           break;
