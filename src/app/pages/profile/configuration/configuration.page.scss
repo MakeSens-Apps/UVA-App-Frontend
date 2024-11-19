@@ -70,7 +70,7 @@
           font-size: 14px;
           font-style: normal;
           font-weight: 500;
- 
+         
         }
         
         .menu-list {
@@ -194,3 +194,7 @@
     .warning-text{
       color:  #D7751F;
     }
+
+    :host(.ion-color.toggle-checked) .toggle-inner {
+      background: white !important;
+  }

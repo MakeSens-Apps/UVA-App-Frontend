@@ -24,94 +24,93 @@
       </div>
     </div>
   </div>
-  <div class="floating-button" (click)="modals.modal_token = true">
+  <div class="floating-button" (click)="openModal('modal_token_a')">
     ¿Dudas?
   </div>
 
   <ion-modal
-    #modal_token
-    id="modal_token"
-    [isOpen]="modals.modal_token"
-    [initialBreakpoint]="1"
-    [breakpoints]="[0, 1]"
-    (ionModalDidDismiss)="modals.modal_token = false"
-  >
-    <ng-template>
-      <div class="modal_token">
-        <div class="container_text">
-          <p>
-            Cada día que cumplas <strong> con todos tus registros</strong> ganas
-            dos semillas.
-          </p>
-          <h1>
-            +2
-            <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
-          </h1>
-        </div>
-        <div class="container_text">
-          <p>
-            Los días que <strong>cumplas con algunos</strong> registros ganas
-            una semilla.
-          </p>
-          <h1>
-            +1
-            <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
-          </h1>
-        </div>
-        <div class="container_text">
-          <p>Con estas semillas podrás recuperar tu racha.</p>
-          <h1>
-            <ion-img
-              src="../../../assets/images/icons/date_incomplete_to_done.svg"
-            ></ion-img>
-          </h1>
-          <p>
-            Para recuperar un día incompleto,
-            <strong>debes pagar 5 semillas.</strong>
-          </p>
-        </div>
-        <div class="container_text">
-          <p>
-            Si cumples <strong>con 7 días de racha</strong>ganas
-            <strong> 3 semillas adicionales. </strong>
-          </p>
-          <h1>
-            +3
-            <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
-          </h1>
-        </div>
-        <div class="container_button">
-          <ion-button
-            color="uva_blue-600"
-            expand="block"
-            (click)="modals.modal_token = false ; modals.modal_token_2 = true"
-          >
-            Siguiente
-          </ion-button>
-        </div>
-      </div>
-    </ng-template>
-  </ion-modal>
-  <ion-modal
-  #modal_token_2
-  id="modal_token_2"
-  [isOpen]="modals.modal_token_2"
+  #modal_token_a
+  id="modal_token_a"
+  [isOpen]="modals.modal_token_a"
   [initialBreakpoint]="1"
   [breakpoints]="[0, 1]"
-  (ionModalDidDismiss)="modals.modal_token_2 = false"
+  (ionModalDidDismiss)="onModalDismiss('modal_token_a')"
 >
   <ng-template>
-    <div class="modal_token_2">
+    <div class="modal_token_a">
+      <div class="container_text">
+        <p>
+          Cada día que cumplas <strong>con todos tus registros</strong> ganas dos semillas.
+        </p>
+        <h1>
+          +2 <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
+        </h1>
+      </div>
+      <div class="container_text">
+        <p>
+          Los días que <strong>cumplas con algunos</strong> registros ganas
+          una semilla.
+        </p>
+        <h1>
+          +1
+          <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
+        </h1>
+      </div>
+      <div class="container_text">
+        <p>Con estas semillas podrás recuperar tu racha.</p>
+        <h1>
+          <ion-img
+            src="../../../assets/images/icons/date_incomplete_to_done.svg"
+          ></ion-img>
+        </h1>
+        <p>
+          Para recuperar un día incompleto,
+          <strong>debes pagar 5 semillas.</strong>
+        </p>
+      </div>
+      <div class="container_text">
+        <p>
+          Si cumples <strong>con 7 días de racha </strong>ganas
+          <strong> 3 semillas adicionales. </strong>
+        </p>
+        <h1>
+          +3
+          <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
+        </h1>
+      </div>
+      <div class="container_button">
+        <ion-button
+          color="uva_blue-600"
+          expand="block"
+          (click)="onCloseAndOpen('modal_token_a', 'modal_token_b')"
+        >
+          Siguiente
+        </ion-button>
+      </div>
+    </div>
+  </ng-template>
+  </ion-modal>
+
+  <ion-modal
+  #modal_token_b
+  id="modal_token_b"
+  [isOpen]="modals.modal_token_b"
+  [initialBreakpoint]="1"
+  [breakpoints]="[0, 1]"
+  (ionModalDidDismiss)="onModalDismiss('modal_token_b')"
+>
+  <ng-template>
+    <div class="modal_token_b">
       <div class="contener_buttons_actions">
         <ion-icon
           slot="start"
           name="arrow-back-outline"
-          (click)=" modals.modal_token_2 = false; modals.modal_token = true "
+          (click)="onCloseAndOpen('modal_token_b', 'modal_token_a')"
         ></ion-icon>
         <ion-button
           expand="block"
           color="uva_blue-600"
-          (click)="modals.modal_token_2 = false"
+          (click)="onModalDismiss('modal_token_b')"
         >
           <ion-icon slot="icon-only" name="close"></ion-icon>
         </ion-button>
@@ -178,12 +177,14 @@
         <ion-button
           color="uva_blue-600"
           expand="block"
-          (click)="modals.modal_token_2 = false"
+          (click)="onModalDismiss('modal_token_b')"
         >
           Entendido
         </ion-button>
       </div>
     </div>
   </ng-template>
-  </ion-modal>
+</ion-modal>
+
+
 </ion-content>

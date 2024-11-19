@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectorRef, Component, Input } from '@angular/core';
 import {
   IonChip,
   IonHeader,
@@ -30,8 +30,12 @@ export class HeaderComponent {
 
   /**
    * @param {Router} router Angular Router instance used for navigation.
+   * @param {ChangeDetectorRef} ChangeDetectorRef Angular detecte change in app.
    */
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   /**
    * Navigates to the profile page.
@@ -48,5 +52,6 @@ export class HeaderComponent {
   goToMinimize(): void {
   
       App.exitApp(); 
+      this.cdr.detectChanges()
   }
 }

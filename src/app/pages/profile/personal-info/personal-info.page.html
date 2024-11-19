@@ -18,12 +18,12 @@
     <div class="profile-card">
       <div class="profile-header">
         <img class="avatar" src="../../../assets/images/icons/user-circle.png" alt="User Avatar" />
-        <p class="user-name">{{name}}</p>
-        <div class="status-container">
-          <div class="status-item">Graduado 🎓</div>
-          <div class="status-item">
-            Semillas: <strong class="colorB">3</strong>
-            <img src="../../../assets/images/icons/semilla.svg" alt="Semilla Icon" class="seed-icon" />
+        <div class="status-container" *ngIf="!isEditable">
+          <div class="status-item" *ngIf="isRanking">
+            Graduado 🎓
+          </div>
+          <div class="status-item"  *ngIf="isSeed">
+            Semillas: <strong class="colorB">{{seed}}</strong> <img [src]="seedIcon" alt="Semilla Icon" class="seed-icon" /> 
           </div>
         </div>
       </div>
@@ -33,6 +33,7 @@
           <ion-list class="menu-list" lines="none">
             <div *ngFor="let field of fields" class="div_form">
               <ion-label>{{ field.label }}</ion-label>
+              <div class="margin-top"></div>
               <ion-item>
                 <ion-input
                   *ngIf="field.type === 'string'"
@@ -53,7 +54,7 @@
       <p class="form-title color-n">Otras acciones</p>
       <div class="a-left">
         <a
-          (click)="modals.modal_Delete = true"
+        (click)="openModal('modal_Delete')"
 
           class="delete-button text-transform_none"
         >
@@ -78,10 +79,11 @@
 
   <ion-modal
     #modal_Delete
+    id="modal_Delete"
     [isOpen]="modals.modal_Delete"
-    (ionModalDidDismiss)="modals.modal_Delete = false"
     [initialBreakpoint]="1"
     [breakpoints]="[0, 1]"
+    (ionModalDidDismiss)="onModalDismiss('modal_Delete')"
   >
     <ng-template>
       <div class="modal_Delete">
@@ -99,7 +101,7 @@
         </div>
         <div class="button-container">
           <ion-button
-          (click)="modals.modal_Delete = false; modals.modal_show_2= true"
+          (click)="onCloseAndOpen('modal_Delete', 'modal_Delete_2')"
             fill="outline"
             color="orange"
             class="outline-button text-transform_none"
@@ -107,7 +109,7 @@
             Sí, quiero eliminarla
           </ion-button>
           <ion-button
-            (click)="modals.modal_Delete = false"
+          (click)="onModalDismiss('modal_Delete')"
             fill="solid"
             color="orange"
             class="solid-button text-transform_none"
@@ -120,11 +122,13 @@
   </ion-modal>
 
   <ion-modal
-  #modals.modal_show_2
-  [isOpen]="modals.modal_show_2"
-  (ionModalDidDismiss)="modals.modal_show_2 = false"
+  #modals.modal_Delete_2
+  id="modal_token_b"
+  [isOpen]="modals.modal_Delete_2"
   [initialBreakpoint]="1"
   [breakpoints]="[0, 1]"
+  (ionModalDidDismiss)="onModalDismiss('modal_Delete_2')"
+>
 >
   <ng-template>
     <div class="modal_Delete">
@@ -147,7 +151,7 @@
       </div>
       <div class="button-container">
         <ion-button
-        (click)="modals.modal_show_2 = false"
+        (click)="onModalDismiss('modal_Delete_2')"
           fill="outline"
           color="orange"
           class="outline-button text-transform_none"

@@ -18,8 +18,9 @@
 
   }
 
-  .content{
+  .content,ion-content{
     background: #F5F5F5;
+    --background: #F5F5F5;
   }
     .profile-content {
       display: flex;
@@ -39,6 +40,7 @@
         background: #FFF;
     
         .profile-header {
+          gap: 16px;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -58,6 +60,7 @@
             font-size: 14px;
             font-weight: 500;
             line-height: 21px;
+            margin: 0px;
           }
     
           .status-container {
@@ -143,7 +146,7 @@
         }
       }
       .footer-logo {
-        padding-bottom: 13%;
+        
         margin-top: 20px;
         align-self: center;
   
@@ -205,7 +208,7 @@
     
     }
     
-    .modal_show {
+    .modal_show_comparte {
       @extend %modalCommons;
     
       p {
