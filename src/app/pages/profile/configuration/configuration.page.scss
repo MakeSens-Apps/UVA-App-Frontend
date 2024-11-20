@@ -18,8 +18,9 @@
 
   }
 
-  .content{
+  .content, ion-content, ion-modal{
     background: #ffffff;
+    --background: #ffffff;
   }
     .profile-content {
       display: flex;
@@ -67,10 +68,10 @@
         border-radius:  8px;
         ion-label {
           font-family: Montserrat;
-          font-size: 14px;
+          font-size: 16px;
           font-style: normal;
           font-weight: 500;
-         
+          
         }
         
         .menu-list {
@@ -140,7 +141,7 @@
             ion-label{
              
               text-transform: none;
-              color:  #CA514A;
+              color:  #CA514A !important;
               font-family: Montserrat;
               font-size: 14px;
               font-style: normal;

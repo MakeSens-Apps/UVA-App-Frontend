@@ -2,6 +2,7 @@ import {
   ChangeDetectorRef,
   Component,
   OnInit,
+  OnDestroy,
   QueryList,
   ViewChildren,
 } from '@angular/core';
@@ -22,6 +23,7 @@ import { ExploreContainerComponent } from '@app/explore-container/explore-contai
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { SetupService } from '@app/core/services/view/setup/setup.service';
 import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.service'; 
+import { Subscription } from 'rxjs';
 @Component({
   selector: 'app-otp',
   templateUrl: './otp.page.html',
@@ -41,12 +43,13 @@ import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.ser
     RouterLink,
   ],
 })
-export class OtpPage implements OnInit {
+export class OtpPage implements OnInit, OnDestroy {
   otp: string[] = ['', '', '', '', '', ''];
   timer = 60;
   phone: string | null = '';
   type;
   showError = false;
+  private backButtonSubscription!: Subscription;
 
   /**
    * Crea una instancia de OtpPage.
@@ -238,4 +241,15 @@ export class OtpPage implements OnInit {
   trackByIndex(index: number): number {
     return index;
   }
+
+    /**
+ * Cleans up the back button subscription when the component is destroyed.
+ * This prevents memory leaks and ensures no further events are handled for this subscription.
+ * @returns {void}
+ */
+    ngOnDestroy(): void {
+      if (this.backButtonSubscription) {
+        this.backButtonSubscription.unsubscribe();
+      }
+    }
 }
