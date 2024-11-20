@@ -389,3 +389,12 @@ ion-tab-bar {
 {
     color:  #14788A !important;
 }
+
+body > app-root:nth-child(1) > ion-app > ion-router-outlet > app-profile > ion-content > div > div.profile-card > ion-list
+{
+    background: transparent !important;
+    --background: transparent !important;
+}
+
+
+

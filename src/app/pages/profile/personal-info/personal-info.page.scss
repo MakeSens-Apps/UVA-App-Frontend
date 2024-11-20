@@ -18,9 +18,11 @@
 
   }
 
-  .content{
+  .content, ion-content{
     background: #ffffff;
+    --background: #ffffff;
   }
+
     .profile-content {
       display: flex;
     padding: 20px 10px;
@@ -116,6 +118,7 @@
           font-size: 14px;
           font-style: normal;
           font-weight: 500;
+          color: #404040 !important;
  
         }
         
@@ -161,6 +164,7 @@
               --padding-end: 0; 
               font-family: Montserrat, sans-serif;
               font-size: 14px;
+              color: #404040 !important;
               &.focused {
                 border: 1px solid #10BCCA; 
                 transition: border-color 0.3s ease-in-out;

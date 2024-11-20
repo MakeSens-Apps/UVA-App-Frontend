@@ -181,6 +181,7 @@ export class PersonalInfoPage implements OnInit {
    * @returns {Promise<void>}
    */
   async onSubmit(): Promise<void> {
+    this.cdr.detectChanges();
     if (this.userPersonalForm.valid && this.userLocationForm.valid) {
       // Process the data if both forms are valid
       console.log('Personal Form:', this.userPersonalForm.value);

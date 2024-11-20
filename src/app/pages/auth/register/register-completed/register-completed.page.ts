@@ -1,8 +1,9 @@
-import { ChangeDetectorRef,Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef,Component, OnInit,OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
 import { IonImg } from '@ionic/angular/standalone';
 import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.service'; 
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-register-completed',
@@ -11,9 +12,9 @@ import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.ser
   standalone: true,
   imports: [IonImg, ExploreContainerComponent],
 })
-export class RegisterCompletedPage implements OnInit {
+export class RegisterCompletedPage implements OnInit, OnDestroy {
   icon = '../../../../../assets/images/LogoNaturaColombia.svg';
-
+  private backButtonSubscription!: Subscription;
   /**
    * Crea una instancia de RegisterCompletedPage.
    * @param {Router} router - El servicio de enrutamiento para navegar entre páginas.
@@ -41,4 +42,15 @@ export class RegisterCompletedPage implements OnInit {
       void this.router.navigate(['app/tabs/home']);
     }, 3 * 1000);
   }
+
+    /**
+ * Cleans up the back button subscription when the component is destroyed.
+ * This prevents memory leaks and ensures no further events are handled for this subscription.
+ * @returns {void}
+ */
+    ngOnDestroy(): void {
+      if (this.backButtonSubscription) {
+        this.backButtonSubscription.unsubscribe();
+      }
+    }
 }

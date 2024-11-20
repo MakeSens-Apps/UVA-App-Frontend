@@ -1,5 +1,5 @@
 import { HeaderComponent } from '../../components/header/header.component';
-import { ChangeDetectorRef, Component } from '@angular/core';
+import { ChangeDetectorRef, Component,OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 import { CalendarComponent } from '@app/components/calendar/calendar.component';
@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import { MoonCardComponent } from '../../components/moon-card/moon-card.component';
 import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.service'; 
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-home',
@@ -23,7 +24,7 @@ import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.ser
     MoonCardComponent,
   ],
 })
-export class HomePage {
+export class HomePage implements OnDestroy {
   today: string;
   modals:any = {
     modal_Days: false,
@@ -31,7 +32,7 @@ export class HomePage {
     modal_token: false,
     modal_token_2: false,
   };
-
+  private backButtonSubscription!: Subscription;
   /**
    * Creates an instance of HomePage.
    * Initializes the formatted date string using date-fns with Spanish locale.
@@ -80,4 +81,14 @@ export class HomePage {
     }, 300); // Delay to avoid race conditions
   }
 
+    /**
+ * Cleans up the back button subscription when the component is destroyed.
+ * This prevents memory leaks and ensures no further events are handled for this subscription.
+ * @returns {void}
+ */
+    ngOnDestroy(): void {
+      if (this.backButtonSubscription) {
+        this.backButtonSubscription.unsubscribe();
+      }
+    }
 }

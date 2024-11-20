@@ -205,7 +205,12 @@
     
     ion-modal {
       --height: auto;
-    
+      background:#ffffff;
+      --ion-item-background:#ffffff;
+      p{
+        color: #404040
+      }
+      
     }
     
     .modal_show_comparte {

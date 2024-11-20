@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit,OnDestroy } from '@angular/core';
 import { IonButton, IonInput, IonLabel } from '@ionic/angular/standalone';
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
 import { Router, RouterLink } from '@angular/router';
@@ -16,6 +16,8 @@ import { Session } from 'src/models/session.model';
 import { SetupRacimoService } from '@app/core/services/view/setup/setup-racimo.service';
 import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
 import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.service'; 
+import { Subscription } from 'rxjs';
+
 @Component({
   selector: 'app-project-vinculation',
   templateUrl: './project-vinculation.page.html',
@@ -32,10 +34,11 @@ import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.ser
     RouterLink,
   ],
 })
-export class ProjectVinculationPage implements OnInit {
+export class ProjectVinculationPage implements OnInit, OnDestroy {
   showError = false;
   form: FormGroup;
   user: Session | null = null;
+  private backButtonSubscription!: Subscription;
 
   /**
    * Creates an instance of ProjectVinculationPage.
@@ -107,4 +110,15 @@ export class ProjectVinculationPage implements OnInit {
         console.error(err);
       });
   }
+
+    /**
+ * Cleans up the back button subscription when the component is destroyed.
+ * This prevents memory leaks and ensures no further events are handled for this subscription.
+ * @returns {void}
+ */
+    ngOnDestroy(): void {
+      if (this.backButtonSubscription) {
+        this.backButtonSubscription.unsubscribe();
+      }
+    }
 }
