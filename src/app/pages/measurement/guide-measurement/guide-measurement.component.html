@@ -1,0 +1,47 @@
+@if (guide) {
+  <section class="guide">
+    <ion-img [src]="guide.image"></ion-img>
+    <div class="title">
+      <p>{{ guide.name }}</p>
+      <ion-icon
+        slot="end"
+        *ngIf="guide.icon.enable"
+        [name]="guide.icon.iconName"
+        [ngStyle]="{ color: guide.icon.colorHex }"
+      ></ion-icon>
+    </div>
+    @if (isHtmlText) {
+      <div [innerHTML]="guide.text"></div>
+    } @else if (IsArrayText) {
+      <div>
+        @for (item of guide.text; track $index) {
+          <p>
+            {{ item }}
+          </p>
+        }
+      </div>
+    } @else {
+      <div>
+        <!--  -->
+        {{ guide.text }}
+      </div>
+    }
+
+    <div class="ion-align-self-start">
+      <ion-checkbox labelPlacement="end" color="uva_blue-600">
+        Mostrar automaticamente.
+      </ion-checkbox>
+    </div>
+
+    <div class="container_button">
+      <ion-button
+        color="uva_blue-600"
+        expand="block"
+        class="text-transform_none"
+        (click)="closeModal(true)"
+      >
+        {{ guide.nextGuide ? 'Siguiente' : 'Entendido' }}
+      </ion-button>
+    </div>
+  </section>
+}

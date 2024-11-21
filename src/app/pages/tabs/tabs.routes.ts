@@ -26,6 +26,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'register/measurement-new',
+        loadComponent: () =>
+          import(
+            '../measurement/register-measurement/register-measurement.page'
+          ).then((m) => m.RegisterMeasurementPage),
+      },
+      {
         path: 'history',
         loadComponent: () =>
           import('../historical/historical.page').then((m) => m.HistoricalPage),

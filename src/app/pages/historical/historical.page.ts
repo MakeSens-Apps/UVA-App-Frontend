@@ -19,22 +19,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { AreachartComponent } from '@app/components/areachart/areachart.component';
 import { Router } from '@angular/router';
-
-interface variable {
-  name: string;
-  unit: string;
-  value: string;
-  icon: {
-    enable: boolean;
-    icon: string;
-  };
-  backgroundColor: {
-    colorHex: string;
-  };
-  borderColor: {
-    colorHex: string;
-  };
-}
+import { IMeasurement } from '../../Interfaces/IMeasurement';
 
 interface historical {
   mes: number;
@@ -90,7 +75,7 @@ export class HistoricalPage implements OnInit {
   modeData: 'calendar' | 'chart' = 'calendar';
 
   currentYear = new Date().getFullYear();
-  variables: variable[] = [];
+  variables: IMeasurement[] = [];
   historical: historical[] = [];
   currentMonth: historical | undefined;
 
@@ -202,10 +187,10 @@ export class HistoricalPage implements OnInit {
 
   /**
    * Updates the area chart component with the provided color settings for the selected measurement.
-   * @param {variable} measurement - The selected measurement for updating chart colors.
+   * @param {IMeasurement} measurement - The selected measurement for updating chart colors.
    * @returns {void}
    */
-  changeColorChart(measurement: variable): void {
+  changeColorChart(measurement: IMeasurement): void {
     if (!this.areaChartComponent) {
       return;
     }
