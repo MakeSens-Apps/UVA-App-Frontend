@@ -1,0 +1,121 @@
+<app-header
+  [title]="flow?.name || ''"
+  [hasProfileButton]="false"
+  [hasBackButton]="true"
+  [routerBackButton]="'app/tabs/register'"
+></app-header>
+
+<ion-content [fullscreen]="true">
+  @if(flow){
+  <div class="container">
+    <section class="title">
+      <p>{{flow.name}}</p>
+    </section>
+    <section>
+      <div
+        class="measurements"
+        *ngFor="let item of measurement; let measurementIndex = index"
+        [ngStyle]="{background : item?.style?.backgroundColor?.colorHex,'border-color' : item?.style?.borderColor?.colorHex }"
+      >
+        <div class="measurements_name">
+          <p>{{item.name}}</p>
+          <ion-icon
+            *ngIf="item.icon.enable"
+            slot="end"
+            [name]="item.icon.iconName"
+            [ngStyle]="{color: item.icon.colorHex}"
+          ></ion-icon>
+        </div>
+        <div>
+          <div class="digit-container">
+            <ion-input
+              *ngFor="let digit of item.fieldsArray; let i = index; trackBy: trackByIndex"
+              #digitsInput
+              [value]="digit"
+              [id]="'digitsInput_' + measurementIndex + '_' + i"
+              maxlength="1"
+              class="digit-input"
+              inputmode="numeric"
+              type="number"
+              (ionInput)="onDigitsChange($event, i,measurementIndex)"
+              (ionFocus)="onDigitsFocus($event, i,measurementIndex)"
+            ></ion-input>
+            <span> {{item.unit}} </span>
+          </div>
+        </div>
+        <div>
+          @if(item.value){ @if(item.range){ @if(item.value.toString().length ===
+          item.fields) { @if(item.value < item.range.min || item.value>
+          item.range.max || item.showRestrictionAlert){
+          <div class="alert">
+            <ion-icon
+              slot="icon-only"
+              src="../../../../assets/images/icons/exclamation.svg"
+            ></ion-icon>
+            <p class="title">¿Estás seguro de este dato?</p>
+            <p>
+              @if(item.showRestrictionAlert){ {{item.textRestrictionAlert}} }
+              @else { La {{item.sortName}} no puede ser {{item.value <
+              item.range.min ? 'menor' : 'mayor'}} a {{item.value <
+              item.range.min ? item.range.min : item.range.max}} {{item.unit}} }
+            </p>
+          </div>
+          } } } }
+        </div>
+      </div>
+    </section>
+
+    <section *ngIf="hasGuide">
+      <div class="help" (click)="OpenGuide(flow.guides[0])">
+        <p>¿Cómo ver este dato?</p>
+        <ion-icon
+          src="./../../../assets/images/icons/information-circle.svg"
+          class="info-icon"
+        ></ion-icon>
+      </div>
+    </section>
+
+    <section>
+      <div class="container_button">
+        <ion-button
+          color="uva_blue-600"
+          expand="block"
+          class="text-transform_none"
+          (click)="save()"
+        >
+          Guardar registro
+        </ion-button>
+      </div>
+    </section>
+  </div>
+  }
+
+  <!-- modal_register_Ok -->
+  <ion-modal
+    #modal_register_Ok
+    id="modal_register_ok"
+    [isOpen]="OpenModalRegisterOk"
+    (ionModalDidDismiss)="OpenModalRegisterOk = false"
+  >
+    <ng-template>
+      <div class="modal_saved">
+        <div class="container_text">
+          <ion-img
+            [src]="'../../../../assets/images/done_register.gif'"
+          ></ion-img>
+          <p>{{flow?.name}} guardados</p>
+        </div>
+        <div class="container_button" *ngIf="flow?.nextFlow">
+          <ion-button
+            id="open-modal_Days_question"
+            color="uva_blue-600"
+            expand="block"
+            (click)="goToComplete()"
+          >
+            Siguiente
+          </ion-button>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+</ion-content>

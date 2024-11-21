@@ -129,4 +129,11 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/moon-phase/moon-phase.page').then((m) => m.MoonPhasePage),
   },
+  {
+    path: 'register-measurement',
+    loadComponent: () =>
+      import(
+        './pages/measurement/register-measurement/register-measurement.page'
+      ).then((m) => m.RegisterMeasurementPage),
+  },
 ];

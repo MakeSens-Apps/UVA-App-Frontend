@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { IonProgressBar } from '@ionic/angular/standalone';
 
 /**
@@ -13,6 +13,13 @@ import { IonProgressBar } from '@ionic/angular/standalone';
   imports: [IonProgressBar],
 })
 export class ProgressBarComponent {
+  /**
+   * @property {number} value - The current value of the progress bar, ranging from 0 to 1.
+   */
+  @Input() value = 0;
+  @Input() totalTask = 0;
+  @Input() completedTask = 0;
+
   /**
    * @constructs
    * Creates an instance of ProgressBarComponent.
