@@ -3,8 +3,6 @@ import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
 import { ConfigurationAppService } from './core/services/storage/configuration-app.service';
 import { SyncMonitorDSService } from './core/services/storage/datastore/sync-monitor-ds.service';
 import { Platform } from '@ionic/angular/standalone';
-import { Hub } from 'aws-amplify/utils';
-import { DataStore } from '@aws-amplify/datastore';
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
@@ -16,6 +14,7 @@ export class AppComponent {
    * Creates an instance of AppComponent.
    * @memberof AppComponent
    * @param {ConfigurationAppService} configuration Configuretion Service to load branding/Colors
+   * @param {Platform} platform -For Wait for the platform to load
    */
   constructor(
     private configuration: ConfigurationAppService,
