@@ -15,7 +15,6 @@ import { SetupService } from '@app/core/services/view/setup/setup.service';
 import { Session } from 'src/models/session.model';
 import { SetupRacimoService } from '@app/core/services/view/setup/setup-racimo.service';
 import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
-import { DataStore } from '@aws-amplify/datastore';
 import { SyncMonitorDSService } from '@app/core/services/storage/datastore/sync-monitor-ds.service';
 
 @Component({
@@ -76,7 +75,7 @@ export class ProjectVinculationPage implements OnInit {
     if (this.user.userID) {
       const response = await this.serviceRacimo.getUVA(this.user.userID);
       if (response) {
-        //await SyncMonitorDSService.waitForSyncDataStore(); //Espera a que DataStore este sincronizado
+        await SyncMonitorDSService.waitForSyncDataStore(); //Espera a que DataStore este sincronizado
         void this.router.navigate(['app/tabs/home']);
       }
     } else {

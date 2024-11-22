@@ -11,9 +11,9 @@ export class UserProgressDSService {
    * @param {string} ts - Timestamp of the progress.
    * @param {number} seed - Seed value.
    * @param {number} streak - Streak count.
-   * @param {string} milestones - Milestones achieved.
    * @param {number} completedTasks - Number of completed tasks.
    * @param {string} userID - ID of the associated User.
+   * @param {string} milestones - Milestones achieved.
    * @returns {Promise<UserProgress>} The newly created UserProgress.
    */
   static async addUserProgress(
@@ -64,6 +64,11 @@ export class UserProgressDSService {
     }
   }
 
+  /**
+   * Retrieves lastUser.
+   * @param {string} userID - ID of the User.
+   * @returns {Promise<UserProgress>} List of UserProgress entries.
+   */
   static async getLastUserProgress(
     userID: string,
   ): Promise<UserProgress | null> {

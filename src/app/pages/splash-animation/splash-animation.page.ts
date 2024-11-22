@@ -64,7 +64,7 @@ export class SplashAnimationPage implements OnInit {
       const response = await this.service.currentAuthenticatedUser();
       await this.waitForAnimationToEnd();
       if (response) {
-        //await SyncMonitorDSService.waitForSyncDataStore();
+        await SyncMonitorDSService.waitForSyncDataStore();
         void this.redirectToPage('app/tabs/home');
       } else {
         void this.redirectToPage('/login');

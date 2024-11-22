@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
 import { generateClient } from 'aws-amplify/api';
-import { createUser } from 'src/graphql/mutations';
 import { getUser } from 'src/graphql/queries';
 import {
   CreateUserInput,
