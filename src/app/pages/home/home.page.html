@@ -1,11 +1,11 @@
-<app-header [seed]="userProgress.seed"></app-header>
+<app-header [seed]="userProgress?.Seed"></app-header>
 <ion-content [fullscreen]="true">
   <h2 class="date-header">Hoy,{{today}}</h2>
   <app-calendar calendarView="week" [hasHeader]="true">
     <section header>
       <ion-card-header>
         <ion-card-title class="title_series">
-          Tienes {{userProgress.streak}} Días de racha 😌
+          Tienes {{userProgress?.Streak}} Días de racha 😌
         </ion-card-title>
         <ion-icon
           src="./../../../assets/images/icons/information-circle.svg"
@@ -42,7 +42,7 @@
     </ion-card-header>
     <ion-card-content>
       <app-progress-bar
-        [currentProgress]="userProgress.completedTask"
+        [currentProgress]="userProgress?.completedTasks ?? 1"
         [totalProgress]="3"
       >
       </app-progress-bar>
