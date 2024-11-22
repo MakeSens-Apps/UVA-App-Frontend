@@ -1,6 +1,6 @@
 import { DataStore } from '@aws-amplify/datastore';
 import { UserProgress } from 'src/models';
-import { SortDirection } from '@aws-amplify/datastore';
+import { SortDirection, Predicates } from '@aws-amplify/datastore';
 
 /**
  * Service for managing UserProgress data.
@@ -20,9 +20,9 @@ export class UserProgressDSService {
     ts: string,
     seed: number,
     streak: number,
-    milestones: string,
     completedTasks: number,
     userID: string,
+    milestones?: string,
   ): Promise<UserProgress> {
     try {
       return await DataStore.save(
@@ -54,7 +54,7 @@ export class UserProgressDSService {
     sortDirection: SortDirection = SortDirection.DESCENDING,
   ): Promise<UserProgress[]> {
     try {
-      return await DataStore.query(UserProgress, (up) => up.userID.eq(userID), {
+      return await DataStore.query(UserProgress, Predicates.ALL, {
         sort: (up) => up.ts(sortDirection),
         limit,
       });
@@ -62,5 +62,16 @@ export class UserProgressDSService {
       console.error('Error fetching UserProgress', error);
       throw error;
     }
+  }
+
+  static async getLastUserProgress(
+    userID: string,
+  ): Promise<UserProgress | null> {
+    const progressEntries = await this.getUserProgress(
+      userID,
+      1,
+      SortDirection.DESCENDING,
+    );
+    return progressEntries.length > 0 ? progressEntries[0] : null;
   }
 }

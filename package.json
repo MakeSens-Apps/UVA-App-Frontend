@@ -35,6 +35,7 @@
         "@capacitor/filesystem": "^6.0.1",
         "@capacitor/haptics": "6.0.1",
         "@capacitor/keyboard": "6.0.2",
+        "@capacitor/network": "^6.0.3",
         "@capacitor/preferences": "^6.0.2",
         "@capacitor/share": "^6.0.2",
         "@capacitor/splash-screen": "^6.0.2",

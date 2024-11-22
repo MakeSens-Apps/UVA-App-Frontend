@@ -128,6 +128,7 @@ type EagerUser = {
   readonly Email?: string | null;
   readonly Rank?: string | null;
   readonly UserProgresses?: (UserProgress | null)[] | null;
+  readonly uvaID?: string | null;
   readonly UVA?: UVA | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
@@ -145,6 +146,7 @@ type LazyUser = {
   readonly Email?: string | null;
   readonly Rank?: string | null;
   readonly UserProgresses: AsyncCollection<UserProgress>;
+  readonly uvaID?: string | null;
   readonly UVA: AsyncItem<UVA | undefined>;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;

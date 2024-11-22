@@ -170,12 +170,15 @@ export class OtpPage implements OnInit {
     if (otpValue.length === 6) {
       switch (this.type) {
         case 'login': {
-          const responseLogin = await this.service.confirmSignIn(otpValue);
-          if (responseLogin == false) {
-            this.showError = true;
-            this.ref.detectChanges();
-            return;
+          if (!(await this.service.currentAuthenticatedUser())) {
+            const responseLogin = await this.service.confirmSignIn(otpValue);
+            if (responseLogin == false) {
+              this.showError = true;
+              this.ref.detectChanges();
+              return;
+            }
           }
+
           const responseNewUser = await this.service.createNewUser();
           if (responseNewUser) {
             await this.router.navigate([
