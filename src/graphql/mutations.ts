@@ -249,6 +249,7 @@ export const createUser = /* GraphQL */ `mutation CreateUser(
       startedAt
       __typename
     }
+    uvaID
     UVA {
       id
       latitude
@@ -270,7 +271,6 @@ export const createUser = /* GraphQL */ `mutation CreateUser(
     _version
     _deleted
     _lastChangedAt
-    owner
     __typename
   }
 }
@@ -294,6 +294,7 @@ export const updateUser = /* GraphQL */ `mutation UpdateUser(
       startedAt
       __typename
     }
+    uvaID
     UVA {
       id
       latitude
@@ -315,7 +316,6 @@ export const updateUser = /* GraphQL */ `mutation UpdateUser(
     _version
     _deleted
     _lastChangedAt
-    owner
     __typename
   }
 }
@@ -339,6 +339,7 @@ export const deleteUser = /* GraphQL */ `mutation DeleteUser(
       startedAt
       __typename
     }
+    uvaID
     UVA {
       id
       latitude
@@ -360,7 +361,6 @@ export const deleteUser = /* GraphQL */ `mutation DeleteUser(
     _version
     _deleted
     _lastChangedAt
-    owner
     __typename
   }
 }
@@ -388,12 +388,12 @@ export const createUVA = /* GraphQL */ `mutation CreateUVA(
       PhoneNumber
       Email
       Rank
+      uvaID
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
-      owner
       __typename
     }
     Measurements {
@@ -433,12 +433,12 @@ export const updateUVA = /* GraphQL */ `mutation UpdateUVA(
       PhoneNumber
       Email
       Rank
+      uvaID
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
-      owner
       __typename
     }
     Measurements {
@@ -478,12 +478,12 @@ export const deleteUVA = /* GraphQL */ `mutation DeleteUVA(
       PhoneNumber
       Email
       Rank
+      uvaID
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
-      owner
       __typename
     }
     Measurements {

@@ -15,60 +15,6 @@ export const getMoonPhase = /* GraphQL */ `query GetMoonPhase($year: Int!, $mont
   APITypes.GetMoonPhaseQueryVariables,
   APITypes.GetMoonPhaseQuery
 >;
-export const createNewUser = /* GraphQL */ `query CreateNewUser(
-  $userID: ID!
-  $name: String!
-  $lastName: String!
-  $phoneNumber: AWSPhone!
-  $rank: String!
-) {
-  createNewUser(
-    userID: $userID
-    name: $name
-    lastName: $lastName
-    phoneNumber: $phoneNumber
-    rank: $rank
-  ) {
-    id
-    Name
-    LastName
-    PhoneNumber
-    Email
-    Rank
-    UserProgresses {
-      nextToken
-      startedAt
-      __typename
-    }
-    UVA {
-      id
-      latitude
-      longitude
-      altitude
-      fields
-      enabled
-      createdAt
-      userID
-      racimoID
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-    createdAt
-    updatedAt
-    _version
-    _deleted
-    _lastChangedAt
-    owner
-    __typename
-  }
-}
-` as GeneratedQuery<
-  APITypes.CreateNewUserQueryVariables,
-  APITypes.CreateNewUserQuery
->;
 export const getRACIMO = /* GraphQL */ `query GetRACIMO($id: ID!) {
   getRACIMO(id: $id) {
     id
@@ -420,6 +366,7 @@ export const getUser = /* GraphQL */ `query GetUser($id: ID!) {
       startedAt
       __typename
     }
+    uvaID
     UVA {
       id
       latitude
@@ -441,7 +388,6 @@ export const getUser = /* GraphQL */ `query GetUser($id: ID!) {
     _version
     _deleted
     _lastChangedAt
-    owner
     __typename
   }
 }
@@ -459,12 +405,12 @@ export const listUsers = /* GraphQL */ `query ListUsers(
       PhoneNumber
       Email
       Rank
+      uvaID
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
-      owner
       __typename
     }
     nextToken
@@ -492,12 +438,12 @@ export const syncUsers = /* GraphQL */ `query SyncUsers(
       PhoneNumber
       Email
       Rank
+      uvaID
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
-      owner
       __typename
     }
     nextToken
@@ -523,12 +469,12 @@ export const getUVA = /* GraphQL */ `query GetUVA($id: ID!) {
       PhoneNumber
       Email
       Rank
+      uvaID
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
-      owner
       __typename
     }
     Measurements {

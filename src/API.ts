@@ -118,13 +118,13 @@ export type User = {
   Email?: string | null,
   Rank?: string | null,
   UserProgresses?: ModelUserProgressConnection | null,
+  uvaID?: string | null,
   UVA?: UVA | null,
   createdAt: string,
   updatedAt: string,
   _version: number,
   _deleted?: boolean | null,
   _lastChangedAt: number,
-  owner?: string | null,
 };
 
 export type ModelUserProgressConnection = {
@@ -307,6 +307,7 @@ export type CreateUserInput = {
   PhoneNumber: string,
   Email?: string | null,
   Rank?: string | null,
+  uvaID?: string | null,
   _version?: number | null,
 };
 
@@ -316,13 +317,14 @@ export type ModelUserConditionInput = {
   PhoneNumber?: ModelStringInput | null,
   Email?: ModelStringInput | null,
   Rank?: ModelStringInput | null,
+  uvaID?: ModelIDInput | null,
   and?: Array< ModelUserConditionInput | null > | null,
   or?: Array< ModelUserConditionInput | null > | null,
   not?: ModelUserConditionInput | null,
   _deleted?: ModelBooleanInput | null,
   createdAt?: ModelStringInput | null,
   updatedAt?: ModelStringInput | null,
-  owner?: ModelStringInput | null,
+  id?: ModelStringInput | null,
 };
 
 export type UpdateUserInput = {
@@ -332,6 +334,7 @@ export type UpdateUserInput = {
   PhoneNumber?: string | null,
   Email?: string | null,
   Rank?: string | null,
+  uvaID?: string | null,
   _version?: number | null,
 };
 
@@ -463,13 +466,13 @@ export type ModelUserFilterInput = {
   PhoneNumber?: ModelStringInput | null,
   Email?: ModelStringInput | null,
   Rank?: ModelStringInput | null,
+  uvaID?: ModelIDInput | null,
   createdAt?: ModelStringInput | null,
   updatedAt?: ModelStringInput | null,
   and?: Array< ModelUserFilterInput | null > | null,
   or?: Array< ModelUserFilterInput | null > | null,
   not?: ModelUserFilterInput | null,
   _deleted?: ModelBooleanInput | null,
-  owner?: ModelStringInput | null,
 };
 
 export type ModelUserConnection = {
@@ -582,18 +585,18 @@ export type ModelSubscriptionIntInput = {
 };
 
 export type ModelSubscriptionUserFilterInput = {
-  id?: ModelSubscriptionIDInput | null,
   Name?: ModelSubscriptionStringInput | null,
   LastName?: ModelSubscriptionStringInput | null,
   PhoneNumber?: ModelSubscriptionStringInput | null,
   Email?: ModelSubscriptionStringInput | null,
   Rank?: ModelSubscriptionStringInput | null,
+  uvaID?: ModelSubscriptionIDInput | null,
   createdAt?: ModelSubscriptionStringInput | null,
   updatedAt?: ModelSubscriptionStringInput | null,
   and?: Array< ModelSubscriptionUserFilterInput | null > | null,
   or?: Array< ModelSubscriptionUserFilterInput | null > | null,
   _deleted?: ModelBooleanInput | null,
-  owner?: ModelStringInput | null,
+  id?: ModelStringInput | null,
 };
 
 export type ModelSubscriptionUVAFilterInput = {
@@ -852,6 +855,7 @@ export type CreateUserMutation = {
       nextToken?: string | null,
       startedAt?: number | null,
     } | null,
+    uvaID?: string | null,
     UVA?:  {
       __typename: "UVA",
       id: string,
@@ -873,7 +877,6 @@ export type CreateUserMutation = {
     _version: number,
     _deleted?: boolean | null,
     _lastChangedAt: number,
-    owner?: string | null,
   } | null,
 };
 
@@ -896,6 +899,7 @@ export type UpdateUserMutation = {
       nextToken?: string | null,
       startedAt?: number | null,
     } | null,
+    uvaID?: string | null,
     UVA?:  {
       __typename: "UVA",
       id: string,
@@ -917,7 +921,6 @@ export type UpdateUserMutation = {
     _version: number,
     _deleted?: boolean | null,
     _lastChangedAt: number,
-    owner?: string | null,
   } | null,
 };
 
@@ -940,6 +943,7 @@ export type DeleteUserMutation = {
       nextToken?: string | null,
       startedAt?: number | null,
     } | null,
+    uvaID?: string | null,
     UVA?:  {
       __typename: "UVA",
       id: string,
@@ -961,7 +965,6 @@ export type DeleteUserMutation = {
     _version: number,
     _deleted?: boolean | null,
     _lastChangedAt: number,
-    owner?: string | null,
   } | null,
 };
 
@@ -989,12 +992,12 @@ export type CreateUVAMutation = {
       PhoneNumber: string,
       Email?: string | null,
       Rank?: string | null,
+      uvaID?: string | null,
       createdAt: string,
       updatedAt: string,
       _version: number,
       _deleted?: boolean | null,
       _lastChangedAt: number,
-      owner?: string | null,
     },
     Measurements?:  {
       __typename: "ModelMeasurementConnection",
@@ -1033,12 +1036,12 @@ export type UpdateUVAMutation = {
       PhoneNumber: string,
       Email?: string | null,
       Rank?: string | null,
+      uvaID?: string | null,
       createdAt: string,
       updatedAt: string,
       _version: number,
       _deleted?: boolean | null,
       _lastChangedAt: number,
-      owner?: string | null,
     },
     Measurements?:  {
       __typename: "ModelMeasurementConnection",
@@ -1077,12 +1080,12 @@ export type DeleteUVAMutation = {
       PhoneNumber: string,
       Email?: string | null,
       Rank?: string | null,
+      uvaID?: string | null,
       createdAt: string,
       updatedAt: string,
       _version: number,
       _deleted?: boolean | null,
       _lastChangedAt: number,
-      owner?: string | null,
     },
     Measurements?:  {
       __typename: "ModelMeasurementConnection",
@@ -1104,53 +1107,6 @@ export type GetMoonPhaseQueryVariables = {
 
 export type GetMoonPhaseQuery = {
   getMoonPhase?: string | null,
-};
-
-export type CreateNewUserQueryVariables = {
-  userID: string,
-  name: string,
-  lastName: string,
-  phoneNumber: string,
-  rank: string,
-};
-
-export type CreateNewUserQuery = {
-  createNewUser?:  {
-    __typename: "User",
-    id: string,
-    Name: string,
-    LastName: string,
-    PhoneNumber: string,
-    Email?: string | null,
-    Rank?: string | null,
-    UserProgresses?:  {
-      __typename: "ModelUserProgressConnection",
-      nextToken?: string | null,
-      startedAt?: number | null,
-    } | null,
-    UVA?:  {
-      __typename: "UVA",
-      id: string,
-      latitude?: string | null,
-      longitude?: string | null,
-      altitude?: string | null,
-      fields?: string | null,
-      enabled?: boolean | null,
-      createdAt?: string | null,
-      userID: string,
-      racimoID: string,
-      updatedAt: string,
-      _version: number,
-      _deleted?: boolean | null,
-      _lastChangedAt: number,
-    } | null,
-    createdAt: string,
-    updatedAt: string,
-    _version: number,
-    _deleted?: boolean | null,
-    _lastChangedAt: number,
-    owner?: string | null,
-  } | null,
 };
 
 export type GetRACIMOQueryVariables = {
@@ -1478,6 +1434,7 @@ export type GetUserQuery = {
       nextToken?: string | null,
       startedAt?: number | null,
     } | null,
+    uvaID?: string | null,
     UVA?:  {
       __typename: "UVA",
       id: string,
@@ -1499,7 +1456,6 @@ export type GetUserQuery = {
     _version: number,
     _deleted?: boolean | null,
     _lastChangedAt: number,
-    owner?: string | null,
   } | null,
 };
 
@@ -1520,12 +1476,12 @@ export type ListUsersQuery = {
       PhoneNumber: string,
       Email?: string | null,
       Rank?: string | null,
+      uvaID?: string | null,
       createdAt: string,
       updatedAt: string,
       _version: number,
       _deleted?: boolean | null,
       _lastChangedAt: number,
-      owner?: string | null,
     } | null >,
     nextToken?: string | null,
     startedAt?: number | null,
@@ -1550,12 +1506,12 @@ export type SyncUsersQuery = {
       PhoneNumber: string,
       Email?: string | null,
       Rank?: string | null,
+      uvaID?: string | null,
       createdAt: string,
       updatedAt: string,
       _version: number,
       _deleted?: boolean | null,
       _lastChangedAt: number,
-      owner?: string | null,
     } | null >,
     nextToken?: string | null,
     startedAt?: number | null,
@@ -1585,12 +1541,12 @@ export type GetUVAQuery = {
       PhoneNumber: string,
       Email?: string | null,
       Rank?: string | null,
+      uvaID?: string | null,
       createdAt: string,
       updatedAt: string,
       _version: number,
       _deleted?: boolean | null,
       _lastChangedAt: number,
-      owner?: string | null,
     },
     Measurements?:  {
       __typename: "ModelMeasurementConnection",
@@ -1946,7 +1902,7 @@ export type OnDeleteUserProgressSubscription = {
 
 export type OnCreateUserSubscriptionVariables = {
   filter?: ModelSubscriptionUserFilterInput | null,
-  owner?: string | null,
+  id?: string | null,
 };
 
 export type OnCreateUserSubscription = {
@@ -1963,6 +1919,7 @@ export type OnCreateUserSubscription = {
       nextToken?: string | null,
       startedAt?: number | null,
     } | null,
+    uvaID?: string | null,
     UVA?:  {
       __typename: "UVA",
       id: string,
@@ -1984,13 +1941,12 @@ export type OnCreateUserSubscription = {
     _version: number,
     _deleted?: boolean | null,
     _lastChangedAt: number,
-    owner?: string | null,
   } | null,
 };
 
 export type OnUpdateUserSubscriptionVariables = {
   filter?: ModelSubscriptionUserFilterInput | null,
-  owner?: string | null,
+  id?: string | null,
 };
 
 export type OnUpdateUserSubscription = {
@@ -2007,6 +1963,7 @@ export type OnUpdateUserSubscription = {
       nextToken?: string | null,
       startedAt?: number | null,
     } | null,
+    uvaID?: string | null,
     UVA?:  {
       __typename: "UVA",
       id: string,
@@ -2028,13 +1985,12 @@ export type OnUpdateUserSubscription = {
     _version: number,
     _deleted?: boolean | null,
     _lastChangedAt: number,
-    owner?: string | null,
   } | null,
 };
 
 export type OnDeleteUserSubscriptionVariables = {
   filter?: ModelSubscriptionUserFilterInput | null,
-  owner?: string | null,
+  id?: string | null,
 };
 
 export type OnDeleteUserSubscription = {
@@ -2051,6 +2007,7 @@ export type OnDeleteUserSubscription = {
       nextToken?: string | null,
       startedAt?: number | null,
     } | null,
+    uvaID?: string | null,
     UVA?:  {
       __typename: "UVA",
       id: string,
@@ -2072,7 +2029,6 @@ export type OnDeleteUserSubscription = {
     _version: number,
     _deleted?: boolean | null,
     _lastChangedAt: number,
-    owner?: string | null,
   } | null,
 };
 
@@ -2100,12 +2056,12 @@ export type OnCreateUVASubscription = {
       PhoneNumber: string,
       Email?: string | null,
       Rank?: string | null,
+      uvaID?: string | null,
       createdAt: string,
       updatedAt: string,
       _version: number,
       _deleted?: boolean | null,
       _lastChangedAt: number,
-      owner?: string | null,
     },
     Measurements?:  {
       __typename: "ModelMeasurementConnection",
@@ -2144,12 +2100,12 @@ export type OnUpdateUVASubscription = {
       PhoneNumber: string,
       Email?: string | null,
       Rank?: string | null,
+      uvaID?: string | null,
       createdAt: string,
       updatedAt: string,
       _version: number,
       _deleted?: boolean | null,
       _lastChangedAt: number,
-      owner?: string | null,
     },
     Measurements?:  {
       __typename: "ModelMeasurementConnection",
@@ -2188,12 +2144,12 @@ export type OnDeleteUVASubscription = {
       PhoneNumber: string,
       Email?: string | null,
       Rank?: string | null,
+      uvaID?: string | null,
       createdAt: string,
       updatedAt: string,
       _version: number,
       _deleted?: boolean | null,
       _lastChangedAt: number,
-      owner?: string | null,
     },
     Measurements?:  {
       __typename: "ModelMeasurementConnection",

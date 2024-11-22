@@ -12,6 +12,12 @@ import {
   handleAPIError,
   APIErrorResponse,
 } from './errors-handle/errors-api.service';
+import * as APITypes from 'src/API';
+
+type GeneratedMutation<InputType, OutputType> = string & {
+  __generatedMutationInput: InputType;
+  __generatedMutationOutput: OutputType;
+};
 const client = generateClient();
 
 // Tipo para la respuesta exitosa
@@ -22,6 +28,30 @@ interface AuthSuccessResponse<T> {
 
 // Unión de ambos tipos en la interfaz principal
 export type APIUserResponse<T> = AuthSuccessResponse<T> | APIErrorResponse;
+
+export const createUserOnly = /* GraphQL */ `mutation CreateUser(
+  $input: CreateUserInput!
+  $condition: ModelUserConditionInput
+) {
+  createUser(input: $input, condition: $condition) {
+    id
+    Name
+    LastName
+    PhoneNumber
+    Email
+    Rank
+    createdAt
+    updatedAt
+    _version
+    _deleted
+    _lastChangedAt
+    __typename
+  }
+}
+` as GeneratedMutation<
+  APITypes.CreateUserMutationVariables,
+  APITypes.CreateUserMutation
+>;
 
 @Injectable({
   providedIn: 'root',
@@ -45,7 +75,7 @@ export class UserAPIService {
   ): Promise<APIUserResponse<CreateUserMutation>> {
     try {
       const response = await client.graphql({
-        query: createUser,
+        query: createUserOnly,
         variables: {
           input: user,
         },

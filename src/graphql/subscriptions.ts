@@ -226,9 +226,9 @@ export const onDeleteUserProgress = /* GraphQL */ `subscription OnDeleteUserProg
 >;
 export const onCreateUser = /* GraphQL */ `subscription OnCreateUser(
   $filter: ModelSubscriptionUserFilterInput
-  $owner: String
+  $id: String
 ) {
-  onCreateUser(filter: $filter, owner: $owner) {
+  onCreateUser(filter: $filter, id: $id) {
     id
     Name
     LastName
@@ -240,6 +240,7 @@ export const onCreateUser = /* GraphQL */ `subscription OnCreateUser(
       startedAt
       __typename
     }
+    uvaID
     UVA {
       id
       latitude
@@ -261,7 +262,6 @@ export const onCreateUser = /* GraphQL */ `subscription OnCreateUser(
     _version
     _deleted
     _lastChangedAt
-    owner
     __typename
   }
 }
@@ -271,9 +271,9 @@ export const onCreateUser = /* GraphQL */ `subscription OnCreateUser(
 >;
 export const onUpdateUser = /* GraphQL */ `subscription OnUpdateUser(
   $filter: ModelSubscriptionUserFilterInput
-  $owner: String
+  $id: String
 ) {
-  onUpdateUser(filter: $filter, owner: $owner) {
+  onUpdateUser(filter: $filter, id: $id) {
     id
     Name
     LastName
@@ -285,6 +285,7 @@ export const onUpdateUser = /* GraphQL */ `subscription OnUpdateUser(
       startedAt
       __typename
     }
+    uvaID
     UVA {
       id
       latitude
@@ -306,7 +307,6 @@ export const onUpdateUser = /* GraphQL */ `subscription OnUpdateUser(
     _version
     _deleted
     _lastChangedAt
-    owner
     __typename
   }
 }
@@ -316,9 +316,9 @@ export const onUpdateUser = /* GraphQL */ `subscription OnUpdateUser(
 >;
 export const onDeleteUser = /* GraphQL */ `subscription OnDeleteUser(
   $filter: ModelSubscriptionUserFilterInput
-  $owner: String
+  $id: String
 ) {
-  onDeleteUser(filter: $filter, owner: $owner) {
+  onDeleteUser(filter: $filter, id: $id) {
     id
     Name
     LastName
@@ -330,6 +330,7 @@ export const onDeleteUser = /* GraphQL */ `subscription OnDeleteUser(
       startedAt
       __typename
     }
+    uvaID
     UVA {
       id
       latitude
@@ -351,7 +352,6 @@ export const onDeleteUser = /* GraphQL */ `subscription OnDeleteUser(
     _version
     _deleted
     _lastChangedAt
-    owner
     __typename
   }
 }
@@ -379,12 +379,12 @@ export const onCreateUVA = /* GraphQL */ `subscription OnCreateUVA(
       PhoneNumber
       Email
       Rank
+      uvaID
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
-      owner
       __typename
     }
     Measurements {
@@ -424,12 +424,12 @@ export const onUpdateUVA = /* GraphQL */ `subscription OnUpdateUVA(
       PhoneNumber
       Email
       Rank
+      uvaID
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
-      owner
       __typename
     }
     Measurements {
@@ -469,12 +469,12 @@ export const onDeleteUVA = /* GraphQL */ `subscription OnDeleteUVA(
       PhoneNumber
       Email
       Rank
+      uvaID
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
-      owner
       __typename
     }
     Measurements {
