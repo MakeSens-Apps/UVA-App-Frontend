@@ -28,7 +28,7 @@ export class HeaderComponent {
    */
   @Input() title = 'Inicio';
 
-  @Input() seed = 0;
+  @Input() seed: number | null | undefined;
 
   /**
    * @param {Router} router Angular Router instance used for navigation.

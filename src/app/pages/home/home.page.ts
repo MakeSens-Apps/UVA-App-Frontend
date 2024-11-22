@@ -7,10 +7,8 @@ import { ProgressBarComponent } from '../../components/progress-bar/progress-bar
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import { MoonCardComponent } from '../../components/moon-card/moon-card.component';
-import {
-  ProfileService,
-  LASTUSERPROGRESS,
-} from '@app/core/services/view/profile/profile.service';
+import { UserProgressDSService } from '@app/core/services/storage/datastore/user-progress-ds.service';
+import { UserProgress } from 'src/models';
 @Component({
   selector: 'app-home',
   templateUrl: 'home.page.html',
@@ -33,17 +31,16 @@ export class HomePage implements OnInit {
     modal_token: false,
     modal_token_2: false,
   };
-  userProgress: LASTUSERPROGRESS = {
-    seed: 0,
-    streak: 0,
-    completedTask: 0,
-  };
+  userProgress: UserProgress | undefined;
+  Seed?: number | null;
+  readonly Streak?: number | null;
+  readonly Milestones?: string | null;
+  readonly completedTasks?: number | null;
   /**
    * Creates an instance of HomePage.
    * Initializes the formatted date string using date-fns with Spanish locale.
-   * @param {ProfileService} profileUser - Servicio Perfil Usuario
    */
-  constructor(private profileUser: ProfileService) {
+  constructor() {
     this.today = format(new Date(), " EEEE dd 'de' MMMM", { locale: es });
   }
 
@@ -51,6 +48,9 @@ export class HomePage implements OnInit {
    * Inicio de pagina
    */
   async ngOnInit(): Promise<void> {
-    this.userProgress = await this.profileUser.lastUserProgress();
+    const userprogress = await UserProgressDSService.getLastUserProgress();
+    if (userprogress) {
+      this.userProgress = userprogress;
+    }
   }
 }
