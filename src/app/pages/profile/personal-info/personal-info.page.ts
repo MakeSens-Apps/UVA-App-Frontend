@@ -1,4 +1,9 @@
-import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA, ChangeDetectorRef } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  CUSTOM_ELEMENTS_SCHEMA,
+  ChangeDetectorRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormsModule,
@@ -7,41 +12,50 @@ import {
   FormGroup,
   Validators,
 } from '@angular/forms';
-import { IonicModule, AlertController, InputChangeEventDetail } from '@ionic/angular';
+import { IonicModule, AlertController } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { IonInputCustomEvent } from '@ionic/core';
 import { SessionService } from '@app/core/services/session/session.service';
+
 // Define user personal fields
-const userPersonalFields = [
+interface FieldsPersonalInfo {
+  key: string;
+  label: string;
+  type: string;
+  placeholder: string;
+  onLine?: boolean;
+  disabled?: boolean;
+}
+const userPersonalFields: FieldsPersonalInfo[] = [
   {
     key: 'userName',
-    label: 'Name',
+    label: 'Nombres',
     type: 'string',
-    placeholder: '[Enter user name]',
+    placeholder: '[Nombres del monitor]',
   },
   {
     key: 'userLastName',
-    label: 'Last Name',
+    label: 'Apellidos',
     type: 'string',
-    placeholder: '[Enter user last name]',
+    placeholder: '[Apellidos del monitor]',
   },
   {
     key: 'userPhoneNumber',
-    label: 'Phone Number',
+    label: 'Teléfono',
     type: 'string',
-    placeholder: '3183766489',
+    placeholder: '#Celular',
     disabled: true,
   },
   {
     key: 'userEmail',
     label: 'Email',
     type: 'string',
-    placeholder: 'example@domain.com',
-  }
+    placeholder: 'correo@example.com',
+  },
 ];
 
 // Define user location fields
-const userLocationFields = [
+const userLocationFields: FieldsPersonalInfo[] = [
   {
     key: 'finca',
     label: 'Nombre de la finca',
@@ -65,23 +79,22 @@ const userLocationFields = [
     label: 'Latitud',
     type: 'string',
     placeholder: '70° 55’ 30”',
-    onLine:true
+    onLine: true,
   },
   {
     key: 'longitude',
     label: 'Longitud',
     type: 'string',
     placeholder: '90°',
-    onLine:true
+    onLine: true,
   },
   {
     key: 'altitude',
     label: 'Altitud',
     type: 'string',
     placeholder: '850 m',
-  }
+  },
 ];
-
 @Component({
   selector: 'app-personal-info',
   templateUrl: './personal-info.page.html',
@@ -95,20 +108,20 @@ export class PersonalInfoPage implements OnInit {
   userLocationForm!: FormGroup;
   fieldsPersonal = userPersonalFields;
   fieldsLocation = userLocationFields;
-  isEditable: boolean = false;
-  name: string = '';
-  lastName: string = '';
-  phone: string = '';
-  isRanking: boolean = false;
-  isSeed: boolean = false;
-  seed: number = 0;
-  seedIcon: string = '';
-  modals: any = {
+  isEditable = false;
+  name = '';
+  lastName = '';
+  phone = '';
+  isRanking = false;
+  isSeed = false;
+  seed = 0;
+  seedIcon = '';
+  modals: Record<string, boolean> = {
     modal_Delete: false,
     modal_Delete_2: false,
   };
-  isInputValid: boolean = false; 
-  deleteConfirmationInput: string = '';
+  isInputValid = false;
+  deleteConfirmationInput = '';
   /**
    * @param {Router} router - Angular Router instance for navigation.
    * @param {FormBuilder} fb - FormBuilder instance for form creation.
@@ -121,7 +134,7 @@ export class PersonalInfoPage implements OnInit {
     private fb: FormBuilder,
     private alertController: AlertController,
     private session: SessionService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
   ) {}
 
   /**
@@ -141,7 +154,8 @@ export class PersonalInfoPage implements OnInit {
    * @param {Array} fields - List of fields to create form controls.
    * @returns {FormGroup} - The generated empty form.
    */
-  createEmptyForm(fields: any[]): FormGroup {
+  createEmptyForm(fields: FieldsPersonalInfo[]): FormGroup {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const formControls: Record<string, any> = {};
 
     fields.forEach((field) => {
@@ -168,9 +182,7 @@ export class PersonalInfoPage implements OnInit {
     });
 
     // Update location form with user location data
-    this.userLocationForm.patchValue({
-     
-    });
+    this.userLocationForm.patchValue({});
 
     console.log('Personal Form Data:', this.userPersonalForm.value);
     console.log('Location Form Data:', this.userLocationForm.value);
@@ -215,7 +227,7 @@ export class PersonalInfoPage implements OnInit {
     if (this.isEditable) {
       setTimeout(() => {
         const firstEditableInput = document.querySelector(
-          'ion-input:not([readonly]) input'
+          'ion-input:not([readonly]) input',
         ) as HTMLInputElement | null;
         if (firstEditableInput) {
           firstEditableInput.focus();
@@ -223,7 +235,7 @@ export class PersonalInfoPage implements OnInit {
         }
       }, 100);
     } else {
-      this.onSubmit()
+      void this.onSubmit();
       this.userPersonalForm.markAsPristine();
       this.userLocationForm.markAsPristine();
       this.cdr.detectChanges();
@@ -231,20 +243,20 @@ export class PersonalInfoPage implements OnInit {
   }
 
   /**
- * Manejar foco de un campo
- * @param event - Evento de foco de Ionic
- */
+   * Manejar foco de un campo
+   * @param {IonInputCustomEvent<FocusEvent>} event - Evento de foco de Ionic
+   */
   handleFocus(event: IonInputCustomEvent<FocusEvent>): void {
     const parentItem = (event.target as HTMLElement).closest('ion-item');
     if (parentItem) {
       parentItem.classList.add('focused');
       this.cdr.detectChanges();
     }
-}
+  }
 
   /**
    * Manejar desenfoque de un campo
-   * @param event - Evento de desenfoque de Ionic
+   * @param {IonInputCustomEvent<FocusEvent>} event - Evento de desenfoque de Ionic
    */
   handleBlur(event: IonInputCustomEvent<FocusEvent>): void {
     const parentItem = (event.target as HTMLElement).closest('ion-item');
@@ -253,7 +265,6 @@ export class PersonalInfoPage implements OnInit {
       this.cdr.detectChanges();
     }
   }
-
 
   /**
    * Limpia todos los focos
@@ -264,12 +275,11 @@ export class PersonalInfoPage implements OnInit {
     this.cdr.detectChanges();
   }
 
-
-    /**
+  /**
    * validate the entry is correct
    * @returns {void}
    */
-  validateInput() {
+  validateInput(): void {
     this.isInputValid = this.deleteConfirmationInput === 'ELIMINAR CUENTA';
     this.cdr.detectChanges();
   }
@@ -285,7 +295,6 @@ export class PersonalInfoPage implements OnInit {
       // Aquí puedes agregar tu lógica para eliminar la cuenta
     }
   }
-
 
   /**
    * Navigates back to the specified URL.
@@ -327,12 +336,14 @@ export class PersonalInfoPage implements OnInit {
     }, 300);
   }
 
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   /**
- * Retrieves a field configuration object by its key.
- * @param {string} key - The unique key of the field to retrieve.
- * @returns {any} The field object matching the provided key, or an empty object if not found.
- */
+   * Retrieves a field configuration object by its key.
+   * @param {string} key - The unique key of the field to retrieve.
+   * @returns {FieldsPersonalInfo} The field object matching the provided key, or an empty object if not found.
+   */
   getField(key: string): any {
     return this.fieldsLocation.find((field) => field.key === key) || {};
   }
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */

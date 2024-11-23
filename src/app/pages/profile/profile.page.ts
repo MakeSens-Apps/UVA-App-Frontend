@@ -125,6 +125,10 @@ export class ProfilePage implements OnInit {
     private configuration: ConfigurationAppService,
     private cdr: ChangeDetectorRef,
   ) {}
+
+  /**
+   * Start of page variables
+   */
   async ngOnInit(): Promise<void> {
     const dataUser = await this.session.getInfo();
     this.name = dataUser.name;

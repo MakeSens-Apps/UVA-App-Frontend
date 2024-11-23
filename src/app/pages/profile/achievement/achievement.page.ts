@@ -1,4 +1,8 @@
-import { ChangeDetectorRef,Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
@@ -13,14 +17,13 @@ import { Router } from '@angular/router';
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class AchievementPage {
-click: any;
   /**
    * @param {Router} router - Angular Router instance used for navigation.
-   * @param {ChangeDetectorRef} ChangeDetectorRef Angular detecte change in app.
+   * @param {ChangeDetectorRef} cdr Angular detecte change in app.
    */
   constructor(
     private router: Router,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
   ) {}
   achievements = [
     { icon: '../../../../assets/images/icons/brote1.png' },
@@ -33,7 +36,7 @@ click: any;
     { icon: '../../../../assets/images/icons/platula.svg' },
   ];
 
-  modals:any = {
+  modals: Record<string, boolean> = {
     modal_token_a: false,
     modal_token_b: false,
   };
@@ -48,35 +51,35 @@ click: any;
   }
 
   /**
- * Open a modal by key
- * @param modalKey - Key of the modal to open
- */
+   * Open a modal by key
+   * @param {string} modalKey - Key of the modal to open
+   */
   openModal(modalKey: string): void {
     this.modals[modalKey] = true;
-    this.cdr.detectChanges()
+    this.cdr.detectChanges();
   }
 
-/**
- * Close a modal by key
- * @param modalKey - Key of the modal to close
- */
+  /**
+   * Close a modal by key
+   * @param {string} modalKey - Key of the modal to close
+   */
   onModalDismiss(modalKey: string): void {
     this.modals[modalKey] = false;
-    this.cdr.detectChanges()
+    this.cdr.detectChanges();
   }
 
-/**
- * Close a modal and open another one
- * @param currentModalKey - Modal key to close
- * @param nextModalKey - Modal key to open
- */
+  /**
+   * Close a modal and open another one
+   * @param {string} currentModalKey - Modal key to close
+   * @param {string} nextModalKey - Modal key to open
+   */
   onCloseAndOpen(currentModalKey: string, nextModalKey: string): void {
     this.modals[currentModalKey] = false;
 
     // Ensure Angular detects the change before opening the next modal
     setTimeout(() => {
       this.modals[nextModalKey] = true;
-      this.cdr.detectChanges()
+      this.cdr.detectChanges();
     }, 300); // Delay to avoid race conditions
   }
 }

@@ -47,7 +47,6 @@ export class ProjectVinculationPage implements OnInit, OnDestroy {
    * @param {SetupService} service - Service to manage user setup.
    * @param {SetupRacimoService} serviceRacimo - Service to manage UVA and RACIMO data.
    * @param {ConfigurationAppService} configuration -Service to manage S3 y FileSystem
-   *@param {ChangeDetectorRef} ChangeDetectorRef Angular detecte change in app.
    * @param {ChangeDetectorRef} cdr -CDR
    * @param {AppMinimizeService} minimizeService - The AppMinimizeService.
    */

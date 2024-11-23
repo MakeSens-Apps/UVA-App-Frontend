@@ -187,7 +187,11 @@ export class ConfigurationAppService {
         return null;
     }
   }
-
+  /**
+   * Counter task function in one day
+   * @param {MeasurementModel} model MeasurementModel
+   * @returns {number} Count task
+   */
   countTasks(model: MeasurementModel): number {
     return Object.keys(model.tasks).length;
   }

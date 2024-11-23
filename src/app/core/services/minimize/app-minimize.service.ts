@@ -3,26 +3,28 @@ import { App } from '@capacitor/app';
 import { Platform } from '@ionic/angular';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AppMinimizeService {
-
-    constructor( private platform: Platform) {}
+  /**
+   * @param {Platform} platform Platform type
+   */
+  constructor(private platform: Platform) {}
 
   /**
    * Navigates to home cellphone.
    * @returns {void}
    */
   appMinimize(): void {
-    App.exitApp(); 
+    void App.exitApp();
   }
 
-    /**
+  /**
    * Sets up the back button listener to minimize the app.
    */
-    initializeBackButtonHandler(): void {
-      this.platform.backButton.subscribeWithPriority(10, () => {
-        App.exitApp(); 
-      });
-    }
+  initializeBackButtonHandler(): void {
+    this.platform.backButton.subscribeWithPriority(10, () => {
+      void App.exitApp();
+    });
+  }
 }

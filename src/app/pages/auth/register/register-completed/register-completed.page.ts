@@ -1,8 +1,8 @@
-import { ChangeDetectorRef,Component, OnInit,OnDestroy } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
 import { IonImg } from '@ionic/angular/standalone';
-import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.service'; 
+import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -19,7 +19,7 @@ export class RegisterCompletedPage implements OnInit, OnDestroy {
    * Crea una instancia de RegisterCompletedPage.
    * @param {Router} router - El servicio de enrutamiento para navegar entre páginas.
    * @memberof RegisterCompletedPage
-   *@param {ChangeDetectorRef} ChangeDetectorRef Angular detecte change in app.
+   *@param {ChangeDetectorRef} cdr Angular detecte change in app.
    * @param {AppMinimizeService} minimizeService - The AppMinimizeService.
    */
   constructor(
@@ -35,22 +35,21 @@ export class RegisterCompletedPage implements OnInit, OnDestroy {
    * @returns {void} - No retorna ningún valor.
    */
   ngOnInit(): void {
-    this.minimizeService.initializeBackButtonHandler()
-    
-    
+    this.minimizeService.initializeBackButtonHandler();
+
     setTimeout(() => {
       void this.router.navigate(['app/tabs/home']);
     }, 3 * 1000);
   }
 
-    /**
- * Cleans up the back button subscription when the component is destroyed.
- * This prevents memory leaks and ensures no further events are handled for this subscription.
- * @returns {void}
- */
-    ngOnDestroy(): void {
-      if (this.backButtonSubscription) {
-        this.backButtonSubscription.unsubscribe();
-      }
+  /**
+   * Cleans up the back button subscription when the component is destroyed.
+   * This prevents memory leaks and ensures no further events are handled for this subscription.
+   * @returns {void}
+   */
+  ngOnDestroy(): void {
+    if (this.backButtonSubscription) {
+      this.backButtonSubscription.unsubscribe();
     }
+  }
 }

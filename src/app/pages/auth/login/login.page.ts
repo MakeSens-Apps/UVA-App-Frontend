@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
 import {
   IonButton,
@@ -48,7 +48,6 @@ export class LoginPage implements OnDestroy {
    * @param {FormBuilder} formBuilder - The Angular FormBuilder for creating reactive forms.
    * @param {ModalController} modalCtrl - The Ionic ModalController to manage modals.
    * @param {SetupService} service - The SetupService to handle authentication and session management.
-   *@param {ChangeDetectorRef} ChangeDetectorRef Angular detecte change in app.
    * @param {AppMinimizeService} minimizeService - The AppMinimizeService.
    */
   constructor(
@@ -68,6 +67,7 @@ export class LoginPage implements OnDestroy {
         ]),
       ),
     });
+    this.minimizeService.initializeBackButtonHandler();
   }
 
   /**

@@ -17,13 +17,16 @@
   <div class="profile-content">
     <div class="profile-card">
       <div class="profile-header">
-        <img class="avatar" src="../../../assets/images/icons/user-circle.png" alt="User Avatar" />
+        <img
+          class="avatar"
+          src="../../../assets/images/icons/user-circle.png"
+          alt="User Avatar"
+        />
         <div class="status-container" *ngIf="!isEditable">
-          <div class="status-item" *ngIf="isRanking">
-            Graduado 🎓
-          </div>
-          <div class="status-item"  *ngIf="isSeed">
-            Semillas: <strong class="colorB">{{seed}}</strong> <img [src]="seedIcon" alt="Semilla Icon" class="seed-icon" /> 
+          <div class="status-item" *ngIf="isRanking">Graduado 🎓</div>
+          <div class="status-item" *ngIf="isSeed">
+            Semillas: <strong class="colorB">{{seed}}</strong>
+            <img [src]="seedIcon" alt="Semilla Icon" class="seed-icon" />
           </div>
         </div>
       </div>
@@ -49,7 +52,7 @@
         </div>
       </form>
       <p class="form-title color-g">Datos de ubicación</p>
-  
+
       <form [formGroup]="userLocationForm">
         <div class="form">
           <ion-list class="menu-list" lines="none">
@@ -67,7 +70,7 @@
                   (ionBlur)="handleBlur($event)"
                 ></ion-input>
               </ion-item>
-      
+
               <!-- Agrupación explícita para campos en línea -->
               <div class="flex-container" *ngIf="field.key === 'latitude'">
                 <div class="flex-item">
@@ -99,17 +102,20 @@
           </ion-list>
         </div>
       </form>
-      
+
       <p class="form-title color-n">Otras acciones</p>
       <div class="a-left">
         <a
-        (click)="openModal('modal_Delete')"
-
+          (click)="openModal('modal_Delete')"
           class="delete-button text-transform_none"
         >
           <ion-label> Eliminar la cuenta</ion-label>
-          <ion-icon  class="sizeB" src="../../../assets/images/icons/profile/trash.svg" slot="end"></ion-icon>
-      </a>
+          <ion-icon
+            class="sizeB"
+            src="../../../assets/images/icons/profile/trash.svg"
+            slot="end"
+          ></ion-icon>
+        </a>
       </div>
       <ion-footer>
         <ion-button
@@ -119,17 +125,19 @@
           (click)="toggleEdit()"
         >
           {{ isEditable ? 'Guardar cambios' : 'Editar datos' }}
-          <ion-icon src="../../../assets/images/icons/profile/pencil.svg" slot="end"></ion-icon>
+          <ion-icon
+            src="../../../assets/images/icons/profile/pencil.svg"
+            slot="end"
+          ></ion-icon>
         </ion-button>
       </ion-footer>
     </div>
   </div>
 
-
   <ion-modal
     #modal_Delete
     id="modal_Delete"
-    [isOpen]="modals.modal_Delete"
+    [isOpen]="modals['modal_Delete']"
     [initialBreakpoint]="1"
     [breakpoints]="[0, 1]"
     (ionModalDidDismiss)="onModalDismiss('modal_Delete')"
@@ -150,7 +158,7 @@
         </div>
         <div class="button-container">
           <ion-button
-          (click)="onCloseAndOpen('modal_Delete', 'modal_Delete_2')"
+            (click)="onCloseAndOpen('modal_Delete', 'modal_Delete_2')"
             fill="outline"
             color="orange"
             class="outline-button text-transform_none"
@@ -158,7 +166,7 @@
             Sí, quiero eliminarla
           </ion-button>
           <ion-button
-          (click)="onModalDismiss('modal_Delete')"
+            (click)="onModalDismiss('modal_Delete')"
             fill="solid"
             color="orange"
             class="solid-button text-transform_none"
@@ -171,54 +179,52 @@
   </ion-modal>
 
   <ion-modal
-  #modals.modal_Delete_2
-  id="modal_token_b"
-  [isOpen]="modals.modal_Delete_2"
-  [initialBreakpoint]="1"
-  [breakpoints]="[0, 1]"
-  (ionModalDidDismiss)="onModalDismiss('modal_Delete_2')"
->
->
-  <ng-template>
-    <div class="modal_Delete">
-      <div class="container_text">
-        <p>
-          Para <strong class="text-strong"> eliminar</strong>
-          tu cuenta por favor<br>
-           escribe en mayusculas:<br>
-          <strong>ELIMINAR CUENTA</strong>
-        </p>
+    #modals.modal_Delete_2
+    id="modal_token_b"
+    [isOpen]="modals['modal_Delete_2']"
+    [initialBreakpoint]="1"
+    [breakpoints]="[0, 1]"
+    (ionModalDidDismiss)="onModalDismiss('modal_Delete_2')"
+  >
+    >
+    <ng-template>
+      <div class="modal_Delete">
+        <div class="container_text">
+          <p>
+            Para <strong class="text-strong"> eliminar</strong> tu cuenta por
+            favor<br />
+            escribe en mayusculas:<br />
+            <strong>ELIMINAR CUENTA</strong>
+          </p>
+        </div>
+        <div class="container_text">
+          <ion-input
+            [(ngModel)]="deleteConfirmationInput"
+            placeholder="ELIMINAR CUENTA"
+            class="delete-input"
+            (ionInput)="validateInput()"
+          ></ion-input>
+        </div>
+        <div class="button-container">
+          <ion-button
+            (click)="onModalDismiss('modal_Delete_2')"
+            fill="outline"
+            color="orange"
+            class="outline-button text-transform_none"
+          >
+            Cancelar
+          </ion-button>
+          <ion-button
+            [disabled]="!isInputValid"
+            (click)="goDeleteAccount()"
+            fill="solid"
+            color="orange"
+            class="solid-button text-transform_none"
+          >
+            Confirmar
+          </ion-button>
+        </div>
       </div>
-      <div class="container_text">
-        <ion-input
-        
-        [(ngModel)]="deleteConfirmationInput"
-        placeholder="ELIMINAR CUENTA"
-        class="delete-input"
-        (ionInput)="validateInput()"
-      ></ion-input>
-      </div>
-      <div class="button-container">
-        <ion-button
-        (click)="onModalDismiss('modal_Delete_2')"
-          fill="outline"
-          color="orange"
-          class="outline-button text-transform_none"
-        >
-         Cancelar
-        </ion-button>
-        <ion-button
-        [disabled]="!isInputValid"
-        (click)="goDeleteAccount()"
-          fill="solid"
-          color="orange"
-          class="solid-button text-transform_none"
-        >
-         Confirmar
-        </ion-button>
-      </div>
-    </div>
-  </ng-template>
-</ion-modal>
-
+    </ng-template>
+  </ion-modal>
 </ion-content>
