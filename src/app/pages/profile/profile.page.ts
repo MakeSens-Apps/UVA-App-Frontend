@@ -18,7 +18,9 @@ import {
   IonModal,
   IonGrid,
   IonRow,
-  IonCol, IonItemDivider } from '@ionic/angular/standalone';
+  IonCol,
+  IonItemDivider,
+} from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
 import { Share } from '@capacitor/share';
 import { Clipboard } from '@capacitor/clipboard';
@@ -26,6 +28,17 @@ import { ConfigurationAppService } from '@app/core/services/storage/configuratio
 import { SetupService } from '@app/core/services/view/setup/setup.service';
 import { SessionService } from '@app/core/services/session/session.service';
 import { ChangeDetectorRef } from '@angular/core';
+import { DataStore } from '@aws-amplify/datastore';
+
+/* eslint-disable @typescript-eslint/type-annotation-spacing */
+interface ShareOption {
+  label: string;
+  icon: string;
+  action: () => void | Promise<void>; // Cambia `void` si las funciones devuelven algo específico
+  color?: string; // Propiedad opcional
+}
+/* eslint-enable @typescript-eslint/type-annotation-spacing */
+
 /**
  * @class ProfilePage
  * @description A component that displays user profile information and provides sharing functionality for the Uva-App.
@@ -35,7 +48,8 @@ import { ChangeDetectorRef } from '@angular/core';
   templateUrl: './profile.page.html',
   styleUrls: ['./profile.page.scss'],
   standalone: true,
-  imports: [IonItemDivider, 
+  imports: [
+    IonItemDivider,
     IonCol,
     IonRow,
     IonGrid,
@@ -58,12 +72,12 @@ import { ChangeDetectorRef } from '@angular/core';
   ],
 })
 export class ProfilePage implements OnInit {
-  name:string | undefined;
-  isRanking: boolean = false;
-  isSeed: boolean = false;
-  seed: number= 0;
-  seedIcon: string = "";
-  shareOptions = [
+  name: string | undefined;
+  isRanking = false;
+  isSeed = false;
+  seed = 0;
+  seedIcon = '';
+  shareOptions: ShareOption[] = [
     {
       label: 'WhatsApp',
       icon: '../../../assets/images/icons/whatapp.svg',
@@ -91,7 +105,7 @@ export class ProfilePage implements OnInit {
       action: () => this.shareApp(),
     },
   ];
-  modals:any = {
+  modals: Record<string, boolean> = {
     modal_show_comparte: false,
   };
   appLink =
@@ -102,22 +116,22 @@ export class ProfilePage implements OnInit {
    * @param {SessionService} session -Manage Sesionids .
    * @param {SetupService} service -Manage Sesion setup/login/logout .
    * @param {ConfigurationAppService} configuration -Get configuration app .
-   * @param {ChangeDetectorRef} ChangeDetectorRef Angular detecte change in app.
+   * @param {ChangeDetectorRef} cdr Angular detecte change in app.
    */
   constructor(
     private router: Router,
     private session: SessionService,
     private service: SetupService,
     private configuration: ConfigurationAppService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
   ) {}
   async ngOnInit(): Promise<void> {
     const dataUser = await this.session.getInfo();
-    this.name = dataUser.name
+    this.name = dataUser.name;
     this.isRanking = true;
     this.isSeed = true;
     this.seed = 3;
-    this.seedIcon= "../../../assets/images/icons/semilla.svg";
+    this.seedIcon = '../../../assets/images/icons/semilla.svg';
   }
 
   // Método para compartir en WhatsApp
@@ -164,6 +178,7 @@ export class ProfilePage implements OnInit {
       const response = await this.service.signOut();
       if (response) {
         this.session.clearSession();
+        await DataStore.clear();
         await this.router.navigate([''], {
           replaceUrl: true,
         });
@@ -189,21 +204,22 @@ export class ProfilePage implements OnInit {
     const url = 'https://www.example.com'; // Reemplaza con la URL que deseas abrir
     window.open(url, '_blank'); // '_blank' abre en una nueva pestaña; usa '_self' para la misma pestaña
   }
-   /**
+  /**
    * Opens modal.
    * @returns {void}
    */
   openModal(): void {
-    this.modals.modal_show_comparte = true;
+    this.modals['modal_show_comparte'] = true;
     this.cdr.detectChanges();
   }
 
-   /**
+  /**
    * Close modal.
+   * @param {string} modalKey ModalDismis
    * @returns {void}
    */
   onModalDismiss(modalKey: string): void {
     this.modals[modalKey] = false;
-    this.cdr.detectChanges(); 
+    this.cdr.detectChanges();
   }
 }
