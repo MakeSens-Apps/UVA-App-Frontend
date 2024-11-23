@@ -8,6 +8,8 @@ import { Session } from 'src/models/session.model';
 import { UserAPIService } from '../../api/user-api.service';
 import { UserProgressAPIService } from '../../api/user-progress-api.service';
 import { SignInOutput } from 'aws-amplify/auth';
+import { identifyUser } from 'aws-amplify/analytics';
+
 @Injectable({
   providedIn: 'root',
 })
@@ -173,6 +175,17 @@ export class SetupService {
         await this.sesion.setInfoField('name', attributes.data.name);
         await this.sesion.setInfoField('lastName', attributes.data.family_name);
       }
+      const userProfile = {
+        userID: response.data.userId,
+        name: response.data.username,
+        lastName: (await this.sesion.getInfo()).lastName ?? '',
+        phone: (await this.sesion.getInfo()).phone ?? '',
+      };
+
+      await identifyUser({
+        userId: response.data.userId,
+        userProfile,
+      });
     }
     return response.success;
   }

@@ -120,10 +120,10 @@ export const schema = {
           isRequired: true,
           attributes: [],
         },
-        ts_sync: {
-          name: 'ts_sync',
+        task: {
+          name: 'task',
           isArray: false,
-          type: 'AWSDateTime',
+          type: 'String',
           isRequired: false,
           attributes: [],
         },
@@ -526,5 +526,5 @@ export const schema = {
   enums: {},
   nonModels: {},
   codegenVersion: '3.4.4',
-  version: 'e87ccb8815655d77ee3f635cdc86f5cb',
+  version: 'e20d72448c283bc3da7d3773e7918e6d',
 };
