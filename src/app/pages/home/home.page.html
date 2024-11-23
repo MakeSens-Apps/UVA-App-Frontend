@@ -42,8 +42,8 @@
     </ion-card-header>
     <ion-card-content>
       <app-progress-bar
-        [currentProgress]="userProgress?.completedTasks ?? 1"
-        [totalProgress]="3"
+        [currentProgress]="userProgress?.completedTasks ?? 0"
+        [totalProgress]="totalTask"
       >
       </app-progress-bar>
       <ion-button

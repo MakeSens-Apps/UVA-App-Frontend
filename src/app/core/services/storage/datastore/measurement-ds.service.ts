@@ -1,4 +1,4 @@
-import { DataStore } from '@aws-amplify/datastore';
+import { DataStore, SortDirection, Predicates } from '@aws-amplify/datastore';
 import { Measurement } from 'src/models';
 
 /**
@@ -42,14 +42,91 @@ export class MeasurementDSService {
 
   /**
    * Retrieves all Measurements for a specific UVA.
-   * @param {string} uvaID - ID of the UVA.
+   * @param {number} [limit] - Maximum number of entries to retrieve.
+   * @param {SortDirection} [sortDirection] - Sorting direction: SortDirection.ASCENDING or SortDirection.DESCENDING.
    * @returns {Promise<Measurement[]>} List of Measurements.
    */
-  static async getMeasurementsByUVA(uvaID: string): Promise<Measurement[]> {
+  static async getMeasurementsByUVA(
+    limit?: number,
+    sortDirection: SortDirection = SortDirection.DESCENDING,
+  ): Promise<Measurement[]> {
     try {
-      return await DataStore.query(Measurement, (m) => m.uvaID.eq(uvaID));
+      return await DataStore.query(Measurement, Predicates.ALL, {
+        sort: (up) => up.ts(sortDirection),
+        limit,
+      });
     } catch (error) {
       console.error('Error fetching Measurements', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Retrieves Measurements within a given date range.
+   * @param {Date} startDate - Start date of the range.
+   * @param {Date} endDate - End date of the range.
+   * @returns {Promise<Measurement[]>} List of Measurements within the date range.
+   */
+  static async getMeasurementsByDateRange(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<Measurement[]> {
+    try {
+      return await DataStore.query(
+        Measurement,
+        (c) =>
+          c.and((c) => [
+            c.ts.gt(startDate.toISOString()),
+            c.ts.le(endDate.toISOString()),
+          ]),
+        { sort: (s) => s.ts(SortDirection.ASCENDING) },
+      );
+    } catch (error) {
+      console.error('Error fetching Measurements by date range', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Retrieves Measurements for a specific day.
+   * @param {number} year - Year of the desired day.
+   * @param {number} month - Month of the desired day (1-12).
+   * @param {number} day - Day of the desired day.
+   * @returns {Promise<Measurement[]>} List of Measurements on the specified day.
+   */
+  static async getMeasurementsByDay(
+    year: number,
+    month: number,
+    day: number,
+  ): Promise<Measurement[]> {
+    try {
+      const startOfDay = new Date(year, month - 1, day, 0, 0, 0);
+      const endOfDay = new Date(year, month - 1, day, 23, 59, 59);
+
+      return await this.getMeasurementsByDateRange(startOfDay, endOfDay);
+    } catch (error) {
+      console.error('Error fetching Measurements for a specific day', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Counts the number of Measurements for a specific day.
+   * @param {number} year - Year of the desired day.
+   * @param {number} month - Month of the desired day (1-12).
+   * @param {number} day - Day of the desired day.
+   * @returns {Promise<number>} The number of Measurements on the specified day.
+   */
+  static async countMeasurementsByDay(
+    year: number,
+    month: number,
+    day: number,
+  ): Promise<number> {
+    try {
+      const measurements = await this.getMeasurementsByDay(year, month, day);
+      return measurements.length;
+    } catch (error) {
+      console.error('Error counting Measurements for a specific day', error);
       throw error;
     }
   }
