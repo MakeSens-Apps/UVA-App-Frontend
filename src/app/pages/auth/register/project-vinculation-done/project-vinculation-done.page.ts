@@ -12,7 +12,7 @@ import { ConfigurationAppService } from '@app/core/services/storage/configuratio
 })
 export class ProjectVinculationDonePage implements OnInit {
   icon = '../../../../../assets/images/LogoNaturaColombia.svg';
-
+  racimoCode: string | undefined;
   /**
    * Crea una instancia de ProjectVinculationDonePage.
    * @param {Router} router - El servicio de enrutamiento para navegar entre páginas.
@@ -33,6 +33,7 @@ export class ProjectVinculationDonePage implements OnInit {
   async ngOnInit(): Promise<void> {
     const config = await this.configuration.getConfigurationApp();
     if (config) {
+      this.racimoCode = config.racimo.linkageCode;
       const img = await this.configuration.loadImage(config.branding.logo);
       if (img) {
         this.icon = img;
