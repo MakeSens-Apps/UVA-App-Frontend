@@ -107,18 +107,14 @@ export class HomePage implements OnInit, OnDestroy {
     const configMeasurement =
       await this.configuration.getConfigurationMeasurement();
     if (configMeasurement) {
-      console.log(typeof configMeasurement);
       this.totalTask = this.configuration.countTasks(configMeasurement);
-      console.log(this.totalTask);
     }
     if (config) {
-      console.log(typeof config);
       this.configurationApp = config;
     }
     const userprogress = await UserProgressDSService.getLastUserProgress();
     if (userprogress) {
       this.userProgress = userprogress;
-      console.log(userprogress);
     }
   }
 }

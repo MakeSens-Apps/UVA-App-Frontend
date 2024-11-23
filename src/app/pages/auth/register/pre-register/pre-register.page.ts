@@ -8,7 +8,6 @@ import {
 } from '@ionic/angular/standalone';
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
 import { Router } from '@angular/router';
-import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.service'; 
 
 @Component({
   selector: 'app-pre-register',

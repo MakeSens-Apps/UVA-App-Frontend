@@ -31,10 +31,11 @@ export class HeaderComponent {
 
   /**
    * @param {Router} router Angular Router instance used for navigation.
+   * @param {ChangeDetectorRef} cdr Angular detecte change in app.
    */
   constructor(
     private router: Router,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
   ) {}
 
   /**
@@ -44,5 +45,4 @@ export class HeaderComponent {
   goToProfile(): void {
     void this.router.navigate(['/profile']);
   }
-
 }
