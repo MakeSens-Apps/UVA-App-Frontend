@@ -75,7 +75,16 @@ export const schema = {
             rules: [
               {
                 allow: 'public',
-                operations: ['create', 'update', 'delete', 'read'],
+                operations: ['read'],
+              },
+              {
+                allow: 'private',
+                provider: 'iam',
+                operations: ['create', 'delete', 'read', 'update'],
+              },
+              {
+                allow: 'private',
+                operations: ['read'],
               },
             ],
           },
@@ -170,8 +179,15 @@ export const schema = {
           properties: {
             rules: [
               {
+                provider: 'userPools',
+                ownerField: 'owner',
+                allow: 'owner',
+                operations: ['create', 'read', 'update'],
+                identityClaim: 'cognito:username',
+              },
+              {
                 allow: 'public',
-                operations: ['create', 'update', 'delete', 'read'],
+                operations: ['read'],
               },
             ],
           },
@@ -266,7 +282,10 @@ export const schema = {
           properties: {
             rules: [
               {
-                allow: 'public',
+                provider: 'userPools',
+                ownerField: 'userID',
+                allow: 'owner',
+                identityClaim: 'cognito:username',
                 operations: ['create', 'update', 'delete', 'read'],
               },
             ],
@@ -333,6 +352,13 @@ export const schema = {
             associatedWith: ['userID'],
           },
         },
+        uvaID: {
+          name: 'uvaID',
+          isArray: false,
+          type: 'ID',
+          isRequired: false,
+          attributes: [],
+        },
         UVA: {
           name: 'UVA',
           isArray: false,
@@ -342,9 +368,8 @@ export const schema = {
           isRequired: false,
           attributes: [],
           association: {
-            connectionType: 'HAS_ONE',
-            associatedWith: ['id'],
-            targetNames: ['id'],
+            connectionType: 'BELONGS_TO',
+            targetNames: ['uvaID'],
           },
         },
         createdAt: {
@@ -376,8 +401,11 @@ export const schema = {
           properties: {
             rules: [
               {
-                allow: 'public',
-                operations: ['create', 'update', 'delete', 'read'],
+                provider: 'userPools',
+                ownerField: 'id',
+                allow: 'owner',
+                operations: ['read', 'create', 'update', 'delete'],
+                identityClaim: 'cognito:username',
               },
             ],
           },
@@ -452,7 +480,8 @@ export const schema = {
           isRequired: true,
           attributes: [],
           association: {
-            connectionType: 'BELONGS_TO',
+            connectionType: 'HAS_ONE',
+            associatedWith: ['id'],
             targetNames: ['userID'],
           },
         },
@@ -515,7 +544,23 @@ export const schema = {
             rules: [
               {
                 allow: 'public',
-                operations: ['create', 'update', 'delete', 'read'],
+                operations: ['read'],
+              },
+              {
+                allow: 'private',
+                operations: ['read'],
+              },
+              {
+                provider: 'userPools',
+                ownerField: 'userID',
+                allow: 'owner',
+                operations: ['create', 'read', 'update'],
+                identityClaim: 'cognito:username',
+              },
+              {
+                allow: 'private',
+                provider: 'iam',
+                operations: ['create', 'delete', 'read', 'update'],
               },
             ],
           },
@@ -526,5 +571,5 @@ export const schema = {
   enums: {},
   nonModels: {},
   codegenVersion: '3.4.4',
-  version: 'e20d72448c283bc3da7d3773e7918e6d',
+  version: '13a9052fbdad281bcb76f54cbf1cee4a',
 };
