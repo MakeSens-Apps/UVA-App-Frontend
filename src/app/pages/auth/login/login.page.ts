@@ -1,4 +1,4 @@
-import { ChangeDetectorRef,Component,OnDestroy } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy } from '@angular/core';
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
 import {
   IonButton,
@@ -17,7 +17,7 @@ import {
 } from '@angular/forms';
 import { AlertComponent } from '@app/components/alert/alert.component';
 import { SetupService } from '@app/core/services/view/setup/setup.service';
-import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.service'; 
+import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -68,18 +68,6 @@ export class LoginPage implements OnDestroy {
         ]),
       ),
     });
-    // Check if there's an authenticated user. If yes, navigate to the home page.
-    this.service
-      .currentAuthenticatedUser()
-      .then((response) => {
-        if (response) {
-          void this.goToHome();
-        }
-      })
-      .catch((err) => {
-        console.error('No encontro un usuario', err);
-      });
-      this.minimizeService.initializeBackButtonHandler()
   }
 
   /**
@@ -186,10 +174,10 @@ export class LoginPage implements OnDestroy {
   }
 
   /**
- * Cleans up the back button subscription when the component is destroyed.
- * This prevents memory leaks and ensures no further events are handled for this subscription.
- * @returns {void}
- */
+   * Cleans up the back button subscription when the component is destroyed.
+   * This prevents memory leaks and ensures no further events are handled for this subscription.
+   * @returns {void}
+   */
   ngOnDestroy(): void {
     if (this.backButtonSubscription) {
       this.backButtonSubscription.unsubscribe();

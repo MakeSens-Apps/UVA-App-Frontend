@@ -1,11 +1,11 @@
-<app-header></app-header>
+<app-header [seed]="userProgress?.Seed"></app-header>
 <ion-content [fullscreen]="true">
   <h2 class="date-header">Hoy,{{today}}</h2>
   <app-calendar calendarView="week" [hasHeader]="true">
     <section header>
       <ion-card-header>
         <ion-card-title class="title_series">
-          Tienes 2 Días de racha 😌
+          Tienes {{userProgress?.Streak}} Días de racha 😌
         </ion-card-title>
         <ion-icon
           src="./../../../assets/images/icons/information-circle.svg"
@@ -30,7 +30,7 @@
   <div class="cards ion-margin-top">
     <ion-card-header>
       <ion-card-title class="title_series">
-        Registra y gana: +1<ion-icon
+        Registra y gana: +2<ion-icon
           src="./../../../assets/images/icons/semilla.svg"
         ></ion-icon>
       </ion-card-title>
@@ -41,7 +41,11 @@
       ></ion-icon>
     </ion-card-header>
     <ion-card-content>
-      <app-progress-bar></app-progress-bar>
+      <app-progress-bar
+        [currentProgress]="userProgress?.completedTasks ?? 0"
+        [totalProgress]="totalTask"
+      >
+      </app-progress-bar>
       <ion-button
         expand="block"
         color="uva_blue-600"
@@ -58,7 +62,7 @@
   <ion-modal
     #modal_Days
     id="modal_Days"
-    [isOpen]="modals.modal_Days"
+    [isOpen]="modals['modal_Days']"
     [initialBreakpoint]="1"
     [breakpoints]="[0, 1]"
     (ionModalDidDismiss)="onModalDismiss('modal_Days')"
@@ -107,7 +111,7 @@
   <ion-modal
     #modal_Days_question
     id="modal_Days_question"
-    [isOpen]="modals.modal_Days_question"
+    [isOpen]="modals['modal_Days_question']"
     [initialBreakpoint]="1"
     [breakpoints]="[0, 1]"
     (ionModalDidDismiss)="onModalDismiss('modal_Days_question')"
@@ -159,160 +163,162 @@
   <!-- Modal token Info -->
 
   <ion-modal
-  #modal_token
-  id="modal_token"
-  [isOpen]="modals.modal_token"
-  [initialBreakpoint]="1"
-  [breakpoints]="[0, 1]"
-  (ionModalDidDismiss)="onModalDismiss('modal_token')"
->
-  <ng-template>
-    <div class="modal_token">
-      <div class="container_text">
-        <p>
-          Cada día que cumplas <strong>con todos tus registros</strong> ganas dos semillas.
-        </p>
-        <h1>
-          +2 <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
-        </h1>
+    #modal_token
+    id="modal_token"
+    [isOpen]="modals['modal_token']"
+    [initialBreakpoint]="1"
+    [breakpoints]="[0, 1]"
+    (ionModalDidDismiss)="onModalDismiss('modal_token')"
+  >
+    <ng-template>
+      <div class="modal_token">
+        <div class="container_text">
+          <p>
+            Cada día que cumplas <strong>con todos tus registros</strong> ganas
+            dos semillas.
+          </p>
+          <h1>
+            +2
+            <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
+          </h1>
+        </div>
+        <div class="container_text">
+          <p>
+            Los días que <strong>cumplas con algunos</strong> registros ganas
+            una semilla.
+          </p>
+          <h1>
+            +1
+            <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
+          </h1>
+        </div>
+        <div class="container_text">
+          <p>Con estas semillas podrás recuperar tu racha.</p>
+          <h1>
+            <ion-img
+              src="../../../assets/images/icons/date_incomplete_to_done.svg"
+            ></ion-img>
+          </h1>
+          <p>
+            Para recuperar un día incompleto,
+            <strong>debes pagar 5 semillas.</strong>
+          </p>
+        </div>
+        <div class="container_text">
+          <p>
+            Si cumples <strong>con 7 días de racha </strong>ganas
+            <strong> 3 semillas adicionales. </strong>
+          </p>
+          <h1>
+            +3
+            <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
+          </h1>
+        </div>
+        <div class="container_button">
+          <ion-button
+            color="uva_blue-600"
+            expand="block"
+            (click)="onCloseAndOpen('modal_token', 'modal_token_2')"
+          >
+            Siguiente
+          </ion-button>
+        </div>
       </div>
-      <div class="container_text">
-        <p>
-          Los días que <strong>cumplas con algunos</strong> registros ganas
-          una semilla.
-        </p>
-        <h1>
-          +1
-          <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
-        </h1>
-      </div>
-      <div class="container_text">
-        <p>Con estas semillas podrás recuperar tu racha.</p>
-        <h1>
-          <ion-img
-            src="../../../assets/images/icons/date_incomplete_to_done.svg"
-          ></ion-img>
-        </h1>
-        <p>
-          Para recuperar un día incompleto,
-          <strong>debes pagar 5 semillas.</strong>
-        </p>
-      </div>
-      <div class="container_text">
-        <p>
-          Si cumples <strong>con 7 días de racha </strong>ganas
-          <strong> 3 semillas adicionales. </strong>
-        </p>
-        <h1>
-          +3
-          <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
-        </h1>
-      </div>
-      <div class="container_button">
-        <ion-button
-          color="uva_blue-600"
-          expand="block"
-          (click)="onCloseAndOpen('modal_token', 'modal_token_2')"
-        >
-          Siguiente
-        </ion-button>
-      </div>
-    </div>
-  </ng-template>
+    </ng-template>
   </ion-modal>
 
   <ion-modal
-  #modal_token_2
-  id="modal_token_2"
-  [isOpen]="modals.modal_token_2"
-  [initialBreakpoint]="1"
-  [breakpoints]="[0, 1]"
-  (ionModalDidDismiss)="onModalDismiss('modal_token_2')"
->
-  <ng-template>
-    <div class="modal_token_2">
-      <div class="contener_buttons_actions">
-        <ion-icon
-          slot="start"
-          name="arrow-back-outline"
-          (click)="onCloseAndOpen('modal_token_2', 'modal_token')"
-        ></ion-icon>
-        <ion-button
-          expand="block"
-          color="uva_blue-600"
-          (click)="onModalDismiss('modal_token_2')"
-        >
-          <ion-icon slot="icon-only" name="close"></ion-icon>
-        </ion-button>
-      </div>
-      <div class="container_text">
-        <p>
-          Al finalizar el <strong>mes</strong> la cantidad de tus semillas
-          <strong>germinará</strong> de esta manera:
-        </p>
-      </div>
-      <div class="container_text">
-        <h1>
-          11
-          <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
-          a 40
-          <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
+    #modal_token_2
+    id="modal_token_2"
+    [isOpen]="modals['modal_token_2']"
+    [initialBreakpoint]="1"
+    [breakpoints]="[0, 1]"
+    (ionModalDidDismiss)="onModalDismiss('modal_token_2')"
+  >
+    <ng-template>
+      <div class="modal_token_2">
+        <div class="contener_buttons_actions">
           <ion-icon
-            src="../../../assets/images/icons/arrow-right.svg"
-            class="icon_arrow"
+            slot="start"
+            name="arrow-back-outline"
+            (click)="onCloseAndOpen('modal_token_2', 'modal_token')"
           ></ion-icon>
-          <ion-icon src="../../../assets/images/icons/brote.svg"></ion-icon>
-        </h1>
-        <p>De 11 a 40 semillas germina un <strong>brote</strong></p>
+          <ion-button
+            expand="block"
+            color="uva_blue-600"
+            (click)="onModalDismiss('modal_token_2')"
+          >
+            <ion-icon slot="icon-only" name="close"></ion-icon>
+          </ion-button>
+        </div>
+        <div class="container_text">
+          <p>
+            Al finalizar el <strong>mes</strong> la cantidad de tus semillas
+            <strong>germinará</strong> de esta manera:
+          </p>
+        </div>
+        <div class="container_text">
+          <h1>
+            11
+            <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
+            a 40
+            <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
+            <ion-icon
+              src="../../../assets/images/icons/arrow-right.svg"
+              class="icon_arrow"
+            ></ion-icon>
+            <ion-icon src="../../../assets/images/icons/brote.svg"></ion-icon>
+          </h1>
+          <p>De 11 a 40 semillas germina un <strong>brote</strong></p>
+        </div>
+        <div class="container_text">
+          <h1>
+            41
+            <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
+            a 63
+            <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon
+            ><ion-icon
+              src="../../../assets/images/icons/arrow-right.svg"
+              class="icon_arrow"
+            ></ion-icon>
+            <ion-icon src="../../../assets/images/icons/platula.svg"></ion-icon>
+          </h1>
+          <p>De 41 a 63 semillas germina una <strong>plantula</strong></p>
+        </div>
+        <div class="container_text">
+          <h1>
+            mas de 63
+            <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
+            <ion-icon
+              src="../../../assets/images/icons/arrow-right.svg"
+              class="icon_arrow"
+            ></ion-icon>
+            <ion-icon src="../../../assets/images/icons/flor.svg"></ion-icon>
+          </h1>
+          <p>más de 63 semillas germina una <strong>flor</strong></p>
+        </div>
+        <div class="container_text">
+          <h1>
+            0
+            <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
+            a 10
+            <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
+          </h1>
+          <p>
+            De 0 a 10 semillas <strong>No</strong> alcanza a germinar
+            <strong>nada</strong> 😒
+          </p>
+        </div>
+        <div class="container_button">
+          <ion-button
+            color="uva_blue-600"
+            expand="block"
+            (click)="onModalDismiss('modal_token_2')"
+          >
+            Entendido
+          </ion-button>
+        </div>
       </div>
-      <div class="container_text">
-        <h1>
-          41
-          <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
-          a 63
-          <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon
-          ><ion-icon
-            src="../../../assets/images/icons/arrow-right.svg"
-            class="icon_arrow"
-          ></ion-icon>
-          <ion-icon src="../../../assets/images/icons/platula.svg"></ion-icon>
-        </h1>
-        <p>De 41 a 63 semillas germina una <strong>plantula</strong></p>
-      </div>
-      <div class="container_text">
-        <h1>
-          mas de 63
-          <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
-          <ion-icon
-            src="../../../assets/images/icons/arrow-right.svg"
-            class="icon_arrow"
-          ></ion-icon>
-          <ion-icon src="../../../assets/images/icons/flor.svg"></ion-icon>
-        </h1>
-        <p>más de 63 semillas germina una <strong>flor</strong></p>
-      </div>
-      <div class="container_text">
-        <h1>
-          0
-          <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
-          a 10
-          <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
-        </h1>
-        <p>
-          De 0 a 10 semillas <strong>No</strong> alcanza a germinar
-          <strong>nada</strong> 😒
-        </p>
-      </div>
-      <div class="container_button">
-        <ion-button
-          color="uva_blue-600"
-          expand="block"
-          (click)="onModalDismiss('modal_token_2')"
-        >
-          Entendido
-        </ion-button>
-      </div>
-    </div>
-  </ng-template>
-</ion-modal>
+    </ng-template>
+  </ion-modal>
 </ion-content>
