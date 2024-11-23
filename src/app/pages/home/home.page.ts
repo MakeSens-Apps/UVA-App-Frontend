@@ -9,6 +9,9 @@ import { es } from 'date-fns/locale/es';
 import { MoonCardComponent } from '../../components/moon-card/moon-card.component';
 import { UserProgressDSService } from '@app/core/services/storage/datastore/user-progress-ds.service';
 import { UserProgress } from 'src/models';
+import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
+import { ConfigModel } from 'src/models/configuration/config.model';
+
 @Component({
   selector: 'app-home',
   templateUrl: 'home.page.html',
@@ -32,15 +35,14 @@ export class HomePage implements OnInit {
     modal_token_2: false,
   };
   userProgress: UserProgress | undefined;
-  Seed?: number | null;
-  readonly Streak?: number | null;
-  readonly Milestones?: string | null;
-  readonly completedTasks?: number | null;
+  configurationApp: ConfigModel | undefined;
+  totalTask = 1;
   /**
    * Creates an instance of HomePage.
    * Initializes the formatted date string using date-fns with Spanish locale.
+   * @param {ConfigurationAppService} configuration Configuration App
    */
-  constructor() {
+  constructor(private configuration: ConfigurationAppService) {
     this.today = format(new Date(), " EEEE dd 'de' MMMM", { locale: es });
   }
 
@@ -48,9 +50,22 @@ export class HomePage implements OnInit {
    * Inicio de pagina
    */
   async ngOnInit(): Promise<void> {
+    const config = await this.configuration.getConfigurationApp();
+    const configMeasurement =
+      await this.configuration.getConfigurationMeasurement();
+    if (configMeasurement) {
+      console.log(typeof configMeasurement);
+      this.totalTask = this.configuration.countTasks(configMeasurement);
+      console.log(this.totalTask);
+    }
+    if (config) {
+      console.log(typeof config);
+      this.configurationApp = config;
+    }
     const userprogress = await UserProgressDSService.getLastUserProgress();
     if (userprogress) {
       this.userProgress = userprogress;
+      console.log(userprogress);
     }
   }
 }
