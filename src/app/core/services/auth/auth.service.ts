@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import {
   signIn,
+  deleteUser,
   getCurrentUser,
   confirmSignIn,
   signOut,
@@ -243,6 +244,19 @@ export class AuthService {
       return { success: true, data: currentUser };
     } catch (err: unknown) {
       return { success: false, error: this.handleAuthError(err) };
+    }
+  }
+
+  /**
+   * @returns {Promise<boolean> } La respuesta con el resultado del inicio de sesión.
+   */
+  async handleDeleteUser(): Promise<boolean> {
+    try {
+      await deleteUser();
+      return true;
+    } catch (error) {
+      console.error(error);
+      return false;
     }
   }
 }

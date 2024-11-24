@@ -1,6 +1,8 @@
 import { Component } from '@angular/core';
 import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
 import { ConfigurationAppService } from './core/services/storage/configuration-app.service';
+import { SyncMonitorDSService } from './core/services/storage/datastore/sync-monitor-ds.service';
+import { Platform } from '@ionic/angular/standalone';
 import { configureAutoTrack } from 'aws-amplify/analytics';
 @Component({
   selector: 'app-root',
@@ -13,9 +15,21 @@ export class AppComponent {
    * Creates an instance of AppComponent.
    * @memberof AppComponent
    * @param {ConfigurationAppService} configuration Configuretion Service to load branding/Colors
+   * @param {Platform} platform -For Wait for the platform to load
    */
-  constructor(private configuration: ConfigurationAppService) {
+  constructor(
+    private configuration: ConfigurationAppService,
+    private platform: Platform,
+  ) {
     void this.configuration.loadBranding();
+    platform
+      .ready()
+      .then(() => {
+        SyncMonitorDSService.subscribeToSync();
+      })
+      .catch((err) => {
+        console.error(err);
+      });
     this.initAutoTrack();
   }
 
