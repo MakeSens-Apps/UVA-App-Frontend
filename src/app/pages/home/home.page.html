@@ -1,4 +1,4 @@
-<app-header></app-header>
+<app-header [seed]="userProgress?.Seed"></app-header>
 <ion-content [fullscreen]="true">
   <h2 class="date-header">Hoy,{{today}}</h2>
   <div class="cards">
@@ -6,7 +6,7 @@
       <section header>
         <ion-card-header>
           <ion-card-title class="title_series">
-            Tienes 2 Días de racha 😌
+            Tienes {{userProgress?.Streak}} Días de racha 😌
           </ion-card-title>
           <ion-icon
             src="./../../../assets/images/icons/information-circle.svg"
@@ -32,7 +32,7 @@
   <div class="cards ion-margin-top">
     <ion-card-header>
       <ion-card-title class="title_series">
-        Registra y gana: +1<ion-icon
+        Registra y gana: +2<ion-icon
           src="./../../../assets/images/icons/semilla.svg"
         ></ion-icon>
       </ion-card-title>
@@ -43,7 +43,11 @@
       ></ion-icon>
     </ion-card-header>
     <ion-card-content>
-      <app-progress-bar></app-progress-bar>
+      <app-progress-bar
+        [currentProgress]="userProgress?.completedTasks ?? 0"
+        [totalProgress]="totalTask"
+      >
+      </app-progress-bar>
       <ion-button
         expand="block"
         color="uva_blue-600"

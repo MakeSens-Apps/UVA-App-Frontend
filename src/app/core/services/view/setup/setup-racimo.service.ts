@@ -185,7 +185,6 @@ export class SetupRacimoService {
           eq: linkageCode,
         },
       },
-      limit: 1,
     };
     const responseGetRacimo = await this.racimoAPI.listRACIMOS(variables);
     if (responseGetRacimo.success) {

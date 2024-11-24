@@ -79,8 +79,9 @@ export const onDeleteRACIMO = /* GraphQL */ `subscription OnDeleteRACIMO($filter
 >;
 export const onCreateMeasurement = /* GraphQL */ `subscription OnCreateMeasurement(
   $filter: ModelSubscriptionMeasurementFilterInput
+  $owner: String
 ) {
-  onCreateMeasurement(filter: $filter) {
+  onCreateMeasurement(filter: $filter, owner: $owner) {
     id
     type
     data
@@ -93,6 +94,7 @@ export const onCreateMeasurement = /* GraphQL */ `subscription OnCreateMeasureme
     _version
     _deleted
     _lastChangedAt
+    owner
     __typename
   }
 }
@@ -102,8 +104,9 @@ export const onCreateMeasurement = /* GraphQL */ `subscription OnCreateMeasureme
 >;
 export const onUpdateMeasurement = /* GraphQL */ `subscription OnUpdateMeasurement(
   $filter: ModelSubscriptionMeasurementFilterInput
+  $owner: String
 ) {
-  onUpdateMeasurement(filter: $filter) {
+  onUpdateMeasurement(filter: $filter, owner: $owner) {
     id
     type
     data
@@ -116,6 +119,7 @@ export const onUpdateMeasurement = /* GraphQL */ `subscription OnUpdateMeasureme
     _version
     _deleted
     _lastChangedAt
+    owner
     __typename
   }
 }
@@ -125,8 +129,9 @@ export const onUpdateMeasurement = /* GraphQL */ `subscription OnUpdateMeasureme
 >;
 export const onDeleteMeasurement = /* GraphQL */ `subscription OnDeleteMeasurement(
   $filter: ModelSubscriptionMeasurementFilterInput
+  $owner: String
 ) {
-  onDeleteMeasurement(filter: $filter) {
+  onDeleteMeasurement(filter: $filter, owner: $owner) {
     id
     type
     data
@@ -139,6 +144,7 @@ export const onDeleteMeasurement = /* GraphQL */ `subscription OnDeleteMeasureme
     _version
     _deleted
     _lastChangedAt
+    owner
     __typename
   }
 }
@@ -148,8 +154,9 @@ export const onDeleteMeasurement = /* GraphQL */ `subscription OnDeleteMeasureme
 >;
 export const onCreateUserProgress = /* GraphQL */ `subscription OnCreateUserProgress(
   $filter: ModelSubscriptionUserProgressFilterInput
+  $userID: String
 ) {
-  onCreateUserProgress(filter: $filter) {
+  onCreateUserProgress(filter: $filter, userID: $userID) {
     id
     ts
     Seed
@@ -171,8 +178,9 @@ export const onCreateUserProgress = /* GraphQL */ `subscription OnCreateUserProg
 >;
 export const onUpdateUserProgress = /* GraphQL */ `subscription OnUpdateUserProgress(
   $filter: ModelSubscriptionUserProgressFilterInput
+  $userID: String
 ) {
-  onUpdateUserProgress(filter: $filter) {
+  onUpdateUserProgress(filter: $filter, userID: $userID) {
     id
     ts
     Seed
@@ -194,8 +202,9 @@ export const onUpdateUserProgress = /* GraphQL */ `subscription OnUpdateUserProg
 >;
 export const onDeleteUserProgress = /* GraphQL */ `subscription OnDeleteUserProgress(
   $filter: ModelSubscriptionUserProgressFilterInput
+  $userID: String
 ) {
-  onDeleteUserProgress(filter: $filter) {
+  onDeleteUserProgress(filter: $filter, userID: $userID) {
     id
     ts
     Seed
@@ -215,8 +224,11 @@ export const onDeleteUserProgress = /* GraphQL */ `subscription OnDeleteUserProg
   APITypes.OnDeleteUserProgressSubscriptionVariables,
   APITypes.OnDeleteUserProgressSubscription
 >;
-export const onCreateUser = /* GraphQL */ `subscription OnCreateUser($filter: ModelSubscriptionUserFilterInput) {
-  onCreateUser(filter: $filter) {
+export const onCreateUser = /* GraphQL */ `subscription OnCreateUser(
+  $filter: ModelSubscriptionUserFilterInput
+  $id: String
+) {
+  onCreateUser(filter: $filter, id: $id) {
     id
     Name
     LastName
@@ -228,6 +240,7 @@ export const onCreateUser = /* GraphQL */ `subscription OnCreateUser($filter: Mo
       startedAt
       __typename
     }
+    uvaID
     UVA {
       id
       latitude
@@ -256,8 +269,11 @@ export const onCreateUser = /* GraphQL */ `subscription OnCreateUser($filter: Mo
   APITypes.OnCreateUserSubscriptionVariables,
   APITypes.OnCreateUserSubscription
 >;
-export const onUpdateUser = /* GraphQL */ `subscription OnUpdateUser($filter: ModelSubscriptionUserFilterInput) {
-  onUpdateUser(filter: $filter) {
+export const onUpdateUser = /* GraphQL */ `subscription OnUpdateUser(
+  $filter: ModelSubscriptionUserFilterInput
+  $id: String
+) {
+  onUpdateUser(filter: $filter, id: $id) {
     id
     Name
     LastName
@@ -269,6 +285,7 @@ export const onUpdateUser = /* GraphQL */ `subscription OnUpdateUser($filter: Mo
       startedAt
       __typename
     }
+    uvaID
     UVA {
       id
       latitude
@@ -297,8 +314,11 @@ export const onUpdateUser = /* GraphQL */ `subscription OnUpdateUser($filter: Mo
   APITypes.OnUpdateUserSubscriptionVariables,
   APITypes.OnUpdateUserSubscription
 >;
-export const onDeleteUser = /* GraphQL */ `subscription OnDeleteUser($filter: ModelSubscriptionUserFilterInput) {
-  onDeleteUser(filter: $filter) {
+export const onDeleteUser = /* GraphQL */ `subscription OnDeleteUser(
+  $filter: ModelSubscriptionUserFilterInput
+  $id: String
+) {
+  onDeleteUser(filter: $filter, id: $id) {
     id
     Name
     LastName
@@ -310,6 +330,7 @@ export const onDeleteUser = /* GraphQL */ `subscription OnDeleteUser($filter: Mo
       startedAt
       __typename
     }
+    uvaID
     UVA {
       id
       latitude
@@ -338,8 +359,11 @@ export const onDeleteUser = /* GraphQL */ `subscription OnDeleteUser($filter: Mo
   APITypes.OnDeleteUserSubscriptionVariables,
   APITypes.OnDeleteUserSubscription
 >;
-export const onCreateUVA = /* GraphQL */ `subscription OnCreateUVA($filter: ModelSubscriptionUVAFilterInput) {
-  onCreateUVA(filter: $filter) {
+export const onCreateUVA = /* GraphQL */ `subscription OnCreateUVA(
+  $filter: ModelSubscriptionUVAFilterInput
+  $userID: String
+) {
+  onCreateUVA(filter: $filter, userID: $userID) {
     id
     latitude
     longitude
@@ -355,6 +379,7 @@ export const onCreateUVA = /* GraphQL */ `subscription OnCreateUVA($filter: Mode
       PhoneNumber
       Email
       Rank
+      uvaID
       createdAt
       updatedAt
       _version
@@ -379,8 +404,11 @@ export const onCreateUVA = /* GraphQL */ `subscription OnCreateUVA($filter: Mode
   APITypes.OnCreateUVASubscriptionVariables,
   APITypes.OnCreateUVASubscription
 >;
-export const onUpdateUVA = /* GraphQL */ `subscription OnUpdateUVA($filter: ModelSubscriptionUVAFilterInput) {
-  onUpdateUVA(filter: $filter) {
+export const onUpdateUVA = /* GraphQL */ `subscription OnUpdateUVA(
+  $filter: ModelSubscriptionUVAFilterInput
+  $userID: String
+) {
+  onUpdateUVA(filter: $filter, userID: $userID) {
     id
     latitude
     longitude
@@ -396,6 +424,7 @@ export const onUpdateUVA = /* GraphQL */ `subscription OnUpdateUVA($filter: Mode
       PhoneNumber
       Email
       Rank
+      uvaID
       createdAt
       updatedAt
       _version
@@ -420,8 +449,11 @@ export const onUpdateUVA = /* GraphQL */ `subscription OnUpdateUVA($filter: Mode
   APITypes.OnUpdateUVASubscriptionVariables,
   APITypes.OnUpdateUVASubscription
 >;
-export const onDeleteUVA = /* GraphQL */ `subscription OnDeleteUVA($filter: ModelSubscriptionUVAFilterInput) {
-  onDeleteUVA(filter: $filter) {
+export const onDeleteUVA = /* GraphQL */ `subscription OnDeleteUVA(
+  $filter: ModelSubscriptionUVAFilterInput
+  $userID: String
+) {
+  onDeleteUVA(filter: $filter, userID: $userID) {
     id
     latitude
     longitude
@@ -437,6 +469,7 @@ export const onDeleteUVA = /* GraphQL */ `subscription OnDeleteUVA($filter: Mode
       PhoneNumber
       Email
       Rank
+      uvaID
       createdAt
       updatedAt
       _version

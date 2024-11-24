@@ -188,6 +188,10 @@ export class ConfigurationAppService {
     }
   }
 
+  countTasks(model: MeasurementModel): number {
+    return Object.keys(model.tasks).length;
+  }
+
   /**
    * Loads an image file as a URI on Android and iOS platforms.
    * @private

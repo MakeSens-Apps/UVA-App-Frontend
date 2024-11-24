@@ -62,17 +62,6 @@ export class LoginPage {
         ]),
       ),
     });
-    // Check if there's an authenticated user. If yes, navigate to the home page.
-    this.service
-      .currentAuthenticatedUser()
-      .then((response) => {
-        if (response) {
-          void this.goToHome();
-        }
-      })
-      .catch((err) => {
-        console.error('No encontro un usuario', err);
-      });
   }
 
   /**

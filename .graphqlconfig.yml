@@ -12,7 +12,7 @@ projects:
         generatedFileName: src/API.ts
         docsFilePath: src/graphql
         region: us-east-1
-        apiId: yxrlo7mqf5bn7cuqqgssoprqam
+        apiId: uqr6xntysfa3lbguhirvcj3pa4
         frontend: javascript
         framework: ionic
         maxDepth: 2

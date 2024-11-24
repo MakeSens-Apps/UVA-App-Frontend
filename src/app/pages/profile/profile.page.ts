@@ -27,6 +27,7 @@ import { Clipboard } from '@capacitor/clipboard';
 import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
 import { SetupService } from '@app/core/services/view/setup/setup.service';
 import { SessionService } from '@app/core/services/session/session.service';
+import { DataStore } from '@aws-amplify/datastore';
 
 /**
  * @class ProfilePage
@@ -151,6 +152,7 @@ export class ProfilePage {
       const response = await this.service.signOut();
       if (response) {
         this.session.clearSession();
+        await DataStore.clear();
         await this.router.navigate([''], {
           replaceUrl: true,
         });
