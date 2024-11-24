@@ -46,27 +46,29 @@ export class AchievementPage {
   ionViewWillEnter(): void {
     UserProgressDSService.getMilestones()
       .then(async (response) => {
-        let blob: Achievement;
         response.forEach((milestone) => {
           switch (milestone) {
             case 'brote': {
-              blob.icon = '../../../../assets/images/icons/brote1.png';
+              this.achievements.push({
+                icon: '../../../../assets/images/icons/brote1.png',
+              });
               break;
             }
             case 'plantula': {
-              blob.icon = '../../../../assets/images/icons/platula.svg';
+              this.achievements.push({
+                icon: '../../../../assets/images/icons/platula.svg',
+              });
               break;
             }
             case 'flor': {
-              blob.icon = '../../../../assets/images/icons/flor.svg';
+              this.achievements.push({
+                icon: '../../../../assets/images/icons/flor.svg',
+              });
+
               break;
             }
             default:
-              blob.icon = '';
               break;
-          }
-          if (blob.icon.trim() !== '') {
-            this.achievements.push(blob);
           }
         });
       })
