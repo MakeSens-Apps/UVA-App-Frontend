@@ -73,7 +73,10 @@ export class UserProgressDSService {
     );
     return progressEntries.length > 0 ? progressEntries[0] : null;
   }
-
+  /**
+   * Description
+   * @returns {Promise<string[]>} return
+   */
   static async getMilestones(): Promise<string[]> {
     const userID = (await this.session.getInfo()).userID ?? '';
 

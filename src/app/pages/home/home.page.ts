@@ -112,6 +112,12 @@ export class HomePage implements OnInit, OnDestroy {
     if (config) {
       this.configurationApp = config;
     }
+  }
+
+  /**
+   * view about to enter
+   */
+  async ionViewWillEnter(): Promise<void> {
     const userprogress = await UserProgressDSService.getLastUserProgress();
     if (userprogress) {
       this.userProgress = userprogress;

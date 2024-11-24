@@ -1,17 +1,26 @@
 import { DataStore } from '@aws-amplify/datastore';
 import { UVA } from 'src/models/index';
+import { SessionService } from '../../session/session.service';
+
+interface UVAUpdateDate {
+  latitude?: string;
+  longitude?: string;
+  altitud?: string;
+  fields?: string;
+}
 
 /**
  * Service for managing UVA data.
  */
 export class UvaDSService {
+  static session = new SessionService();
   /**
    * Retrieves a UVA by its ID.
-   * @param {string} uvaID - ID of the UVA.
    * @returns {Promise<UVA | undefined>} The UVA object.
    */
-  static async getUVAByID(uvaID: string): Promise<UVA | undefined> {
+  static async getUVAByID(): Promise<UVA | undefined> {
     try {
+      const uvaID = (await this.session.getInfo()).uvaID ?? '';
       return await DataStore.query(UVA, uvaID);
     } catch (error) {
       console.error('Error fetching UVA', error);
@@ -39,20 +48,20 @@ export class UvaDSService {
 
   /**
    * Updates a UVA's data.
-   * @param {string} uvaID - ID of the UVA.
-   * @param {Partial<UVA>} updates - Partial object with updated fields.
+   * @param {UVAUpdateDate} updates - Partial object with updated fields.
    * @returns {Promise<UVA | undefined>} The updated UVA object.
    */
-  static async updateUVA(
-    uvaID: string,
-    updates: Partial<UVA>,
-  ): Promise<UVA | undefined> {
+  static async updateUVA(updates: UVAUpdateDate): Promise<UVA | undefined> {
     try {
-      const uva = await DataStore.query(UVA, uvaID);
-      if (uva) {
+      const uvaID = (await this.session.getInfo()).uvaID ?? '';
+      const original = await DataStore.query(UVA, uvaID);
+      if (original) {
         return await DataStore.save(
-          UVA.copyOf(uva, (updated) => {
-            Object.assign(updated, updates);
+          UVA.copyOf(original, (updated) => {
+            updated.latitude = updates.latitude;
+            updated.longitude = updates.longitude;
+            updated.altitude = updates.altitud;
+            updated.fields = updates.fields;
           }),
         );
       }

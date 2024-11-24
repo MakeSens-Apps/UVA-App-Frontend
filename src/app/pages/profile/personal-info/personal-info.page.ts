@@ -10,12 +10,13 @@ import {
   ReactiveFormsModule,
   FormBuilder,
   FormGroup,
-  Validators,
 } from '@angular/forms';
 import { IonicModule, AlertController } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { IonInputCustomEvent } from '@ionic/core';
-import { SessionService } from '@app/core/services/session/session.service';
+import { UserDSService } from '@app/core/services/storage/datastore/user-ds.service';
+import { UvaDSService } from '@app/core/services/storage/datastore/uva-ds.service';
+import { AuthService } from '@app/core/services/auth/auth.service';
 
 // Define user personal fields
 interface FieldsPersonalInfo {
@@ -126,15 +127,15 @@ export class PersonalInfoPage implements OnInit {
    * @param {Router} router - Angular Router instance for navigation.
    * @param {FormBuilder} fb - FormBuilder instance for form creation.
    * @param {AlertController} alertController - AlertController instance for handling alerts.
-   * @param {SessionService} session - Service to manage session-related tasks.
    * @param {ChangeDetectorRef} cdr - ChangeDetectorRef for manually triggering Angular's change detection.
+   * @param {AuthService} auth AuthService
    */
   constructor(
     private router: Router,
     private fb: FormBuilder,
     private alertController: AlertController,
-    private session: SessionService,
     private cdr: ChangeDetectorRef,
+    private auth: AuthService,
   ) {}
 
   /**
@@ -144,11 +145,15 @@ export class PersonalInfoPage implements OnInit {
     // Initialize both forms as empty
     this.userPersonalForm = this.createEmptyForm(this.fieldsPersonal);
     this.userLocationForm = this.createEmptyForm(this.fieldsLocation);
-
-    // Populate forms with user data
-    await this.updateFormsWithUserData();
   }
 
+  /**
+   * view about to enter
+   */
+  ionViewWillEnter(): void {
+    // Populate forms with user data
+    void this.updateFormsWithUserData();
+  }
   /**
    * Creates an empty form based on the provided fields.
    * @param {Array} fields - List of fields to create form controls.
@@ -159,10 +164,7 @@ export class PersonalInfoPage implements OnInit {
     const formControls: Record<string, any> = {};
 
     fields.forEach((field) => {
-      formControls[field.key] = [
-        { value: '', disabled: !!field.disabled },
-        Validators.required,
-      ];
+      formControls[field.key] = [{ value: '', disabled: !!field.disabled }];
     });
 
     return this.fb.group(formControls);
@@ -173,19 +175,47 @@ export class PersonalInfoPage implements OnInit {
    * @returns {Promise<void>}
    */
   async updateFormsWithUserData(): Promise<void> {
-    const dataUser = await this.session.getInfo();
+    const user = await UserDSService.getUser();
+    const uva = await UvaDSService.getUVAByID();
     // Update personal form with user data
     this.userPersonalForm.patchValue({
-      userName: dataUser.name || '',
-      userLastName: dataUser.lastName || '',
-      userPhoneNumber: dataUser.phone || '',
+      userName: user?.Name || '',
+      userLastName: user?.LastName || '',
+      userPhoneNumber: user?.PhoneNumber || '',
+      userEmail: user?.Email || undefined,
     });
 
-    // Update location form with user location data
-    this.userLocationForm.patchValue({});
+    this.userLocationForm.patchValue({
+      latitude: uva?.latitude ?? '',
+      longitude: uva?.longitude ?? '',
+      altitude: uva?.altitude ?? '',
+    });
 
-    console.log('Personal Form Data:', this.userPersonalForm.value);
-    console.log('Location Form Data:', this.userLocationForm.value);
+    let fields: Record<string, string> = {};
+
+    // Validamos y procesamos el campo uva.fields
+    try {
+      if (uva?.fields) {
+        fields =
+          typeof uva.fields === 'string'
+            ? JSON.parse(uva.fields)
+            : typeof uva.fields === 'object'
+              ? (uva.fields as Record<string, string>)
+              : (() => {
+                  throw new Error('Formato no válido para uva.fields');
+                })();
+      } else {
+        console.warn('uva.fields está vacío o no definido.');
+      }
+    } catch (error) {
+      console.error('Error procesando uva.fields:', error);
+    }
+    // Update location form with user location data
+    this.userLocationForm.patchValue({
+      finca: fields['farmName'] ?? '',
+      vereda: fields['villageName'] ?? '',
+      municipio: fields['townName'] ?? '',
+    });
   }
 
   /**
@@ -196,8 +226,25 @@ export class PersonalInfoPage implements OnInit {
     this.cdr.detectChanges();
     if (this.userPersonalForm.valid && this.userLocationForm.valid) {
       // Process the data if both forms are valid
-      console.log('Personal Form:', this.userPersonalForm.value);
-      console.log('Location Form:', this.userLocationForm.value);
+      void UserDSService.updateUser({
+        name: await this.userPersonalForm.value['userName'],
+        lastName: await this.userPersonalForm.value['userLastName'],
+        email: await this.userPersonalForm.value['userEmail'],
+      });
+      // Captura los valores del formulario y estructura los fields
+      const fields: Record<string, string> = {
+        farmName: this.userLocationForm.value['finca'] ?? '',
+        villageName: this.userLocationForm.value['vereda'] ?? '',
+        townName: this.userLocationForm.value['municipio'] ?? '',
+      };
+      const fieldsString = JSON.stringify(fields);
+
+      void UvaDSService.updateUVA({
+        latitude: await this.userLocationForm.value['latitude'],
+        longitude: await this.userLocationForm.value['longitude'],
+        altitud: await this.userLocationForm.value['altitude'],
+        fields: fieldsString,
+      });
     } else {
       // Show an alert if any form is invalid
       await this.showAlert();
@@ -288,10 +335,21 @@ export class PersonalInfoPage implements OnInit {
    * Sends a request to delete the user's account.
    * @returns {void}
    */
-  goDeleteAccount(): void {
+  async goDeleteAccount(): Promise<void> {
     if (this.isInputValid) {
-      console.log('Cuenta eliminada');
       this.cdr.detectChanges();
+      const isDeleteUser = await this.auth.handleDeleteUser();
+      if (isDeleteUser) {
+        this.goBack('/login');
+      } else {
+        const alert = await this.alertController.create({
+          header: 'Error',
+          message: 'No se pudo borrar la cuenta',
+          buttons: ['OK'],
+        });
+
+        await alert.present();
+      }
       // Aquí puedes agregar tu lógica para eliminar la cuenta
     }
   }
