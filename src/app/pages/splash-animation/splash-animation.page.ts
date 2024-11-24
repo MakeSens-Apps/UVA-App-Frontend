@@ -10,9 +10,7 @@ import {
 
 import { Animation, AnimationController } from '@ionic/angular';
 import { Router } from '@angular/router';
-import { SetupService } from '@app/core/services/view/setup/setup.service';
 import { SyncMonitorDSService } from '@app/core/services/storage/datastore/sync-monitor-ds.service';
-import { SetupRacimoService } from '@app/core/services/view/setup/setup-racimo.service';
 import { SessionService } from '@app/core/services/session/session.service';
 import { RacimoDSService } from '@app/core/services/storage/datastore/racimo-ds.service';
 import { UvaDSService } from '@app/core/services/storage/datastore/uva-ds.service';
@@ -40,15 +38,12 @@ export class SplashAnimationPage implements OnInit {
    * Creates an instance of SplashAnimationPage.
    * @param {AnimationController} animationCtrl - The animation controller from Ionic.
    * @param {Router} router - The Router module to navigate between pages.
-   * @param {SetupService} service - The SetupService to handle authentication and session management.
-   * @param {SetupRacimoService} serviceRacimo SetupRacimoService,
    * @param {SessionService} session  SessionService
+   * @param {AuthService} auth AuthService
    */
   constructor(
     private animationCtrl: AnimationController,
     private router: Router,
-    private service: SetupService,
-    private serviceRacimo: SetupRacimoService,
     private session: SessionService,
     private auth: AuthService,
   ) {}
@@ -72,7 +67,6 @@ export class SplashAnimationPage implements OnInit {
     try {
       // Check if the current user is authenticated
       const response = await this.auth.CurrentAuthenticatedUser();
-      console.log(response);
       if (!response.success) {
         // Redirect to login if no user is authenticated
         void this.redirectToPage('/login');
@@ -89,7 +83,6 @@ export class SplashAnimationPage implements OnInit {
         void this.redirectToPage('register/validate-project');
         return;
       }
-      console.log(uva);
 
       // Check if the UVA has an associated racimo ID
       const racimoID = uva.racimoID ?? '';
@@ -100,7 +93,6 @@ export class SplashAnimationPage implements OnInit {
 
       // Check if the racimo has a valid code
       const racimoCode = await RacimoDSService.getRacimoCode(racimoID);
-      console.log(racimoCode);
       if (racimoCode) {
         void this.session.setInfoField('uvaID', uva.id);
         void this.session.setInfoField('racimoID', racimoID);
