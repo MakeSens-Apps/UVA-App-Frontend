@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
 import {
   IonButton,
@@ -17,6 +17,8 @@ import {
 } from '@angular/forms';
 import { AlertComponent } from '@app/components/alert/alert.component';
 import { SetupService } from '@app/core/services/view/setup/setup.service';
+import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-login',
@@ -36,8 +38,9 @@ import { SetupService } from '@app/core/services/view/setup/setup.service';
  * Class representing the login page.
  * Handles user login, validation, and navigation.
  */
-export class LoginPage {
+export class LoginPage implements OnDestroy {
   form: FormGroup;
+  private backButtonSubscription!: Subscription;
   /**
    * Constructs the LoginPage component.
    * Initializes the form and checks if there is a current authenticated user.
@@ -45,12 +48,14 @@ export class LoginPage {
    * @param {FormBuilder} formBuilder - The Angular FormBuilder for creating reactive forms.
    * @param {ModalController} modalCtrl - The Ionic ModalController to manage modals.
    * @param {SetupService} service - The SetupService to handle authentication and session management.
+   * @param {AppMinimizeService} minimizeService - The AppMinimizeService.
    */
   constructor(
     private router: Router,
     private formBuilder: FormBuilder,
     private modalCtrl: ModalController,
     private service: SetupService,
+    private minimizeService: AppMinimizeService,
   ) {
     this.form = this.formBuilder.group({
       phone: new FormControl(
@@ -62,6 +67,7 @@ export class LoginPage {
         ]),
       ),
     });
+    this.minimizeService.initializeBackButtonHandler();
   }
 
   /**
@@ -165,5 +171,16 @@ export class LoginPage {
       });
 
     await modal.present();
+  }
+
+  /**
+   * Cleans up the back button subscription when the component is destroyed.
+   * This prevents memory leaks and ensures no further events are handled for this subscription.
+   * @returns {void}
+   */
+  ngOnDestroy(): void {
+    if (this.backButtonSubscription) {
+      this.backButtonSubscription.unsubscribe();
+    }
   }
 }
