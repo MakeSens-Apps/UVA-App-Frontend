@@ -29,7 +29,8 @@ import { SetupService } from '@app/core/services/view/setup/setup.service';
 import { SessionService } from '@app/core/services/session/session.service';
 import { ChangeDetectorRef } from '@angular/core';
 import { DataStore } from '@aws-amplify/datastore';
-
+import { UserProgressDSService } from '@app/core/services/storage/datastore/user-progress-ds.service';
+import { UserDSService } from '@app/core/services/storage/datastore/user-ds.service';
 /* eslint-disable @typescript-eslint/type-annotation-spacing */
 interface ShareOption {
   label: string;
@@ -75,7 +76,7 @@ export class ProfilePage implements OnInit {
   name: string | undefined;
   isRanking = false;
   isSeed = false;
-  seed = 0;
+  seed: number | undefined | null;
   seedIcon = '';
   shareOptions: ShareOption[] = [
     {
@@ -130,12 +131,20 @@ export class ProfilePage implements OnInit {
    * Start of page variables
    */
   async ngOnInit(): Promise<void> {
-    const dataUser = await this.session.getInfo();
-    this.name = dataUser.name;
     this.isRanking = true;
     this.isSeed = true;
-    this.seed = 3;
     this.seedIcon = '../../../assets/images/icons/semilla.svg';
+  }
+  /**
+   * view about to enter
+   */
+  async ionViewWillEnter(): Promise<void> {
+    const user = await UserDSService.getUser();
+    this.name = user?.Name;
+    const userprogress = await UserProgressDSService.getLastUserProgress();
+    if (userprogress) {
+      this.seed = userprogress.Seed;
+    }
   }
 
   // Método para compartir en WhatsApp
@@ -205,7 +214,7 @@ export class ProfilePage implements OnInit {
    * @returns {void}
    */
   goUrl(): void {
-    const url = 'https://www.example.com'; // Reemplaza con la URL que deseas abrir
+    const url = 'https://docs.makesens.co/ayuda-uva'; // Reemplaza con la URL que deseas abrir
     window.open(url, '_blank'); // '_blank' abre en una nueva pestaña; usa '_self' para la misma pestaña
   }
   /**
