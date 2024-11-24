@@ -10,7 +10,11 @@ import {
 
 import { Animation, AnimationController } from '@ionic/angular';
 import { Router } from '@angular/router';
-
+import { SyncMonitorDSService } from '@app/core/services/storage/datastore/sync-monitor-ds.service';
+import { SessionService } from '@app/core/services/session/session.service';
+import { RacimoDSService } from '@app/core/services/storage/datastore/racimo-ds.service';
+import { UvaDSService } from '@app/core/services/storage/datastore/uva-ds.service';
+import { AuthService } from '@app/core/services/auth/auth.service';
 @Component({
   selector: 'app-splash-animation',
   templateUrl: './splash-animation.page.html',
@@ -29,29 +33,110 @@ export class SplashAnimationPage implements OnInit {
   private leafIconAnimation: Animation | undefined;
   private poweredByAnimation: Animation | undefined;
   private makeSensLogoAnimation: Animation | undefined;
-
+  private endAnimation = false;
   /**
-   * Crea una instancia de SplashAnimationPage.
-   * @param {AnimationController} animationCtrl - Controlador de animaciones de Ionic.
-   * @param {Router} router - Módulo de navegación para redirigir a diferentes páginas.
-   * @memberof SplashAnimationPage
+   * Creates an instance of SplashAnimationPage.
+   * @param {AnimationController} animationCtrl - The animation controller from Ionic.
+   * @param {Router} router - The Router module to navigate between pages.
+   * @param {SessionService} session  SessionService
+   * @param {AuthService} auth AuthService
    */
   constructor(
     private animationCtrl: AnimationController,
     private router: Router,
+    private session: SessionService,
+    private auth: AuthService,
   ) {}
+
   /**
-   * Método que se ejecuta al inicializar el componente.
-   * Llama al método para configurar las animaciones
+   * Method that is executed when the component initializes.
+   * It calls the setupAnimations method and checks if a user is authenticated.
    * @memberof SplashAnimationPage
    */
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
+    // Initialize the animations and start the authentication check
     this.setupAnimations();
+    await this.checkUserAuthentication();
   }
 
   /**
-   * Método que se ejecuta cuando la vista ha terminado de cargarse.
-   * Llama al método para iniciar las animaciones.
+   * Verifies user authentication and navigates to the appropriate page.
+   * @memberof SplashAnimationPage
+   */
+  async checkUserAuthentication(): Promise<void> {
+    try {
+      // Check if the current user is authenticated
+      const response = await this.auth.CurrentAuthenticatedUser();
+      if (!response.success) {
+        // Redirect to login if no user is authenticated
+        void this.redirectToPage('/login');
+        return;
+      }
+      const userID = response.data.userId;
+      void this.session.setInfoField('userID', userID);
+      // Retrieve the current user's ID
+      await SyncMonitorDSService.waitForSyncDataStore();
+
+      // Check if the user has an assigned UVA
+      const uva = await UvaDSService.getUVAByuserID(userID);
+      if (!uva) {
+        void this.redirectToPage('register/validate-project');
+        return;
+      }
+
+      // Check if the UVA has an associated racimo ID
+      const racimoID = uva.racimoID ?? '';
+      if (!racimoID) {
+        void this.redirectToPage('register/validate-project');
+        return;
+      }
+
+      // Check if the racimo has a valid code
+      const racimoCode = await RacimoDSService.getRacimoCode(racimoID);
+      if (racimoCode) {
+        void this.session.setInfoField('uvaID', uva.id);
+        void this.session.setInfoField('racimoID', racimoID);
+        void this.session.setInfoField('racimoLinkCode', racimoCode);
+        void this.redirectToPage('app/tabs/home');
+      } else {
+        void this.redirectToPage('register/validate-project');
+      }
+    } catch (err) {
+      console.error('No user found', err);
+      void this.redirectToPage('/login');
+    }
+  }
+
+  /**
+   * Waits for the animation to finish before allowing further processing.
+   * @returns {Promise<void>} Resolves when the animation is finished.
+   * @memberof SplashAnimationPage
+   */
+  waitForAnimationToEnd(): Promise<void> {
+    return new Promise((resolve) => {
+      const checkAnimationInterval = setInterval(() => {
+        if (this.endAnimation) {
+          clearInterval(checkAnimationInterval); // Stop checking once animation ends
+          resolve(); // Resolve the promise when animation finishes
+        }
+      }, 100); // Check every 100ms
+    });
+  }
+  /**
+   * Navigates the user to the specified page.
+   * This function is used for all redirections to ensure consistency.
+   * @param {string} path - The path to navigate to.
+   * @returns {Promise<boolean>} A promise that resolves to true if navigation was successful.
+   * @memberof SplashAnimationPage
+   */
+  async redirectToPage(path: string): Promise<boolean> {
+    await this.waitForAnimationToEnd();
+    return this.router.navigate([path]);
+  }
+
+  /**
+   * Executes when the view has loaded.
+   * Starts playing the animations.
    * @memberof SplashAnimationPage
    */
   ionViewDidEnter(): void {
@@ -59,8 +144,8 @@ export class SplashAnimationPage implements OnInit {
   }
 
   /**
-   * Configura las animaciones para los diferentes elementos de la página de splash.
-   * Define las animaciones de la hoja, el texto "Powered by" y el logo de MakeSens.
+   * Configures the animations for the different splash page elements.
+   * Defines the animations for the leaf icon, "Powered by" text, and MakeSens logo.
    * @memberof SplashAnimationPage
    */
   setupAnimations(): void {
@@ -98,9 +183,8 @@ export class SplashAnimationPage implements OnInit {
   }
 
   /**
-   * Ejecuta las animaciones de los elementos en la página de splash.
-   * Inicia las animaciones del ícono de la hoja, el texto "Powered by" y el logo de MakeSens,
-   * y navega a la página de inicio de sesión al finalizar.
+   * Plays the animations for the splash page elements.
+   * Once the animations are completed, navigates based on the user authentication status.
    * @memberof SplashAnimationPage
    */
   playAnimations(): void {
@@ -110,8 +194,8 @@ export class SplashAnimationPage implements OnInit {
       void this.makeSensLogoAnimation?.play();
       void this.makeSensLogoAnimation?.onFinish(() => {
         setTimeout(() => {
-          void this.router.navigate(['/login']);
-        }, 1000);
+          this.endAnimation = true;
+        }, 500);
       });
     } catch {
       console.error('Error en la animacion');

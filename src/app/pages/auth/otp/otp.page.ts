@@ -2,6 +2,7 @@ import {
   ChangeDetectorRef,
   Component,
   OnInit,
+  OnDestroy,
   QueryList,
   ViewChildren,
 } from '@angular/core';
@@ -21,6 +22,8 @@ import {
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { SetupService } from '@app/core/services/view/setup/setup.service';
+import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.service';
+import { Subscription } from 'rxjs';
 @Component({
   selector: 'app-otp',
   templateUrl: './otp.page.html',
@@ -40,12 +43,13 @@ import { SetupService } from '@app/core/services/view/setup/setup.service';
     RouterLink,
   ],
 })
-export class OtpPage implements OnInit {
+export class OtpPage implements OnInit, OnDestroy {
   otp: string[] = ['', '', '', '', '', ''];
   timer = 60;
   phone: string | null = '';
   type;
   showError = false;
+  private backButtonSubscription!: Subscription;
 
   /**
    * Crea una instancia de OtpPage.
@@ -54,6 +58,7 @@ export class OtpPage implements OnInit {
    * @param {ChangeDetectorRef} ref - Referencia al ChangeDetector para detectar cambios en la vista.
    * @param {SetupService} service - Servicio para manejar la configuración de OTP.
    * @param {AlertController} alertController - Controlador de alertas para mostrar mensajes.
+   * @param {AppMinimizeService} minimizeService - The AppMinimizeService.
    */
   constructor(
     private router: Router,
@@ -61,9 +66,11 @@ export class OtpPage implements OnInit {
     private ref: ChangeDetectorRef,
     private service: SetupService,
     private alertController: AlertController,
+    private minimizeService: AppMinimizeService,
   ) {
     this.type = this.route.snapshot.paramMap.get('type');
     this.phone = this.route.snapshot.paramMap.get('phone');
+    this.minimizeService.initializeBackButtonHandler();
   }
 
   @ViewChildren('otpInput') otpInputs!: QueryList<IonInput>;
@@ -170,15 +177,34 @@ export class OtpPage implements OnInit {
     if (otpValue.length === 6) {
       switch (this.type) {
         case 'login': {
-          const responseLogin = await this.service.confirmSignIn(otpValue);
-          if (responseLogin == false) {
-            this.showError = true;
-            this.ref.detectChanges();
-            return;
+          if (!(await this.service.currentAuthenticatedUser())) {
+            const responseLogin = await this.service.confirmSignIn(otpValue);
+            if (responseLogin == false) {
+              this.showError = true;
+              this.ref.detectChanges();
+              return;
+            }
           }
-          await this.router.navigate([
-            `/otp/${this.type}/${this.phone}/validate-code`,
-          ]);
+
+          const responseNewUser = await this.service.createNewUser();
+          if (responseNewUser) {
+            await this.router.navigate([
+              `/otp/${this.type}/${this.phone}/validate-code`,
+            ]);
+          } else {
+            //FIXME: Hay que desplegar una alerta real en relacion a la no creacion del usuario y manejar el error
+            await this.alertController
+              .create({
+                header: 'Alerta',
+                subHeader: 'No se pudo crear el usuario',
+                message: 'No createUser',
+                buttons: ['Aceptar'], // O puedes usar un array de botones personalizados
+              })
+              .then((alert) => {
+                void alert.present();
+              });
+          }
+
           break;
         }
         case 'register':
@@ -189,24 +215,9 @@ export class OtpPage implements OnInit {
               this.ref.detectChanges();
               return;
             }
-            const responseNewUser = await this.service.createNewUser();
-            if (responseNewUser) {
-              await this.router.navigate([
-                `/otp/${this.type}/${this.phone}/validate-code`,
-              ]);
-            } else {
-              //FIXME: Hay que desplegar una alerta real en relacion a la no creacion del usuario y manejar el error
-              await this.alertController
-                .create({
-                  header: 'Alerta',
-                  subHeader: 'Este es un subtítulo',
-                  message: 'Este es un mensaje de alerta.',
-                  buttons: ['Aceptar'], // O puedes usar un array de botones personalizados
-                })
-                .then((alert) => {
-                  void alert.present();
-                });
-            }
+            await this.router.navigate([
+              `/otp/${this.type}/${this.phone}/validate-code`,
+            ]);
           }
 
           break;
@@ -233,5 +244,16 @@ export class OtpPage implements OnInit {
    */
   trackByIndex(index: number): number {
     return index;
+  }
+
+  /**
+   * Cleans up the back button subscription when the component is destroyed.
+   * This prevents memory leaks and ensures no further events are handled for this subscription.
+   * @returns {void}
+   */
+  ngOnDestroy(): void {
+    if (this.backButtonSubscription) {
+      this.backButtonSubscription.unsubscribe();
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectorRef, Component, Input } from '@angular/core';
 import {
   IonChip,
   IonHeader,
@@ -8,7 +8,6 @@ import {
   IonLabel,
 } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
-
 /**
  * @class HeaderComponent
  *  a header component with navigation functionality,using various Ionic components such as header,icon,chip,avatar,and label.
@@ -26,12 +25,18 @@ export class HeaderComponent {
    * @type {string}
    * @default 'Inicio'
    */
-  @Input() title = 'Inicio';
+  @Input() title = ' Inicio';
+
+  @Input() seed: number | null | undefined;
 
   /**
    * @param {Router} router Angular Router instance used for navigation.
+   * @param {ChangeDetectorRef} cdr Angular detecte change in app.
    */
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private cdr: ChangeDetectorRef,
+  ) {}
 
   /**
    * Navigates to the profile page.
