@@ -183,9 +183,8 @@ export class CalendarComponent implements OnInit {
         icon:
           this.typeCalendar === 'moon'
             ? this.setIconPhase(
-                this.phaseMoonDays.find(
-                  (phase) => phase.day - 1 === day.getDate(),
-                )?.status || 'new-moon',
+                this.phaseMoonDays.find((phase) => phase.day === day.getDate())
+                  ?.status || 'new-moon',
               )
             : null,
 
