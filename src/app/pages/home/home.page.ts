@@ -12,6 +12,11 @@ import {
   MoonPhaseService,
   LunarPhase,
 } from '@app/core/services/view/moon/moon-phase.service';
+import { UserProgressDSService } from '@app/core/services/storage/datastore/user-progress-ds.service';
+import { UserProgress } from 'src/models';
+import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
+import { ConfigModel } from 'src/models/configuration/config.model';
+
 /**
  * @class HomePage
  * @description Component for the main homepage of the app. Displays the current date,
@@ -33,10 +38,6 @@ import {
   ],
 })
 export class HomePage implements OnInit {
-  /**
-   * Formatted string representing today's date in Spanish.
-   * @type {string}
-   */
   today: string;
   phase: LunarPhase = LunarPhase.FULL_MOON;
   /**
@@ -53,28 +54,46 @@ export class HomePage implements OnInit {
     modal_token: false,
     modal_token_2: false,
   };
-
+  userProgress: UserProgress | undefined;
+  configurationApp: ConfigModel | undefined;
+  totalTask = 1;
   /**
    * @constructs HomePage
    * Initializes an instance of HomePage and sets the formatted date string.
    * The date is formatted in Spanish using date-fns.
    * @param {Router} router - Angular Router for handling navigation.
    * @param {MoonPhaseService} moonphase - Moon Phase Service.
+   * @param {ConfigurationAppService} configuration Configuration App
    */
   constructor(
     private router: Router,
     private moonphase: MoonPhaseService,
+    private configuration: ConfigurationAppService,
   ) {
     this.today = format(new Date(), " EEEE dd 'de' MMMM", { locale: es });
   }
 
   /**
-   * Lifecycle hook that is called when the component is initialized.
-   * This function fetches the current moon phase from the moonphase service
-   * and updates the component's phase property if the request is successful.
-   * @returns {Promise<void>} A promise that resolves when the initialization is complete.
+   * Inicio de pagina
    */
   async ngOnInit(): Promise<void> {
+    const config = await this.configuration.getConfigurationApp();
+    const configMeasurement =
+      await this.configuration.getConfigurationMeasurement();
+    if (configMeasurement) {
+      console.log(typeof configMeasurement);
+      this.totalTask = this.configuration.countTasks(configMeasurement);
+      console.log(this.totalTask);
+    }
+    if (config) {
+      console.log(typeof config);
+      this.configurationApp = config;
+    }
+    const userprogress = await UserProgressDSService.getLastUserProgress();
+    if (userprogress) {
+      this.userProgress = userprogress;
+      console.log(userprogress);
+    }
     const currentPhase = await this.moonphase.getCurrentPhase();
     if (currentPhase.success) {
       this.phase = currentPhase.data;

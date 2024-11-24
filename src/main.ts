@@ -9,13 +9,13 @@ import {
   IonicRouteStrategy,
   provideIonicAngular,
 } from '@ionic/angular/standalone';
-
+import { Amplify } from 'aws-amplify';
 import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
-import { Amplify } from 'aws-amplify';
 
 import config from './amplifyconfiguration.json';
 
+// Configurar Amplify sin DataStore
 Amplify.configure(config);
 
 void bootstrapApplication(AppComponent, {

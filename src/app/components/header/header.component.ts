@@ -42,6 +42,7 @@ export class HeaderComponent {
   @Input() hasBackButton = false;
   @Input() routerBackButton = '/';
   @Input() hasProfileButton = true;
+  @Input() seed: number | null | undefined;
 
   /**
    * @param {Router} router Angular Router instance used for navigation.
