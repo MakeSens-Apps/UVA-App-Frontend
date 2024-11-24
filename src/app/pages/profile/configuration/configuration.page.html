@@ -14,146 +14,56 @@
 </ion-header>
 <ion-content [fullscreen]="true" class="content">
   <div class="profile-content">
-    <div class="profile-card"> 
+    <div class="profile-card">
       <div class="content-items">
         <div class="form">
           <ion-list class="menu-list" lines="none">
-            <div  class="div_items">
+            <div class="div_items">
               <div class="items-titles">
-                <ion-label class="color-n"><strong>
-                  Activar notificaciones
-                </strong></ion-label>
+                <ion-label class="color-n"
+                  ><strong> Activar notificaciones </strong></ion-label
+                >
 
-               <ion-toggle 
-               mode="ios"
-                slot="end"
-                color="uva_blue-600"
-                [checked]="isNotificationsActive"
-                (ionChange)="activeNoti($event)">
-              </ion-toggle >
+                <ion-toggle
+                  mode="ios"
+                  slot="end"
+                  color="uva_blue-600"
+                  [checked]="isNotificationsActive"
+                  (ionChange)="activeNoti($event)"
+                >
+                </ion-toggle>
               </div>
-              
+
               <ion-item class="ion-item ion-item-w">
-                <ion-label  class="color-n">
-                  Al mantener las notificaciones <br> activas, 
-                  podrás recibir alertas de<br>
+                <ion-label class="color-n">
+                  Al mantener las notificaciones <br />
+                  activas, podrás recibir alertas de<br />
                   cuando debes hacer tus registros.
                 </ion-label>
               </ion-item>
             </div>
           </ion-list>
-          
-        </div>
-      </div>
-      <div class="content-items">
-        <div class="form">
-          <ion-list class="menu-list" lines="none">
-            <div  class="div_items">
-              <div class="items-titles">
-                <ion-label  class="color-n"><strong>
-                  Subida de datos
-                </strong></ion-label>
-              </div>
-              <ion-label class="cursive color-n">
-                <ion-icon
-                  slot="start"
-                  src="../../../../assets/images/icons/checkmark-circle.svg"
-                ></ion-icon>
-              Sin sincronizaciones pendientes
-              </ion-label>
-              <div class="paddingB"></div>
-              <ion-button
-              expand="block"
-              color="uva_blue-600"
-              class="text-transform_none"
-              (click)="uploadData()"
-              [disabled]="isDisabled"
-            >
-            <ion-icon src="../../../../assets/images/icons/cloud.svg"></ion-icon>
-                Sincronizar con la nube
-            <ion-icon
-              src="../../../../assets/images/icons/refresh.svg"
-            ></ion-icon>
-            </ion-button>
-            </div>
-          </ion-list>
-          
         </div>
       </div>
 
-      <div class="content-items">
-        <div class="form">
-          <ion-list class="menu-list" lines="none">
-            <div  class="div_items">
-              <div class="items-titles">
-                <ion-label  class="color-n"><strong>
-                  Bajada de datos
-                </strong></ion-label>
-              </div>
-              <ion-label class="cursive color-n">
-                <ion-icon
-                  slot="start"
-                  src="../../../../assets/images/icons/checkmark-circle.svg"
-                ></ion-icon>Sin sincronizaciones pendientes
-              </ion-label>
-              <div class="paddingB"></div>
-              <ion-button
-              expand="block"
-              color="uva_blue-600"
-              class="text-transform_none"
-              (click)="downloadData()"
-              [disabled]="isDisabled"
-            >
-            <ion-icon src="../../../../assets/images/icons/cloud.svg"></ion-icon> Sincronizar con la nube
-            <ion-icon
-              src="../../../../assets/images/icons/refresh.svg"
-            ></ion-icon>
-            </ion-button>
-            </div>
-          </ion-list>
-          
-        </div>
-      </div>
-
-
-      <div class="content-items">
-        <div class="form">
-          <ion-list class="menu-list" lines="none">
-            <div  class="div_items">
-              <div class="items-titles">
-                <ion-label  class="color-n"><strong>
-                  Actualizaciones
-                </strong></ion-label>
-              </div>
-              <ion-label class="cursive  warning-text" *ngIf="isDisabled">
-                <ion-icon
-                  slot="start"
-                  class="warning-icon"
-                  src="../../../../assets/images/icons/exclamation.svg"
-                ></ion-icon>
-                Con actualizaciones pendientes
-              </ion-label>
-              <div class="paddingB"></div>
-              <ion-button
-              expand="block"
-              color="uva_blue-600"
-              class="text-transform_none"
-              (click)="downloadData()"
-              [disabled]="!isDisabled"
-            >
-            <ion-icon src="../../../../assets/images/icons/cloud.svg"></ion-icon>
-               Actualizar configuraciones
-            <ion-icon
-              src="../../../../assets/images/icons/refresh.svg"
-            ></ion-icon>
-            </ion-button>
-            </div>
-          </ion-list>
-          
-        </div>
-      </div>
-     
+      <app-sync-action
+        [title]="'Sincronizar mediciones'"
+        [infoPendingText]="'Con sincronizaciones pendientes'"
+        [noInfoPendingText]="'Sin sincronizaciones pendientes'"
+        [buttonText]="'Sincronizacion con la nube'"
+        [isInfoPending]="isDataStoreSyncPending"
+        (clickSync)="syncData()"
+      >
+      </app-sync-action>
+      <app-sync-action
+        [title]="'Actualizaciones'"
+        [infoPendingText]="'Con actualizaciones pendientes'"
+        [noInfoPendingText]="'Sin actualizaciones pendientes'"
+        [buttonText]="'Actualizar configuraciones'"
+        [isInfoPending]="isConfigurationAppAvailible"
+        (clickSync)="updateConfiguration()"
+      >
+      </app-sync-action>
     </div>
   </div>
 </ion-content>
-

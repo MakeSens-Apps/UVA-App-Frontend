@@ -1,4 +1,4 @@
-import { DataStore } from '@aws-amplify/datastore';
+import { DataStore, Predicates } from '@aws-amplify/datastore';
 import { UVA } from 'src/models/index';
 
 /**
@@ -13,6 +13,24 @@ export class UvaDSService {
   static async getUVAByID(uvaID: string): Promise<UVA | undefined> {
     try {
       return await DataStore.query(UVA, uvaID);
+    } catch (error) {
+      console.error('Error fetching UVA', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Retrieves a UVA by its userID.
+   * @param {string} userID - ID of the User.
+   * @returns {Promise<UVA | undefined>} The UVA object.
+   */
+  static async getUVAByuserID(userID: string): Promise<UVA | undefined> {
+    try {
+      const uvas = await DataStore.query(UVA, (c) => c.userID.eq(userID));
+      if (uvas && uvas.length > 0) {
+        return uvas[0];
+      }
+      return undefined;
     } catch (error) {
       console.error('Error fetching UVA', error);
       throw error;

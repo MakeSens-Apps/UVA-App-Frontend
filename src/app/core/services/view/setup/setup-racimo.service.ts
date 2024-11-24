@@ -89,6 +89,11 @@ export class SetupRacimoService {
           if (racimoID && uvaID) {
             await this.session.setInfoField('racimoID', racimoID);
             await this.session.setInfoField('uvaID', uvaID);
+            await this.session.setInfoField(
+              'racimoLinkCode',
+              await this.getCodeRacimo(racimoID),
+            );
+
             return true;
           }
         }
