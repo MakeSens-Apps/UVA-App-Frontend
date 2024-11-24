@@ -4,6 +4,7 @@ import { ConfigurationAppService } from '@app/core/services/storage/configuratio
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
 import { IonicModule } from '@ionic/angular';
 import { SessionService } from '@app/core/services/session/session.service';
+import { MoonPhaseService } from '@app/core/services/view/moon/moon-phase.service';
 @Component({
   selector: 'app-validate-project',
   templateUrl: './validate-project.page.html',
@@ -20,12 +21,14 @@ export class ValidateProjectPage implements OnInit {
    * @param {Router} router The Angular router used for view redirection.
    * @param {ConfigurationAppService} config The service handling application configuration and data download.
    *  @param {SessionService} session The service from session
+   *  @param {MoonPhaseService} moonphase The service from moon Phase
    * @memberof ValidateProjectPage
    */
   constructor(
     private router: Router,
     private config: ConfigurationAppService,
     private session: SessionService,
+    private moonphase: MoonPhaseService,
   ) {}
 
   /**
@@ -56,13 +59,20 @@ export class ValidateProjectPage implements OnInit {
       }, 2 * 1000);
     });
 
-    const downloadSuccess = await this.config.downLoadData();
+    // Inicia ambas operaciones en paralelo
+    const downloadSuccessPromise = this.config.downLoadData();
+    const downloadMoonPhasesPromise =
+      this.moonphase.downloadAndStoreMoonPhaseData();
 
-    // Espera a que ambas tareas terminen
+    // Espera que todas las promesas se resuelvan
+    const [downloadSuccess, downloadMoonPhases] = await Promise.all([
+      downloadSuccessPromise,
+      downloadMoonPhasesPromise,
+    ]);
     await timerPromise;
 
-    // Si ambas tareas completaron con éxito, navega
-    if (downloadSuccess) {
+    // Si ambas operaciones de descarga fueron exitosas y el temporizador ha terminado, navega
+    if (downloadSuccess && downloadMoonPhases) {
       await this.config.loadBranding();
       void this.router.navigate(['register', 'project-vinculation-done']);
     } else {

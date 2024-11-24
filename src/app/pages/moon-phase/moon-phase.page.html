@@ -12,17 +12,14 @@
     [hasArrow]="false"
   ></app-moon-card>
   <div>
-    <app-calendar typeCalendar="moon"> </app-calendar>
+    <app-calendar typeCalendar="moon" [phaseMoonDays]="phaseMoonDays">
+    </app-calendar>
   </div>
 
   <section class="cards">
-    <div class="text_container">
-      <h2>{{phaseName}}</h2>
-      <p>Sab, 08 de {{month}}</p>
-    </div>
-    <div class="text_container">
-      <h2>Luna Nueva</h2>
-      <p>Sab, 08 de {{month}}</p>
+    <div *ngFor="let event of moonEvents" class="text_container">
+      <h2>{{ event.type }}</h2>
+      <p>{{ event.date }}</p>
     </div>
   </section>
 </ion-content>
