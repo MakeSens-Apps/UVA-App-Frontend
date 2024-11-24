@@ -1,4 +1,4 @@
-import { DataStore, Predicates } from '@aws-amplify/datastore';
+import { DataStore } from '@aws-amplify/datastore';
 import { UVA } from 'src/models/index';
 
 /**

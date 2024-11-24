@@ -73,4 +73,22 @@ export class UserProgressDSService {
     );
     return progressEntries.length > 0 ? progressEntries[0] : null;
   }
+
+  static async getMilestones(): Promise<string[]> {
+    const userID = (await this.session.getInfo()).userID ?? '';
+
+    const milestonesRecords = await DataStore.query(UserProgress, (c) =>
+      c.and((c) => [
+        c.userID.eq(userID),
+        c.Milestones.ne(null),
+        c.Milestones.ne(undefined),
+      ]),
+    );
+    return milestonesRecords
+      .map((record) => record.Milestones)
+      .filter(
+        (milestone): milestone is string =>
+          !!milestone && milestone.trim() !== '',
+      );
+  }
 }

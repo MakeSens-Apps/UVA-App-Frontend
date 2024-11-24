@@ -7,6 +7,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { Router } from '@angular/router';
+import { UserProgressDSService } from '@app/core/services/storage/datastore/user-progress-ds.service';
+import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
+
+interface Achievement {
+  icon: string; // Define el path del ícono como un string
+}
 
 @Component({
   selector: 'app-achievement',
@@ -20,27 +26,54 @@ export class AchievementPage {
   /**
    * @param {Router} router - Angular Router instance used for navigation.
    * @param {ChangeDetectorRef} cdr Angular detecte change in app.
+   * @param {ConfigurationAppService} configurationApp Configuration App
    */
   constructor(
     private router: Router,
     private cdr: ChangeDetectorRef,
+    private configurationApp: ConfigurationAppService,
   ) {}
-  achievements = [
-    { icon: '../../../../assets/images/icons/brote1.png' },
-    { icon: '../../../../assets/images/icons/platula.svg' },
-    { icon: '../../../../assets/images/icons/flor.svg' },
-    { icon: '../../../../assets/images/icons/platula.svg' },
-    { icon: '../../../../assets/images/icons/brote1.png' },
-    { icon: '../../../../assets/images/icons/platula.svg' },
-    { icon: '../../../../assets/images/icons/flor.svg' },
-    { icon: '../../../../assets/images/icons/platula.svg' },
-  ];
+  achievements: Achievement[] = [];
 
   modals: Record<string, boolean> = {
     modal_token_a: false,
     modal_token_b: false,
   };
 
+  /**
+   * view about to enter
+   */
+  ionViewWillEnter(): void {
+    UserProgressDSService.getMilestones()
+      .then(async (response) => {
+        let blob: Achievement;
+        response.forEach((milestone) => {
+          switch (milestone) {
+            case 'brote': {
+              blob.icon = '../../../../assets/images/icons/brote1.png';
+              break;
+            }
+            case 'plantula': {
+              blob.icon = '../../../../assets/images/icons/platula.svg';
+              break;
+            }
+            case 'flor': {
+              blob.icon = '../../../../assets/images/icons/flor.svg';
+              break;
+            }
+            default:
+              blob.icon = '';
+              break;
+          }
+          if (blob.icon.trim() !== '') {
+            this.achievements.push(blob);
+          }
+        });
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  }
   /**
    * Navigates back to the specified URL.
    * @param {string} url - The URL to navigate back to.
