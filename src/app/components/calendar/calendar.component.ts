@@ -97,40 +97,28 @@ export class CalendarComponent implements OnInit {
 
   @Output() dayClick = new EventEmitter<calendar | null>();
 
-  /** Days phase calendar */
-  @Input() phaseMoonDays = [
-    { day: 1, status: 'new-moon' },
-    { day: 2, status: 'new-moon' },
-    { day: 3, status: 'new-moon' },
-    { day: 4, status: 'waning-crescent' },
-    { day: 5, status: 'waning-crescent' },
-    { day: 6, status: 'waning-crescent' },
-    { day: 7, status: 'waning-crescent' },
-    { day: 8, status: 'first-quarter' },
-    { day: 9, status: 'first-quarter' },
-    { day: 10, status: 'first-quarter' },
-    { day: 11, status: 'first-quarter' },
-    { day: 12, status: 'first-quarter' },
-    { day: 13, status: 'first-quarter' },
-    { day: 14, status: 'full-moon' },
-    { day: 15, status: 'full-moon' },
-    { day: 16, status: 'full-moon' },
-    { day: 17, status: 'full-moon' },
-    { day: 18, status: 'full-moon' },
-    { day: 19, status: 'last-quarter' },
-    { day: 20, status: 'last-quarter' },
-    { day: 21, status: 'last-quarter' },
-    { day: 22, status: 'last-quarter' },
-    { day: 23, status: 'last-quarter' },
-    { day: 24, status: 'waning-gibbous' },
-    { day: 25, status: 'waning-gibbous' },
-    { day: 26, status: 'waning-gibbous' },
-    { day: 27, status: 'waning-gibbous' },
-    { day: 28, status: 'new-moon' },
-    { day: 29, status: 'new-moon' },
-    { day: 30, status: 'waning-crescent' },
-    { day: 31, status: 'waning-crescent' },
-  ];
+  private _phaseMoonDays: { day: number; status: string }[] = [];
+
+  /**
+   * Days phase calendar input property.
+   * When the `phaseMoonDays` input is updated, the setter is triggered,
+   * updating the private `_phaseMoonDays` property and calling the
+   * `generateCalendars` function to render the updated phase calendar.
+   * @type {{ day: number; status: string }[]} - An array of objects representing the day and its status in the moon phase calendar.
+   */
+  @Input()
+  set phaseMoonDays(value: { day: number; status: string }[]) {
+    this._phaseMoonDays = value;
+    this.generateCalendars(); // Llamar a la función de renderización al actualizar phaseMoonDays
+  }
+  /**
+   * Days phase calendar getter.
+   * Returns the private `_phaseMoonDays` property containing the current moon phase calendar data.
+   * @returns {{ day: number; status: string }[]} - The current array of moon phase calendar data.
+   */
+  get phaseMoonDays(): { day: number; status: string }[] {
+    return this._phaseMoonDays;
+  }
 
   icon = './../../../assets/images/icons/Moon/full.svg';
 
@@ -195,9 +183,8 @@ export class CalendarComponent implements OnInit {
         icon:
           this.typeCalendar === 'moon'
             ? this.setIconPhase(
-                this.phaseMoonDays.find(
-                  (phase) => phase.day - 1 === day.getDate(),
-                )?.status || 'new-moon',
+                this.phaseMoonDays.find((phase) => phase.day === day.getDate())
+                  ?.status || 'new-moon',
               )
             : null,
 
