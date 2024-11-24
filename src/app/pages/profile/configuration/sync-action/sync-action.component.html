@@ -1,0 +1,45 @@
+<div class="content-items">
+  <div class="form">
+    <ion-list class="menu-list" lines="none">
+      <div class="div_items">
+        <div class="items-titles">
+          <ion-label class="color-n">
+            <strong>{{ title }}</strong>
+          </ion-label>
+        </div>
+        <ion-label class="cursive color-n" *ngIf="!isInfoPending">
+          <ion-icon
+            slot="start"
+            src="../../../../assets/images/icons/checkmark-circle.svg"
+          ></ion-icon>
+          {{ noInfoPendingText }}
+        </ion-label>
+
+        <ion-label class="cursive warning-text" *ngIf="isInfoPending">
+          <ion-icon
+            slot="start"
+            class="warning-icon"
+            src="../../../../assets/images/icons/exclamation.svg"
+          ></ion-icon>
+          {{ infoPendingText }}
+        </ion-label>
+
+        <div class="paddingB"></div>
+
+        <ion-button
+          expand="block"
+          color="uva_blue-600"
+          class="text-transform_none"
+          (click)="onClick()"
+          [disabled]="!isInfoPending"
+        >
+          <ion-icon src="../../../../assets/images/icons/cloud.svg"></ion-icon>
+          {{ buttonText }}
+          <ion-icon
+            src="../../../../assets/images/icons/refresh.svg"
+          ></ion-icon>
+        </ion-button>
+      </div>
+    </ion-list>
+  </div>
+</div>

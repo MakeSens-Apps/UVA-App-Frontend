@@ -12,6 +12,11 @@ import { Animation, AnimationController } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { SetupService } from '@app/core/services/view/setup/setup.service';
 import { SyncMonitorDSService } from '@app/core/services/storage/datastore/sync-monitor-ds.service';
+import { SetupRacimoService } from '@app/core/services/view/setup/setup-racimo.service';
+import { SessionService } from '@app/core/services/session/session.service';
+import { RacimoDSService } from '@app/core/services/storage/datastore/racimo-ds.service';
+import { UvaDSService } from '@app/core/services/storage/datastore/uva-ds.service';
+import { AuthService } from '@app/core/services/auth/auth.service';
 @Component({
   selector: 'app-splash-animation',
   templateUrl: './splash-animation.page.html',
@@ -36,12 +41,16 @@ export class SplashAnimationPage implements OnInit {
    * @param {AnimationController} animationCtrl - The animation controller from Ionic.
    * @param {Router} router - The Router module to navigate between pages.
    * @param {SetupService} service - The SetupService to handle authentication and session management.
-   * @memberof SplashAnimationPage
+   * @param {SetupRacimoService} serviceRacimo SetupRacimoService,
+   * @param {SessionService} session  SessionService
    */
   constructor(
     private animationCtrl: AnimationController,
     private router: Router,
     private service: SetupService,
+    private serviceRacimo: SetupRacimoService,
+    private session: SessionService,
+    private auth: AuthService,
   ) {}
 
   /**
@@ -56,18 +65,49 @@ export class SplashAnimationPage implements OnInit {
   }
 
   /**
-   * Checks if the user is authenticated and navigates accordingly.
+   * Verifies user authentication and navigates to the appropriate page.
    * @memberof SplashAnimationPage
    */
   async checkUserAuthentication(): Promise<void> {
     try {
-      const response = await this.service.currentAuthenticatedUser();
-      await this.waitForAnimationToEnd();
-      if (response) {
-        await SyncMonitorDSService.waitForSyncDataStore();
+      // Check if the current user is authenticated
+      const response = await this.auth.CurrentAuthenticatedUser();
+      console.log(response);
+      if (!response.success) {
+        // Redirect to login if no user is authenticated
+        void this.redirectToPage('/login');
+        return;
+      }
+      const userID = response.data.userId;
+      void this.session.setInfoField('userID', userID);
+      // Retrieve the current user's ID
+      await SyncMonitorDSService.waitForSyncDataStore();
+
+      // Check if the user has an assigned UVA
+      const uva = await UvaDSService.getUVAByuserID(userID);
+      if (!uva) {
+        void this.redirectToPage('register/validate-project');
+        return;
+      }
+      console.log(uva);
+
+      // Check if the UVA has an associated racimo ID
+      const racimoID = uva.racimoID ?? '';
+      if (!racimoID) {
+        void this.redirectToPage('register/validate-project');
+        return;
+      }
+
+      // Check if the racimo has a valid code
+      const racimoCode = await RacimoDSService.getRacimoCode(racimoID);
+      console.log(racimoCode);
+      if (racimoCode) {
+        void this.session.setInfoField('uvaID', uva.id);
+        void this.session.setInfoField('racimoID', racimoID);
+        void this.session.setInfoField('racimoLinkCode', racimoCode);
         void this.redirectToPage('app/tabs/home');
       } else {
-        void this.redirectToPage('/login');
+        void this.redirectToPage('register/validate-project');
       }
     } catch (err) {
       console.error('No user found', err);
@@ -97,7 +137,8 @@ export class SplashAnimationPage implements OnInit {
    * @returns {Promise<boolean>} A promise that resolves to true if navigation was successful.
    * @memberof SplashAnimationPage
    */
-  redirectToPage(path: string): Promise<boolean> {
+  async redirectToPage(path: string): Promise<boolean> {
+    await this.waitForAnimationToEnd();
     return this.router.navigate([path]);
   }
 
