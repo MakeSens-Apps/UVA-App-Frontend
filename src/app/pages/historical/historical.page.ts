@@ -168,7 +168,7 @@ export class HistoricalPage implements OnInit {
     if (!month) {
       return;
     }
-    this.modeData = 'calendar';
+    // this.modeData = 'calendar';
     this.currentMonthIndex = index;
     this.currentMonth = this.historical.find(
       (historical) => historical.mes === index,

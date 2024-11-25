@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input, OnInit } from '@angular/core';
+import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
 import {
   IonImg,
   IonIcon,
@@ -44,20 +45,25 @@ export class GuideMeasurementComponent implements OnInit {
    */
   IsArrayText = false;
 
+  img: string | null = '';
+
   /**
    * Creates an instance of the GuideMeasurementComponent.
    * @param {ModalController} modalCtrl - The ModalController to manage modal actions.
    */
-  constructor(private modalCtrl: ModalController) {}
+  constructor(private modalCtrl: ModalController, private configuration: ConfigurationAppService,) {}
 
   /**
    * Lifecycle hook that runs when the component is initialized.
    * It checks if the guide text is an array and updates the flag accordingly.
    * @returns {void}
    */
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     if (Array.isArray(this.guide?.text)) {
       this.IsArrayText = true;
+    }
+    if (this.guide) {
+      this.img = await this.configuration.loadImage(this.guide.image);   
     }
   }
 
