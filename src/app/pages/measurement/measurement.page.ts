@@ -106,7 +106,7 @@ export class MeasurementPage implements OnInit {
     await this.configuration.getConfigurationColors();
     await this.configuration.loadBranding();
 
-    this.dataBonusConfigurationMeasurement = configurationMeasurement.bonus;
+    this.dataBonusConfigurationMeasurement = configurationMeasurement?.bonus;
 
     if (this.dataBonusConfigurationMeasurement) {
       const today = new Date();

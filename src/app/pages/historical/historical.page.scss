@@ -148,7 +148,6 @@ ion-segment-button {
 
 .footer {
   display: flex;
-  padding: 0px 10px 10px 10px;
   justify-content: space-between;
   align-items: flex-start;
   align-self: stretch;
@@ -156,7 +155,7 @@ ion-segment-button {
   ion-button {
     color: white;
     display: flex;
-    padding: 0px 12px;
+    padding: 0px 6px;
     justify-content: center;
     align-items: center;
     gap: 8px;

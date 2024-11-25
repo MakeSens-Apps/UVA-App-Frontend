@@ -1,5 +1,6 @@
+import { NotificationService } from './../../services/notification/notification.service';
 import { HeaderComponent } from '../../components/header/header.component';
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 import { CalendarComponent } from '@app/components/calendar/calendar.component';
@@ -29,7 +30,7 @@ import { Router } from '@angular/router';
     MoonCardComponent,
   ],
 })
-export class HomePage {
+export class HomePage implements OnInit {
   /**
    * Formatted string representing today's date in Spanish.
    * @type {string}
@@ -57,7 +58,10 @@ export class HomePage {
    * The date is formatted in Spanish using date-fns.
    * @param {Router} router - Angular Router for handling navigation.
    */
-  constructor(private router: Router) {
+  constructor(
+    private router: Router,
+    private notificationService: NotificationService,
+  ) {
     this.today = format(new Date(), " EEEE dd 'de' MMMM", { locale: es });
   }
 
@@ -68,5 +72,28 @@ export class HomePage {
    */
   goToMoonCalendar(): void {
     void this.router.navigate(['/app/tabs/home/moon-phase']);
+  }
+ async ngOnInit(): Promise<void> {
+   await  this.setNotifications().then(() => {
+      console.log('Notificaciones programadas.');
+    }).catch((error) => {
+      console.error('Error al programar notificaciones:', error);
+    });
+  }
+
+  async setNotifications(): Promise<void> {
+    const hasPermission = await this.notificationService.requestPermissions();
+    if (!hasPermission) {
+      console.error('Permisos denegados para notificaciones.');
+      return;
+    }
+
+    // Programar notificaciones diarias
+    await this.notificationService.scheduleDailyNotifications();
+  }
+
+  // Cancelar todas las notificaciones
+  async cancelNotifications(): Promise<void> {
+    await this.notificationService.cancelAllNotifications();
   }
 }
