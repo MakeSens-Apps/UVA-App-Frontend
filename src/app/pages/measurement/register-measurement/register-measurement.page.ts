@@ -21,13 +21,17 @@ import {
 import { HeaderComponent } from '@app/components/header/header.component';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
-import { Flow, Measurement } from 'src/models/configuration/measurements.model';
+import {
+  Flow,
+  Measurement,
+  MeasurementModel,
+} from 'src/models/configuration/measurements.model';
 
 import { Preferences } from '@capacitor/preferences';
 
 const operaciones: Record<
   string,
-  (a: number, b: number)=> number | undefined
+  (a: number, b: number) => number | undefined
 > = {
   '+': (a, b) => a + b,
   '-': (a, b) => a - b,
@@ -106,9 +110,8 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
    * @returns {Promise<void>}
    */
   async ngOnInit(): Promise<void> {
-    this.configurationMeasurement = JSON.parse(
-      (await this.configuration.getConfigurationMeasurement()) as any,
-    );
+    this.configurationMeasurement =
+      await this.configuration.getConfigurationMeasurement();
 
     this.data = this.configurationMeasurement;
 

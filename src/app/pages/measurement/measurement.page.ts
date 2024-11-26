@@ -100,9 +100,8 @@ export class MeasurementPage implements OnInit {
     this.user = await this.session.getInfo();
     await this.configuration.getConfigurationApp();
 
-    const configurationMeasurement = JSON.parse(
-      (await this.configuration.getConfigurationMeasurement()) as any,
-    );
+    const configurationMeasurement =
+      await this.configuration.getConfigurationMeasurement();
     await this.configuration.getConfigurationColors();
     await this.configuration.loadBranding();
 
@@ -148,18 +147,20 @@ export class MeasurementPage implements OnInit {
       }
     }
 
-    if (configurationMeasurement.tasks) {
+    if (configurationMeasurement?.tasks) {
       const keysTask = Object.keys(configurationMeasurement.tasks);
-
+      const tasksConfiguration = this.measurementService.data.tasks;
       this.tasks = keysTask.map((key) => {
-        const keyName = key as keyof typeof this.measurementService.data.tasks;
-        const task: Task = configurationMeasurement.tasks[keyName];
-        task.id = keyName;
-        /* if (task.completed) {
-          this.completedTask++;
-        } */
+        // Verifica si 'key' es una clave válida en 'this.measurementService.data.tasks'
+        if (key in this.measurementService.data.tasks) {
+          const keyName = key as keyof typeof tasksConfiguration;
+          const task: Task = configurationMeasurement.tasks[keyName];
+          task.id = keyName;
 
-        return task;
+          return task;
+        } else {
+          throw new Error(`Clave no válida: ${key}`);
+        }
       });
 
       //TODO: set when the user has completed at least one task
@@ -266,9 +267,9 @@ export class MeasurementPage implements OnInit {
    * @param {ITask} task - The task to register data for.
    */
   goToRegister(task: ITask): void {
-    if (this.hasRestrictionTimeTask(task as Task)) {
+    /*if (this.hasRestrictionTimeTask(task as Task)) {
       return;
-    }
+    }*/
     if (task.flows) {
       const flowId = task.flows.find((flow) => {
         return !task.flowsComplete?.includes(flow);
