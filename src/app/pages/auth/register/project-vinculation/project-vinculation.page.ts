@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { IonButton, IonInput, IonLabel } from '@ionic/angular/standalone';
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
 import { Router, RouterLink } from '@angular/router';
@@ -15,7 +15,9 @@ import { SetupService } from '@app/core/services/view/setup/setup.service';
 import { Session } from 'src/models/session.model';
 import { SetupRacimoService } from '@app/core/services/view/setup/setup-racimo.service';
 import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
-
+import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.service';
+import { Subscription } from 'rxjs';
+import { SyncMonitorDSService } from '@app/core/services/storage/datastore/sync-monitor-ds.service';
 @Component({
   selector: 'app-project-vinculation',
   templateUrl: './project-vinculation.page.html',
@@ -32,10 +34,11 @@ import { ConfigurationAppService } from '@app/core/services/storage/configuratio
     RouterLink,
   ],
 })
-export class ProjectVinculationPage implements OnInit {
+export class ProjectVinculationPage implements OnInit, OnDestroy {
   showError = false;
   form: FormGroup;
   user: Session | null = null;
+  private backButtonSubscription!: Subscription;
 
   /**
    * Creates an instance of ProjectVinculationPage.
@@ -44,6 +47,8 @@ export class ProjectVinculationPage implements OnInit {
    * @param {SetupService} service - Service to manage user setup.
    * @param {SetupRacimoService} serviceRacimo - Service to manage UVA and RACIMO data.
    * @param {ConfigurationAppService} configuration -Service to manage S3 y FileSystem
+   * @param {ChangeDetectorRef} cdr -CDR
+   * @param {AppMinimizeService} minimizeService - The AppMinimizeService.
    */
   constructor(
     private formBuilder: FormBuilder,
@@ -51,6 +56,8 @@ export class ProjectVinculationPage implements OnInit {
     private service: SetupService,
     private serviceRacimo: SetupRacimoService,
     private configuration: ConfigurationAppService,
+    private cdr: ChangeDetectorRef,
+    private minimizeService: AppMinimizeService,
   ) {
     this.form = this.formBuilder.group({
       code: new FormControl(
@@ -70,10 +77,13 @@ export class ProjectVinculationPage implements OnInit {
    * @returns {Promise<void>} - Resolves with no return value.
    */
   async ngOnInit(): Promise<void> {
+    this.minimizeService.initializeBackButtonHandler();
+
     this.user = await this.service.getParametersUser();
     if (this.user.userID) {
       const response = await this.serviceRacimo.getUVA(this.user.userID);
       if (response) {
+        await SyncMonitorDSService.waitForSyncDataStore(); //Espera a que DataStore este sincronizado
         void this.router.navigate(['app/tabs/home']);
       }
     } else {
@@ -99,5 +109,16 @@ export class ProjectVinculationPage implements OnInit {
       .catch((err) => {
         console.error(err);
       });
+  }
+
+  /**
+   * Cleans up the back button subscription when the component is destroyed.
+   * This prevents memory leaks and ensures no further events are handled for this subscription.
+   * @returns {void}
+   */
+  ngOnDestroy(): void {
+    if (this.backButtonSubscription) {
+      this.backButtonSubscription.unsubscribe();
+    }
   }
 }

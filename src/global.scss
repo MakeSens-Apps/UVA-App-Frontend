@@ -560,3 +560,19 @@ ion-modal#modal_register_ok {
         margin: auto;
     }
 }
+
+
+#ion-overlay-3 > div.alert-wrapper.ion-overlay-wrapper.sc-ion-alert-md > div.alert-button-group.sc-ion-alert-md > button,
+#ion-overlay-1 > div.alert-wrapper.ion-overlay-wrapper.sc-ion-alert-md > div.alert-button-group.sc-ion-alert-md > button 
+{
+    color:  #14788A !important;
+}
+
+body > app-root:nth-child(1) > ion-app > ion-router-outlet > app-profile > ion-content > div > div.profile-card > ion-list
+{
+    background: transparent !important;
+    --background: transparent !important;
+}
+
+
+
