@@ -1,4 +1,4 @@
-<app-header></app-header>
+<app-header [seed]="userProgress?.Seed"></app-header>
 <ion-content [fullscreen]="true">
   <h2 class="date-header">Hoy,{{today}}</h2>
   <div class="cards">
@@ -6,11 +6,11 @@
       <section header>
         <ion-card-header>
           <ion-card-title class="title_series">
-            Tienes 2 Días de racha 😌
+            Tienes {{userProgress?.Streak}} Días de racha 😌
           </ion-card-title>
           <ion-icon
             src="./../../../assets/images/icons/information-circle.svg"
-            (click)="modals.modal_Days = true"
+            (click)="openModal('modal_Days')"
             class="info-icon"
           ></ion-icon>
         </ion-card-header>
@@ -29,18 +29,22 @@
   <div class="cards ion-margin-top">
     <ion-card-header>
       <ion-card-title class="title_series">
-        Registra y gana: +1<ion-icon
+        Registra y gana: +2<ion-icon
           src="./../../../assets/images/icons/semilla.svg"
         ></ion-icon>
       </ion-card-title>
       <ion-icon
         src="./../../../assets/images/icons/information-circle.svg"
-        (click)="modals.modal_token = true"
+        (click)="openModal('modal_token')"
         class="info-icon"
       ></ion-icon>
     </ion-card-header>
     <ion-card-content>
-      <app-progress-bar></app-progress-bar>
+      <app-progress-bar
+        [currentProgress]="userProgress?.completedTasks ?? 0"
+        [totalProgress]="totalTask"
+      >
+      </app-progress-bar>
       <ion-button
         expand="block"
         color="uva_blue-600"
@@ -56,10 +60,11 @@
   <!-- Modal Days Info -->
   <ion-modal
     #modal_Days
-    [isOpen]="modals.modal_Days"
-    (ionModalDidDismiss)="modals.modal_Days = false"
+    id="modal_Days"
+    [isOpen]="modals['modal_Days']"
     [initialBreakpoint]="1"
     [breakpoints]="[0, 1]"
+    (ionModalDidDismiss)="onModalDismiss('modal_Days')"
   >
     <ng-template>
       <div class="modal_Days">
@@ -92,7 +97,7 @@
             id="open-modal_Days_question"
             color="uva_blue-600"
             expand="block"
-            (click)="modals.modal_Days = false; modals.modal_Days_question = true"
+            (click)="onCloseAndOpen('modal_Days','modal_Days_question')"
           >
             Siguiente
           </ion-button>
@@ -104,10 +109,11 @@
   <!-- Modal Days Question Info -->
   <ion-modal
     #modal_Days_question
-    [isOpen]="modals.modal_Days_question"
+    id="modal_Days_question"
+    [isOpen]="modals['modal_Days_question']"
     [initialBreakpoint]="1"
     [breakpoints]="[0, 1]"
-    (ionModalDidDismiss)="modals.modal_Days_question = false"
+    (ionModalDidDismiss)="onModalDismiss('modal_Days_question')"
   >
     <ng-template>
       <div class="modal_Days_question">
@@ -115,12 +121,12 @@
           <ion-icon
             slot="start"
             name="arrow-back-outline"
-            (click)=" modals.modal_Days_question = false; modals.modal_Days = true"
+            (click)="onCloseAndOpen('modal_Days_question','modal_Days')"
           ></ion-icon>
           <ion-button
             expand="block"
             color="uva_blue-600"
-            (click)="modals.modal_Days_question = false"
+            (click)="onModalDismiss('modal_Days_question')"
           >
             <ion-icon slot="icon-only" name="close"></ion-icon>
           </ion-button>
@@ -144,7 +150,7 @@
           <ion-button
             color="uva_blue-600"
             expand="block"
-            (click)="modal_Days_question.dismiss()"
+            (click)="onModalDismiss('modal_Days_question')"
           >
             Entendido
           </ion-button>
@@ -158,16 +164,16 @@
   <ion-modal
     #modal_token
     id="modal_token"
-    [isOpen]="modals.modal_token"
+    [isOpen]="modals['modal_token']"
     [initialBreakpoint]="1"
     [breakpoints]="[0, 1]"
-    (ionModalDidDismiss)="modals.modal_token = false"
+    (ionModalDidDismiss)="onModalDismiss('modal_token')"
   >
     <ng-template>
       <div class="modal_token">
         <div class="container_text">
           <p>
-            Cada día que cumplas <strong> con todos tus registros</strong> ganas
+            Cada día que cumplas <strong>con todos tus registros</strong> ganas
             dos semillas.
           </p>
           <h1>
@@ -199,7 +205,7 @@
         </div>
         <div class="container_text">
           <p>
-            Si cumples <strong>con 7 días de racha</strong>ganas
+            Si cumples <strong>con 7 días de racha </strong>ganas
             <strong> 3 semillas adicionales. </strong>
           </p>
           <h1>
@@ -211,7 +217,7 @@
           <ion-button
             color="uva_blue-600"
             expand="block"
-            (click)="modals.modal_token = false ; modals.modal_token_2 = true"
+            (click)="onCloseAndOpen('modal_token', 'modal_token_2')"
           >
             Siguiente
           </ion-button>
@@ -223,10 +229,10 @@
   <ion-modal
     #modal_token_2
     id="modal_token_2"
-    [isOpen]="modals.modal_token_2"
+    [isOpen]="modals['modal_token_2']"
     [initialBreakpoint]="1"
     [breakpoints]="[0, 1]"
-    (ionModalDidDismiss)="modals.modal_token_2 = false"
+    (ionModalDidDismiss)="onModalDismiss('modal_token_2')"
   >
     <ng-template>
       <div class="modal_token_2">
@@ -234,12 +240,12 @@
           <ion-icon
             slot="start"
             name="arrow-back-outline"
-            (click)=" modals.modal_token_2 = false; modals.modal_token = true "
+            (click)="onCloseAndOpen('modal_token_2', 'modal_token')"
           ></ion-icon>
           <ion-button
             expand="block"
             color="uva_blue-600"
-            (click)="modals.modal_token_2 = false"
+            (click)="onModalDismiss('modal_token_2')"
           >
             <ion-icon slot="icon-only" name="close"></ion-icon>
           </ion-button>
@@ -306,7 +312,7 @@
           <ion-button
             color="uva_blue-600"
             expand="block"
-            (click)="modals.modal_token_2 = false"
+            (click)="onModalDismiss('modal_token_2')"
           >
             Entendido
           </ion-button>
