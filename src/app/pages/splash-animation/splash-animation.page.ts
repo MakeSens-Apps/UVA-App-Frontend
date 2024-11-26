@@ -15,6 +15,12 @@ import { SessionService } from '@app/core/services/session/session.service';
 import { RacimoDSService } from '@app/core/services/storage/datastore/racimo-ds.service';
 import { UvaDSService } from '@app/core/services/storage/datastore/uva-ds.service';
 import { AuthService } from '@app/core/services/auth/auth.service';
+import { identifyUser } from 'aws-amplify/analytics';
+import { UserProfile } from '@aws-amplify/core';
+import { Device } from '@capacitor/device';
+//import { AppVersion } from '@ionic-native/app-version/ngx';
+//import { Globalization } from '@ionic-native/globalization/ngx';
+import { UserDSService } from '@app/core/services/storage/datastore/user-ds.service';
 @Component({
   selector: 'app-splash-animation',
   templateUrl: './splash-animation.page.html',
@@ -91,12 +97,25 @@ export class SplashAnimationPage implements OnInit {
         return;
       }
 
+      const user = await UserDSService.getUser();
+      if (!user) {
+        return;
+      }
       // Check if the racimo has a valid code
       const racimoCode = await RacimoDSService.getRacimoCode(racimoID);
       if (racimoCode) {
         void this.session.setInfoField('uvaID', uva.id);
         void this.session.setInfoField('racimoID', racimoID);
         void this.session.setInfoField('racimoLinkCode', racimoCode);
+        await identifyUser({
+          userId: response.data.userId,
+          userProfile: await getUserProfile({
+            name: user.Name,
+            phone: user.PhoneNumber,
+            racimoCode: racimoCode,
+            uvaId: uva.id,
+          }),
+        });
         void this.redirectToPage('app/tabs/home');
       } else {
         void this.redirectToPage('register/validate-project');
@@ -201,4 +220,52 @@ export class SplashAnimationPage implements OnInit {
       console.error('Error en la animacion');
     }
   }
+}
+
+interface userCustomProperties {
+  name: string;
+  phone: string;
+  racimoCode: string;
+  uvaId: string;
+}
+/**
+ * @param {userCustomProperties} customProperties customProperties
+ * @returns {Promise<UserProfile>} return UserProfile
+ */
+async function getUserProfile(
+  customProperties: userCustomProperties,
+): Promise<UserProfile> {
+  // Información básica
+  ///onst appVersion = await AppVersion.getVersionNumber(); // Versión de la app
+  //const locale = await Globalization.getLocaleName(); // Idioma y región
+
+  // Información del dispositivo
+  const deviceInfo = await Device.getInfo();
+
+  // Crear el objeto UserProfile
+  const userProfile = {
+    customProperties: {
+      racimoCode: [customProperties.racimoCode],
+      uvaId: [customProperties.uvaId],
+      phone: [customProperties.phone],
+    },
+    demographic: {
+      //appVersion: appVersion, // Versión de la aplicación
+      //locale: locale.value, // Idioma y región (locale)
+      make: deviceInfo.manufacturer, // Marca del dispositivo
+      model: deviceInfo.model, // Modelo del dispositivo
+      modelVersion: deviceInfo.osVersion, // Versión del sistema operativo
+      platform: deviceInfo.platform, // Plataforma (android, ios)
+      platformVersion: deviceInfo.osVersion, // Versión del sistema operativo
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, // Zona horaria*/
+    },
+    metrics: {
+      // Puedes agregar métricas personalizadas si es necesario
+      screenWidth: window.innerWidth, // Ejemplo de métrica
+    },
+    name: 'Miguel', // Nombre del usuario (deberías obtenerlo del estado de la aplicación)
+    plan: 'Pro', // Plan del usuario si es relevante
+  };
+
+  return userProfile;
 }
