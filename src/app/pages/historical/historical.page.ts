@@ -194,11 +194,13 @@ export class HistoricalPage implements OnInit {
     if (!this.areaChartComponent) {
       return;
     }
+
     this.areaChartComponent.UpdateChart(
       undefined,
-      [20, 80, 80, 60, 30, 75, 100, 80],
+      [100, 80, 80, 60, 30, 75, 100, 80],
       measurement.backgroundColor.colorHex,
       measurement.borderColor.colorHex,
+      'bar'
     );
   }
 

@@ -11,6 +11,10 @@ import { MoonCardComponent } from '../../components/moon-card/moon-card.componen
 import { Router } from '@angular/router';
 import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.service';
 import { Subscription } from 'rxjs';
+import {
+  MoonPhaseService,
+  LunarPhase,
+} from '@app/core/services/view/moon/moon-phase.service';
 import { UserProgressDSService } from '@app/core/services/storage/datastore/user-progress-ds.service';
 import { UserProgress } from 'src/models';
 import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
@@ -42,6 +46,15 @@ export class HomePage implements OnInit, OnDestroy {
    * @type {string}
    */
   today: string;
+  phase: LunarPhase = LunarPhase.FULL_MOON;
+  /**
+   * Object representing the visibility state of various modals.
+   * - `modal_Days`: Controls visibility for days modal.
+   * - `modal_Days_question`: Controls visibility for days question modal.
+   * - `modal_token`: Controls visibility for token modal.
+   * - `modal_token_2`: Controls visibility for a secondary token modal.
+   * @type {{ modal_Days: boolean; modal_Days_question: boolean; modal_token: boolean; modal_token_2: boolean; }}
+   */
   modals: Record<string, boolean> = {
     modal_Days: false,
     modal_Days_question: false,
@@ -60,6 +73,7 @@ export class HomePage implements OnInit, OnDestroy {
    * @param {NotificationService} notificationService Notifications
    * @param {ChangeDetectorRef} cdr Angular detecte change in app.
    * @param {AppMinimizeService} minimizeService - The AppMinimizeService.
+   * @param {MoonPhaseService} moonphase - Moon Phase Service.
    * @param {ConfigurationAppService} configuration Configuration App
    */
   constructor(
@@ -67,6 +81,7 @@ export class HomePage implements OnInit, OnDestroy {
     private notificationService: NotificationService,
     private cdr: ChangeDetectorRef,
     private minimizeService: AppMinimizeService,
+    private moonphase: MoonPhaseService,
     private configuration: ConfigurationAppService,
   ) {
     this.today = format(new Date(), " EEEE dd 'de' MMMM", { locale: es });
@@ -145,6 +160,10 @@ export class HomePage implements OnInit, OnDestroy {
     const userprogress = await UserProgressDSService.getLastUserProgress();
     if (userprogress) {
       this.userProgress = userprogress;
+    }
+    const currentPhase = await this.moonphase.getCurrentPhase();
+    if (currentPhase.success) {
+      this.phase = currentPhase.data;
     }
   }
 

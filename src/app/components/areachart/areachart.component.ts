@@ -15,7 +15,9 @@ import {
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   LineController,
+  BarController,
   Filler,
   Title,
   Tooltip,
@@ -28,7 +30,9 @@ Chart.register(
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   LineController,
+  BarController,
   Filler,
   Title,
   Tooltip,
@@ -94,6 +98,13 @@ export class AreachartComponent implements AfterViewInit {
   private chart!: Chart;
 
   /**
+   * Type of the chart (e.g., 'line', 'bar').
+   * @type {string}
+   * @default 'line'
+   */
+  @Input() chartType: ChartConfiguration['type'] = 'line';
+
+  /**
    * Creates an instance of AreachartComponent.
    * @memberof AreachartComponent
    */
@@ -138,7 +149,7 @@ export class AreachartComponent implements AfterViewInit {
       ],
     };
 
-    const options: ChartOptions<'line'> = {
+    const options: ChartOptions = {
       responsive: true,
       plugins: {
         legend: {
@@ -155,8 +166,8 @@ export class AreachartComponent implements AfterViewInit {
       },
     };
 
-    const config: ChartConfiguration<'line'> = {
-      type: 'line',
+    const config: ChartConfiguration = {
+      type: this.chartType,
       data: data,
       options: options,
     };
@@ -178,31 +189,16 @@ export class AreachartComponent implements AfterViewInit {
     data?: number[],
     background?: string,
     borderColor?: string,
+    newType: ChartConfiguration['type'] = 'line',
   ): void {
-    const ctx = this.chartCanvas.nativeElement.getContext('2d');
-    if (!ctx) {
-      console.error('No se pudo obtener el contexto del canvas.');
-      return;
-    }
-    if (background) {
-      let nuevoGradient = ctx.createLinearGradient(0, 0, 0, 300);
-      nuevoGradient.addColorStop(0, this.hexToRgba(background, 1));
-      nuevoGradient.addColorStop(1, this.hexToRgba(background, 0));
+    this.chartType = newType; // Actualiza el tipo
+    this.background = background || this.background;
+    this.borderColor = borderColor || this.borderColor;
+    this.chartData = data || this.chartData;
+    this.chartLabels = labels || this.chartLabels;
 
-      this.chart.data.datasets[0].backgroundColor = nuevoGradient;
-    }
-    this.chart.data.datasets[0].borderColor = borderColor
-      ? borderColor
-      : this.borderColor;
-
-    if (labels) {
-      this.chart.data.labels = labels;
-    }
-    if (data) {
-      this.chart.data.datasets[0].data = data;
-    }
-
-    this.chart.update(); // Refresca el gráfico con los nuevos datos
+    this.chart.destroy(); // Destruye el gráfico actual
+    this.createChart();
   }
 
   /**
