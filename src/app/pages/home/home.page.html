@@ -54,8 +54,7 @@
       >
     </ion-card-content>
   </div>
-
-  <app-moon-card (click)="goToMoonCalendar()"></app-moon-card>
+  <app-moon-card [phase]="phase" (click)="goToMoonCalendar()"></app-moon-card>
 
   <!-- Modal Days Info -->
   <ion-modal

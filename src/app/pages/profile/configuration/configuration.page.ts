@@ -29,6 +29,7 @@ import { ToastController } from '@ionic/angular'; // La importación de ToastCon
 import { SyncActionComponent } from '@app/pages/profile/configuration/sync-action/sync-action.component';
 import { SyncMonitorDSService } from '@app/core/services/storage/datastore/sync-monitor-ds.service';
 import { DataStore } from '@aws-amplify/datastore';
+import { MoonPhaseService } from '@app/core/services/view/moon/moon-phase.service';
 
 /**
  * @class ConfigurationPage
@@ -72,13 +73,16 @@ export class ConfigurationPage {
   /**
    *  @param {Router} router - Angular Router instance used for navigation.
    *  @param {ConfigurationAppService} config The service handling application configuration and data download.
-   *  @param {ToastController} toastController Manage Alerts
+     *  @param {MoonPhaseService} moonphase The service from moon Phase
+ 
+  *  @param {ToastController} toastController Manage Alerts
    *  @param {LoadingController} loadingController Manage loading
    *  @param {SyncMonitorDSService} dsStateService Sync data service
    */
   constructor(
     private router: Router,
     private config: ConfigurationAppService,
+    private moonphase: MoonPhaseService,
     private toastController: ToastController,
     private loadingController: LoadingController, // Añadimos el LoadingController
     private dsStateService: SyncMonitorDSService,
@@ -140,10 +144,15 @@ export class ConfigurationPage {
 
     try {
       const downloadSuccessPromise = this.config.downLoadData();
+      const downloadMoonPhasesPromise =
+        this.moonphase.downloadAndStoreMoonPhaseData();
 
-      const [downloadSuccess] = await Promise.all([downloadSuccessPromise]);
+      const [downloadSuccess, downloadMoonPhases] = await Promise.all([
+        downloadSuccessPromise,
+        downloadMoonPhasesPromise,
+      ]);
 
-      if (downloadSuccess) {
+      if (downloadSuccess && downloadMoonPhases) {
         await this.config.loadBranding();
       } else {
         await this.presentErrorToast(
