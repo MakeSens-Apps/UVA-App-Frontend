@@ -1,33 +1,33 @@
-<app-header title="Historial de registros"></app-header>
+<app-header title="Historial de registros" [seed]="seed"></app-header>
 <ion-content [fullscreen]="true">
   <section class="segment_content">
-    <ion-segment value="mes" [(ngModel)]="segment" class="segment">
+    <ion-segment value="month" [(ngModel)]="timeFrame" class="segment">
       <ion-segment-button
-        value="mes"
+        value="month"
         layout="icon-hide"
-        (click)="changeSegment('mes')"
+        (click)="changeSegment('month')"
         class="ion-text-capitalize"
       >
         <ion-label>Mes</ion-label>
       </ion-segment-button>
       <ion-segment-button
-        value="año"
+        value="year"
         layout="icon-hide"
         class="ion-text-capitalize"
-        (click)="changeSegment('año')"
+        (click)="changeSegment('year')"
       >
-        <ion-label>año</ion-label>
+        <ion-label>Año</ion-label>
       </ion-segment-button>
     </ion-segment>
   </section>
-  @if(segment === 'mes'){
+  @if(timeFrame === 'month'){
   <section class="cards calendar">
     <div class="calendar_header">
       <div class="calendar_header_titles">
         <h2 class="calendar_header_titles--h2">
-          {{currentMonth?.name}}, <span>{{currentYear}}</span>
+          {{completedTaskMonth?.name}}, <span>{{currentYearIndex}}</span>
         </h2>
-        <p class="calendar_header_titles--p">{{totalTask}} Registros</p>
+        <p class="calendar_header_titles--p">{{nRegisters}} Registros</p>
       </div>
       <div class="calendar_header_btnGraph">
         <ion-button
@@ -38,7 +38,7 @@
           (click)="changeModeData()"
           class="text-transform_none"
         >
-          Ver como {{modeData === 'calendar' ? 'gráfica': 'calendario'}}
+          Ver como {{typeView === 'calendar' ? 'gráfica': 'calendario'}}
           <ion-icon
             slot="end"
             src="./../../../assets/images/icons/switch-horizontal.svg"
@@ -63,18 +63,18 @@
     </div>
 
     <div class="meditions_container">
-      @if(modeData === 'calendar'){
+      @if(typeView === 'calendar'){
 
-      <div *ngIf="currentMonth">
+      <div *ngIf="completedTaskMonth">
         <app-calendar
-          [daysComplete]="currentMonth.daysComplete"
-          [daysIncomplete]="currentMonth.daysIncomplete"
-          [viewDate]="currentMonth.date"
+          [daysComplete]="completedTaskMonth.daysComplete"
+          [daysIncomplete]="completedTaskMonth.daysIncomplete"
+          [viewDate]="completedTaskMonth.date"
           (dayClick)="goToDetail($event)"
         >
         </app-calendar>
       </div>
-      } @else if (modeData === 'chart'){
+      } @else if (typeView === 'chart'){
 
       <div>
         <app-areachart
@@ -84,45 +84,45 @@
       </div>
       }
     </div>
-    <section *ngIf="currentMonth">
+    <section *ngIf="completedTaskMonth">
       <div class="footer">
         <ion-button
           fill="clear"
           class="text-transform_none"
           color="uva_blue-700"
-          [disabled]="currentMonth.mes === 0 "
-          (click)="setCurrentMonth(currentMonth.mes - 1)"
+          [disabled]="completedTaskMonth.mes === 0 "
+          (click)="setCurrentMonth(completedTaskMonth.mes - 1)"
         >
           <ion-icon slot="start" name="arrow-back"></ion-icon>
-          {{monthsNames[currentMonth.mes - 1 ] || monthsNames[11] }}
+          {{monthsNames[completedTaskMonth.mes - 1 ] || monthsNames[11] }}
         </ion-button>
 
         <ion-button
           fill="clear"
           class="text-transform_none"
           color="uva_blue-700"
-          [disabled]="currentMonth.mes === 11"
-          (click)="setCurrentMonth(currentMonth.mes + 1)"
+          [disabled]="completedTaskMonth.mes === 11"
+          (click)="setCurrentMonth(completedTaskMonth.mes + 1)"
         >
           <ion-icon slot="end" name="arrow-forward"></ion-icon>
-          {{monthsNames[currentMonth.mes + 1 ]|| monthsNames[0] }}
+          {{monthsNames[completedTaskMonth.mes + 1 ]|| monthsNames[0] }}
         </ion-button>
       </div>
     </section>
   </section>
-  } @else if(segment === 'año') {
+  } @else if(timeFrame === 'year') {
   <section class="cards calendar">
     <div class="calendar_years">
       <ion-button fill="clear" class="text-transform_none">
         <ion-icon slot="start" name="arrow-back"></ion-icon>
-        {{currentYear - 1}}
+        {{currentYearIndex - 1}}
       </ion-button>
       <ion-button fill="clear" class="text-transform_none current">
-        {{currentYear}}
+        {{currentYearIndex}}
       </ion-button>
       <ion-button fill="clear" class="text-transform_none" disabled>
         <ion-icon slot="end" name="arrow-forward"></ion-icon>
-        {{currentYear + 1}}
+        {{currentYearIndex + 1}}
       </ion-button>
     </div>
     <div class="calendar_variables_container">
@@ -140,7 +140,7 @@
 
     <ion-grid fixed>
       <ion-row>
-        <ion-col size="4" *ngFor="let register of historical">
+        <ion-col size="4" *ngFor="let register of completedTaskYear">
           <app-calendar
             [IsMini]="true"
             [hasTitle]="true"
