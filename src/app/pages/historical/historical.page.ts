@@ -11,8 +11,6 @@ import {
   IonGrid,
   IonLabel,
   IonRow,
-  IonSegment,
-  IonSegmentButton,
   IonButton,
   IonIcon,
 } from '@ionic/angular/standalone';
@@ -39,6 +37,7 @@ import {
   monthsNames,
   TypeView,
 } from './historical.model';
+import { TimeFrameComponent } from './time-frame/time-frame.component';
 
 @Component({
   selector: 'app-historical',
@@ -51,8 +50,7 @@ import {
     CommonModule,
     HeaderComponent,
     CalendarComponent,
-    IonSegment,
-    IonSegmentButton,
+    TimeFrameComponent,
     IonGrid,
     IonRow,
     IonCol,
@@ -109,6 +107,11 @@ export class HistoricalPage implements OnInit {
     if (data?.historical) {
       await this.initializeVariables(data.historical);
     }
+  }
+
+  onTimeFrameChange(event: TimeFrame): void {
+    this.timeFrame = event;
+    return;
   }
 
   /**
