@@ -1,25 +1,10 @@
 <app-header title="Historial de registros" [seed]="seed"></app-header>
 <ion-content [fullscreen]="true">
-  <section class="segment_content">
-    <ion-segment value="month" [(ngModel)]="timeFrame" class="segment">
-      <ion-segment-button
-        value="month"
-        layout="icon-hide"
-        (click)="changeSegment('month')"
-        class="ion-text-capitalize"
-      >
-        <ion-label>Mes</ion-label>
-      </ion-segment-button>
-      <ion-segment-button
-        value="year"
-        layout="icon-hide"
-        class="ion-text-capitalize"
-        (click)="changeSegment('year')"
-      >
-        <ion-label>Año</ion-label>
-      </ion-segment-button>
-    </ion-segment>
-  </section>
+  <app-time-frame
+    [timeFrame]="timeFrame"
+    (segmentChange)="changeSegment($event)"
+  ></app-time-frame>
+
   @if(timeFrame === 'month'){
   <section class="cards calendar">
     <div class="calendar_header">
