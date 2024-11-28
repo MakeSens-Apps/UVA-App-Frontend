@@ -19,7 +19,15 @@ import {
 import { FormsModule } from '@angular/forms';
 import { AreachartComponent } from '@app/components/areachart/areachart.component';
 import { Router } from '@angular/router';
-import { IMeasurement } from '../../Interfaces/IMeasurement';
+import { Historical } from 'src/models/configuration/measurements.model';
+import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
+import { MeasurementDSService } from '@app/core/services/storage/datastore/measurement-ds.service';
+import {
+  CompletedTask,
+  UserProgressDSService,
+} from '@app/core/services/storage/datastore/user-progress-ds.service';
+
+import { Measurement } from 'src/models';
 
 interface historical {
   mes: number;
@@ -28,6 +36,9 @@ interface historical {
   daysComplete: number[];
   daysIncomplete: number[];
 }
+type MeasurementEntry = Record<string, number>; // Mapea timestamps a valores numéricos
+
+type HistoricalMeasurement = Record<string, MeasurementEntry[]>;
 
 export const monthsNames = [
   'Enero',
@@ -75,12 +86,13 @@ export class HistoricalPage implements OnInit {
   modeData: 'calendar' | 'chart' = 'calendar';
 
   currentYear = new Date().getFullYear();
-  variables: IMeasurement[] = [];
+  variables: Historical[] = [];
   historical: historical[] = [];
   currentMonth: historical | undefined;
 
   currentMonthIndex: number = new Date().getMonth();
   monthsNames = monthsNames;
+  totalTask: number | undefined;
   @ViewChild(CalendarComponent) calendarComponent!: CalendarComponent;
   @ViewChild(AreachartComponent) areaChartComponent!: AreachartComponent;
 
@@ -92,38 +104,85 @@ export class HistoricalPage implements OnInit {
   constructor(
     private router: Router,
     private ref: ChangeDetectorRef,
+    private configuration: ConfigurationAppService,
   ) {}
 
   /**
    * OnInit lifecycle hook. Sets the initial state of the historical and measurement data.
    * @returns {void}
    */
-  ngOnInit(): void {
-    this.historical = data.historical;
+  async ngOnInit(): Promise<void> {
+    const data = await this.configuration.getConfigurationMeasurement();
+    this.totalTask = await UserProgressDSService.getCountTasksByMonthYear(
+      2024,
+      11,
+    );
+
+    this.historical = []; // Inicializa el array si no está definido aún.
+
+    for (let month = 0; month < 12; month++) {
+      const completedTask =
+        await UserProgressDSService.getCompletedTasksByMonthYear(
+          2024,
+          month + 1,
+          3,
+        );
+
+      this.historical[month] = {
+        mes: month,
+        date: new Date(2024, month, 1),
+        name: this.monthsNames[month],
+        daysComplete: completedTask.daysComplete,
+        daysIncomplete: completedTask.daysIncomplete,
+      };
+    }
+    console.log(this.historical);
+    //this.historical = _data.historical;
     this.currentMonth = this.historical.find(
       (historical) => historical.mes === new Date().getMonth(),
     );
 
-    this.variables = Object.keys(data.measurements).map(
-      (key: keyof typeof data.measurements) => {
-        const measurement = data.measurements[key];
+    if (data?.historical) {
+      const measurementvalues =
+        await MeasurementDSService.getMeasurementsByMont(
+          this.currentYear,
+          this.currentMonthIndex,
+        );
+      const values = this.transformData(measurementvalues);
+      const configurationVariables = data.historical.map((measurement) => {
+        let value: number | undefined;
+        switch (measurement.aggregationFunction) {
+          case 'sum':
+            if (measurement.measurementIds.length > 0) {
+              value = this.sum(values[measurement.measurementIds[0]]);
+            }
+
+            break;
+          case 'mean':
+            if (measurement.measurementIds.length > 1) {
+              value = this.mean(
+                values[measurement.measurementIds[0]],
+                values[measurement.measurementIds[1]],
+              );
+            }
+            break;
+          default:
+            break;
+        }
         return {
           name: measurement.name,
+          symbol: measurement.symbol,
           unit: measurement.unit,
-          value: measurement.value,
-          icon: {
-            enable: measurement.icon.enable,
-            icon: measurement.icon.icon,
-          },
-          backgroundColor: {
-            colorHex: measurement.backgroundColor.colorHex,
-          },
-          borderColor: {
-            colorHex: measurement.borderColor.colorHex,
-          },
+          measurementIds: measurement.measurementIds,
+          aggregationFunction: measurement.aggregationFunction,
+          style: measurement.style,
+          graph: measurement.graph,
+          value: value,
         };
-      },
-    );
+      }) as Historical[];
+      this.variables = configurationVariables;
+      console.log(this.variables);
+    }
   }
 
   /**
@@ -187,10 +246,10 @@ export class HistoricalPage implements OnInit {
 
   /**
    * Updates the area chart component with the provided color settings for the selected measurement.
-   * @param {IMeasurement} measurement - The selected measurement for updating chart colors.
+   * @param {Historical} measurement - The selected measurement for updating chart colors.
    * @returns {void}
    */
-  changeColorChart(measurement: IMeasurement): void {
+  changeColorChart(measurement: Historical): void {
     if (!this.areaChartComponent) {
       return;
     }
@@ -198,9 +257,9 @@ export class HistoricalPage implements OnInit {
     this.areaChartComponent.UpdateChart(
       undefined,
       [100, 80, 80, 60, 30, 75, 100, 80],
-      measurement.backgroundColor.colorHex,
-      measurement.borderColor.colorHex,
-      'bar'
+      measurement.style.backgroundColor.colorHex,
+      measurement.style.borderColor.colorHex,
+      'bar',
     );
   }
 
@@ -217,10 +276,48 @@ export class HistoricalPage implements OnInit {
       queryParams: $event,
     });
   }
+
+  sum(data: MeasurementEntry[]): number {
+    // Sumar los valores
+    const total = data.reduce((sum, item) => {
+      // Extraer el valor de cada objeto (que tiene la fecha como clave)
+      const value = Object.values(item)[0];
+      return sum + value;
+    }, 0);
+
+    // Calcular el promedio
+    return Math.round(total);
+  }
+  mean(list1: MeasurementEntry[], list2: MeasurementEntry[]): number {
+    const totalSum = this.sum(list1) + this.sum(list2);
+    const totalCount = list1.length + list2.length;
+    return totalCount > 0 ? Math.round(totalSum / totalCount) : 0;
+  }
+
+  transformData(initialData: Measurement[]): HistoricalMeasurement {
+    const result: HistoricalMeasurement = {};
+
+    for (const record of initialData) {
+      const { data, ts } = record;
+      if (data && typeof data == 'object') {
+        for (const [key, value] of Object.entries(data)) {
+          if (!result[key]) {
+            result[key] = [];
+          }
+          result[key].push({ [ts]: data[key] });
+        }
+      }
+
+      /*
+      }*/
+    }
+
+    return result;
+  }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const data: any = {
+/*const _data: any = {
   measurements: {
     TEMPERATURA_MIN: {
       name: 'Temperatura minima',
@@ -401,3 +498,4 @@ const data: any = {
     },
   ],
 };
+*/

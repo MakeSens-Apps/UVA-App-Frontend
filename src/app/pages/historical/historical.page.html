@@ -27,7 +27,7 @@
         <h2 class="calendar_header_titles--h2">
           {{currentMonth?.name}}, <span>{{currentYear}}</span>
         </h2>
-        <p class="calendar_header_titles--p">1 Registro</p>
+        <p class="calendar_header_titles--p">{{totalTask}} Registros</p>
       </div>
       <div class="calendar_header_btnGraph">
         <ion-button
@@ -50,14 +50,13 @@
       <div class="calendar_variables_container">
         <div
           class="calendar_variables"
-          [ngStyle]="{'background-color': variable.backgroundColor.colorHex, 'border-color':variable.borderColor.colorHex}"
+          [ngStyle]="{'background-color': variable.style.backgroundColor.colorHex, 'border-color':variable.style.borderColor.colorHex}"
           *ngFor="let variable of variables"
           (click)="changeColorChart(variable)"
         >
           <p class="calendar_variables--p">{{variable.name}}</p>
           <h2 class="calendar_variables--h2">
-            @if (variable.icon.enable){ {{variable.icon.iconName}} }
-            {{variable.value}} {{variable.unit}}
+            {{variable.symbol}}{{variable.value}}{{variable.unit}}
           </h2>
         </div>
       </div>
@@ -79,8 +78,8 @@
 
       <div>
         <app-areachart
-          [background]="variables[0].backgroundColor.colorHex"
-          [borderColor]="variables[0].borderColor.colorHex"
+          [background]="variables[0].style.backgroundColor.colorHex"
+          [borderColor]="variables[0].style.borderColor.colorHex"
         ></app-areachart>
       </div>
       }
@@ -129,13 +128,12 @@
     <div class="calendar_variables_container">
       <div
         class="calendar_variables"
-        [ngStyle]="{'background-color': variable.backgroundColor.colorHex, 'border-color':variable.borderColor.colorHex}"
+        [ngStyle]="{'background-color': variable.style.backgroundColor.colorHex, 'border-color':variable.style.borderColor.colorHex}"
         *ngFor="let variable of variables"
       >
         <p class="calendar_variables--p">{{variable.name}}</p>
         <h2 class="calendar_variables--h2">
-          @if (variable.icon.enable){ {{variable.icon.iconName}} }
-          {{variable.value}} {{variable.unit}}
+          {{variable.symbol}}{{variable.value}}{{variable.unit}}
         </h2>
       </div>
     </div>
