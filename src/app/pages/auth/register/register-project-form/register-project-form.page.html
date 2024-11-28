@@ -18,6 +18,7 @@
         type="text"
         (ionInput)="setErrorInput($event, field.value.fieldId)"
         [placeholder]="field.value.displayText"
+        (keydown.enter)="form.invalid ? '' : goToCompleted() "
       ></ion-input>
     </div>
     <ion-button
