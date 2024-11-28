@@ -89,11 +89,28 @@ export class CalendarComponent implements OnInit {
   /** Today's date (day of the month) */
   today = new Date().getDate();
 
+  private _daysComplete: number[] = [];
   /** Days marked as completed */
-  @Input() daysComplete = [8, 7, 5];
+  @Input()
+  set daysComplete(value: number[]) {
+    this._daysComplete = value;
+    this.generateCalendars();
+  }
+  get daysComplete(): number[] {
+    return this._daysComplete;
+  }
 
   /** Days marked as incomplete */
-  @Input() daysIncomplete = [3, 2];
+  private _daysIncomplete: number[] = [];
+
+  @Input()
+  set daysIncomplete(value: number[]) {
+    this._daysIncomplete = value;
+    this.generateCalendars();
+  }
+  get daysIncomplete(): number[] {
+    return this._daysIncomplete;
+  }
 
   @Output() dayClick = new EventEmitter<calendar | null>();
 

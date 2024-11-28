@@ -2,6 +2,11 @@ import { DataStore } from '@aws-amplify/datastore';
 import { UserProgress } from 'src/models';
 import { SortDirection, Predicates } from '@aws-amplify/datastore';
 import { SessionService } from '../../session/session.service';
+
+export interface CompletedTask {
+  daysComplete: number[];
+  daysIncomplete: number[];
+}
 /**
  * Service for managing UserProgress data.
  */
@@ -62,6 +67,97 @@ export class UserProgressDSService {
     }
   }
 
+  static async getCompleteTaskWeek(totalTasks: number): Promise<CompletedTask> {
+    try {
+      const now = new Date(); // Fecha actual
+      const dayOfWeek = now.getDay(); // Día de la semana (0 = Domingo, 6 = Sábado)
+
+      // Calculamos el inicio de la semana (domingo)
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - dayOfWeek); // Retrocede al domingo
+      startOfWeek.setHours(0, 0, 0, 0); // Asegura que la hora sea 00:00:00.000
+      const startdya = startOfWeek.toISOString();
+      const todya = now.toISOString();
+      const userProgress = await DataStore.query(UserProgress, (c) =>
+        c.and((c) => [c.ts.ge(startdya), c.ts.le(todya)]),
+      );
+
+      const taskData: { day: number; tasks: number }[] = userProgress.map(
+        (progress) => ({
+          day: new Date(progress.ts).getDate(), // Extraer el día del mes
+          tasks: progress.completedTasks ?? 0, // Número de tareas completadas
+        }),
+      );
+
+      // Evaluar días completos e incompletos
+      return this.evaluateCompletedTasks(totalTasks, taskData);
+    } catch (error) {
+      console.error('Error fetching UserProgress', error);
+      throw error;
+    }
+  }
+
+  // 2. Función para obtener datos por mes y año
+  static async getCompletedTasksByMonthYear(
+    year: number,
+    month: number,
+    totalTasks: number,
+  ): Promise<CompletedTask> {
+    // Obtener datos desde Amplify DataStore
+    const startDate = new Date(year, month - 1, 1); // Primer día del mes
+    const endDate = new Date(year, month, 0); // Último día del mes
+
+    const userProgress = await DataStore.query(UserProgress, (c) =>
+      c.and((c) => [
+        c.ts.ge(startDate.toISOString()),
+        c.ts.le(endDate.toISOString()),
+      ]),
+    );
+
+    // Procesar los datos por día
+    const taskData: { day: number; tasks: number }[] = userProgress.map(
+      (progress) => ({
+        day: new Date(progress.ts).getDate(), // Extraer el día del mes
+        tasks: progress.completedTasks ?? 0, // Número de tareas completadas
+      }),
+    );
+
+    // Evaluar días completos e incompletos
+    return this.evaluateCompletedTasks(totalTasks, taskData);
+  }
+
+  static async getCountTasksByMonthYear(
+    year: number,
+    month: number,
+  ): Promise<number> {
+    try {
+      // Obtener el rango de fechas del mes especificado
+      const startDate = new Date(year, month - 1, 1); // Primer día del mes
+      const endDate = new Date(year, month, 0); // Último día del mes
+
+      // Consultar datos desde Amplify DataStore
+      const userProgress = await DataStore.query(UserProgress, (c) =>
+        c.and((c) => [
+          c.ts.ge(startDate.toISOString()),
+          c.ts.le(endDate.toISOString()),
+        ]),
+      );
+
+      // Contar el total de tareas completadas en el mes
+      const totalCompletedTasks = userProgress.reduce((acc, progress) => {
+        return acc + (progress.completedTasks ?? 0); // Suma tareas completadas
+      }, 0);
+
+      return totalCompletedTasks;
+    } catch (error) {
+      console.error(
+        'Error fetching total completed tasks by month and year',
+        error,
+      );
+      throw error;
+    }
+  }
+
   /**
    * Retrieves lastUser.
    * @returns {Promise<UserProgress>} List of UserProgress entries.
@@ -93,5 +189,23 @@ export class UserProgressDSService {
         (milestone): milestone is string =>
           !!milestone && milestone.trim() !== '',
       );
+  }
+
+  private static evaluateCompletedTasks(
+    totalTasks: number,
+    taskData: { day: number; tasks: number }[],
+  ): CompletedTask {
+    const daysComplete: number[] = [];
+    const daysIncomplete: number[] = [];
+
+    taskData.forEach((data) => {
+      if (data.tasks >= totalTasks) {
+        daysComplete.push(data.day); // Día con tareas completas
+      } else if (data.tasks > 0) {
+        daysIncomplete.push(data.day); // Día con al menos una tarea
+      }
+    });
+
+    return { daysComplete, daysIncomplete };
   }
 }
