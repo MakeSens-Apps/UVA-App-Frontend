@@ -96,6 +96,7 @@ export class CalendarComponent implements OnInit {
     this._daysComplete = value;
     this.generateCalendars();
   }
+  /**Get */
   get daysComplete(): number[] {
     return this._daysComplete;
   }
@@ -104,10 +105,12 @@ export class CalendarComponent implements OnInit {
   private _daysIncomplete: number[] = [];
 
   @Input()
+  /**Set */
   set daysIncomplete(value: number[]) {
     this._daysIncomplete = value;
     this.generateCalendars();
   }
+  /**Get */
   get daysIncomplete(): number[] {
     return this._daysIncomplete;
   }

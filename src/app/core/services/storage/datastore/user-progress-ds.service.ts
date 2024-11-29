@@ -67,6 +67,11 @@ export class UserProgressDSService {
     }
   }
 
+ /**
+   * Retrieves all task completed in the last week.
+   * @param {number} [totalTasks] - Maximun number of task in one day
+   * @returns {Promise<CompletedTask>} CompletedTask
+   */
   static async getCompleteTaskWeek(totalTasks: number): Promise<CompletedTask> {
     try {
       const now = new Date(); // Fecha actual
@@ -97,7 +102,13 @@ export class UserProgressDSService {
     }
   }
 
-  // 2. Función para obtener datos por mes y año
+  /**
+   * 
+   * @param {number} year Year
+   * @param {number} month month
+   * @param {number} totalTasks - Maximun number of task in one day
+   * @returns {Promise<CompletedTask>} CompletedTask in month
+   */
   static async getCompletedTasksByMonthYear(
     year: number,
     month: number,
@@ -126,6 +137,12 @@ export class UserProgressDSService {
     return this.evaluateCompletedTasks(totalTasks, taskData);
   }
 
+  /**
+   * 
+   * @param {number} year year
+   * @param {number} month month
+   * @returns {Promise<number>} counter task in one month
+   */
   static async getCountTasksByMonthYear(
     year: number,
     month: number,

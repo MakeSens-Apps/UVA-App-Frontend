@@ -18,11 +18,12 @@ export class TimeFrameComponent {
   @Input() timeFrame: TimeFrame = 'month';
   @Output() segmentChange = new EventEmitter<TimeFrame>();
 
-  constructor() {}
+  /**
+   * Event change segment
+   * @param {TimeFrame} value month | year -> TimeFrame
+   * @returns {void}
+   */
   changeSegment(value: TimeFrame): void {
     this.segmentChange.emit(value);
-  }
-  onSegmentChange(): void {
-    this.segmentChange.emit(this.timeFrame);
   }
 }

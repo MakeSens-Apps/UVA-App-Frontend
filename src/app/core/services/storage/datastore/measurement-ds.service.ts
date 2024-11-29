@@ -109,6 +109,12 @@ export class MeasurementDSService {
     }
   }
 
+  /**
+   * Retrieves counter Measurements within a given date range.
+   * @param {Date} startDate - Start date of the range.
+   * @param {Date} endDate - End date of the range.
+   * @returns {Promise<number>} List of Measurements within the date range.
+   */
   static async countMeasurementsByDateRange(
     startDate: Date,
     endDate: Date,

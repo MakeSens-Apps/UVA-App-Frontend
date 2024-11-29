@@ -24,7 +24,6 @@ import {
 import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
 import { MeasurementDSService } from '@app/core/services/storage/datastore/measurement-ds.service';
 import {
-  CompletedTask,
   UserProgressDSService,
 } from '@app/core/services/storage/datastore/user-progress-ds.service';
 
@@ -88,7 +87,7 @@ export class HistoricalPage implements OnInit {
    * Initializes component with router and change detector.
    * @param {Router} router - Provides navigation between pages.
    * @param {ChangeDetectorRef} ref - Detects changes in component data.
-   * @param {ConfigurationAppService} configuration
+   * @param {ConfigurationAppService} configuration Manage configuration app
    */
   constructor(
     private router: Router,
@@ -107,11 +106,6 @@ export class HistoricalPage implements OnInit {
     if (data?.historical) {
       await this.initializeVariables(data.historical);
     }
-  }
-
-  onTimeFrameChange(event: TimeFrame): void {
-    this.timeFrame = event;
-    return;
   }
 
   /**
@@ -247,9 +241,9 @@ export class HistoricalPage implements OnInit {
 
   /**
    * Fetches and formats completed tasks for a specific month.
-   * @param year - The year for which tasks are fetched.
-   * @param month - The month for which tasks are fetched.
-   * @returns {Promise<CompleteTaskHistorical>}
+   * @param {number} year - The year for which tasks are fetched.
+   * @param {number}  month - The month for which tasks are fetched.
+   * @returns {Promise<CompleteTaskHistorical>} CompleteTaskHistorical
    */
   private async getCompletedTaskForMonth(
     year: number,
@@ -269,8 +263,8 @@ export class HistoricalPage implements OnInit {
 
   /**
    * Initializes the historical variables based on configuration and measurement data.
-   * @param historicalData - The historical configuration data.
-   * @returns {Promise<void>}
+   * @param {Historical[]} historicalData - The historical configuration data.
+   * @returns {Promise<void>} void
    */
   private async initializeVariables(
     historicalData: Historical[],
@@ -293,7 +287,6 @@ export class HistoricalPage implements OnInit {
       value: this.calculateValue(measurement, transformedData),
     })) as Historical[];
 
-    console.log(this.variables);
   }
 
   /**
@@ -323,6 +316,11 @@ export class HistoricalPage implements OnInit {
     }
   }
 
+  /**
+   * 
+   * @param {MeasurementEntry[]} data MeasurementEntry
+   * @returns {number} sum
+   */
   private sum(data: MeasurementEntry[]): number {
     // Sumar los valores
     const total = data.reduce((sum, item) => {
@@ -334,12 +332,23 @@ export class HistoricalPage implements OnInit {
     // Calcular el promedio
     return Math.round(total);
   }
+  /**
+   *  Calculeates mean of values in list1 and list2
+   * @param {MeasurementEntry[]} list1 Input one
+   * @param {MeasurementEntry[]} list2 Input two
+   * @returns {number} mean Calculated
+   */
   private mean(list1: MeasurementEntry[], list2: MeasurementEntry[]): number {
     const totalSum = this.sum(list1) + this.sum(list2);
     const totalCount = list1.length + list2.length;
     return totalCount > 0 ? Math.round(totalSum / totalCount) : 0;
   }
 
+  /**
+   * Transform struct data informacion or measurements
+   * @param {Measurement[]} initialData Measures of service
+   * @returns {HistoricalMeasurement} Historical Measure type for graph
+   */
   private transformData(initialData: Measurement[]): HistoricalMeasurement {
     const result: HistoricalMeasurement = {};
 
