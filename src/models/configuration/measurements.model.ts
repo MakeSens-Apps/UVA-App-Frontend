@@ -106,7 +106,7 @@ export interface Historical {
   value?: number;
 }
 
-interface Graph {
+export interface Graph {
   type: string;
   measurementIds: string[];
   aggregationFunction: string;

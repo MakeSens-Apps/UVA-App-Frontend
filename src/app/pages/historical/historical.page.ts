@@ -18,14 +18,13 @@ import { FormsModule } from '@angular/forms';
 import { AreachartComponent } from '@app/components/areachart/areachart.component';
 import { Router } from '@angular/router';
 import {
+  Graph,
   Historical,
   MeasurementModel,
 } from 'src/models/configuration/measurements.model';
 import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
 import { MeasurementDSService } from '@app/core/services/storage/datastore/measurement-ds.service';
-import {
-  UserProgressDSService,
-} from '@app/core/services/storage/datastore/user-progress-ds.service';
+import { UserProgressDSService } from '@app/core/services/storage/datastore/user-progress-ds.service';
 
 import { Measurement } from 'src/models';
 import {
@@ -121,9 +120,33 @@ export class HistoricalPage implements OnInit {
    * Toggles the view mode between calendar and chart.
    * @returns {void}
    */
-  changeModeData(): void {
+  async changeModeData(): Promise<void> {
     this.typeView = this.typeView === 'calendar' ? 'chart' : 'calendar';
+    if (this.typeView === 'chart') {
+      const measureConfiguration = this.variables[0].graph;
+      await this.updateChart(measureConfiguration);
+    }
     this.ref.detectChanges();
+  }
+
+  async updateChart(configGraph: Graph): Promise<void> {
+    const measuresMonth = await MeasurementDSService.getMeasurementsByMont(
+      this.currentYearIndex,
+      this.currentMonthIndex,
+    );
+    const transformedData = this.transformData(measuresMonth);
+    const measures = this.calculateMeasurement(
+      transformedData,
+      configGraph.measurementIds,
+      configGraph.aggregationFunction === 'sum' ? 'sum' : 'mean',
+    );
+    this.areaChartComponent.UpdateChart(
+      Object.keys(measures),
+      Object.values(measures),
+      configGraph.style.backgroundColor.colorHex,
+      configGraph.style.borderColor.colorHex,
+      configGraph.type === 'line' ? 'line' : 'bar',
+    );
   }
 
   /**
@@ -181,18 +204,11 @@ export class HistoricalPage implements OnInit {
    * @param {Historical} measurement - The selected measurement for updating chart colors.
    * @returns {void}
    */
-  changeColorChart(measurement: Historical): void {
+  async changeColorChart(measurement: Historical): Promise<void> {
     if (!this.areaChartComponent) {
       return;
     }
-
-    this.areaChartComponent.UpdateChart(
-      undefined,
-      [100, 80, 80, 60, 30, 75, 100, 80],
-      measurement.style.backgroundColor.colorHex,
-      measurement.style.borderColor.colorHex,
-      'bar',
-    );
+    await this.updateChart(measurement.graph);
   }
 
   /**
@@ -286,7 +302,6 @@ export class HistoricalPage implements OnInit {
       graph: measurement.graph,
       value: this.calculateValue(measurement, transformedData),
     })) as Historical[];
-
   }
 
   /**
@@ -317,7 +332,7 @@ export class HistoricalPage implements OnInit {
   }
 
   /**
-   * 
+   *
    * @param {MeasurementEntry[]} data MeasurementEntry
    * @returns {number} sum
    */
@@ -363,6 +378,52 @@ export class HistoricalPage implements OnInit {
         }
       }
     }
+
+    return result;
+  }
+
+  private calculateMeasurement(
+    historicalData: HistoricalMeasurement,
+    keys: string[], // Un arreglo de claves de HistoricalMeasurement
+    calculationType: 'sum' | 'mean',
+  ): MeasurementEntry {
+    const result: MeasurementEntry = {};
+
+    // Recorrer cada clave proporcionada en `keys`
+    keys.forEach((key) => {
+      if (historicalData[key]) {
+        // Crear un objeto temporal para almacenar las mediciones agrupadas por fecha
+        const dailyValues: Record<string, number[]> = {};
+
+        // Agrupar las mediciones por fecha (ignorando la hora)
+        historicalData[key].forEach((entry) => {
+          for (const timestamp in entry) {
+            const date = timestamp.split('T')[0]; // Extraemos la fecha (YYYY-MM-DD)
+
+            if (!dailyValues[date]) {
+              dailyValues[date] = [];
+            }
+
+            dailyValues[date].push(entry[timestamp]);
+          }
+        });
+
+        // Calcular la suma o la media diaria, dependiendo del tipo de cálculo
+        for (const date in dailyValues) {
+          const values = dailyValues[date];
+          if (calculationType === 'sum') {
+            // Sumar los valores para esa fecha
+            const sum = values.reduce((acc, val) => acc + val, 0);
+            result[date] = sum;
+          } else if (calculationType === 'mean') {
+            // Calcular la media de los valores para esa fecha
+            const mean =
+              values.reduce((acc, val) => acc + val, 0) / values.length;
+            result[date] = mean;
+          }
+        }
+      }
+    });
 
     return result;
   }
