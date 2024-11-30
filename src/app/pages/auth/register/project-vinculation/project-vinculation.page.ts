@@ -15,7 +15,6 @@ import { SetupService } from '@app/core/services/view/setup/setup.service';
 import { Session } from 'src/models/session.model';
 import { SetupRacimoService } from '@app/core/services/view/setup/setup-racimo.service';
 import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
-import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.service';
 import { Subscription } from 'rxjs';
 import { SyncMonitorDSService } from '@app/core/services/storage/datastore/sync-monitor-ds.service';
 @Component({
@@ -48,7 +47,6 @@ export class ProjectVinculationPage implements OnInit, OnDestroy {
    * @param {SetupRacimoService} serviceRacimo - Service to manage UVA and RACIMO data.
    * @param {ConfigurationAppService} configuration -Service to manage S3 y FileSystem
    * @param {ChangeDetectorRef} cdr -CDR
-   * @param {AppMinimizeService} minimizeService - The AppMinimizeService.
    */
   constructor(
     private formBuilder: FormBuilder,
@@ -57,7 +55,6 @@ export class ProjectVinculationPage implements OnInit, OnDestroy {
     private serviceRacimo: SetupRacimoService,
     private configuration: ConfigurationAppService,
     private cdr: ChangeDetectorRef,
-    private minimizeService: AppMinimizeService,
   ) {
     this.form = this.formBuilder.group({
       code: new FormControl(
@@ -77,8 +74,6 @@ export class ProjectVinculationPage implements OnInit, OnDestroy {
    * @returns {Promise<void>} - Resolves with no return value.
    */
   async ngOnInit(): Promise<void> {
-    this.minimizeService.initializeBackButtonHandler();
-
     this.user = await this.service.getParametersUser();
     if (this.user.userID) {
       const response = await this.serviceRacimo.getUVA(this.user.userID);
