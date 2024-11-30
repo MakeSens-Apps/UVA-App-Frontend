@@ -9,7 +9,6 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import { MoonCardComponent } from '../../components/moon-card/moon-card.component';
 import { Router } from '@angular/router';
-import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.service';
 import { Subscription } from 'rxjs';
 import {
   MoonPhaseService,
@@ -72,7 +71,6 @@ export class HomePage implements OnInit, OnDestroy {
    * @param {Router} router - Angular Router for handling navigation.
    * @param {NotificationService} notificationService Notifications
    * @param {ChangeDetectorRef} cdr Angular detecte change in app.
-   * @param {AppMinimizeService} minimizeService - The AppMinimizeService.
    * @param {MoonPhaseService} moonphase - Moon Phase Service.
    * @param {ConfigurationAppService} configuration Configuration App
    */
@@ -80,12 +78,10 @@ export class HomePage implements OnInit, OnDestroy {
     private router: Router,
     private notificationService: NotificationService,
     private cdr: ChangeDetectorRef,
-    private minimizeService: AppMinimizeService,
     private moonphase: MoonPhaseService,
     private configuration: ConfigurationAppService,
   ) {
     this.today = format(new Date(), " EEEE dd 'de' MMMM", { locale: es });
-    this.minimizeService.initializeBackButtonHandler();
   }
 
   /**
