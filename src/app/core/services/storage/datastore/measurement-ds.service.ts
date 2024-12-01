@@ -97,11 +97,16 @@ export class MeasurementDSService {
       const startDate = new Date(year, month, 1); // Primer día del mes
       const endDate = new Date(year, month + 1, 0); // Último día del mes
 
-      return await DataStore.query(Measurement, (c) =>
-        c.and((c) => [
-          c.ts.ge(startDate.toISOString()),
-          c.ts.le(endDate.toISOString()),
-        ]),
+      return await DataStore.query(
+        Measurement,
+        (c) =>
+          c.and((c) => [
+            c.ts.ge(startDate.toISOString()),
+            c.ts.le(endDate.toISOString()),
+          ]),
+        {
+          sort: (up) => up.ts(SortDirection.ASCENDING),
+        },
       );
     } catch (error) {
       console.error('Error fetching Measurements by date range', error);
