@@ -68,7 +68,7 @@ export class HistoricalPage implements OnInit {
   timeFrame: TimeFrame = 'month';
   typeView: TypeView = 'calendar';
   nRegisters: number | undefined;
-  measuresConfig: MeasurementModel | undefined;
+  measuresConfig: MeasurementModel | null | undefined;
   measuresMonth: HistoricalMeasurement = {};
   measuresYear: HistoricalMeasurement[] = [{}];
   completedTaskMonth: CompleteTaskHistorical | undefined;
@@ -101,9 +101,10 @@ export class HistoricalPage implements OnInit {
   async ngOnInit(): Promise<void> {
     await this.initializeRegisters();
     await this.initializeCompletedTasks();
-    const data = await this.configuration.getConfigurationMeasurement();
-    if (data?.historical) {
-      await this.initializeVariables(data.historical);
+    this.measuresConfig =
+      await this.configuration.getConfigurationMeasurement();
+    if (this.measuresConfig?.historical) {
+      await this.initializeVariables(this.measuresConfig.historical);
     }
   }
 
@@ -123,8 +124,8 @@ export class HistoricalPage implements OnInit {
   async changeModeData(): Promise<void> {
     this.typeView = this.typeView === 'calendar' ? 'chart' : 'calendar';
     if (this.typeView === 'chart') {
-      const measureConfiguration = this.variables[0].graph;
-      await this.updateChart(measureConfiguration);
+      this.measureSelected = this.variables[0];
+      await this.updateChart(this.measureSelected.graph);
     }
     this.ref.detectChanges();
   }
@@ -135,18 +136,29 @@ export class HistoricalPage implements OnInit {
       this.currentMonthIndex,
     );
     const transformedData = this.transformData(measuresMonth);
+    console.log(transformedData);
     const measures = this.calculateMeasurement(
       transformedData,
       configGraph.measurementIds,
       configGraph.aggregationFunction === 'sum' ? 'sum' : 'mean',
     );
-    this.areaChartComponent.UpdateChart(
-      Object.keys(measures),
-      Object.values(measures),
-      configGraph.style.backgroundColor.colorHex,
-      configGraph.style.borderColor.colorHex,
-      configGraph.type === 'line' ? 'line' : 'bar',
-    );
+    if (measures) {
+      this.areaChartComponent.UpdateChart(
+        Object.keys(measures),
+        Object.values(measures),
+        configGraph.style.backgroundColor.colorHex,
+        configGraph.style.borderColor.colorHex,
+        configGraph.type === 'line' ? 'line' : 'bar',
+      );
+    } else {
+      this.areaChartComponent.UpdateChart(
+        [],
+        [],
+        configGraph.style.backgroundColor.colorHex,
+        configGraph.style.borderColor.colorHex,
+        configGraph.type === 'line' ? 'line' : 'bar',
+      );
+    }
   }
 
   /**
@@ -167,9 +179,9 @@ export class HistoricalPage implements OnInit {
   /**
    * Sets the current month for displaying data and updates the calendar component.
    * @param {number} index - The index of the month to display.
-   * @returns {void}
+   * @returns {Promise<void>}
    */
-  setCurrentMonth(index: number): void {
+  async setCurrentMonth(index: number): Promise<void> {
     if (index === this.currentMonthIndex) {
       return;
     }
@@ -188,7 +200,12 @@ export class HistoricalPage implements OnInit {
       (historical) => historical.mes === index,
     );
     this.timeFrame = 'month';
-
+    if (this.measuresConfig?.historical) {
+      await this.initializeVariables(this.measuresConfig.historical);
+      if (this.measureSelected) {
+        await this.updateChart(this.measureSelected.graph);
+      }
+    }
     setTimeout(() => {
       if (!this.calendarComponent) {
         return;
@@ -208,6 +225,7 @@ export class HistoricalPage implements OnInit {
     if (!this.areaChartComponent) {
       return;
     }
+    this.measureSelected = measurement;
     await this.updateChart(measurement.graph);
   }
 
@@ -336,12 +354,18 @@ export class HistoricalPage implements OnInit {
    * @param {MeasurementEntry[]} data MeasurementEntry
    * @returns {number} sum
    */
-  private sum(data: MeasurementEntry[]): number {
+  private sum(data: MeasurementEntry[]): number | undefined {
     // Sumar los valores
+    if (!data) {
+      return undefined;
+    }
     const total = data.reduce((sum, item) => {
       // Extraer el valor de cada objeto (que tiene la fecha como clave)
-      const value = Object.values(item)[0];
-      return sum + value;
+      if (item) {
+        const value = Object.values(item)[0];
+        return sum + value;
+      }
+      return sum;
     }, 0);
 
     // Calcular el promedio
@@ -353,10 +377,26 @@ export class HistoricalPage implements OnInit {
    * @param {MeasurementEntry[]} list2 Input two
    * @returns {number} mean Calculated
    */
-  private mean(list1: MeasurementEntry[], list2: MeasurementEntry[]): number {
-    const totalSum = this.sum(list1) + this.sum(list2);
+  private mean(
+    list1: MeasurementEntry[],
+    list2: MeasurementEntry[],
+  ): number | undefined {
+    if (!list1 || !list2) {
+      return undefined;
+    }
+    const sum1 = this.sum(list1) || 0;
+    const sum2 = this.sum(list2) || 0;
+    console.log('mean');
+    console.log(list1);
+    console.log(list2);
+    const totalSum = sum1 + sum2;
     const totalCount = list1.length + list2.length;
-    return totalCount > 0 ? Math.round(totalSum / totalCount) : 0;
+
+    if (totalCount === 0) {
+      return undefined;
+    }
+
+    return Math.round(totalSum / totalCount);
   }
 
   /**
@@ -369,7 +409,8 @@ export class HistoricalPage implements OnInit {
 
     for (const record of initialData) {
       const { data, ts } = record;
-      if (data && typeof data == 'object') {
+
+      if (data && typeof data === 'object') {
         for (const [key] of Object.entries(data)) {
           if (!result[key]) {
             result[key] = [];
@@ -377,6 +418,17 @@ export class HistoricalPage implements OnInit {
           result[key].push({ [ts]: data[key] });
         }
       }
+    }
+
+    // Sort the lists by timestamp (ts) for each key
+    for (const key in result) {
+      result[key] = result[key]
+        .filter((entry) => entry !== undefined) // Exclude undefined entries
+        .sort((a, b) => {
+          const tsA = a ? parseInt(Object.keys(a)[0], 10) : 0;
+          const tsB = b ? parseInt(Object.keys(b)[0], 10) : 0;
+          return tsA - tsB; // Ascending order
+        });
     }
 
     return result;
