@@ -140,13 +140,7 @@ export class HomePage implements OnInit, OnDestroy {
     if (config) {
       this.configurationApp = config;
     }
-    await this.setNotifications()
-      .then(() => {
-        console.log('Notificaciones programadas.');
-      })
-      .catch((error) => {
-        console.error('Error al programar notificaciones:', error);
-      });
+    await this.setNotifications();
   }
 
   /**
@@ -172,18 +166,22 @@ export class HomePage implements OnInit, OnDestroy {
     void this.router.navigate(['/app/tabs/moon-phase']);
   }
 
+  /**
+   * Schedules daily notifications if notifications are enabled.
+   * @returns {Promise<void>} A promise that resolves when the notifications are set.
+   */
   async setNotifications(): Promise<void> {
-    const hasPermission = await this.notificationService.requestPermissions();
-    if (!hasPermission) {
-      console.error('Permisos denegados para notificaciones.');
-      return;
+    const enableNotifications =
+      await this.notificationService.getEnableNotifications();
+    if (enableNotifications) {
+      await this.notificationService.scheduleDailyNotifications();
     }
-
-    // Programar notificaciones diarias
-    await this.notificationService.scheduleDailyNotifications();
   }
 
-  // Cancelar todas las notificaciones
+  /**
+   * Cancels all scheduled notifications.
+   * @returns {Promise<void>} A promise that resolves when all notifications are cancelled.
+   */
   async cancelNotifications(): Promise<void> {
     await this.notificationService.cancelAllNotifications();
   }
