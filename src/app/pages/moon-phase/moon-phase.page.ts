@@ -12,6 +12,7 @@ import {
   DailyPhaseCalendar,
   MoonEvent,
 } from '@app/core/services/view/moon/moon-phase.service';
+import { UserProgressDSService } from '@app/core/services/storage/datastore/user-progress-ds.service';
 // Mapping of month indices to month names in Spanish
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const meses: any = {
@@ -53,7 +54,7 @@ export class MoonPhasePage implements OnInit {
   phaseName = LUNAR_PHASE_NAME[this.phase];
   phaseMoonDays: DailyPhaseCalendar[] = [];
   moonEvents: MoonEvent[] = [];
-
+  seed: number | undefined | null;
   /**
    * @constructs MoonPhasePage
    * @param {MoonPhaseService} moonphaseService - The MoonPhaseService to fetch moon phase data.
@@ -105,6 +106,12 @@ export class MoonPhasePage implements OnInit {
       }
     } catch (error) {
       console.error('Error al cargar los datos de la luna:', error);
+    }
+  }
+  async ionViewWillEnter(): Promise<void> {
+    const userprogress = await UserProgressDSService.getLastUserProgress();
+    if (userprogress) {
+      this.seed = userprogress.Seed;
     }
   }
 }
