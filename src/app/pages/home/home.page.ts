@@ -169,7 +169,7 @@ export class HomePage implements OnInit, OnDestroy {
    * @returns {void}
    */
   goToMoonCalendar(): void {
-    void this.router.navigate(['/app/tabs/home/moon-phase']);
+    void this.router.navigate(['/app/tabs/moon-phase']);
   }
 
   async setNotifications(): Promise<void> {
