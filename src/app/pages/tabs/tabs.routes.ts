@@ -12,7 +12,7 @@ export const routes: Routes = [
           import('../home/home.page').then((m) => m.HomePage),
       },
       {
-        path: 'home/moon-phase',
+        path: 'moon-phase',
         loadComponent: () =>
           import('./../../pages/moon-phase/moon-phase.page').then(
             (m) => m.MoonPhasePage,
