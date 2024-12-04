@@ -6,6 +6,7 @@ import {
   OnDestroy,
   OnInit,
   QueryList,
+  ViewChild,
   ViewChildren,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -21,13 +22,12 @@ import {
 import { HeaderComponent } from '@app/components/header/header.component';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
-import {
-  Flow,
-  Measurement,
-  MeasurementModel,
-} from 'src/models/configuration/measurements.model';
+import { Flow, Measurement } from 'src/models/configuration/measurements.model';
+
+import { DomSanitizer } from '@angular/platform-browser';
 
 import { Preferences } from '@capacitor/preferences';
+import { MeasurementDSService } from '@app/core/services/storage/datastore/measurement-ds.service';
 
 const operaciones: Record<
   string,
@@ -91,18 +91,25 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
   /** Stores the configuration data for measurements. */
   configurationMeasurement: any;
 
+  applyBlurFilter = false;
+
+  @ViewChild('modal_modal_confirmation') modal_modal_confirmation!: IonModal;
+  @ViewChild('modal_register_Ok') modal_register_Ok!: IonModal;
+
   /**
    * Creates an instance of RegisterMeasurementPage and injects the required dependencies.
    * @param {ModalController} modalCtrl - Service to manage Ionic modals.
    * @param {ActivatedRoute} route - Service to manage and access route parameters.
    * @param {Router} router - Service for programmatic navigation.
    * @param {ConfigurationAppService} configuration - Service to fetch and manage app configurations.
+   * @param {DomSanitizer} sanitizer - Service to sanitizer html code on view.
    */
   constructor(
     private modalCtrl: ModalController,
     private route: ActivatedRoute,
     private router: Router,
     private configuration: ConfigurationAppService,
+    private sanitizer: DomSanitizer,
   ) {}
 
   /**
@@ -131,6 +138,22 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
               this.data.measurements[key];
             measurementComplete.id = key;
             measurementComplete.showRestrictionAlert = false;
+            measurementComplete.name = this.sanitizer.bypassSecurityTrustHtml(
+              measurementComplete.name as string,
+            );
+            (async () => {
+              if (measurementComplete.icon.imagePath) {
+                measurementComplete.icon.imagePath =
+                  await this.configuration.loadImage(
+                    measurementComplete.icon.imagePath,
+                  );
+              }
+            })().catch((err) => {
+              console.error(
+                '🚀 ~ RegisterMeasurementPage ~ error obteniendo imagen icon:',
+                err,
+              );
+            });
             const numberFields = measurementComplete.fields || 0;
             measurementComplete.fieldsArray = Array.from({
               length: numberFields,
@@ -139,6 +162,12 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
           });
           if (this.flow.guides.length) {
             this.hasGuide = true;
+            this.data.guides[this.flow.guides[0]].showAutomatic = true;
+            if (this.data.guides[this.flow.guides[0]].showAutomatic) {
+              this.OpenGuide(this.flow.guides[0]).catch((err) =>
+                console.error(err),
+              );
+            }
           }
         }
       }
@@ -168,6 +197,7 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
           component: GuideMeasurementComponent,
           componentProps: {
             guide: this.data.guides[guide || 'guide1'],
+            isHtmlText: true,
           },
           cssClass: 'modal-fullscreen',
           backdropDismiss: true,
@@ -235,7 +265,10 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
               nextIndex < this.measurement[measurementIndex].fieldsArray.length
             ) {
               // Construimos el id del siguiente campo de entrada
-              const nextInputId = `digitsInput_${measurementIndex}_${nextIndex}`;
+
+              const nextInputId = !this.applyBlurFilter
+                ? `digitsInput_${measurementIndex}_${nextIndex}`
+                : `digitsInput_${measurementIndex}_${nextIndex}_modal`;
               const nextInput = document.getElementById(
                 nextInputId,
               ) as HTMLIonInputElement;
@@ -300,12 +333,33 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
     }
 
     this.OpenModalRegisterOk = true;
-    if (this.taskId && this.flowId) {
-      //TODO: Save Flow mark as completed
-      // this.measurementService.setFlowCompleted(this.taskId, this.flowId);
-    }
+    const measurementDate = this.measurement?.reduce(
+      (measurement, currentValue) => {
+        if (!measurement) {
+          measurement = {};
+        }
+        if (measurement && currentValue.id) {
+          measurement[currentValue.id.toString()] = currentValue.value || 0;
+        }
+        return measurement;
+      },
+      {} as Record<string, number>,
+    );
 
-    await this.goToNexFlowOrSavePreference();
+    if (this.taskId && this.flowId) {
+      if (measurementDate) {
+        await MeasurementDSService.addMeasurement(
+          'RAW',
+          measurementDate,
+          {},
+          new Date().toISOString(),
+          this.taskId as string,
+        ).then(async () => {
+          await this.modal_modal_confirmation.dismiss();
+          await this.goToNexFlowOrSavePreference();
+        });
+      }
+    }
   }
 
   /**
@@ -419,6 +473,11 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
     if (!this.flow?.nextFlow) {
       await Preferences.remove({ key: 'lastMeasurementValues' });
       setTimeout(() => {
+        this.modal_register_Ok.dismiss().catch((err) => {
+          console.error(
+            `⛔️❌📛 ~ RegisterMeasurementPage ~ error cerrando modal Register Ok ${err}`,
+          );
+        });
         this.OpenModalRegisterOk = false;
         this.router
           .navigate(['app/tabs/register'])

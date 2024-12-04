@@ -63,7 +63,7 @@
     <!--  } -->
   </section>
 
-  @if (showAlert_incomplete) {
+  @if (showAlert_incomplete && isYesterday) {
   <div class="alert danger">
     <p>
       No tienes suficientes semillas para recuperar tu racha😒, necesitas:
@@ -80,7 +80,7 @@
   <div class="alert info">
     <p>Día completado con semillas</p>
   </div>
-  } @if(date?.state === 'incomplete'){
+  } @if(date?.state === 'incomplete' && isYesterday && !showAlert_incomplete){
   <ion-button
     expand="block"
     color="uva_orange-500"

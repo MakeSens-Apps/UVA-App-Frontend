@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Task } from './../../../models/configuration/measurements.model';
-import { MeasurementService } from './measurement.service';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
@@ -21,6 +20,9 @@ import {
   add,
 } from 'date-fns';
 import { Bonus } from 'src/models/configuration/measurements.model';
+import { MeasurementDSService } from '@app/core/services/storage/datastore/measurement-ds.service';
+import { LazyMeasurement } from 'src/models';
+import { DomSanitizer } from '@angular/platform-browser';
 
 /**
  * Translates day names to numbers.
@@ -46,6 +48,26 @@ const translateWeekNumber = {
   third: 3,
   fourth: 4,
   fifth: 5,
+};
+
+/**
+ * Defines the structure of a measurement object.
+ * @property {string} id - The ID of the measurement.
+ * @property {number} value - The value of the measurement.
+ */
+export type Measurement = {
+  id: string;
+  value: number;
+};
+
+/**
+ * Defines the structure of a completed task.
+ * @property {string} id - The ID of the task.
+ * @property {Measurement[]} measurements - Array of measurements associated with the task.
+ */
+export type TaskCompleted = {
+  id: string;
+  measurements: Measurement[];
 };
 
 /**
@@ -82,14 +104,14 @@ export class MeasurementPage implements OnInit {
    * @param {SessionService} session - SessionService to manage user session data.
    * @param {SetupService} service - SetupService to handle user configuration flows.
    * @param {ConfigurationAppService} configuration - Service to retrieve configuration data from storage.
-   * @param {MeasurementService} measurementService - Service to manage measurement tasks.
+   * @param {DomSanitizer} sanitizer - Service to sanitizer html code on view.
    */
   constructor(
     private router: Router,
     private session: SessionService,
     private service: SetupService,
     private configuration: ConfigurationAppService,
-    private measurementService: MeasurementService,
+    private sanitizer: DomSanitizer,
   ) {}
 
   /**
@@ -99,7 +121,14 @@ export class MeasurementPage implements OnInit {
   async ngOnInit(): Promise<void> {
     this.user = await this.session.getInfo();
     await this.configuration.getConfigurationApp();
+  }
 
+  /**
+   * Retrieves measurement data and configures tasks and bonus logic.
+   * @async
+   * @returns {Promise<any>} - Resolves when data is loaded and processed.
+   */
+  async getDataMeasurement(): Promise<any> {
     const configurationMeasurement =
       await this.configuration.getConfigurationMeasurement();
     await this.configuration.getConfigurationColors();
@@ -149,10 +178,10 @@ export class MeasurementPage implements OnInit {
 
     if (configurationMeasurement?.tasks) {
       const keysTask = Object.keys(configurationMeasurement.tasks);
-      const tasksConfiguration = this.measurementService.data.tasks;
+      const tasksConfiguration = configurationMeasurement.tasks;
       this.tasks = keysTask.map((key) => {
         // Verifica si 'key' es una clave válida en 'this.measurementService.data.tasks'
-        if (key in this.measurementService.data.tasks) {
+        if (key in configurationMeasurement.tasks) {
           const keyName = key as keyof typeof tasksConfiguration;
           const task: Task = configurationMeasurement.tasks[keyName];
           task.id = keyName;
@@ -163,79 +192,151 @@ export class MeasurementPage implements OnInit {
         }
       });
 
-      //TODO: set when the user has completed at least one task
-      // this.hasTaskComplete = this.tasks.some((task) => task.completed);
+      const date = new Date();
+      const dataMeasurementCompleted =
+        await MeasurementDSService.getMeasurementsByDay(
+          date.getFullYear(),
+          date.getMonth() + 1,
+          date.getDate(),
+        );
+      if (dataMeasurementCompleted.length) {
+        this.hasTaskComplete = true;
+        const groupLazyMeasurement = this.groupRemainingLazyMeasurements(
+          this.tasksCompleted,
+          dataMeasurementCompleted,
+        );
+        const keysTask = Object.keys(groupLazyMeasurement);
+        if (keysTask) {
+          keysTask.forEach((taskId) => {
+            if (this.tasks) {
+              const indexTask = this.tasks?.findIndex(
+                (task) => task.id === taskId,
+              );
+              const task =
+                indexTask >= 0 || indexTask ? this.tasks[indexTask] : null;
 
-      //FIXME : Example de task complete ( remove on query Service)
-      this.hasTaskComplete = true;
-      const dataTaskCompleted = {
-        task1: {
-          name: 'Temperatura y humedad (mañana) &#x1f321;️',
-          measurements: {
-            TEMPERATURA_MIN: {
-              shortName: 'temperatura min',
-              unit: '°C',
-              value: 22,
-            },
-            TEMPERATURA_MAX: {
-              shortName: 'temperatura max',
-              unit: '°C',
-              value: 30,
-            },
-          },
-        },
-      };
+              if (!this.tasksCompleted) {
+                this.tasksCompleted = [];
+              }
 
-      /* Object.keys(dataTaskCompleted).forEach((key) => {
-      const keyName = key as keyof typeof dataTaskCompleted;
-      const task: ITask = dataTaskCompleted[keyName];
-      task.id = keyName;
-        this.completedTask++;
-      this.tasksCompleted.push(task);
-    }); */
-      // this.hasTaskIncomplete = this.tasks.some((task) => !task.completed);
+              if (!this.tasksCompleted.includes(task)) {
+                const dataTask: any = { ...task, measurements: [] };
+                groupLazyMeasurement[taskId].forEach((key) => {
+                  // const keyName = key as keyof typeof measurement.data;
+                  const measurementData =
+                    configurationMeasurement.measurements[key.id];
+                  if (measurementData) {
+                    measurementData.id = key.id;
+                    measurementData.value = key.value;
+                    measurementData.sortName =
+                      this.sanitizer.bypassSecurityTrustHtml(
+                        measurementData.sortName as string,
+                      );
 
-      this.hasTaskIncomplete = true;
-      this.tasksCompleted = this.transformDataTaskCompleted(dataTaskCompleted);
-
-      this.progress = this.measurementService.getProgress();
+                    dataTask.measurements.push(measurementData);
+                  }
+                });
+                this.tasksCompleted.push(dataTask);
+                this.tasks.splice(indexTask, 1);
+              }
+            }
+          });
+        }
+      }
     }
   }
 
   /**
-   * Transforms data of completed tasks into a format compatible with the task model.
-   * @param {any} data - Data of completed tasks.
-   * @returns {any[]} - An array of transformed task data.
+   * Groups remaining measurements by their associated tasks.
+   * @param {TaskCompleted[]} tasksCompleted - List of completed tasks.
+   * @param {LazyMeasurement[]} dataMeasurementCompleted - Completed measurements data.
+   * @returns {Record<string, Measurement[]>} - Grouped measurements by task ID.
    */
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  transformDataTaskCompleted(data: any): any {
-    const keysTask = Object.keys(data);
+  groupRemainingLazyMeasurements(
+    tasksCompleted: TaskCompleted[],
+    dataMeasurementCompleted: LazyMeasurement[],
+  ): Record<string, Measurement[]> {
+    // 1. Obtener las claves de las mediciones ya presentes en tasksCompleted
+    const existingMeasurementIds = tasksCompleted.flatMap((task) =>
+      task.measurements.map((m) => m.id),
+    );
 
-    return keysTask.map((key) => {
-      const keyName = key as keyof typeof this.measurementService.data.tasks;
-      const task = data[keyName];
-      task.id = keyName;
-      this.completedTask++;
+    // 2. Procesar mediciones restantes que no estén en las existentes
+    const remainingMeasurements = dataMeasurementCompleted.filter(
+      (lazyMeasurement) => {
+        if (!lazyMeasurement.data) {
+          return false;
+        } // Ignorar si no hay data
 
-      const measurement = Object.keys(task.measurements).map((key) => {
-        const keyName = key as keyof typeof task.measurements;
-        const measurement = task.measurements[keyName];
-        measurement.id = keyName;
-        return measurement;
-      });
-      task.measurements = measurement;
+        const parsedData =
+          typeof lazyMeasurement.data === 'string'
+            ? (JSON.parse(lazyMeasurement.data) as Record<
+                string,
+                string
+              > | null)
+            : lazyMeasurement.data;
 
-      return task;
-    });
+        if (!parsedData) {
+          return false;
+        } // Ignorar si parsedData es null o undefined
+
+        const measurementIds = Object.keys(parsedData);
+        return measurementIds.some(
+          (id) => !existingMeasurementIds.includes(id),
+        );
+      },
+    );
+
+    // 3. Agrupar mediciones restantes por tarea
+    const groupedMeasurements: Record<string, Measurement[]> =
+      remainingMeasurements.reduce(
+        (acc, lazyMeasurement) => {
+          const taskId = lazyMeasurement.task || 'unknown'; // Si no hay task, usar 'unknown'
+
+          // Asegurar que el grupo para la tarea exista
+          if (!acc[taskId]) {
+            acc[taskId] = [];
+          }
+
+          // Transformar `data` si es string o directamente usar el objeto
+          const parsedData =
+            typeof lazyMeasurement.data === 'string'
+              ? (JSON.parse(lazyMeasurement.data) as Record<
+                  string,
+                  string
+                > | null)
+              : lazyMeasurement.data;
+
+          if (!parsedData) {
+            return acc;
+          } // Ignorar si parsedData es null o undefined
+
+          const measurementEntries: Measurement[] = Object.entries(
+            parsedData,
+          ).map(([key, value]) => ({
+            id: key,
+            value: parseFloat(value), // Convertimos el string a número
+          }));
+
+          // Agregar mediciones al grupo correspondiente
+          acc[taskId].push(...measurementEntries);
+
+          return acc;
+        },
+        {} as Record<string, Measurement[]>,
+      );
+
+    return groupedMeasurements;
   }
 
-  /*  ionViewDidEnter(): void {
-        if (this.tasks) {
-      this.hasTaskComplete = this.tasks.some((task) => task.completed);
-      this.hasTaskIncomplete = this.tasks.some((task) => !task.completed);
-      this.progress = this.measurementService.getProgress();
-    } 
-  }*/
+  /**
+   * Executes logic when the view enters.
+   * @async
+   * @returns {Promise<void>} - Resolves after executing necessary logic.
+   */
+  async ionViewDidEnter(): Promise<void> {
+    void (await this.getDataMeasurement());
+  }
 
   /**
    * Signs out the user and redirects to the home page.

@@ -1,10 +1,12 @@
 import { DataStore, SortDirection, Predicates } from '@aws-amplify/datastore';
 import { Measurement } from 'src/models';
+import { SessionService } from '../../session/session.service';
 
 /**
  * Service for managing Measurement data.
  */
 export class MeasurementDSService {
+  static session = new SessionService();
   /**
    * Adds a new Measurement.
    * @param {string}type - Type of the measurement.
@@ -21,9 +23,9 @@ export class MeasurementDSService {
     logs: Record<string, number>,
     ts: string,
     task: string,
-    uvaID: string,
   ): Promise<Measurement> {
     try {
+      const uvaID = (await this.session.getInfo()).uvaID ?? '';
       return await DataStore.save(
         new Measurement({
           type,

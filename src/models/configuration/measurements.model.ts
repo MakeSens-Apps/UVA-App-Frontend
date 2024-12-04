@@ -1,3 +1,5 @@
+import { SafeHtml } from '@angular/platform-browser';
+
 export interface Task {
   name: string;
   restrictions: Restrictions;
@@ -50,23 +52,25 @@ interface FlowRestriction {
 }
 
 export interface Guide {
-  name: string;
+  name: SafeHtml;
   icon: Icon;
   image: string;
   text: string;
   nextGuide: string | null;
+  showAutomatic?: boolean;
 }
 
 interface Icon {
   enable: boolean;
-  iconName: string;
+  name: string;
   colorName: string;
   colorHex: string;
+  imagePath: string | null;
 }
 
 export interface Measurement {
-  name: string;
-  sortName: string;
+  name: SafeHtml;
+  sortName: SafeHtml;
   icon: Icon;
   fields: number;
   unit: string;
