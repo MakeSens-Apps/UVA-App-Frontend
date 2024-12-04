@@ -12,7 +12,7 @@
       <ion-card-content *ngIf="tasks">
         <app-progress-bar
           [currentProgress]="tasksCompleted.length"
-          [totalProgress]="tasks.length + tasksCompleted.length  || 0"
+          [totalProgress]="totalTask"
         >
         </app-progress-bar>
       </ion-card-content>

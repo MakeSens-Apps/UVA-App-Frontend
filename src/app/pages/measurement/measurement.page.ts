@@ -23,6 +23,8 @@ import { Bonus } from 'src/models/configuration/measurements.model';
 import { MeasurementDSService } from '@app/core/services/storage/datastore/measurement-ds.service';
 import { LazyMeasurement } from 'src/models';
 import { DomSanitizer } from '@angular/platform-browser';
+import { UserProgress } from 'src/models';
+import { UserProgressDSService } from '@app/core/services/storage/datastore/user-progress-ds.service';
 
 /**
  * Translates day names to numbers.
@@ -86,10 +88,11 @@ export class MeasurementPage implements OnInit {
   user: Session | null = null;
   tasks: Task[] | undefined;
   progress: number | undefined;
-
+  totalTask = 1;
   hasTaskComplete = false;
   hasTaskIncomplete = false;
   completedTask = 0;
+  userProgress: UserProgress | undefined;
 
   //FIXME: change type when realize query
   tasksCompleted: any[] = [];
@@ -121,6 +124,12 @@ export class MeasurementPage implements OnInit {
   async ngOnInit(): Promise<void> {
     this.user = await this.session.getInfo();
     await this.configuration.getConfigurationApp();
+
+    const configMeasurement =
+      await this.configuration.getConfigurationMeasurement();
+    if (configMeasurement) {
+      this.totalTask = this.configuration.countTasks(configMeasurement);
+    }
   }
 
   /**
@@ -131,8 +140,6 @@ export class MeasurementPage implements OnInit {
   async getDataMeasurement(): Promise<any> {
     const configurationMeasurement =
       await this.configuration.getConfigurationMeasurement();
-    await this.configuration.getConfigurationColors();
-    await this.configuration.loadBranding();
 
     this.dataBonusConfigurationMeasurement = configurationMeasurement?.bonus;
 
@@ -191,7 +198,7 @@ export class MeasurementPage implements OnInit {
           throw new Error(`Clave no válida: ${key}`);
         }
       });
-
+      this.tasksCompleted = [];
       const date = new Date();
       const dataMeasurementCompleted =
         await MeasurementDSService.getMeasurementsByDay(
@@ -206,6 +213,7 @@ export class MeasurementPage implements OnInit {
           dataMeasurementCompleted,
         );
         const keysTask = Object.keys(groupLazyMeasurement);
+
         if (keysTask) {
           keysTask.forEach((taskId) => {
             if (this.tasks) {
@@ -214,10 +222,6 @@ export class MeasurementPage implements OnInit {
               );
               const task =
                 indexTask >= 0 || indexTask ? this.tasks[indexTask] : null;
-
-              if (!this.tasksCompleted) {
-                this.tasksCompleted = [];
-              }
 
               if (!this.tasksCompleted.includes(task)) {
                 const dataTask: any = { ...task, measurements: [] };
@@ -242,6 +246,14 @@ export class MeasurementPage implements OnInit {
             }
           });
         }
+        this.tasks.forEach((task: Task) => {
+          const taskIncludeTaskCompleteIndex = this.tasksCompleted.findIndex(
+            (taskCompleted: ITask) => taskCompleted.id === task.id,
+          );
+          if (taskIncludeTaskCompleteIndex >= 0) {
+            this.tasks?.splice(taskIncludeTaskCompleteIndex, 1);
+          }
+        });
       }
     }
   }
@@ -336,6 +348,10 @@ export class MeasurementPage implements OnInit {
    */
   async ionViewDidEnter(): Promise<void> {
     void (await this.getDataMeasurement());
+    const userprogress = await UserProgressDSService.getLastUserProgress();
+    if (userprogress) {
+      this.userProgress = userprogress;
+    }
   }
 
   /**
@@ -350,17 +366,6 @@ export class MeasurementPage implements OnInit {
         replaceUrl: true,
       });
     }
-  }
-  /**
-   * Downloads and loads configuration and branding data asynchronously.
-   * @async
-   * @returns {Promise<void>} - A promise that resolves once the data download and branding load are complete.
-   * @description This function triggers the downloading of configuration data by calling `downLoadData`
-   * and then applies branding settings by calling `loadBranding` from the `configuration` service.
-   */
-  async DownloadData(): Promise<void> {
-    await this.configuration.downLoadData();
-    await this.configuration.loadBranding();
   }
 
   /**
