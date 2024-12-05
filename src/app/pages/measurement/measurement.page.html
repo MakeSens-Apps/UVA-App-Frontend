@@ -79,7 +79,7 @@
             *ngFor="let item of task.measurements"
           >
             <p class="measurement_result_value_title"></p>
-            <div [innerHTML]="item.sortName"></div>
+            <div [innerHTML]="item.sortName | safeHtml"></div>
             <p class="measurement_result_value_value">
               {{item.value}}{{item.unit}}
             </p>
