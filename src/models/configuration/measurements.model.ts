@@ -104,6 +104,7 @@ export interface Historical {
   style: Style;
   graph: Graph;
   value?: number;
+  selected?: boolean;
 }
 
 export interface Graph {

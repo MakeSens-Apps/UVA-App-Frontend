@@ -97,6 +97,10 @@ export class CalendarComponent implements OnInit {
     this.generateCalendars();
   }
   /**Get */
+  /**
+   * getter days complete
+   * @returns {number[]} - An array of numbers representing the days marked as completed.
+   */
   get daysComplete(): number[] {
     return this._daysComplete;
   }
@@ -104,13 +108,21 @@ export class CalendarComponent implements OnInit {
   /** Days marked as incomplete */
   private _daysIncomplete: number[] = [];
 
+  /**
+   * setter days incomplete
+   * @param {number[]} value - An array of numbers representing the days marked as incomplete.
+   * @returns {void}
+   */
   @Input()
-  /**Set */
   set daysIncomplete(value: number[]) {
     this._daysIncomplete = value;
     this.generateCalendars();
   }
-  /**Get */
+  
+  /**
+   * getter days incomplete
+   * @returns {number[]} - An array of numbers representing the days marked as incomplete.
+   */
   get daysIncomplete(): number[] {
     return this._daysIncomplete;
   }

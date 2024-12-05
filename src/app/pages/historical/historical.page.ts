@@ -125,18 +125,23 @@ export class HistoricalPage implements OnInit {
     this.typeView = this.typeView === 'calendar' ? 'chart' : 'calendar';
     if (this.typeView === 'chart') {
       this.measureSelected = this.variables[0];
+      this.variables[0].selected = true;
       await this.updateChart(this.measureSelected.graph);
     }
     this.ref.detectChanges();
   }
 
+   /**
+   * Updates the area chart with data based on the provided graph configuration.
+   * @param {Graph} configGraph - Configuration object for the chart.
+   * @returns {Promise<void>} Resolves once the chart is updated.
+   */
   async updateChart(configGraph: Graph): Promise<void> {
     const measuresMonth = await MeasurementDSService.getMeasurementsByMont(
       this.currentYearIndex,
       this.currentMonthIndex,
     );
     const transformedData = this.transformData(measuresMonth);
-    console.log(transformedData);
     const measures = this.calculateMeasurement(
       transformedData,
       configGraph.measurementIds,
@@ -222,11 +227,20 @@ export class HistoricalPage implements OnInit {
    * @returns {void}
    */
   async changeColorChart(measurement: Historical): Promise<void> {
-    if (!this.areaChartComponent) {
-      return;
+    if (this.typeView === 'chart') {
+      if (measurement.selected) {
+        return;
+      }
+      this.variables.forEach((variable) => {
+        variable.selected = false;
+      });
+      measurement.selected = true;
+      if (!this.areaChartComponent) {
+        return;
+      }
+      this.measureSelected = measurement;
+      await this.updateChart(measurement.graph);
     }
-    this.measureSelected = measurement;
-    await this.updateChart(measurement.graph);
   }
 
   /**
@@ -326,7 +340,7 @@ export class HistoricalPage implements OnInit {
    * Calculates the value for a measurement based on its aggregation function.
    * @param {Historical} measurement - The measurement configuration.
    * @param {HistoricalMeasurement} values - The transformed measurement data.
-   * @returns {number | undefined}
+   * @returns {number | undefined} The calculated value for the measurement.
    */
   private calculateValue(
     measurement: Historical,
@@ -386,9 +400,6 @@ export class HistoricalPage implements OnInit {
     }
     const sum1 = this.sum(list1) || 0;
     const sum2 = this.sum(list2) || 0;
-    console.log('mean');
-    console.log(list1);
-    console.log(list2);
     const totalSum = sum1 + sum2;
     const totalCount = list1.length + list2.length;
 
@@ -433,7 +444,16 @@ export class HistoricalPage implements OnInit {
 
     return result;
   }
-
+/**
+ * Calculates aggregated measurement values (sum or mean) for the specified keys from historical data.
+ * Groups data by date (ignoring time) and performs the requested aggregation for each day.
+ * @private
+ * @param {HistoricalMeasurement} historicalData - The historical measurement data. Each key corresponds to a type of measurement
+ * and contains an array of timestamped values.
+ * @param {string[]} keys - An array of keys from `historicalData` to process.
+ * @param {'sum' | 'mean'} calculationType - The type of aggregation to perform ('sum' or 'mean').
+ * @returns {MeasurementEntry} - An object where each key is a date (in YYYY-MM-DD format) and its value is the aggregated result.
+ */
   private calculateMeasurement(
     historicalData: HistoricalMeasurement,
     keys: string[], // Un arreglo de claves de HistoricalMeasurement
