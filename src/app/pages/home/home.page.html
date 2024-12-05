@@ -2,7 +2,12 @@
 <ion-content [fullscreen]="true">
   <h2 class="date-header">Hoy,{{today}}</h2>
   <div class="cards">
-    <app-calendar calendarView="week" [hasHeader]="true">
+    <app-calendar
+      calendarView="week"
+      [hasHeader]="true"
+      [daysComplete]="completeTask?.daysComplete ?? []"
+      [daysIncomplete]="completeTask?.daysIncomplete ?? []"
+    >
       <section header>
         <ion-card-header>
           <ion-card-title class="title_series">

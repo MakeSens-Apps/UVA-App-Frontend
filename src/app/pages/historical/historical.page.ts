@@ -11,38 +11,32 @@ import {
   IonGrid,
   IonLabel,
   IonRow,
-  IonSegment,
-  IonSegmentButton,
   IonButton,
   IonIcon,
 } from '@ionic/angular/standalone';
 import { FormsModule } from '@angular/forms';
 import { AreachartComponent } from '@app/components/areachart/areachart.component';
 import { Router } from '@angular/router';
-import { IMeasurement } from '../../Interfaces/IMeasurement';
+import {
+  Graph,
+  Historical,
+  MeasurementModel,
+} from 'src/models/configuration/measurements.model';
+import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
+import { MeasurementDSService } from '@app/core/services/storage/datastore/measurement-ds.service';
+import { UserProgressDSService } from '@app/core/services/storage/datastore/user-progress-ds.service';
 
-interface historical {
-  mes: number;
-  date: Date;
-  name: string;
-  daysComplete: number[];
-  daysIncomplete: number[];
-}
+import { Measurement } from 'src/models';
+import {
+  TimeFrame,
+  CompleteTaskHistorical,
+  HistoricalMeasurement,
+  MeasurementEntry,
+  monthsNames,
+  TypeView,
+} from './historical.model';
+import { TimeFrameComponent } from './time-frame/time-frame.component';
 
-export const monthsNames = [
-  'Enero',
-  'Febrero',
-  'Marzo',
-  'Abril',
-  'Mayo',
-  'Junio',
-  'Julio',
-  'Agosto',
-  'Septiembre',
-  'Octubre',
-  'Noviembre',
-  'Diciembre',
-];
 @Component({
   selector: 'app-historical',
   templateUrl: 'historical.page.html',
@@ -54,8 +48,7 @@ export const monthsNames = [
     CommonModule,
     HeaderComponent,
     CalendarComponent,
-    IonSegment,
-    IonSegmentButton,
+    TimeFrameComponent,
     IonGrid,
     IonRow,
     IonCol,
@@ -71,15 +64,20 @@ export const monthsNames = [
  * Provides functionality to switch between month and year views, and toggles between chart and calendar displays.
  */
 export class HistoricalPage implements OnInit {
-  segment: 'mes' | 'año' = 'mes';
-  modeData: 'calendar' | 'chart' = 'calendar';
-
-  currentYear = new Date().getFullYear();
-  variables: IMeasurement[] = [];
-  historical: historical[] = [];
-  currentMonth: historical | undefined;
-
+  seed: number | undefined | null;
+  timeFrame: TimeFrame = 'month';
+  typeView: TypeView = 'calendar';
+  nRegisters: number | undefined;
+  measuresConfig: MeasurementModel | null | undefined;
+  measuresMonth: HistoricalMeasurement = {};
+  measuresYear: HistoricalMeasurement[] = [{}];
+  completedTaskMonth: CompleteTaskHistorical | undefined;
+  completedTaskYear: CompleteTaskHistorical[] | undefined;
+  measureSelected: Historical | undefined;
   currentMonthIndex: number = new Date().getMonth();
+  currentYearIndex = new Date().getFullYear();
+
+  variables: Historical[] = [];
   monthsNames = monthsNames;
   @ViewChild(CalendarComponent) calendarComponent!: CalendarComponent;
   @ViewChild(AreachartComponent) areaChartComponent!: AreachartComponent;
@@ -88,63 +86,96 @@ export class HistoricalPage implements OnInit {
    * Initializes component with router and change detector.
    * @param {Router} router - Provides navigation between pages.
    * @param {ChangeDetectorRef} ref - Detects changes in component data.
+   * @param {ConfigurationAppService} configuration Manage configuration app
    */
   constructor(
     private router: Router,
     private ref: ChangeDetectorRef,
+    private configuration: ConfigurationAppService,
   ) {}
 
   /**
    * OnInit lifecycle hook. Sets the initial state of the historical and measurement data.
-   * @returns {void}
+   * @returns {Promise<void>}
    */
-  ngOnInit(): void {
-    this.historical = data.historical;
-    this.currentMonth = this.historical.find(
-      (historical) => historical.mes === new Date().getMonth(),
-    );
-
-    this.variables = Object.keys(data.measurements).map(
-      (key: keyof typeof data.measurements) => {
-        const measurement = data.measurements[key];
-        return {
-          name: measurement.name,
-          unit: measurement.unit,
-          value: measurement.value,
-          icon: {
-            enable: measurement.icon.enable,
-            icon: measurement.icon.icon,
-          },
-          backgroundColor: {
-            colorHex: measurement.backgroundColor.colorHex,
-          },
-          borderColor: {
-            colorHex: measurement.borderColor.colorHex,
-          },
-        };
-      },
-    );
+  async ngOnInit(): Promise<void> {
+    await this.initializeRegisters();
+    await this.initializeCompletedTasks();
+    this.measuresConfig =
+      await this.configuration.getConfigurationMeasurement();
+    if (this.measuresConfig?.historical) {
+      await this.initializeVariables(this.measuresConfig.historical);
+    }
   }
 
+  /**
+   * view about to enter
+   */
+  async ionViewWillEnter(): Promise<void> {
+    const userprogress = await UserProgressDSService.getLastUserProgress();
+    if (userprogress) {
+      this.seed = userprogress.Seed;
+    }
+  }
   /**
    * Toggles the view mode between calendar and chart.
    * @returns {void}
    */
-  changeModeData(): void {
-    this.modeData = this.modeData === 'calendar' ? 'chart' : 'calendar';
+  async changeModeData(): Promise<void> {
+    this.typeView = this.typeView === 'calendar' ? 'chart' : 'calendar';
+    if (this.typeView === 'chart') {
+      this.measureSelected = this.variables[0];
+      this.variables[0].selected = true;
+      await this.updateChart(this.measureSelected.graph);
+    }
     this.ref.detectChanges();
   }
 
+   /**
+   * Updates the area chart with data based on the provided graph configuration.
+   * @param {Graph} configGraph - Configuration object for the chart.
+   * @returns {Promise<void>} Resolves once the chart is updated.
+   */
+  async updateChart(configGraph: Graph): Promise<void> {
+    const measuresMonth = await MeasurementDSService.getMeasurementsByMont(
+      this.currentYearIndex,
+      this.currentMonthIndex,
+    );
+    const transformedData = this.transformData(measuresMonth);
+    const measures = this.calculateMeasurement(
+      transformedData,
+      configGraph.measurementIds,
+      configGraph.aggregationFunction === 'sum' ? 'sum' : 'mean',
+    );
+    if (measures) {
+      this.areaChartComponent.UpdateChart(
+        Object.keys(measures),
+        Object.values(measures),
+        configGraph.style.backgroundColor.colorHex,
+        configGraph.style.borderColor.colorHex,
+        configGraph.type === 'line' ? 'line' : 'bar',
+      );
+    } else {
+      this.areaChartComponent.UpdateChart(
+        [],
+        [],
+        configGraph.style.backgroundColor.colorHex,
+        configGraph.style.borderColor.colorHex,
+        configGraph.type === 'line' ? 'line' : 'bar',
+      );
+    }
+  }
+
   /**
-   * Changes the segment view between month and year.
-   * @param {'mes' | 'año'} type - The segment type to switch to.
+   * Changes the timeFrame view between month and year.
+   * @param {TimeFrame} type - The timeFrame type to switch to.
    * @returns {void}
    */
-  changeSegment(type: 'mes' | 'año'): void {
+  changeSegment(type: TimeFrame): void {
     if (type) {
-      this.segment = type;
+      this.timeFrame = type;
     } else {
-      this.segment = this.segment === 'mes' ? 'año' : 'mes';
+      this.timeFrame = this.timeFrame === 'month' ? 'year' : 'month';
     }
 
     this.ref.detectChanges();
@@ -153,28 +184,33 @@ export class HistoricalPage implements OnInit {
   /**
    * Sets the current month for displaying data and updates the calendar component.
    * @param {number} index - The index of the month to display.
-   * @returns {void}
+   * @returns {Promise<void>}
    */
-  setCurrentMonth(index: number): void {
+  async setCurrentMonth(index: number): Promise<void> {
     if (index === this.currentMonthIndex) {
       return;
     }
     if (index < 0 || index > 11) {
       return;
     }
-    const month = this.historical.find(
+    const month = this.completedTaskYear?.find(
       (historical) => historical.mes === index,
     );
     if (!month) {
       return;
     }
-    // this.modeData = 'calendar';
+    // this.typeView = 'calendar';
     this.currentMonthIndex = index;
-    this.currentMonth = this.historical.find(
+    this.completedTaskMonth = this.completedTaskYear?.find(
       (historical) => historical.mes === index,
     );
-    this.segment = 'mes';
-
+    this.timeFrame = 'month';
+    if (this.measuresConfig?.historical) {
+      await this.initializeVariables(this.measuresConfig.historical);
+      if (this.measureSelected) {
+        await this.updateChart(this.measureSelected.graph);
+      }
+    }
     setTimeout(() => {
       if (!this.calendarComponent) {
         return;
@@ -187,21 +223,24 @@ export class HistoricalPage implements OnInit {
 
   /**
    * Updates the area chart component with the provided color settings for the selected measurement.
-   * @param {IMeasurement} measurement - The selected measurement for updating chart colors.
+   * @param {Historical} measurement - The selected measurement for updating chart colors.
    * @returns {void}
    */
-  changeColorChart(measurement: IMeasurement): void {
-    if (!this.areaChartComponent) {
-      return;
+  async changeColorChart(measurement: Historical): Promise<void> {
+    if (this.typeView === 'chart') {
+      if (measurement.selected) {
+        return;
+      }
+      this.variables.forEach((variable) => {
+        variable.selected = false;
+      });
+      measurement.selected = true;
+      if (!this.areaChartComponent) {
+        return;
+      }
+      this.measureSelected = measurement;
+      await this.updateChart(measurement.graph);
     }
-
-    this.areaChartComponent.UpdateChart(
-      undefined,
-      [100, 80, 80, 60, 30, 75, 100, 80],
-      measurement.backgroundColor.colorHex,
-      measurement.borderColor.colorHex,
-      'bar'
-    );
   }
 
   /**
@@ -217,187 +256,247 @@ export class HistoricalPage implements OnInit {
       queryParams: $event,
     });
   }
+
+  /**     Metodos privados */
+  /**
+   * Initializes the number of registers.
+   * @returns {Promise<void>}
+   */
+  private async initializeRegisters(): Promise<void> {
+    this.nRegisters = await UserProgressDSService.getCountTasksByMonthYear(
+      2024,
+      11,
+    );
+  }
+
+  /**
+   * Initializes the completed tasks data for the year and the current month.
+   * @returns {Promise<void>}
+   */
+  private async initializeCompletedTasks(): Promise<void> {
+    this.completedTaskYear = [];
+
+    const tasksPromises = Array.from({ length: 12 }, (_, month) =>
+      this.getCompletedTaskForMonth(2024, month + 1),
+    );
+
+    this.completedTaskYear = await Promise.all(tasksPromises);
+
+    this.completedTaskMonth = this.completedTaskYear.find(
+      (historical) => historical.mes === new Date().getMonth(),
+    );
+  }
+
+  /**
+   * Fetches and formats completed tasks for a specific month.
+   * @param {number} year - The year for which tasks are fetched.
+   * @param {number}  month - The month for which tasks are fetched.
+   * @returns {Promise<CompleteTaskHistorical>} CompleteTaskHistorical
+   */
+  private async getCompletedTaskForMonth(
+    year: number,
+    month: number,
+  ): Promise<CompleteTaskHistorical> {
+    const completedTask =
+      await UserProgressDSService.getCompletedTasksByMonthYear(year, month, 3);
+
+    return {
+      mes: month - 1,
+      date: new Date(year, month - 1, 1),
+      name: this.monthsNames[month - 1],
+      daysComplete: completedTask.daysComplete,
+      daysIncomplete: completedTask.daysIncomplete,
+    };
+  }
+
+  /**
+   * Initializes the historical variables based on configuration and measurement data.
+   * @param {Historical[]} historicalData - The historical configuration data.
+   * @returns {Promise<void>} void
+   */
+  private async initializeVariables(
+    historicalData: Historical[],
+  ): Promise<void> {
+    const measurementValues = await MeasurementDSService.getMeasurementsByMont(
+      this.currentYearIndex,
+      this.currentMonthIndex,
+    );
+
+    const transformedData = this.transformData(measurementValues);
+
+    this.variables = historicalData.map((measurement) => ({
+      name: measurement.name,
+      symbol: measurement.symbol,
+      unit: measurement.unit,
+      measurementIds: measurement.measurementIds,
+      aggregationFunction: measurement.aggregationFunction,
+      style: measurement.style,
+      graph: measurement.graph,
+      value: this.calculateValue(measurement, transformedData),
+    })) as Historical[];
+  }
+
+  /**
+   * Calculates the value for a measurement based on its aggregation function.
+   * @param {Historical} measurement - The measurement configuration.
+   * @param {HistoricalMeasurement} values - The transformed measurement data.
+   * @returns {number | undefined} The calculated value for the measurement.
+   */
+  private calculateValue(
+    measurement: Historical,
+    values: HistoricalMeasurement,
+  ): number | undefined {
+    switch (measurement.aggregationFunction) {
+      case 'sum':
+        return measurement.measurementIds.length > 0
+          ? this.sum(values[measurement.measurementIds[0]])
+          : undefined;
+      case 'mean':
+        return measurement.measurementIds.length > 1
+          ? this.mean(
+              values[measurement.measurementIds[0]],
+              values[measurement.measurementIds[1]],
+            )
+          : undefined;
+      default:
+        return undefined;
+    }
+  }
+
+  /**
+   *
+   * @param {MeasurementEntry[]} data MeasurementEntry
+   * @returns {number} sum
+   */
+  private sum(data: MeasurementEntry[]): number | undefined {
+    // Sumar los valores
+    if (!data) {
+      return undefined;
+    }
+    const total = data.reduce((sum, item) => {
+      // Extraer el valor de cada objeto (que tiene la fecha como clave)
+      if (item) {
+        const value = Object.values(item)[0];
+        return sum + value;
+      }
+      return sum;
+    }, 0);
+
+    // Calcular el promedio
+    return Math.round(total);
+  }
+  /**
+   *  Calculeates mean of values in list1 and list2
+   * @param {MeasurementEntry[]} list1 Input one
+   * @param {MeasurementEntry[]} list2 Input two
+   * @returns {number} mean Calculated
+   */
+  private mean(
+    list1: MeasurementEntry[],
+    list2: MeasurementEntry[],
+  ): number | undefined {
+    if (!list1 || !list2) {
+      return undefined;
+    }
+    const sum1 = this.sum(list1) || 0;
+    const sum2 = this.sum(list2) || 0;
+    const totalSum = sum1 + sum2;
+    const totalCount = list1.length + list2.length;
+
+    if (totalCount === 0) {
+      return undefined;
+    }
+
+    return Math.round(totalSum / totalCount);
+  }
+
+  /**
+   * Transform struct data informacion or measurements
+   * @param {Measurement[]} initialData Measures of service
+   * @returns {HistoricalMeasurement} Historical Measure type for graph
+   */
+  private transformData(initialData: Measurement[]): HistoricalMeasurement {
+    const result: HistoricalMeasurement = {};
+
+    for (const record of initialData) {
+      const { data, ts } = record;
+
+      if (data && typeof data === 'object') {
+        for (const [key] of Object.entries(data)) {
+          if (!result[key]) {
+            result[key] = [];
+          }
+          result[key].push({ [ts]: data[key] });
+        }
+      }
+    }
+
+    // Sort the lists by timestamp (ts) for each key
+    for (const key in result) {
+      result[key] = result[key]
+        .filter((entry) => entry !== undefined) // Exclude undefined entries
+        .sort((a, b) => {
+          const tsA = a ? parseInt(Object.keys(a)[0], 10) : 0;
+          const tsB = b ? parseInt(Object.keys(b)[0], 10) : 0;
+          return tsA - tsB; // Ascending order
+        });
+    }
+
+    return result;
+  }
+/**
+ * Calculates aggregated measurement values (sum or mean) for the specified keys from historical data.
+ * Groups data by date (ignoring time) and performs the requested aggregation for each day.
+ * @private
+ * @param {HistoricalMeasurement} historicalData - The historical measurement data. Each key corresponds to a type of measurement
+ * and contains an array of timestamped values.
+ * @param {string[]} keys - An array of keys from `historicalData` to process.
+ * @param {'sum' | 'mean'} calculationType - The type of aggregation to perform ('sum' or 'mean').
+ * @returns {MeasurementEntry} - An object where each key is a date (in YYYY-MM-DD format) and its value is the aggregated result.
+ */
+  private calculateMeasurement(
+    historicalData: HistoricalMeasurement,
+    keys: string[], // Un arreglo de claves de HistoricalMeasurement
+    calculationType: 'sum' | 'mean',
+  ): MeasurementEntry {
+    const result: MeasurementEntry = {};
+
+    // Recorrer cada clave proporcionada en `keys`
+    keys.forEach((key) => {
+      if (historicalData[key]) {
+        // Crear un objeto temporal para almacenar las mediciones agrupadas por fecha
+        const dailyValues: Record<string, number[]> = {};
+
+        // Agrupar las mediciones por fecha (ignorando la hora)
+        historicalData[key].forEach((entry) => {
+          for (const timestamp in entry) {
+            const date = timestamp.split('T')[0]; // Extraemos la fecha (YYYY-MM-DD)
+
+            if (!dailyValues[date]) {
+              dailyValues[date] = [];
+            }
+
+            dailyValues[date].push(entry[timestamp]);
+          }
+        });
+
+        // Calcular la suma o la media diaria, dependiendo del tipo de cálculo
+        for (const date in dailyValues) {
+          const values = dailyValues[date];
+          if (calculationType === 'sum') {
+            // Sumar los valores para esa fecha
+            const sum = values.reduce((acc, val) => acc + val, 0);
+            result[date] = sum;
+          } else if (calculationType === 'mean') {
+            // Calcular la media de los valores para esa fecha
+            const mean =
+              values.reduce((acc, val) => acc + val, 0) / values.length;
+            result[date] = mean;
+          }
+        }
+      }
+    });
+
+    return result;
+  }
 }
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const data: any = {
-  measurements: {
-    TEMPERATURA_MIN: {
-      name: 'Temperatura minima',
-      sortName: 'temperatura min',
-      value: '31',
-      icon: {
-        enable: true,
-        iconName: 'arrow-narrow-down',
-        colorName: '',
-        colorHex: '#D92424',
-        icon: '🌡️',
-      },
-      fields: 2,
-      unit: '°C',
-      range: {
-        min: 16,
-        max: 38,
-        optionalMessage: '',
-      },
-      backgroundColor: {
-        colorName: 'Colors-Orange-50',
-        colorHex: '#FDF9EF',
-      },
-      borderColor: {
-        colorName: 'Colors-Orange-200',
-        colorHex: '#F7DFB1',
-      },
-    },
-    TEMPERATURA_MAX: {
-      name: 'Temperatura máxima',
-      sortName: 'temperatura max',
-      value: '42',
-
-      icon: {
-        enable: true,
-        name: 'arrow-narrow-up',
-        color: 'Colors-Green-400',
-        colorHex: '#85C259',
-        imagePath: 'racimos/NAT001/measurementRegistration/icons/icon_max.svg',
-        icon: '🌡️',
-      },
-      fields: 2,
-      unit: '°C',
-      range: {
-        min: 16,
-        max: 38,
-        optionalMessage: 'Verifica que tu termohigrómetro esté en °C.',
-      },
-      backgroundColor: {
-        colorName: 'Colors-Orange-50',
-        colorHex: '#FDF9EF',
-      },
-      borderColor: {
-        colorName: 'Colors-Orange-200',
-        colorHex: '#F7DFB1',
-      },
-    },
-    HUMEDAD_MIN: {
-      name: 'Humedad minima',
-      sortName: 'humedad min',
-      value: '10',
-      icon: {
-        enable: true,
-        iconName: 'arrow-narrow-down',
-        colorName: '',
-        colorHex: '#D92424',
-        imagePath: 'racimos/NAT001/measurementRegistration/icons/icon_min.svg',
-        icon: '💧',
-      },
-      fields: 2,
-      unit: '%',
-      range: {
-        min: 40,
-        max: 100,
-        optionalMessage: '',
-      },
-      backgroundColor: {
-        colorName: 'Colors-Blue-50',
-        colorHex: '#EDFEFE',
-      },
-      borderColor: {
-        colorName: 'Colors-Blue-200',
-        colorHex: '#A9F5F8',
-      },
-    },
-  },
-  historical: [
-    {
-      mes: 0,
-      date: new Date(2024, 0, 1),
-      name: 'Enero',
-      daysComplete: [24, 25, 26, 27, 28, 29, 30, 31],
-      daysIncomplete: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 16, 17, 18, 19],
-    },
-    {
-      mes: 1,
-
-      date: new Date(2024, 1, 1),
-      name: 'Febrero',
-      daysComplete: [
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 16, 17, 18, 19, 20, 21, 24, 25,
-        26, 27, 28, 29, 30, 31,
-      ],
-      daysIncomplete: [13, 14, 15, 22, 23],
-    },
-    {
-      mes: 2,
-      name: 'Marzo',
-      date: new Date(2024, 2, 1),
-      daysComplete: [9, 10, 11, 12, 16, 17, 18],
-      daysIncomplete: [19, 20, 21, 24],
-    },
-    {
-      mes: 3,
-      name: 'Abril',
-      date: new Date(2024, 3, 1),
-      daysComplete: [3, 4, 5, 6, 7, 8],
-      daysIncomplete: [7, 8, 9, 10, 11, 12, 16, 17, 18, 19, 20, 21],
-    },
-    {
-      mes: 4,
-      name: 'Mayo',
-      date: new Date(2024, 4, 1),
-      daysComplete: [8, 9, 10, 11, 12, 16, 17, 18, 19, 20],
-      daysIncomplete: [4, 5, 6, 28, 29, 30, 31],
-    },
-    {
-      mes: 5,
-      name: 'Junio',
-      date: new Date(2024, 5, 1),
-      daysComplete: [24, 25, 26, 27, 28, 29, 30, 31],
-      daysIncomplete: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 16, 17, 18, 19],
-    },
-    {
-      mes: 6,
-      name: 'Julio',
-      date: new Date(2024, 6, 1),
-      daysComplete: [
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 16, 17, 18, 19, 20, 21, 24, 25,
-        26, 27, 28, 29, 30, 31,
-      ],
-      daysIncomplete: [13, 14, 15, 22, 23],
-    },
-    {
-      mes: 7,
-      name: 'Agosto',
-      date: new Date(2024, 7, 1),
-      daysComplete: [9, 10, 11, 12, 16, 17, 18],
-      daysIncomplete: [19, 20, 21, 24],
-    },
-    {
-      mes: 8,
-      name: 'Septiembre',
-      date: new Date(2024, 8, 1),
-      daysComplete: [3, 4, 5, 6, 7, 8],
-      daysIncomplete: [7, 8, 9, 10, 11, 12, 16, 17, 18, 19, 20, 21],
-    },
-    {
-      mes: 9,
-      name: 'Octubre',
-      date: new Date(2024, 9, 1),
-      daysComplete: [8, 9, 10, 11, 12, 16, 17, 18, 19, 20],
-      daysIncomplete: [4, 5, 6, 28, 29, 30, 31],
-    },
-    {
-      mes: 10,
-      name: 'Noviembre',
-      date: new Date(2024, 10, 1),
-      daysComplete: [3, 4, 5, 6, 7, 9, 10, 11, 12, 16, 17, 18],
-      daysIncomplete: [19, 20, 21, 24],
-    },
-    {
-      mes: 11,
-      name: 'Diciembre',
-      date: new Date(2024, 11, 1),
-      daysComplete: [3, 4, 5, 6, 7, 8],
-      daysIncomplete: [7, 8, 9, 10, 11, 12, 16, 17, 18, 19, 20, 21],
-    },
-  ],
-};

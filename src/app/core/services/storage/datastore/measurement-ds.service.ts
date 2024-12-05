@@ -74,17 +74,66 @@ export class MeasurementDSService {
     endDate: Date,
   ): Promise<Measurement[]> {
     try {
+      return await DataStore.query(Measurement, (c) =>
+        c.and((c) => [
+          c.ts.ge(startDate.toISOString()),
+          c.ts.le(endDate.toISOString()),
+        ]),
+      );
+    } catch (error) {
+      console.error('Error fetching Measurements by date range', error);
+      throw error;
+    }
+  }
+  /**
+   * Retrieves Measurements within a given date range.
+   * @param {number} year - Start date of the range.
+   * @param {number} month - End date of the range.
+   * @returns {Promise<Measurement[]>} List of Measurements within the date range.
+   */
+  static async getMeasurementsByMont(
+    year: number,
+    month: number,
+  ): Promise<Measurement[]> {
+    try {
+      const startDate = new Date(year, month, 1); // Primer día del mes
+      const endDate = new Date(year, month + 1, 0); // Último día del mes
+
       return await DataStore.query(
         Measurement,
         (c) =>
           c.and((c) => [
-            c.ts.gt(startDate.toISOString()),
+            c.ts.ge(startDate.toISOString()),
             c.ts.le(endDate.toISOString()),
           ]),
-        { sort: (s) => s.ts(SortDirection.ASCENDING) },
+        {
+          sort: (up) => up.ts(SortDirection.ASCENDING),
+        },
       );
     } catch (error) {
       console.error('Error fetching Measurements by date range', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Retrieves counter Measurements within a given date range.
+   * @param {Date} startDate - Start date of the range.
+   * @param {Date} endDate - End date of the range.
+   * @returns {Promise<number>} List of Measurements within the date range.
+   */
+  static async countMeasurementsByDateRange(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
+    try {
+      const measurements = await this.getMeasurementsByDateRange(
+        startDate,
+        endDate,
+      );
+      return measurements.length; // Devuelve el número de registros.
+    } catch (error) {
+      console.error('Error counting Measurements by date range', error);
       throw error;
     }
   }

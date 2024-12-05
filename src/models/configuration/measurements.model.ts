@@ -99,7 +99,7 @@ interface Color {
   colorHex: string;
 }
 
-interface Historical {
+export interface Historical {
   name: string;
   symbol: string;
   unit: string;
@@ -107,9 +107,11 @@ interface Historical {
   aggregationFunction: string;
   style: Style;
   graph: Graph;
+  value?: number;
+  selected?: boolean;
 }
 
-interface Graph {
+export interface Graph {
   type: string;
   measurementIds: string[];
   aggregationFunction: string;

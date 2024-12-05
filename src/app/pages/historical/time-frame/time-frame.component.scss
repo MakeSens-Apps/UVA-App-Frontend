@@ -1,0 +1,31 @@
+@import 'src/theme/mixins';
+
+.segment {
+  height: 40px;
+
+  &_content {
+    display: flex;
+    padding: 10px;
+    align-items: center;
+    border-radius: var(--xl, 10px);
+    background: var(--White, #fff);
+    margin: 10px;
+  }
+
+  border-radius: 8px;
+  border: var(--sm, 2px) solid var(--Colors-Blue-500, #10bcca);
+}
+
+ion-segment-button {
+  --color: var(--Colors-Blue-500);
+  --color-checked: #fff;
+  --background-checked: var(--Colors-Blue-600);
+  --indicator-height: 0px;
+  --padding-top: 0px;
+  --padding-bottom: 0px;
+  --margin-top: -10px;
+
+  ion-label {
+    margin: 0;
+  }
+}
