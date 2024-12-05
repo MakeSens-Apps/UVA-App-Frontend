@@ -1,22 +1,67 @@
+@import 'src/theme/mixins.scss';
+
 .guide {
+    background: var(--Colors-Gray-50);
     display: flex;
-    padding: 20px 20px 30px 20px;
+    padding: 10px 20px 30px 20px;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
+    gap: 10px;
+    
 
     .title {
         display: flex;
-        width: 312px;
         justify-content: space-between;
-        align-items: flex-start;
+        align-items: center;
+        width: 100%;
+
+        p {
+            color: var(--Colors-Orange-500, #E58B24);
+            @include text-base(16px, 700);
+            line-height: 150%;
+        }
 
     }
+
     p {
         margin-bottom: 0;
         margin-top: 0;
     }
-    .container_button{
+
+    .container_button {
         width: 100%;
     }
+    .btn_close{
+        float: right;
+        position: absolute;
+        right: 0;
+        margin-right: 10px;
+        top: 0;
+        margin-top: 10px;
+        width: 38px;
+    }
+
+}
+
+ol {
+    padding-inline-start: 1em;
+    margin-block: 10px;
+}
+
+ion-checkbox {
+    --checkbox-background-checked: #1097AA;
+    --checkbox-background: transparent
+}
+
+ion-checkbox::part(container) {
+    border-radius: 4px;
+    border-color: #1097AA;
+}
+
+ion-checkbox::part(label) {
+    @include text-base(14px, 500);
+    color: var(--Gray-700, #404040);
+    line-height: 150%;
+    /* 21px */
+
 }

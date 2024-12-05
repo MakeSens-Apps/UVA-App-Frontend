@@ -1,5 +1,9 @@
 @import 'src/theme/mixins.scss';
 
+ion-content {
+    --background:  var(--Colors-Gray-50);;
+  }
+
 p {
     margin-top: 0;
     margin-bottom: 0;
@@ -113,4 +117,37 @@ p {
         padding: 0;
 
     }
+}
+
+
+.custom-modal_confirmation{
+    --backdrop-opacity : 0.5
+}
+.custom-modal_confirmation::part(backdrop) {
+    
+    backdrop-filter: blur(20px);
+    background: transparent;
+}
+
+.blur{
+    filter: blur(5px);
+}
+.wrapper{
+   
+    margin-inline: 10px;
+  }
+
+  .custom-modal_confirmation::part(content) {
+    backdrop-filter: blur(20px);
+    background: transparent;
+}
+.title_modal_confirmation{
+    @include text-base(18px,600);
+    color: var(--Colors-Gray-700, #404040);
+    line-height: 150%; 
+    text-align: center;
+    p{
+        margin-block: 0;
+    }
+
 }
