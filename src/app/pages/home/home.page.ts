@@ -14,11 +14,13 @@ import {
   MoonPhaseService,
   LunarPhase,
 } from '@app/core/services/view/moon/moon-phase.service';
-import { UserProgressDSService } from '@app/core/services/storage/datastore/user-progress-ds.service';
+import {
+  UserProgressDSService,
+  CompletedTask,
+} from '@app/core/services/storage/datastore/user-progress-ds.service';
 import { UserProgress } from 'src/models';
 import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
 import { ConfigModel } from 'src/models/configuration/config.model';
-
 /**
  * @class HomePage
  * @description Component for the main homepage of the app. Displays the current date,
@@ -64,6 +66,7 @@ export class HomePage implements OnInit, OnDestroy {
   userProgress: UserProgress | undefined;
   configurationApp: ConfigModel | undefined;
   totalTask = 1;
+  completeTask: CompletedTask | undefined;
   /**
    * Creates an instance of HomePage.
    * Initializes an instance of HomePage and sets the formatted date string.
@@ -155,6 +158,9 @@ export class HomePage implements OnInit, OnDestroy {
     if (currentPhase.success) {
       this.phase = currentPhase.data;
     }
+    this.completeTask = await UserProgressDSService.getCompleteTaskWeek(
+      this.totalTask,
+    );
   }
 
   /**
