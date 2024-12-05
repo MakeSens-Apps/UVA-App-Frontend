@@ -5,11 +5,11 @@
   [routerBackButton]="'app/tabs/register'"
 ></app-header>
 
-<ion-content [fullscreen]="true">
+<ion-content [fullscreen]="true" [class]="{blur: applyBlurFilter}">
   @if(flow){
   <div class="container">
     <section class="title">
-      <p>{{flow.name}}</p>
+      <div [innerHTML]="flow.text"></div>
     </section>
     <section>
       <div
@@ -18,11 +18,11 @@
         [ngStyle]="{background : item?.style?.backgroundColor?.colorHex,'border-color' : item?.style?.borderColor?.colorHex }"
       >
         <div class="measurements_name">
-          <p>{{item.name}}</p>
+          <div [innerHTML]="item.name"></div>
           <ion-icon
             *ngIf="item.icon.enable"
             slot="end"
-            [name]="item.icon.iconName"
+            [src]="item.icon.imagePath"
             [ngStyle]="{color: item.icon.colorHex}"
           ></ion-icon>
         </div>
@@ -81,7 +81,7 @@
           color="uva_blue-600"
           expand="block"
           class="text-transform_none"
-          (click)="save()"
+          (click)="modal_modal_confirmation.present()"
         >
           Guardar registro
         </ion-button>
@@ -115,6 +115,88 @@
             Siguiente
           </ion-button>
         </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <ion-modal
+    id="modal_confirmation"
+    class="custom-modal_confirmation"
+    #modal_modal_confirmation
+    trigger="open-modal_confirmation"
+    showBackdrop="true"
+    (didPresent)="applyBlurFilter = true"
+    (didDismiss)="applyBlurFilter = false"
+  >
+    <ng-template>
+      <div class="wrapper">
+        <p class="title_modal_confirmation">Verifica los datos 🧐</p>
+        <section>
+          <div
+            class="measurements"
+            *ngFor="let item of measurement; let measurementIndex = index"
+            [ngStyle]="{background : item?.style?.backgroundColor?.colorHex,'border-color' : item?.style?.borderColor?.colorHex }"
+          >
+            <div class="measurements_name">
+              <div [innerHTML]="item.name"></div>
+              <ion-icon
+                *ngIf="item.icon.enable"
+                slot="end"
+                [src]="item.icon.imagePath"
+                [ngStyle]="{color: item.icon.colorHex}"
+              ></ion-icon>
+            </div>
+            <div>
+              <div class="digit-container">
+                <ion-input
+                  *ngFor="let digit of item.fieldsArray; let i = index; trackBy: trackByIndex"
+                  #digitsInput
+                  [value]="digit"
+                  [id]="'digitsInput_' + measurementIndex + '_' + i +'_modal' "
+                  maxlength="1"
+                  class="digit-input"
+                  inputmode="numeric"
+                  type="number"
+                  (ionInput)="onDigitsChange($event, i,measurementIndex)"
+                  (ionFocus)="onDigitsFocus($event, i,measurementIndex)"
+                ></ion-input>
+                <span> {{item.unit}} </span>
+              </div>
+            </div>
+            <div>
+              @if(item.value){ @if(item.range){ @if(item.value.toString().length
+              === item.fields) { @if(item.value < item.range.min || item.value>
+              item.range.max || item.showRestrictionAlert){
+              <div class="alert">
+                <ion-icon
+                  slot="icon-only"
+                  src="../../../../assets/images/icons/exclamation.svg"
+                ></ion-icon>
+                <p class="title">¿Estás seguro de este dato?</p>
+                <p>
+                  @if(item.showRestrictionAlert){ {{item.textRestrictionAlert}}
+                  } @else { La {{item.sortName}} no puede ser {{item.value <
+                  item.range.min ? 'menor' : 'mayor'}} a {{item.value <
+                  item.range.min ? item.range.min : item.range.max}}
+                  {{item.unit}} }
+                </p>
+              </div>
+              } } } }
+            </div>
+          </div>
+        </section>
+        <section>
+          <div class="container_button">
+            <ion-button
+              color="uva_blue-600"
+              expand="block"
+              class="text-transform_none"
+              (click)="save()"
+            >
+              Guardar registro
+            </ion-button>
+          </div>
+        </section>
       </div>
     </ng-template>
   </ion-modal>

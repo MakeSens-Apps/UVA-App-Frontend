@@ -16,9 +16,11 @@ import { HeaderComponent } from '@app/components/header/header.component';
 import { ActivatedRoute } from '@angular/router';
 import { calendar } from '@app/components/calendar/calendar.component';
 import { DayComponent } from '../../../components/calendar/day/day.component';
-import { format, setDefaultOptions } from 'date-fns';
+import { format, isYesterday, setDefaultOptions } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import { AlertComponent } from '@app/components/alert/alert.component';
+import { UserProgress } from 'src/models';
+import { UserProgressDSService } from '@app/core/services/storage/datastore/user-progress-ds.service';
 setDefaultOptions({ locale: es });
 
 /**
@@ -51,6 +53,8 @@ export class MeasurementDetailPage implements OnInit {
   dateFormatted: string | undefined;
   showAlert_incomplete = true;
   showAlert_complete_seed = false;
+  isYesterday = false;
+  userProgress: UserProgress | undefined;
 
   /**
    * Constructor to inject ActivatedRoute and ModalController services.
@@ -67,7 +71,15 @@ export class MeasurementDetailPage implements OnInit {
    * Subscribes to query parameters and sets formatted date if available.
    * @returns {void}
    */
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
+    const userProgress = await UserProgressDSService.getLastUserProgress();
+    if (userProgress) {
+      this.userProgress = userProgress;
+      if (userProgress.Seed) {
+        this.showAlert_incomplete = userProgress.Seed < 5;
+      }
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.route.queryParams.subscribe((params: any) => {
       this.date = params;
@@ -76,6 +88,7 @@ export class MeasurementDetailPage implements OnInit {
           new Date(this.date.date),
           "EEEE d 'de' MMMM, yyyy",
         );
+        this.isYesterday = isYesterday(this.date.date);
       }
     });
   }

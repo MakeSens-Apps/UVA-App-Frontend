@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input, OnInit } from '@angular/core';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
 import {
   IonImg,
@@ -47,11 +48,19 @@ export class GuideMeasurementComponent implements OnInit {
 
   img: string | null = '';
 
+  text: SafeHtml = '';
+
   /**
    * Creates an instance of the GuideMeasurementComponent.
    * @param {ModalController} modalCtrl - The ModalController to manage modal actions.
+   * @param {ConfigurationAppService} configuration - Service to get configuration App.
+   * @param {DomSanitizer} sanitizer - Service to sanitizer html code on view.
    */
-  constructor(private modalCtrl: ModalController, private configuration: ConfigurationAppService,) {}
+  constructor(
+    private modalCtrl: ModalController,
+    private configuration: ConfigurationAppService,
+    private sanitizer: DomSanitizer,
+  ) {}
 
   /**
    * Lifecycle hook that runs when the component is initialized.
@@ -63,7 +72,18 @@ export class GuideMeasurementComponent implements OnInit {
       this.IsArrayText = true;
     }
     if (this.guide) {
-      this.img = await this.configuration.loadImage(this.guide.image);   
+      this.img = await this.configuration.loadImage(this.guide.image);
+      if (this.guide.icon.imagePath) {
+        this.guide.icon.imagePath = await this.configuration.loadImage(
+          this.guide.icon.imagePath as string,
+        );
+      }
+      if (this.isHtmlText) {
+        this.text = this.sanitizer.bypassSecurityTrustHtml(this.guide.text);
+        this.guide.name = this.sanitizer.bypassSecurityTrustHtml(
+          this.guide.name as string,
+        );
+      }
     }
   }
 

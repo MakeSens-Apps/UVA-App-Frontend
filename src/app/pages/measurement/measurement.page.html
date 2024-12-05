@@ -4,20 +4,15 @@
     <div class="cards ion-margin-top">
       <ion-card-header>
         <ion-card-title class="title_series">
-          Registra y gana: +1<ion-icon
+          Registra y gana: +2<ion-icon
             src="./../../../assets/images/icons/semilla.svg"
           ></ion-icon>
         </ion-card-title>
-        <ion-icon
-          src="./../../../assets/images/icons/information-circle.svg"
-          class="info-icon"
-        ></ion-icon>
       </ion-card-header>
       <ion-card-content *ngIf="tasks">
         <app-progress-bar
-          [completedTask]="completedTask"
-          [totalTask]="tasks.length || 0"
-          [value]="(completedTask / tasks.length)|| 0"
+          [currentProgress]="tasksCompleted.length"
+          [totalProgress]="totalTask"
         >
         </app-progress-bar>
       </ion-card-content>
@@ -37,7 +32,7 @@
   }
 
   <section class="measurement">
-    @if(hasTaskIncomplete){
+    @if(tasks?.length){
     <section class="measurement_incomplete">
       <div class="title">Registros sin completar</div>
       @for (task of tasks; track $index;) {
@@ -83,12 +78,8 @@
             class="measurement_result_value"
             *ngFor="let item of task.measurements"
           >
-            <p class="measurement_result_value_title">
-              {{item.shortName }}
-              <!-- <span class="suffix" [ngStyle]="{'color': 'var(--Colors-Green-500)'}">
-                                max
-                            </span> -->
-            </p>
+            <p class="measurement_result_value_title"></p>
+            <div [innerHTML]="item.sortName"></div>
             <p class="measurement_result_value_value">
               {{item.value}}{{item.unit}}
             </p>
