@@ -15,10 +15,13 @@
     <div class="date">{{dateFormatted}}</div>
   </section>
   <section class="measurement">
+    @if(hasTaskComplete){
+
     <section class="measurement_complete">
       <div class="title">Registros completados</div>
-
-      <div class="measurement_result" *ngFor="let item of [0,0,0]">
+      @for (task of tasksCompleted; track $index) {
+      <!--  @if(task.completed){ -->
+      <div class="measurement_result">
         <p class="measurement_result_title">
           <ion-checkbox
             slot="start"
@@ -26,41 +29,49 @@
             checked
             [disabled]="true"
           ></ion-checkbox>
-          Temperatura y humedad (mañana) 🌡️
+          {{task.name}}
         </p>
 
         <div class="measurement_result_value_content">
-          <div class="measurement_result_value" *ngFor="let item of [0,0,0]">
-            <p class="measurement_result_value_title">
-              temperatura
-              <span
-                class="suffix"
-                [ngStyle]="{'color': 'var(--Colors-Green-500)'}"
-              >
-                max
-              </span>
+          <div
+            class="measurement_result_value"
+            *ngFor="let item of task.measurements"
+          >
+            <p class="measurement_result_value_title"></p>
+            <div [innerHTML]="item.sortName"></div>
+            <p class="measurement_result_value_value">
+              {{item.value}}{{item.unit}}
             </p>
-            <p class="measurement_result_value_value">22 °C</p>
           </div>
         </div>
       </div>
+      }
+      <!--  } -->
     </section>
-    <!--   @if (date?.state === 'incomplete') { -->
+    }@if(tasks?.length){
     <section class="measurement_incomplete">
       <div class="title">Registros sin completar</div>
-
-      <div class="measurement_result" *ngFor="let item of [0]">
-        <p class="measurement_result_title">
-          <ion-checkbox
-            slot="start"
-            color="uva_blue-500"
-            [disabled]="true"
-          ></ion-checkbox>
-          Temperatura y humedad (mañana) 🌡️
-        </p>
+      @for (task of tasks; track $index;) {
+      <!-- @if(!task.completed){ -->
+      <div class="measurement_result">
+        <!--  <div class="restrictionTime" *ngIf="hasRestrictionTimeTask(task)">
+            {{getTextRestrictionTime(task)}} -->
       </div>
+      <p class="measurement_result_title">
+        <!--   [ngClass]="{disable: hasRestrictionTimeTask(task)}" -->
+        <ion-checkbox
+          slot="start"
+          color="uva_blue-500"
+          [disabled]="true"
+        ></ion-checkbox>
+        {{task.name}}
+      </p>
+
+      <!--  </div> -->
+      }
+      <!--     } -->
     </section>
-    <!--  } -->
+    }
   </section>
 
   @if (showAlert_incomplete && isYesterday) {

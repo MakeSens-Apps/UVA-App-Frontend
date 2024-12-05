@@ -118,7 +118,7 @@ export class CalendarComponent implements OnInit {
     this._daysIncomplete = value;
     this.generateCalendars();
   }
-  
+
   /**
    * getter days incomplete
    * @returns {number[]} - An array of numbers representing the days marked as incomplete.
