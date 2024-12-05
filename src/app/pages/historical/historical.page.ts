@@ -131,7 +131,7 @@ export class HistoricalPage implements OnInit {
     this.ref.detectChanges();
   }
 
-   /**
+  /**
    * Updates the area chart with data based on the provided graph configuration.
    * @param {Graph} configGraph - Configuration object for the chart.
    * @returns {Promise<void>} Resolves once the chart is updated.
@@ -177,6 +177,9 @@ export class HistoricalPage implements OnInit {
     } else {
       this.timeFrame = this.timeFrame === 'month' ? 'year' : 'month';
     }
+    if (this.timeFrame === 'month' && this.typeView == 'chart') {
+      this.variables[0].selected = true;
+    }
 
     this.ref.detectChanges();
   }
@@ -205,9 +208,13 @@ export class HistoricalPage implements OnInit {
       (historical) => historical.mes === index,
     );
     this.timeFrame = 'month';
+
     if (this.measuresConfig?.historical) {
       await this.initializeVariables(this.measuresConfig.historical);
       if (this.measureSelected) {
+        if (this.timeFrame === 'month' && this.typeView == 'chart') {
+          this.variables[0].selected = true;
+        }
         await this.updateChart(this.measureSelected.graph);
       }
     }
@@ -444,16 +451,16 @@ export class HistoricalPage implements OnInit {
 
     return result;
   }
-/**
- * Calculates aggregated measurement values (sum or mean) for the specified keys from historical data.
- * Groups data by date (ignoring time) and performs the requested aggregation for each day.
- * @private
- * @param {HistoricalMeasurement} historicalData - The historical measurement data. Each key corresponds to a type of measurement
- * and contains an array of timestamped values.
- * @param {string[]} keys - An array of keys from `historicalData` to process.
- * @param {'sum' | 'mean'} calculationType - The type of aggregation to perform ('sum' or 'mean').
- * @returns {MeasurementEntry} - An object where each key is a date (in YYYY-MM-DD format) and its value is the aggregated result.
- */
+  /**
+   * Calculates aggregated measurement values (sum or mean) for the specified keys from historical data.
+   * Groups data by date (ignoring time) and performs the requested aggregation for each day.
+   * @private
+   * @param {HistoricalMeasurement} historicalData - The historical measurement data. Each key corresponds to a type of measurement
+   * and contains an array of timestamped values.
+   * @param {string[]} keys - An array of keys from `historicalData` to process.
+   * @param {'sum' | 'mean'} calculationType - The type of aggregation to perform ('sum' or 'mean').
+   * @returns {MeasurementEntry} - An object where each key is a date (in YYYY-MM-DD format) and its value is the aggregated result.
+   */
   private calculateMeasurement(
     historicalData: HistoricalMeasurement,
     keys: string[], // Un arreglo de claves de HistoricalMeasurement
