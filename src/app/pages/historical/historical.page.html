@@ -35,7 +35,7 @@
       <div class="calendar_variables_container">
         <div
           class="calendar_variables"
-          [ngStyle]="{'background-color': variable.style.backgroundColor.colorHex, 'border-color':variable.style.borderColor.colorHex}"
+          [ngStyle]="{'background-color': typeView === 'chart' && variable.selected ? variable.style.backgroundColor.colorHex : 'White', 'border-color':typeView === 'chart' && variable.selected ? variable.style.borderColor.colorHex:'#E5E5E5'}"
           *ngFor="let variable of variables"
           (click)="changeColorChart(variable)"
         >
@@ -113,7 +113,7 @@
     <div class="calendar_variables_container">
       <div
         class="calendar_variables"
-        [ngStyle]="{'background-color': variable.style.backgroundColor.colorHex, 'border-color':variable.style.borderColor.colorHex}"
+        [ngStyle]="{'background-color':'white', 'border-color':'#E5E5E5'}"
         *ngFor="let variable of variables"
       >
         <p class="calendar_variables--p">{{variable.name}}</p>

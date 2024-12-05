@@ -182,6 +182,7 @@ export class AreachartComponent implements AfterViewInit {
    * @param {number[]} [data] - Optional new data points.
    * @param {string} [background] - Optional new background color in hex format.
    * @param {string} [borderColor] - Optional new border color in hex format.
+   * @param {ChartConfiguration['type']} [newType] - Optional new chart type.
    * @returns {void}
    */
   UpdateChart(
