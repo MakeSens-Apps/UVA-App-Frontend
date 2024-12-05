@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Task } from './../../../models/configuration/measurements.model';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, SecurityContext } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 import { Router } from '@angular/router';
@@ -22,9 +22,9 @@ import {
 import { Bonus } from 'src/models/configuration/measurements.model';
 import { MeasurementDSService } from '@app/core/services/storage/datastore/measurement-ds.service';
 import { LazyMeasurement } from 'src/models';
-import { DomSanitizer } from '@angular/platform-browser';
 import { UserProgress } from 'src/models';
 import { UserProgressDSService } from '@app/core/services/storage/datastore/user-progress-ds.service';
+import { SafeHtmlPipe } from '@app/core/pipes/safe-html.pipe';
 
 /**
  * Translates day names to numbers.
@@ -82,7 +82,13 @@ export type TaskCompleted = {
   templateUrl: 'measurement.page.html',
   styleUrls: ['measurement.page.scss'],
   standalone: true,
-  imports: [CommonModule, IonicModule, HeaderComponent, ProgressBarComponent],
+  imports: [
+    CommonModule,
+    IonicModule,
+    HeaderComponent,
+    ProgressBarComponent,
+    SafeHtmlPipe,
+  ],
 })
 export class MeasurementPage implements OnInit {
   user: Session | null = null;
@@ -107,16 +113,13 @@ export class MeasurementPage implements OnInit {
    * @param {SessionService} session - SessionService to manage user session data.
    * @param {SetupService} service - SetupService to handle user configuration flows.
    * @param {ConfigurationAppService} configuration - Service to retrieve configuration data from storage.
-   * @param {DomSanitizer} sanitizer - Service to sanitizer html code on view.
    */
   constructor(
     private router: Router,
     private session: SessionService,
     private service: SetupService,
     private configuration: ConfigurationAppService,
-    private sanitizer: DomSanitizer,
   ) {}
-
   /**
    * Lifecycle hook that runs on component initialization.
    * @returns {Promise<void>} - A promise that resolves once the component has been initialized.
@@ -232,10 +235,6 @@ export class MeasurementPage implements OnInit {
                   if (measurementData) {
                     measurementData.id = key.id;
                     measurementData.value = key.value;
-                    measurementData.sortName =
-                      this.sanitizer.bypassSecurityTrustHtml(
-                        measurementData.sortName as string,
-                      );
 
                     dataTask.measurements.push(measurementData);
                   }
