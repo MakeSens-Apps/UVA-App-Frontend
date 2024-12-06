@@ -147,13 +147,39 @@ export class HistoricalPage implements OnInit {
       configGraph.measurementIds,
       configGraph.aggregationFunction === 'sum' ? 'sum' : 'mean',
     );
+    const rangeMeasurement = this.calculateRangeOfMeasurement(
+      configGraph.measurementIds,
+    );
     if (measures) {
+      // Crear las fechas de inicio y fin del mes
+      const startOfMonth = new Date(
+        this.currentYearIndex,
+        this.currentMonthIndex,
+        1,
+        0,
+        0,
+        0,
+        0,
+      ).toLocaleDateString('en-CA');
+      const endOfMonth = new Date(
+        this.currentYearIndex,
+        this.currentMonthIndex + 1,
+        0,
+        23,
+        59,
+        59,
+        999,
+      ).toLocaleDateString('en-CA');
       this.areaChartComponent.UpdateChart(
         Object.keys(measures),
         Object.values(measures),
         configGraph.style.backgroundColor.colorHex,
         configGraph.style.borderColor.colorHex,
         configGraph.type === 'line' ? 'line' : 'bar',
+        rangeMeasurement.min,
+        rangeMeasurement.max,
+        startOfMonth,
+        endOfMonth,
       );
     } else {
       this.areaChartComponent.UpdateChart(
@@ -451,6 +477,42 @@ export class HistoricalPage implements OnInit {
 
     return result;
   }
+  /**
+   *
+   * @param {string[]} keys Measurementes IDs
+   * @returns { number | undefined, number | undefined } min min max
+   */
+  private calculateRangeOfMeasurement(
+    keys: string[], // Un arreglo de claves de HistoricalMeasurement
+  ): { min: number | undefined; max: number | undefined } {
+    let max: number | undefined;
+    let min: number | undefined;
+
+    // Iterar sobre todas las claves en 'keys'
+    for (let key of keys) {
+      const measureConfig = this.measuresConfig?.measurements[key];
+      if (!measureConfig) continue; // Si no existe la configuración, saltar al siguiente
+
+      const { max: currentMax, min: currentMin } = measureConfig.range;
+
+      // Actualizar el valor máximo
+      if (currentMax !== undefined) {
+        if (max === undefined || currentMax > max) {
+          max = currentMax;
+        }
+      }
+
+      // Actualizar el valor mínimo
+      if (currentMin !== undefined) {
+        if (min === undefined || currentMin < min) {
+          min = currentMin;
+        }
+      }
+    }
+
+    return { min, max };
+  }
+
   /**
    * Calculates aggregated measurement values (sum or mean) for the specified keys from historical data.
    * Groups data by date (ignoring time) and performs the requested aggregation for each day.

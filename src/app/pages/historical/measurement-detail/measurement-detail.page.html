@@ -38,7 +38,7 @@
             *ngFor="let item of task.measurements"
           >
             <p class="measurement_result_value_title"></p>
-            <div [innerHTML]="item.sortName"></div>
+            <div [innerHTML]="item.sortName | safeHtml "></div>
             <p class="measurement_result_value_value">
               {{item.value}}{{item.unit}}
             </p>
@@ -56,16 +56,16 @@
       <div class="measurement_result">
         <!--  <div class="restrictionTime" *ngIf="hasRestrictionTimeTask(task)">
             {{getTextRestrictionTime(task)}} -->
+        <p class="measurement_result_title">
+          <!--   [ngClass]="{disable: hasRestrictionTimeTask(task)}" -->
+          <ion-checkbox
+            slot="start"
+            color="uva_blue-500"
+            [disabled]="true"
+          ></ion-checkbox>
+          {{task.name}}
+        </p>
       </div>
-      <p class="measurement_result_title">
-        <!--   [ngClass]="{disable: hasRestrictionTimeTask(task)}" -->
-        <ion-checkbox
-          slot="start"
-          color="uva_blue-500"
-          [disabled]="true"
-        ></ion-checkbox>
-        {{task.name}}
-      </p>
 
       <!--  </div> -->
       }

@@ -22,7 +22,9 @@ import {
   Title,
   Tooltip,
   Legend,
+  TimeScale,
 } from 'chart.js';
+import 'chartjs-adapter-date-fns';
 
 // Registra los elementos y controladores necesarios
 Chart.register(
@@ -37,6 +39,7 @@ Chart.register(
   Title,
   Tooltip,
   Legend,
+  TimeScale,
 );
 
 @Component({
@@ -67,14 +70,14 @@ export class AreachartComponent implements AfterViewInit {
    * @default ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Ago']
    */
   @Input() chartLabels: string[] = [
-    'Enero',
-    'Febrero',
-    'Marzo',
-    'Abril',
-    'Mayo',
-    'Junio',
-    'julio',
-    'Ago',
+    '2024-07-01',
+    '2024-07-02',
+    '2024-07-05',
+    '2024-07-07',
+    '2024-07-08',
+    '2024-07-09',
+    '2024-07-10',
+    '2024-07-15',
   ];
 
   /**
@@ -104,6 +107,11 @@ export class AreachartComponent implements AfterViewInit {
    */
   @Input() chartType: ChartConfiguration['type'] = 'line';
 
+  @Input() ymax: number | undefined;
+  @Input() ymin: number | undefined;
+
+  @Input() xmin: string | undefined;
+  @Input() xmax: string | undefined;
   /**
    * Creates an instance of AreachartComponent.
    * @memberof AreachartComponent
@@ -125,21 +133,33 @@ export class AreachartComponent implements AfterViewInit {
    */
   createChart(): void {
     const ctx = this.chartCanvas.nativeElement.getContext('2d');
+    const canvas = this.chartCanvas.nativeElement;
+    const container = canvas.parentElement;
+
+    if (container) {
+      // Ajusta las dimensiones del canvas al contenedor
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+    }
     if (!ctx) {
       console.error('No se pudo obtener el contexto del canvas.');
       return;
     }
 
-    // Crear el gradiente
-    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0, this.hexToRgba(this.background, 1));
-    gradient.addColorStop(1, this.hexToRgba(this.background, 0));
+    let gradient;
+    if (this.chartType === 'bar') {
+      gradient = this.borderColor;
+    } else {
+      gradient = ctx.createLinearGradient(0, 0, 0, 300);
+      gradient.addColorStop(0, this.hexToRgba(this.background, 1));
+      gradient.addColorStop(1, this.hexToRgba(this.background, 0));
+    }
 
     const data: ChartData<'line'> = {
       labels: this.chartLabels,
       datasets: [
         {
-          label: 'Mi Dataset',
+          label: 'Medicion',
           data: this.chartData,
           fill: true,
           backgroundColor: gradient,
@@ -148,9 +168,12 @@ export class AreachartComponent implements AfterViewInit {
         },
       ],
     };
-
     const options: ChartOptions = {
       responsive: true,
+      interaction: {
+        mode: 'nearest',
+        intersect: false,
+      },
       plugins: {
         legend: {
           display: false, // Oculta la leyenda
@@ -158,10 +181,19 @@ export class AreachartComponent implements AfterViewInit {
       },
       scales: {
         x: {
-          beginAtZero: true,
+          min: this.xmin,
+          max: this.xmax,
+          type: 'time',
+          time: {
+            unit: 'day',
+            displayFormats: {
+              day: 'dd/MM',
+            },
+          },
         },
         y: {
-          beginAtZero: true,
+          min: this.ymin,
+          max: this.ymax,
         },
       },
     };
@@ -183,6 +215,10 @@ export class AreachartComponent implements AfterViewInit {
    * @param {string} [background] - Optional new background color in hex format.
    * @param {string} [borderColor] - Optional new border color in hex format.
    * @param {ChartConfiguration['type']} [newType] - Optional new chart type.
+   * @param {number|undefined} [ymin] - Range Min in Graph
+   * @param {number|undefined} [ymax] - Range Max in Graph
+   * @param {string|undefined} [xmin] - Range Min in Graph
+   * @param {string|undefined} [xmax] - Range Max in Graph
    * @returns {void}
    */
   UpdateChart(
@@ -191,14 +227,23 @@ export class AreachartComponent implements AfterViewInit {
     background?: string,
     borderColor?: string,
     newType: ChartConfiguration['type'] = 'line',
+    ymin?: number | undefined,
+    ymax?: number | undefined,
+    xmin?: string | undefined,
+    xmax?: string | undefined,
   ): void {
     this.chartType = newType; // Actualiza el tipo
     this.background = background || this.background;
     this.borderColor = borderColor || this.borderColor;
     this.chartData = data || this.chartData;
     this.chartLabels = labels || this.chartLabels;
-
-    this.chart.destroy(); // Destruye el gráfico actual
+    this.ymax = ymax;
+    this.ymin = ymin;
+    this.xmax = xmax;
+    this.xmin = xmin;
+    if (this.chart) {
+      this.chart.destroy();
+    }
     this.createChart();
   }
 
@@ -213,5 +258,49 @@ export class AreachartComponent implements AfterViewInit {
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  /**
+   * Get month of datestring
+   * @param {string } dateString alguna fecha de datos
+   * @returns {Record<string, string>} Retorna starOfMonth y endOfMonth limits
+   */
+  private getMonthStartAndEnd(dateString: string): {
+    startOfMonth: string;
+    endOfMonth: string;
+  } {
+    const formattedDate = dateString.replace(/-/g, '/');
+    const date = new Date(formattedDate);
+
+    if (isNaN(date.getTime())) {
+      throw new Error(
+        'Fecha inválida. Asegúrate de usar un formato válido (YYYY-MM-DD o similar).',
+      );
+    }
+
+    // Obtener el año y el mes de la fecha
+    const year = date.getFullYear();
+    const month = date.getMonth();
+
+    // Crear las fechas de inicio y fin del mes
+    const startOfMonth = new Date(
+      year,
+      month,
+      1,
+      0,
+      0,
+      0,
+      0,
+    ).toLocaleDateString('en-CA');
+    const endOfMonth = new Date(
+      year,
+      month + 1,
+      0,
+      23,
+      59,
+      59,
+      999,
+    ).toLocaleDateString('en-CA');
+
+    return { startOfMonth, endOfMonth };
   }
 }
