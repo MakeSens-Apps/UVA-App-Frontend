@@ -380,7 +380,7 @@ export class MeasurementPage implements OnInit {
         return !task.flowsComplete?.includes(flow);
       });
       if (flowId) {
-        void this.router.navigate(['app/tabs/register/measurement-new'], {
+        void this.router.navigate(['register-measurement-new'], {
           queryParams: {
             flowId: flowId,
             taskId: task.id,

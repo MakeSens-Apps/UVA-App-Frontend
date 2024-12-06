@@ -136,4 +136,11 @@ export const routes: Routes = [
         './pages/measurement/register-measurement/register-measurement.page'
       ).then((m) => m.RegisterMeasurementPage),
   },
+  {
+    path: 'register-measurement-new',
+    loadComponent: () =>
+      import(
+        './pages/measurement/register-measurement/register-measurement.page'
+      ).then((m) => m.RegisterMeasurementPage),
+  },
 ];

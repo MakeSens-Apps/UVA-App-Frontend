@@ -86,6 +86,7 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
   /** Indicates if the current flow has associated guides. */
   hasGuide = false;
 
+  hasBackButtom = false;
   /** Flag to control the modal visibility after saving measurements. */
   OpenModalRegisterOk = false;
 
@@ -125,6 +126,7 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
       const flowId: keyof typeof this.configurationMeasurement.flows =
         params.flowId;
       this.taskId = params.taskId;
+      this.hasBackButtom = params.backButtom !== 'false';
 
       if (flowId) {
         this.flowId = flowId;
@@ -509,10 +511,11 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
     this.OpenModalRegisterOk = false;
     if (this.flow?.nextFlow) {
       this.router
-        .navigate(['app/tabs/register/measurement-new'], {
+        .navigate(['register-measurement-new'], {
           queryParams: {
             flowId: this.flow.nextFlow,
             taskId: this.taskId,
+            backButtom: false,
           },
         })
         .catch((error) => {
