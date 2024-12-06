@@ -67,6 +67,7 @@ export class HeaderComponent implements OnInit {
    */
   @Input() hasProfileButton = true;
 
+  @Input() hasCenterTitle = false;
   /**
    * Creates an instance of HeaderComponent.
    * @param {Router} router - Angular Router instance used for navigation.

@@ -6,6 +6,7 @@ import {
   OnDestroy,
   OnInit,
   QueryList,
+  SecurityContext,
   ViewChild,
   ViewChildren,
 } from '@angular/core';
@@ -24,10 +25,9 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
 import { Flow, Measurement } from 'src/models/configuration/measurements.model';
 
-import { DomSanitizer } from '@angular/platform-browser';
-
 import { Preferences } from '@capacitor/preferences';
 import { MeasurementDSService } from '@app/core/services/storage/datastore/measurement-ds.service';
+import { SafeHtmlPipe } from '@app/core/pipes/safe-html.pipe';
 
 const operaciones: Record<
   string,
@@ -58,6 +58,7 @@ const operaciones: Record<
     HeaderComponent,
     IonIcon,
     IonButton,
+    SafeHtmlPipe,
   ],
 })
 export class RegisterMeasurementPage implements OnInit, OnDestroy {
@@ -85,6 +86,7 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
   /** Indicates if the current flow has associated guides. */
   hasGuide = false;
 
+  hasBackButtom = false;
   /** Flag to control the modal visibility after saving measurements. */
   OpenModalRegisterOk = false;
 
@@ -102,14 +104,12 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
    * @param {ActivatedRoute} route - Service to manage and access route parameters.
    * @param {Router} router - Service for programmatic navigation.
    * @param {ConfigurationAppService} configuration - Service to fetch and manage app configurations.
-   * @param {DomSanitizer} sanitizer - Service to sanitizer html code on view.
    */
   constructor(
     private modalCtrl: ModalController,
     private route: ActivatedRoute,
     private router: Router,
     private configuration: ConfigurationAppService,
-    private sanitizer: DomSanitizer,
   ) {}
 
   /**
@@ -126,6 +126,7 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
       const flowId: keyof typeof this.configurationMeasurement.flows =
         params.flowId;
       this.taskId = params.taskId;
+      this.hasBackButtom = params.backButtom !== 'false';
 
       if (flowId) {
         this.flowId = flowId;
@@ -138,9 +139,6 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
               this.data.measurements[key];
             measurementComplete.id = key;
             measurementComplete.showRestrictionAlert = false;
-            measurementComplete.name = this.sanitizer.bypassSecurityTrustHtml(
-              measurementComplete.name as string,
-            );
             (async () => {
               if (measurementComplete.icon.imagePath) {
                 measurementComplete.icon.imagePath =
@@ -513,10 +511,11 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
     this.OpenModalRegisterOk = false;
     if (this.flow?.nextFlow) {
       this.router
-        .navigate(['app/tabs/register/measurement-new'], {
+        .navigate(['register-measurement-new'], {
           queryParams: {
             flowId: this.flow.nextFlow,
             taskId: this.taskId,
+            backButtom: false,
           },
         })
         .catch((error) => {
@@ -525,6 +524,20 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
         .finally(() => {
           this.OpenModalRegisterOk = false;
         });
+    }
+  }
+
+  getMessageError(item: Measurement): string {
+    if (item.showRestrictionAlert) {
+      return item.textRestrictionAlert ?? '';
+    } else {
+      if (!item.value || !item.range || !item.sortName || !item.range.min) {
+        return '';
+      }
+      const condition = item.value < item.range.min ? 'menor' : 'mayor';
+      const rangeValue =
+        item.value < item.range.min ? item.range.min : item.range.max;
+      return `La ${item.sortName} no puede ser ${condition} a ${rangeValue} ${item.unit}`;
     }
   }
 }

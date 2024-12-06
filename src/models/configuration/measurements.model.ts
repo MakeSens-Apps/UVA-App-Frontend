@@ -52,7 +52,7 @@ interface FlowRestriction {
 }
 
 export interface Guide {
-  name: SafeHtml;
+  name: string;
   icon: Icon;
   image: string;
   text: string;
@@ -69,8 +69,8 @@ interface Icon {
 }
 
 export interface Measurement {
-  name: SafeHtml;
-  sortName: SafeHtml;
+  name: string;
+  sortName: string;
   icon: Icon;
   fields: number;
   unit: string;

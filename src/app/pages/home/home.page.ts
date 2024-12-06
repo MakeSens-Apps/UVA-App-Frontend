@@ -3,7 +3,10 @@ import { HeaderComponent } from '../../components/header/header.component';
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
-import { CalendarComponent } from '@app/components/calendar/calendar.component';
+import {
+  calendar,
+  CalendarComponent,
+} from '@app/components/calendar/calendar.component';
 import { ProgressBarComponent } from '../../components/progress-bar/progress-bar.component';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
@@ -190,5 +193,19 @@ export class HomePage implements OnInit, OnDestroy {
    */
   async cancelNotifications(): Promise<void> {
     await this.notificationService.cancelAllNotifications();
+  }
+
+  /**
+   * Navigates to the detail page for a selected calendar entry if it is not in the future.
+   * @param {calendar | null} $event - The selected calendar entry event data.
+   * @returns {Promise<void>}
+   */
+  async goToDetail($event: calendar | null): Promise<void> {
+    if (!$event || $event.state === 'future' || $event.state === 'normal') {
+      return;
+    }
+    await this.router.navigate(['app/tabs/history/detail'], {
+      queryParams: $event,
+    });
   }
 }

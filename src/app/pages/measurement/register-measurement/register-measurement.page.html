@@ -1,7 +1,8 @@
 <app-header
   [title]="flow?.name || ''"
   [hasProfileButton]="false"
-  [hasBackButton]="true"
+  [hasBackButton]="hasBackButtom"
+  [hasCenterTitle]="!hasBackButtom"
   [routerBackButton]="'app/tabs/register'"
 ></app-header>
 
@@ -9,7 +10,7 @@
   @if(flow){
   <div class="container">
     <section class="title">
-      <div [innerHTML]="flow.text"></div>
+      <div [innerHTML]="flow.text | safeHtml"></div>
     </section>
     <section>
       <div
@@ -18,12 +19,13 @@
         [ngStyle]="{background : item?.style?.backgroundColor?.colorHex,'border-color' : item?.style?.borderColor?.colorHex }"
       >
         <div class="measurements_name">
-          <div [innerHTML]="item.name"></div>
+          <div [innerHTML]="item.name | safeHtml"></div>
           <ion-icon
             *ngIf="item.icon.enable"
             slot="end"
             [src]="item.icon.imagePath"
-            [ngStyle]="{color: item.icon.colorHex}"
+            [ngStyle]="{color: item.icon.colorHex, width: '24px',
+            height: '24px'}"
           ></ion-icon>
         </div>
         <div>
@@ -53,12 +55,10 @@
               src="../../../../assets/images/icons/exclamation.svg"
             ></ion-icon>
             <p class="title">¿Estás seguro de este dato?</p>
-            <p>
-              @if(item.showRestrictionAlert){ {{item.textRestrictionAlert}} }
-              @else { La {{item.sortName}} no puede ser {{item.value <
-              item.range.min ? 'menor' : 'mayor'}} a {{item.value <
-              item.range.min ? item.range.min : item.range.max}} {{item.unit}} }
-            </p>
+            <div
+              class="inline"
+              [innerHTML]="getMessageError(item) | safeHtml"
+            ></div>
           </div>
           } } } }
         </div>
@@ -138,7 +138,7 @@
             [ngStyle]="{background : item?.style?.backgroundColor?.colorHex,'border-color' : item?.style?.borderColor?.colorHex }"
           >
             <div class="measurements_name">
-              <div [innerHTML]="item.name"></div>
+              <div [innerHTML]="item.name | safeHtml"></div>
               <ion-icon
                 *ngIf="item.icon.enable"
                 slot="end"
@@ -173,13 +173,7 @@
                   src="../../../../assets/images/icons/exclamation.svg"
                 ></ion-icon>
                 <p class="title">¿Estás seguro de este dato?</p>
-                <p>
-                  @if(item.showRestrictionAlert){ {{item.textRestrictionAlert}}
-                  } @else { La {{item.sortName}} no puede ser {{item.value <
-                  item.range.min ? 'menor' : 'mayor'}} a {{item.value <
-                  item.range.min ? item.range.min : item.range.max}}
-                  {{item.unit}} }
-                </p>
+                <p [innerHTML]="getMessageError(item) | safeHtml"></p>
               </div>
               } } } }
             </div>
