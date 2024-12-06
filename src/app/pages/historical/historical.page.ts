@@ -79,6 +79,7 @@ export class HistoricalPage implements OnInit {
 
   variables: Historical[] = [];
   monthsNames = monthsNames;
+  realCurrentYear: number = new Date().getFullYear();
   @ViewChild(CalendarComponent) calendarComponent!: CalendarComponent;
   @ViewChild(AreachartComponent) areaChartComponent!: AreachartComponent;
 
@@ -165,7 +166,18 @@ export class HistoricalPage implements OnInit {
       return;
     }
     if (index < 0 || index > 11) {
-      return;
+      if (index < 0) {
+        index = 11;
+        this.currentYearIndex -= 1;
+      }
+      if (index > 11) {
+        if (this.currentYearIndex >= this.realCurrentYear) {
+          return;
+        }
+        index = 0;
+        this.currentYearIndex += 1;
+        await this.updateDataForYear(this.currentYearIndex);
+      }
     }
     const month = this.completedTaskYear?.find(
       (historical) => historical.mes === index,
@@ -236,6 +248,26 @@ export class HistoricalPage implements OnInit {
     });
   }
 
+  // Función para cambiar el año
+  changeYear(direction: number): void {
+    this.currentYearIndex += direction;
+    void this.updateDataForYear(this.currentYearIndex);
+  }
+
+  // Función para determinar si el botón del próximo año está deshabilitado
+  isNextYearDisabled(): boolean {
+    return this.currentYearIndex + 1 > this.realCurrentYear;
+  }
+
+  // Actualizar datos según el año seleccionado
+  async updateDataForYear(year: number): Promise<void> {
+    console.log(`Actualizando datos para el año: ${year}`);
+    await this.initializeRegisters();
+    await this.initializeCompletedTasks();
+    if (this.measuresConfig?.historical) {
+      await this.initializeVariables(this.measuresConfig.historical);
+    }
+  }
   /**
    * Updates the area chart with data based on the provided graph configuration.
    * @param {Graph} configGraph - Configuration object for the chart.
@@ -316,7 +348,7 @@ export class HistoricalPage implements OnInit {
     this.completedTaskYear = [];
 
     const tasksPromises = Array.from({ length: 12 }, (_, month) =>
-      this.getCompletedTaskForMonth(2024, month + 1),
+      this.getCompletedTaskForMonth(this.currentYearIndex, month + 1),
     );
 
     this.completedTaskYear = await Promise.all(tasksPromises);
