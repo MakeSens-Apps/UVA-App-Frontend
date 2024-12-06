@@ -26,7 +26,7 @@ import {
   TaskCompleted,
 } from '@app/pages/measurement/measurement.page';
 import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
-import { DomSanitizer } from '@angular/platform-browser';
+import { SafeHtmlPipe } from '@app/core/pipes/safe-html.pipe';
 setDefaultOptions({ locale: es });
 
 /**
@@ -48,6 +48,7 @@ setDefaultOptions({ locale: es });
     CommonModule,
     FormsModule,
     DayComponent,
+    SafeHtmlPipe,
   ],
 })
 export class MeasurementDetailPage implements OnInit {
@@ -67,13 +68,11 @@ export class MeasurementDetailPage implements OnInit {
    * @param {ActivatedRoute} route - Service for accessing the route parameters.
    * @param {ModalController} modalCtrl - Service for handling modals.
    * @param {ConfigurationAppService} configuration - Service to retrieve configuration data from storage.
-   * @param {DomSanitizer} sanitizer - Service to sanitizer html code on view.
    */
   constructor(
     private route: ActivatedRoute,
     private modalCtrl: ModalController,
     private configuration: ConfigurationAppService,
-    private sanitizer: DomSanitizer,
   ) {}
 
   /**
@@ -158,11 +157,6 @@ export class MeasurementDetailPage implements OnInit {
                         if (measurementData) {
                           measurementData.id = key.id;
                           measurementData.value = key.value;
-                          measurementData.sortName =
-                            this.sanitizer.bypassSecurityTrustHtml(
-                              measurementData.sortName as string,
-                            );
-
                           dataTask.measurements.push(measurementData);
                         }
                       });

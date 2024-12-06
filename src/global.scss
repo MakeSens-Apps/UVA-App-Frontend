@@ -477,7 +477,9 @@ ion-tab-bar {
       &_content {
         display: flex;
         flex-wrap: wrap;
-        justify-content: space-between;
+        justify-content: flex-start;
+        gap: 10px 35px;
+        width: 300px;
       }
 
       &_title {
