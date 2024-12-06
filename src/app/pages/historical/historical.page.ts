@@ -243,7 +243,7 @@ export class HistoricalPage implements OnInit {
     if (!$event || $event.state === 'future' || $event.state === 'normal') {
       return;
     }
-    await this.router.navigate(['app/tabs/history/detail'], {
+    await this.router.navigate(['measurement-detail'], {
       queryParams: $event,
     });
   }

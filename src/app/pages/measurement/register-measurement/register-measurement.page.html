@@ -1,7 +1,8 @@
 <app-header
   [title]="flow?.name || ''"
   [hasProfileButton]="false"
-  [hasBackButton]="true"
+  [hasBackButton]="hasBackButtom"
+  [hasCenterTitle]="!hasBackButtom"
   [routerBackButton]="'app/tabs/register'"
 ></app-header>
 

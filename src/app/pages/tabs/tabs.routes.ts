@@ -26,23 +26,9 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'register/measurement-new',
-        loadComponent: () =>
-          import(
-            '../measurement/register-measurement/register-measurement.page'
-          ).then((m) => m.RegisterMeasurementPage),
-      },
-      {
         path: 'history',
         loadComponent: () =>
           import('../historical/historical.page').then((m) => m.HistoricalPage),
-      },
-      {
-        path: 'history/detail',
-        loadComponent: () =>
-          import(
-            '../historical//measurement-detail/measurement-detail.page'
-          ).then((m) => m.MeasurementDetailPage),
       },
       {
         path: '',
