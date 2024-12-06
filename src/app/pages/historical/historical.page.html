@@ -78,7 +78,6 @@
           fill="clear"
           class="text-transform_none"
           color="uva_blue-700"
-          [disabled]="completedTaskMonth.mes === 0 "
           (click)="setCurrentMonth(completedTaskMonth.mes - 1)"
         >
           <ion-icon slot="start" name="arrow-back"></ion-icon>
@@ -89,7 +88,7 @@
           fill="clear"
           class="text-transform_none"
           color="uva_blue-700"
-          [disabled]="completedTaskMonth.mes === 11"
+          [disabled]="completedTaskMonth.mes === 11 && isNextYearDisabled()"
           (click)="setCurrentMonth(completedTaskMonth.mes + 1)"
         >
           <ion-icon slot="end" name="arrow-forward"></ion-icon>
@@ -101,14 +100,23 @@
   } @else if(timeFrame === 'year') {
   <section class="cards calendar">
     <div class="calendar_years">
-      <ion-button fill="clear" class="text-transform_none">
+      <ion-button
+        fill="clear"
+        class="text-transform_none"
+        (click)="changeYear(-1)"
+      >
         <ion-icon slot="start" name="arrow-back"></ion-icon>
         {{currentYearIndex - 1}}
       </ion-button>
       <ion-button fill="clear" class="text-transform_none current">
         {{currentYearIndex}}
       </ion-button>
-      <ion-button fill="clear" class="text-transform_none" disabled>
+      <ion-button
+        fill="clear"
+        class="text-transform_none"
+        [disabled]="isNextYearDisabled()"
+        (click)="changeYear(1)"
+      >
         <ion-icon slot="end" name="arrow-forward"></ion-icon>
         {{currentYearIndex + 1}}
       </ion-button>
