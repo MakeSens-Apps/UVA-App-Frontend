@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input, OnInit } from '@angular/core';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
 import {
   IonImg,
@@ -10,7 +9,7 @@ import {
   ModalController,
 } from '@ionic/angular/standalone';
 import { Guide } from 'src/models/configuration/measurements.model';
-
+import { SafeHtmlPipe } from '@app/core/pipes/safe-html.pipe';
 /**
  * Component for displaying guide measurements.
  * Handles displaying guide content, with optional HTML text or array text,
@@ -22,7 +21,14 @@ import { Guide } from 'src/models/configuration/measurements.model';
   templateUrl: './guide-measurement.component.html',
   styleUrls: ['./guide-measurement.component.scss'],
   standalone: true,
-  imports: [IonIcon, IonImg, IonCheckbox, IonButton, CommonModule],
+  imports: [
+    IonIcon,
+    IonImg,
+    IonCheckbox,
+    IonButton,
+    CommonModule,
+    SafeHtmlPipe,
+  ],
 })
 export class GuideMeasurementComponent implements OnInit {
   /**
@@ -48,18 +54,16 @@ export class GuideMeasurementComponent implements OnInit {
 
   img: string | null = '';
 
-  text: SafeHtml = '';
+  text = '';
 
   /**
    * Creates an instance of the GuideMeasurementComponent.
    * @param {ModalController} modalCtrl - The ModalController to manage modal actions.
    * @param {ConfigurationAppService} configuration - Service to get configuration App.
-   * @param {DomSanitizer} sanitizer - Service to sanitizer html code on view.
    */
   constructor(
     private modalCtrl: ModalController,
     private configuration: ConfigurationAppService,
-    private sanitizer: DomSanitizer,
   ) {}
 
   /**
@@ -79,10 +83,7 @@ export class GuideMeasurementComponent implements OnInit {
         );
       }
       if (this.isHtmlText) {
-        this.text = this.sanitizer.bypassSecurityTrustHtml(this.guide.text);
-        this.guide.name = this.sanitizer.bypassSecurityTrustHtml(
-          this.guide.name as string,
-        );
+        this.text = this.guide.text;
       }
     }
   }
