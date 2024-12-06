@@ -125,10 +125,115 @@ export class HistoricalPage implements OnInit {
     this.typeView = this.typeView === 'calendar' ? 'chart' : 'calendar';
     if (this.typeView === 'chart') {
       this.measureSelected = this.variables[0];
-      this.variables[0].selected = true;
+      this.measureSelected.selected = true;
+
       await this.updateChart(this.measureSelected.graph);
+    } else {
+      this.variables.forEach((variable) => {
+        variable.selected = false;
+      });
     }
     this.ref.detectChanges();
+  }
+
+  /**
+   * Changes the timeFrame view between month and year.
+   * @param {TimeFrame} type - The timeFrame type to switch to.
+   * @returns {void}
+   */
+  async changeSegment(type: TimeFrame): Promise<void> {
+    if (type) {
+      this.timeFrame = type;
+    } else {
+      this.timeFrame = this.timeFrame === 'month' ? 'year' : 'month';
+    }
+    if (this.timeFrame === 'month' && this.typeView == 'chart') {
+      if (this.measureSelected) {
+        await this.updateChart(this.measureSelected.graph);
+      }
+    }
+    this.ref.detectChanges();
+  }
+
+  /**
+   * Sets the current month for displaying data and updates the calendar component.
+   * @param {number} index - The index of the month to display.
+   * @returns {Promise<void>}
+   */
+  async setCurrentMonth(index: number): Promise<void> {
+    if (index === this.currentMonthIndex) {
+      return;
+    }
+    if (index < 0 || index > 11) {
+      return;
+    }
+    const month = this.completedTaskYear?.find(
+      (historical) => historical.mes === index,
+    );
+    if (!month) {
+      return;
+    }
+    // this.typeView = 'calendar';
+    this.currentMonthIndex = index;
+    this.completedTaskMonth = this.completedTaskYear?.find(
+      (historical) => historical.mes === index,
+    );
+    this.timeFrame = 'month';
+    await this.initializeRegisters();
+    if (this.measuresConfig?.historical) {
+      await this.initializeVariables(this.measuresConfig.historical);
+      if (this.measureSelected) {
+        this.measureSelected.selected = true;
+        await this.updateChart(this.measureSelected.graph);
+      } else {
+        await this.changeColorChart(this.variables[0]);
+      }
+    }
+
+    setTimeout(() => {
+      if (!this.calendarComponent) {
+        return;
+      }
+      this.calendarComponent.generateCalendars();
+      this.ref.detectChanges();
+    }, 0.3 * 1000);
+    this.ref.detectChanges();
+  }
+
+  /**
+   * Updates the area chart component with the provided color settings for the selected measurement.
+   * @param {Historical} measurement - The selected measurement for updating chart colors.
+   * @returns {void}
+   */
+  async changeColorChart(measurement: Historical): Promise<void> {
+    if (this.typeView === 'chart') {
+      if (measurement.selected) {
+        return;
+      }
+      this.variables.forEach((variable) => {
+        variable.selected = false;
+      });
+      measurement.selected = true;
+      if (!this.areaChartComponent) {
+        return;
+      }
+      this.measureSelected = measurement;
+      await this.updateChart(measurement.graph);
+    }
+  }
+
+  /**
+   * Navigates to the detail page for a selected calendar entry if it is not in the future.
+   * @param {calendar | null} $event - The selected calendar entry event data.
+   * @returns {Promise<void>}
+   */
+  async goToDetail($event: calendar | null): Promise<void> {
+    if (!$event || $event.state === 'future' || $event.state === 'normal') {
+      return;
+    }
+    await this.router.navigate(['app/tabs/history/detail'], {
+      queryParams: $event,
+    });
   }
 
   /**
@@ -136,7 +241,7 @@ export class HistoricalPage implements OnInit {
    * @param {Graph} configGraph - Configuration object for the chart.
    * @returns {Promise<void>} Resolves once the chart is updated.
    */
-  async updateChart(configGraph: Graph): Promise<void> {
+  private async updateChart(configGraph: Graph): Promise<void> {
     const measuresMonth = await MeasurementDSService.getMeasurementsByMont(
       this.currentYearIndex,
       this.currentMonthIndex,
@@ -191,105 +296,6 @@ export class HistoricalPage implements OnInit {
       );
     }
   }
-
-  /**
-   * Changes the timeFrame view between month and year.
-   * @param {TimeFrame} type - The timeFrame type to switch to.
-   * @returns {void}
-   */
-  changeSegment(type: TimeFrame): void {
-    if (type) {
-      this.timeFrame = type;
-    } else {
-      this.timeFrame = this.timeFrame === 'month' ? 'year' : 'month';
-    }
-    if (this.timeFrame === 'month' && this.typeView == 'chart') {
-      this.variables[0].selected = true;
-    }
-
-    this.ref.detectChanges();
-  }
-
-  /**
-   * Sets the current month for displaying data and updates the calendar component.
-   * @param {number} index - The index of the month to display.
-   * @returns {Promise<void>}
-   */
-  async setCurrentMonth(index: number): Promise<void> {
-    if (index === this.currentMonthIndex) {
-      return;
-    }
-    if (index < 0 || index > 11) {
-      return;
-    }
-    const month = this.completedTaskYear?.find(
-      (historical) => historical.mes === index,
-    );
-    if (!month) {
-      return;
-    }
-    // this.typeView = 'calendar';
-    this.currentMonthIndex = index;
-    this.completedTaskMonth = this.completedTaskYear?.find(
-      (historical) => historical.mes === index,
-    );
-    this.timeFrame = 'month';
-
-    if (this.measuresConfig?.historical) {
-      await this.initializeVariables(this.measuresConfig.historical);
-      if (this.measureSelected) {
-        if (this.timeFrame === 'month' && this.typeView == 'chart') {
-          this.variables[0].selected = true;
-        }
-        await this.updateChart(this.measureSelected.graph);
-      }
-    }
-    setTimeout(() => {
-      if (!this.calendarComponent) {
-        return;
-      }
-      this.calendarComponent.generateCalendars();
-      this.ref.detectChanges();
-    }, 0.3 * 1000);
-    this.ref.detectChanges();
-  }
-
-  /**
-   * Updates the area chart component with the provided color settings for the selected measurement.
-   * @param {Historical} measurement - The selected measurement for updating chart colors.
-   * @returns {void}
-   */
-  async changeColorChart(measurement: Historical): Promise<void> {
-    if (this.typeView === 'chart') {
-      if (measurement.selected) {
-        return;
-      }
-      this.variables.forEach((variable) => {
-        variable.selected = false;
-      });
-      measurement.selected = true;
-      if (!this.areaChartComponent) {
-        return;
-      }
-      this.measureSelected = measurement;
-      await this.updateChart(measurement.graph);
-    }
-  }
-
-  /**
-   * Navigates to the detail page for a selected calendar entry if it is not in the future.
-   * @param {calendar | null} $event - The selected calendar entry event data.
-   * @returns {Promise<void>}
-   */
-  async goToDetail($event: calendar | null): Promise<void> {
-    if (!$event || $event.state === 'future' || $event.state === 'normal') {
-      return;
-    }
-    await this.router.navigate(['app/tabs/history/detail'], {
-      queryParams: $event,
-    });
-  }
-
   /**     Metodos privados */
   /**
    * Initializes the number of registers.
@@ -297,8 +303,8 @@ export class HistoricalPage implements OnInit {
    */
   private async initializeRegisters(): Promise<void> {
     this.nRegisters = await UserProgressDSService.getCountTasksByMonthYear(
-      2024,
-      11,
+      this.currentYearIndex,
+      this.currentMonthIndex + 1,
     );
   }
 
@@ -357,16 +363,22 @@ export class HistoricalPage implements OnInit {
 
     const transformedData = this.transformData(measurementValues);
 
-    this.variables = historicalData.map((measurement) => ({
-      name: measurement.name,
-      symbol: measurement.symbol,
-      unit: measurement.unit,
-      measurementIds: measurement.measurementIds,
-      aggregationFunction: measurement.aggregationFunction,
-      style: measurement.style,
-      graph: measurement.graph,
-      value: this.calculateValue(measurement, transformedData),
-    })) as Historical[];
+    this.variables = historicalData.map((measurement) => {
+      const existingVariable = this.variables?.find(
+        (variable) => variable.name === measurement.name,
+      );
+      return {
+        name: measurement.name,
+        symbol: measurement.symbol,
+        unit: measurement.unit,
+        measurementIds: measurement.measurementIds,
+        aggregationFunction: measurement.aggregationFunction,
+        style: measurement.style,
+        graph: measurement.graph,
+        selected: existingVariable?.selected ?? false, //deberia tener eel mismo valor que teiene this.variables y si no tiene entonces false
+        value: this.calculateValue(measurement, transformedData),
+      };
+    }) as Historical[];
   }
 
   /**

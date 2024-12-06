@@ -60,25 +60,14 @@ export class AreachartComponent implements AfterViewInit {
   /**
    * Data points for the chart.
    * @type {number[]}
-   * @default [10, 30, 25, 60, 60, 75, 100, 80]
    */
-  @Input() chartData: number[] = [10, 30, 25, 60, 60, 75, 100, 80];
+  @Input() chartData: number[] = [];
 
   /**
    * Labels for the chart's X-axis.
    * @type {string[]}
-   * @default ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Ago']
    */
-  @Input() chartLabels: string[] = [
-    '2024-07-01',
-    '2024-07-02',
-    '2024-07-05',
-    '2024-07-07',
-    '2024-07-08',
-    '2024-07-09',
-    '2024-07-10',
-    '2024-07-15',
-  ];
+  @Input() chartLabels: string[] = [];
 
   /**
    * Background color for the area under the chart line in hex format.
