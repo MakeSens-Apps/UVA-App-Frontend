@@ -39,16 +39,14 @@
 
 @font-face {
   font-family: 'montserrat';
-  src: url('assets/fonts/Montserrat/Montserrat-VariableFont_wght.ttf')
-    format('truetype');
+  src: url('assets/fonts/Montserrat/Montserrat-VariableFont_wght.ttf') format('truetype');
   font-weight: 100 900;
   font-style: normal;
 }
 
 @font-face {
   font-family: 'montserrat';
-  src: url('assets/fonts/Montserrat/Montserrat-Italic-VariableFont_wght.ttf')
-    format('truetype');
+  src: url('assets/fonts/Montserrat/Montserrat-Italic-VariableFont_wght.ttf') format('truetype');
   font-weight: 100 900;
   font-style: italic;
 }
@@ -58,6 +56,21 @@ body {
   font-family: 'montserrat', sans-serif;
 }
 
+%bg {
+  background-image: url('assets/images/background.svg');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center center;
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    backdrop-filter: blur(25px); // Aplica el filtro de desenfoque al fondo
+  }
+}
 .container_explore {
   height: 100vh;
   width: 100vw;
@@ -65,17 +78,17 @@ body {
   display: flex;
   flex-flow: column;
   justify-content: center;
+  position: fixed;
 
   &.bg_green {
-    // background: linear-gradient(to bottom, #40e0d0, #20b2aa);
-    background-image: url('assets/images/background.svg');
-    background-size: cover;
-    background-repeat: no-repeat;
-    background-position: center center;
+    @extend %bg;
   }
 
   &.bg_blue {
-    background: linear-gradient(to bottom, #e0f7fa, #b2ebf2, #80deea);
+    @extend %bg;
+    &::before {
+      background: rgba(255, 255, 255, 0.60);
+    }
   }
 }
 
@@ -87,14 +100,10 @@ body {
 .card-content {
   &_gradient {
     border-radius: 20px;
-    background: var(
-      --Linear-white,
-      linear-gradient(
-        180deg,
-        rgba(255, 255, 255, 0.3) 0%,
-        rgba(255, 255, 255, 0.8) 100%
-      )
-    );
+    background: var(--Linear-white,
+        linear-gradient(180deg,
+          rgba(255, 255, 255, 0.3) 0%,
+          rgba(255, 255, 255, 0.8) 100%));
 
     .card {
       @include align(20px);
@@ -533,26 +542,12 @@ ion-modal#modal_register_ok {
   }
 }
 
-#ion-overlay-3
-  > div.alert-wrapper.ion-overlay-wrapper.sc-ion-alert-md
-  > div.alert-button-group.sc-ion-alert-md
-  > button,
-#ion-overlay-1
-  > div.alert-wrapper.ion-overlay-wrapper.sc-ion-alert-md
-  > div.alert-button-group.sc-ion-alert-md
-  > button {
+#ion-overlay-3>div.alert-wrapper.ion-overlay-wrapper.sc-ion-alert-md>div.alert-button-group.sc-ion-alert-md>button,
+#ion-overlay-1>div.alert-wrapper.ion-overlay-wrapper.sc-ion-alert-md>div.alert-button-group.sc-ion-alert-md>button {
   color: #14788a !important;
 }
 
-body
-  > app-root:nth-child(1)
-  > ion-app
-  > ion-router-outlet
-  > app-profile
-  > ion-content
-  > div
-  > div.profile-card
-  > ion-list {
+body>app-root:nth-child(1)>ion-app>ion-router-outlet>app-profile>ion-content>div>div.profile-card>ion-list {
   background: transparent !important;
   --background: transparent !important;
 }

@@ -143,4 +143,11 @@ export const routes: Routes = [
         './pages/measurement/register-measurement/register-measurement.page'
       ).then((m) => m.RegisterMeasurementPage),
   },
+  {
+    path: 'register-success',
+    loadComponent: () =>
+      import(
+        './pages/auth/register/register-success/register-success.page'
+      ).then((m) => m.RegisterSuccessPage),
+  },
 ];
