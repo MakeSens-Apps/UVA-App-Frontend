@@ -7,6 +7,7 @@ export interface CompletedTask {
   daysComplete: number[];
   daysIncomplete: number[];
 }
+type UserProgressFields = Partial<Omit<UserProgress, 'id' | 'ts' | 'userID'>>;
 /**
  * Service for managing UserProgress data.
  */
@@ -14,35 +15,59 @@ export class UserProgressDSService {
   static session = new SessionService();
   /**
    * Adds a new UserProgress entry.
-   * @param {number} seed - Seed value.
-   * @param {number} streak - Streak count.
-   * @param {number} completedTasks - Number of completed tasks.
-   * @param {string} milestones - Milestones achieved.
+   * @param {UserProgressFields} userData - userData
    * @returns {Promise<UserProgress>} The newly created UserProgress.
    */
-  static async addUserProgress(
-    seed?: number,
-    streak?: number,
-    completedTasks?: number,
-    milestones?: string,
-  ): Promise<UserProgress> {
+  static async createUserProgress(
+    userData: UserProgressFields,
+  ): Promise<UserProgress | undefined> {
     try {
-      let userID = (await this.session.getInfo()).userID ?? '';
-      let ts = new Date().toISOString();
+      const userID = (await this.session.getInfo()).userID ?? '';
 
-      return await DataStore.save(
+      const newUserProgress = await DataStore.save(
         new UserProgress({
-          ts,
-          Seed: seed,
-          Streak: streak,
-          Milestones: milestones,
-          completedTasks,
-          userID,
+          ts: new Date().toISOString(),
+          Seed: userData.Seed ?? null,
+          Streak: userData.Streak ?? null,
+          Milestones: userData.Milestones ?? null,
+          SaveStreak: userData.SaveStreak ?? null,
+          completedTasks: userData.completedTasks ?? null,
+          additionalInfo: userData.additionalInfo ?? null,
+          userID: userID,
         }),
       );
+      return newUserProgress;
     } catch (error) {
-      console.error('Error adding UserProgress', error);
+      console.error('Error creating UserProgress:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Update a UserProgress entry for id
+   * @param {string} id - id
+   * @param {UserProgressFields} updatedFields - updatedFields
+   * @returns {Promise<UserProgress>} The newly created UserProgress.
+   */
+  static async updateUserProgress(
+    id: string,
+    updatedFields: UserProgressFields,
+  ): Promise<UserProgress | void> {
+    try {
+      const userProgress = await DataStore.query(UserProgress, id);
+      if (!userProgress) {
+        console.error('UserProgress not found');
+        return;
+      }
+
+      const updatedUserProgress = await DataStore.save(
+        UserProgress.copyOf(userProgress, (updated) => {
+          Object.assign(updated, updatedFields);
+        }),
+      );
+      return updatedUserProgress;
+    } catch (error) {
+      console.error('Error updating UserProgress:', error);
     }
   }
 
@@ -53,7 +78,7 @@ export class UserProgressDSService {
    * @returns {Promise<UserProgress[]>} List of UserProgress entries.
    */
   static async getUserProgress(
-    limit?: number,
+    limit = 1,
     sortDirection: SortDirection = SortDirection.DESCENDING,
   ): Promise<UserProgress[]> {
     try {
@@ -67,7 +92,51 @@ export class UserProgressDSService {
     }
   }
 
- /**
+  /**
+   * Retrieves laswt progress entries for a specific user.
+   * @returns {Promise<UserProgress | null>} List of UserProgress entries.
+   */
+  static async getLastUserProgress(): Promise<UserProgress | null> {
+    // A. Obtener último registro
+    const lastProgress = await this.getUserProgress(
+      1,
+      SortDirection.DESCENDING,
+    );
+
+    // B. Si no hay registros previos, retornar null
+    if (!lastProgress.length) {
+      return null;
+    }
+
+    // C. Procesar progreso del usuario
+    //const processedProgress = await this.processUserProgress(lastProgress[0]);
+
+    return lastProgress[0];
+  }
+
+  /**
+   * Description
+   * @returns {Promise<string[]>} return
+   */
+  static async getMilestones(): Promise<string[]> {
+    const userID = (await this.session.getInfo()).userID ?? '';
+
+    const milestonesRecords = await DataStore.query(UserProgress, (c) =>
+      c.and((c) => [
+        c.userID.eq(userID),
+        c.Milestones.ne(null),
+        c.Milestones.ne(undefined),
+      ]),
+    );
+    return milestonesRecords
+      .map((record) => record.Milestones)
+      .filter(
+        (milestone): milestone is string =>
+          !!milestone && milestone.trim() !== '',
+      );
+  }
+
+  /**
    * Retrieves all task completed in the last week.
    * @param {number} [totalTasks] - Maximun number of task in one day
    * @returns {Promise<CompletedTask>} CompletedTask
@@ -103,7 +172,7 @@ export class UserProgressDSService {
   }
 
   /**
-   * 
+   *
    * @param {number} year Year
    * @param {number} month month
    * @param {number} totalTasks - Maximun number of task in one day
@@ -138,7 +207,7 @@ export class UserProgressDSService {
   }
 
   /**
-   * 
+   *
    * @param {number} year year
    * @param {number} month month
    * @returns {Promise<number>} counter task in one month
@@ -176,38 +245,11 @@ export class UserProgressDSService {
   }
 
   /**
-   * Retrieves lastUser.
-   * @returns {Promise<UserProgress>} List of UserProgress entries.
+   * Evaluates the completed tasks within a month.
+   * @param {number} totalTasks - The total number of tasks to evaluate.
+   * @param {{ day: number; tasks: number }[]} taskData - An array of objects containing the day of the month and the number of tasks completed on that day.
+   * @returns {CompletedTask} - An object representing the total completed tasks in one month.
    */
-  static async getLastUserProgress(): Promise<UserProgress | null> {
-    const progressEntries = await this.getUserProgress(
-      1,
-      SortDirection.DESCENDING,
-    );
-    return progressEntries.length > 0 ? progressEntries[0] : null;
-  }
-  /**
-   * Description
-   * @returns {Promise<string[]>} return
-   */
-  static async getMilestones(): Promise<string[]> {
-    const userID = (await this.session.getInfo()).userID ?? '';
-
-    const milestonesRecords = await DataStore.query(UserProgress, (c) =>
-      c.and((c) => [
-        c.userID.eq(userID),
-        c.Milestones.ne(null),
-        c.Milestones.ne(undefined),
-      ]),
-    );
-    return milestonesRecords
-      .map((record) => record.Milestones)
-      .filter(
-        (milestone): milestone is string =>
-          !!milestone && milestone.trim() !== '',
-      );
-  }
-
   private static evaluateCompletedTasks(
     totalTasks: number,
     taskData: { day: number; tasks: number }[],
