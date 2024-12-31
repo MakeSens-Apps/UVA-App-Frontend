@@ -6,6 +6,8 @@ import {
   OnDestroy,
   OnInit,
   QueryList,
+  SecurityContext,
+  ViewChild,
   ViewChildren,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -21,13 +23,11 @@ import {
 import { HeaderComponent } from '@app/components/header/header.component';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
-import {
-  Flow,
-  Measurement,
-  MeasurementModel,
-} from 'src/models/configuration/measurements.model';
+import { Flow, Measurement } from 'src/models/configuration/measurements.model';
 
 import { Preferences } from '@capacitor/preferences';
+import { MeasurementDSService } from '@app/core/services/storage/datastore/measurement-ds.service';
+import { SafeHtmlPipe } from '@app/core/pipes/safe-html.pipe';
 
 const operaciones: Record<
   string,
@@ -58,6 +58,7 @@ const operaciones: Record<
     HeaderComponent,
     IonIcon,
     IonButton,
+    SafeHtmlPipe,
   ],
 })
 export class RegisterMeasurementPage implements OnInit, OnDestroy {
@@ -85,11 +86,17 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
   /** Indicates if the current flow has associated guides. */
   hasGuide = false;
 
+  hasBackButtom = false;
   /** Flag to control the modal visibility after saving measurements. */
   OpenModalRegisterOk = false;
 
   /** Stores the configuration data for measurements. */
   configurationMeasurement: any;
+
+  applyBlurFilter = false;
+
+  @ViewChild('modal_modal_confirmation') modal_modal_confirmation!: IonModal;
+  @ViewChild('modal_register_Ok') modal_register_Ok!: IonModal;
 
   /**
    * Creates an instance of RegisterMeasurementPage and injects the required dependencies.
@@ -119,6 +126,7 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
       const flowId: keyof typeof this.configurationMeasurement.flows =
         params.flowId;
       this.taskId = params.taskId;
+      this.hasBackButtom = params.backButtom !== 'false';
 
       if (flowId) {
         this.flowId = flowId;
@@ -131,6 +139,19 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
               this.data.measurements[key];
             measurementComplete.id = key;
             measurementComplete.showRestrictionAlert = false;
+            (async () => {
+              if (measurementComplete.icon.imagePath) {
+                measurementComplete.icon.imagePath =
+                  await this.configuration.loadImage(
+                    measurementComplete.icon.imagePath,
+                  );
+              }
+            })().catch((err) => {
+              console.error(
+                '🚀 ~ RegisterMeasurementPage ~ error obteniendo imagen icon:',
+                err,
+              );
+            });
             const numberFields = measurementComplete.fields || 0;
             measurementComplete.fieldsArray = Array.from({
               length: numberFields,
@@ -139,6 +160,12 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
           });
           if (this.flow.guides.length) {
             this.hasGuide = true;
+            this.data.guides[this.flow.guides[0]].showAutomatic = true;
+            if (this.data.guides[this.flow.guides[0]].showAutomatic) {
+              this.OpenGuide(this.flow.guides[0]).catch((err) =>
+                console.error(err),
+              );
+            }
           }
         }
       }
@@ -168,6 +195,7 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
           component: GuideMeasurementComponent,
           componentProps: {
             guide: this.data.guides[guide || 'guide1'],
+            isHtmlText: true,
           },
           cssClass: 'modal-fullscreen',
           backdropDismiss: true,
@@ -235,7 +263,10 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
               nextIndex < this.measurement[measurementIndex].fieldsArray.length
             ) {
               // Construimos el id del siguiente campo de entrada
-              const nextInputId = `digitsInput_${measurementIndex}_${nextIndex}`;
+
+              const nextInputId = !this.applyBlurFilter
+                ? `digitsInput_${measurementIndex}_${nextIndex}`
+                : `digitsInput_${measurementIndex}_${nextIndex}_modal`;
               const nextInput = document.getElementById(
                 nextInputId,
               ) as HTMLIonInputElement;
@@ -300,12 +331,33 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
     }
 
     this.OpenModalRegisterOk = true;
-    if (this.taskId && this.flowId) {
-      //TODO: Save Flow mark as completed
-      // this.measurementService.setFlowCompleted(this.taskId, this.flowId);
-    }
+    const measurementDate = this.measurement?.reduce(
+      (measurement, currentValue) => {
+        if (!measurement) {
+          measurement = {};
+        }
+        if (measurement && currentValue.id) {
+          measurement[currentValue.id.toString()] = currentValue.value || 0;
+        }
+        return measurement;
+      },
+      {} as Record<string, number>,
+    );
 
-    await this.goToNexFlowOrSavePreference();
+    if (this.taskId && this.flowId) {
+      if (measurementDate) {
+        await MeasurementDSService.addMeasurement(
+          'RAW',
+          measurementDate,
+          {},
+          new Date().toISOString(),
+          this.taskId as string,
+        ).then(async () => {
+          await this.modal_modal_confirmation.dismiss();
+          await this.goToNexFlowOrSavePreference();
+        });
+      }
+    }
   }
 
   /**
@@ -419,6 +471,11 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
     if (!this.flow?.nextFlow) {
       await Preferences.remove({ key: 'lastMeasurementValues' });
       setTimeout(() => {
+        this.modal_register_Ok.dismiss().catch((err) => {
+          console.error(
+            `⛔️❌📛 ~ RegisterMeasurementPage ~ error cerrando modal Register Ok ${err}`,
+          );
+        });
         this.OpenModalRegisterOk = false;
         this.router
           .navigate(['app/tabs/register'])
@@ -454,10 +511,11 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
     this.OpenModalRegisterOk = false;
     if (this.flow?.nextFlow) {
       this.router
-        .navigate(['app/tabs/register/measurement-new'], {
+        .navigate(['register-measurement-new'], {
           queryParams: {
             flowId: this.flow.nextFlow,
             taskId: this.taskId,
+            backButtom: false,
           },
         })
         .catch((error) => {
@@ -466,6 +524,20 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
         .finally(() => {
           this.OpenModalRegisterOk = false;
         });
+    }
+  }
+
+  getMessageError(item: Measurement): string {
+    if (item.showRestrictionAlert) {
+      return item.textRestrictionAlert ?? '';
+    } else {
+      if (!item.value || !item.range || !item.sortName || !item.range.min) {
+        return '';
+      }
+      const condition = item.value < item.range.min ? 'menor' : 'mayor';
+      const rangeValue =
+        item.value < item.range.min ? item.range.min : item.range.max;
+      return `La ${item.sortName} no puede ser ${condition} a ${rangeValue} ${item.unit}`;
     }
   }
 }

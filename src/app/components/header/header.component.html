@@ -1,6 +1,6 @@
 <ion-header [translucent]="true">
   <ion-toolbar color="uva_blue-500">
-    <div class="header">
+    <div class="header" [class.center]="hasCenterTitle">
       @if (hasBackButton) {
         <ion-buttons slot="start">
           <ion-button (click)="goBack(routerBackButton)" fill="clear">

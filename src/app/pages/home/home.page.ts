@@ -3,13 +3,15 @@ import { HeaderComponent } from '../../components/header/header.component';
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
-import { CalendarComponent } from '@app/components/calendar/calendar.component';
+import {
+  calendar,
+  CalendarComponent,
+} from '@app/components/calendar/calendar.component';
 import { ProgressBarComponent } from '../../components/progress-bar/progress-bar.component';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import { MoonCardComponent } from '../../components/moon-card/moon-card.component';
 import { Router } from '@angular/router';
-import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.service';
 import { Subscription } from 'rxjs';
 import {
   MoonPhaseService,
@@ -75,7 +77,6 @@ export class HomePage implements OnInit, OnDestroy {
    * @param {Router} router - Angular Router for handling navigation.
    * @param {NotificationService} notificationService Notifications
    * @param {ChangeDetectorRef} cdr Angular detecte change in app.
-   * @param {AppMinimizeService} minimizeService - The AppMinimizeService.
    * @param {MoonPhaseService} moonphase - Moon Phase Service.
    * @param {ConfigurationAppService} configuration Configuration App
    */
@@ -83,12 +84,10 @@ export class HomePage implements OnInit, OnDestroy {
     private router: Router,
     private notificationService: NotificationService,
     private cdr: ChangeDetectorRef,
-    private minimizeService: AppMinimizeService,
     private moonphase: MoonPhaseService,
     private configuration: ConfigurationAppService,
   ) {
     this.today = format(new Date(), " EEEE dd 'de' MMMM", { locale: es });
-    this.minimizeService.initializeBackButtonHandler();
   }
 
   /**
@@ -147,13 +146,7 @@ export class HomePage implements OnInit, OnDestroy {
     if (config) {
       this.configurationApp = config;
     }
-    await this.setNotifications()
-      .then(() => {
-        console.log('Notificaciones programadas.');
-      })
-      .catch((error) => {
-        console.error('Error al programar notificaciones:', error);
-      });
+    await this.setNotifications();
   }
 
   /**
@@ -179,22 +172,40 @@ export class HomePage implements OnInit, OnDestroy {
    * @returns {void}
    */
   goToMoonCalendar(): void {
-    void this.router.navigate(['/app/tabs/home/moon-phase']);
+    void this.router.navigate(['/app/tabs/moon-phase']);
   }
 
+  /**
+   * Schedules daily notifications if notifications are enabled.
+   * @returns {Promise<void>} A promise that resolves when the notifications are set.
+   */
   async setNotifications(): Promise<void> {
-    const hasPermission = await this.notificationService.requestPermissions();
-    if (!hasPermission) {
-      console.error('Permisos denegados para notificaciones.');
-      return;
+    const enableNotifications =
+      await this.notificationService.getEnableNotifications();
+    if (enableNotifications) {
+      await this.notificationService.scheduleDailyNotifications();
     }
-
-    // Programar notificaciones diarias
-    await this.notificationService.scheduleDailyNotifications();
   }
 
-  // Cancelar todas las notificaciones
+  /**
+   * Cancels all scheduled notifications.
+   * @returns {Promise<void>} A promise that resolves when all notifications are cancelled.
+   */
   async cancelNotifications(): Promise<void> {
     await this.notificationService.cancelAllNotifications();
+  }
+
+  /**
+   * Navigates to the detail page for a selected calendar entry if it is not in the future.
+   * @param {calendar | null} $event - The selected calendar entry event data.
+   * @returns {Promise<void>}
+   */
+  async goToDetail($event: calendar | null): Promise<void> {
+    if (!$event || $event.state === 'future' || $event.state === 'normal') {
+      return;
+    }
+    await this.router.navigate(['app/tabs/history/detail'], {
+      queryParams: $event,
+    });
   }
 }

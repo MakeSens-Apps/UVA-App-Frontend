@@ -2,7 +2,6 @@ import { ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
 import { IonImg } from '@ionic/angular/standalone';
-import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -20,12 +19,10 @@ export class RegisterCompletedPage implements OnInit, OnDestroy {
    * @param {Router} router - El servicio de enrutamiento para navegar entre páginas.
    * @memberof RegisterCompletedPage
    *@param {ChangeDetectorRef} cdr Angular detecte change in app.
-   * @param {AppMinimizeService} minimizeService - The AppMinimizeService.
    */
   constructor(
     private router: Router,
     private cdr: ChangeDetectorRef,
-    private minimizeService: AppMinimizeService,
   ) {}
 
   /**
@@ -35,8 +32,6 @@ export class RegisterCompletedPage implements OnInit, OnDestroy {
    * @returns {void} - No retorna ningún valor.
    */
   ngOnInit(): void {
-    this.minimizeService.initializeBackButtonHandler();
-
     setTimeout(() => {
       void this.router.navigate(['app/tabs/home']);
     }, 3 * 1000);

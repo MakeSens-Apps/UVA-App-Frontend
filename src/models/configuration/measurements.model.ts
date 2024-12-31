@@ -1,3 +1,5 @@
+import { SafeHtml } from '@angular/platform-browser';
+
 export interface Task {
   name: string;
   restrictions: Restrictions;
@@ -55,13 +57,15 @@ export interface Guide {
   image: string;
   text: string;
   nextGuide: string | null;
+  showAutomatic?: boolean;
 }
 
 interface Icon {
   enable: boolean;
-  iconName: string;
+  name: string;
   colorName: string;
   colorHex: string;
+  imagePath: string | null;
 }
 
 export interface Measurement {
@@ -104,6 +108,7 @@ export interface Historical {
   style: Style;
   graph: Graph;
   value?: number;
+  selected?: boolean;
 }
 
 export interface Graph {

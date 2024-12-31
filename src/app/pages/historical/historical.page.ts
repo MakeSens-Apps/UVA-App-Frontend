@@ -79,6 +79,7 @@ export class HistoricalPage implements OnInit {
 
   variables: Historical[] = [];
   monthsNames = monthsNames;
+  realCurrentYear: number = new Date().getFullYear();
   @ViewChild(CalendarComponent) calendarComponent!: CalendarComponent;
   @ViewChild(AreachartComponent) areaChartComponent!: AreachartComponent;
 
@@ -125,40 +126,15 @@ export class HistoricalPage implements OnInit {
     this.typeView = this.typeView === 'calendar' ? 'chart' : 'calendar';
     if (this.typeView === 'chart') {
       this.measureSelected = this.variables[0];
+      this.measureSelected.selected = true;
+
       await this.updateChart(this.measureSelected.graph);
+    } else {
+      this.variables.forEach((variable) => {
+        variable.selected = false;
+      });
     }
     this.ref.detectChanges();
-  }
-
-  async updateChart(configGraph: Graph): Promise<void> {
-    const measuresMonth = await MeasurementDSService.getMeasurementsByMont(
-      this.currentYearIndex,
-      this.currentMonthIndex,
-    );
-    const transformedData = this.transformData(measuresMonth);
-    console.log(transformedData);
-    const measures = this.calculateMeasurement(
-      transformedData,
-      configGraph.measurementIds,
-      configGraph.aggregationFunction === 'sum' ? 'sum' : 'mean',
-    );
-    if (measures) {
-      this.areaChartComponent.UpdateChart(
-        Object.keys(measures),
-        Object.values(measures),
-        configGraph.style.backgroundColor.colorHex,
-        configGraph.style.borderColor.colorHex,
-        configGraph.type === 'line' ? 'line' : 'bar',
-      );
-    } else {
-      this.areaChartComponent.UpdateChart(
-        [],
-        [],
-        configGraph.style.backgroundColor.colorHex,
-        configGraph.style.borderColor.colorHex,
-        configGraph.type === 'line' ? 'line' : 'bar',
-      );
-    }
   }
 
   /**
@@ -166,13 +142,17 @@ export class HistoricalPage implements OnInit {
    * @param {TimeFrame} type - The timeFrame type to switch to.
    * @returns {void}
    */
-  changeSegment(type: TimeFrame): void {
+  async changeSegment(type: TimeFrame): Promise<void> {
     if (type) {
       this.timeFrame = type;
     } else {
       this.timeFrame = this.timeFrame === 'month' ? 'year' : 'month';
     }
-
+    if (this.timeFrame === 'month' && this.typeView == 'chart') {
+      if (this.measureSelected) {
+        await this.updateChart(this.measureSelected.graph);
+      }
+    }
     this.ref.detectChanges();
   }
 
@@ -186,7 +166,18 @@ export class HistoricalPage implements OnInit {
       return;
     }
     if (index < 0 || index > 11) {
-      return;
+      if (index < 0) {
+        index = 11;
+        this.currentYearIndex -= 1;
+      }
+      if (index > 11) {
+        if (this.currentYearIndex >= this.realCurrentYear) {
+          return;
+        }
+        index = 0;
+        this.currentYearIndex += 1;
+        await this.updateDataForYear(this.currentYearIndex);
+      }
     }
     const month = this.completedTaskYear?.find(
       (historical) => historical.mes === index,
@@ -200,12 +191,17 @@ export class HistoricalPage implements OnInit {
       (historical) => historical.mes === index,
     );
     this.timeFrame = 'month';
+    await this.initializeRegisters();
     if (this.measuresConfig?.historical) {
       await this.initializeVariables(this.measuresConfig.historical);
       if (this.measureSelected) {
+        this.measureSelected.selected = true;
         await this.updateChart(this.measureSelected.graph);
+      } else {
+        await this.changeColorChart(this.variables[0]);
       }
     }
+
     setTimeout(() => {
       if (!this.calendarComponent) {
         return;
@@ -222,11 +218,20 @@ export class HistoricalPage implements OnInit {
    * @returns {void}
    */
   async changeColorChart(measurement: Historical): Promise<void> {
-    if (!this.areaChartComponent) {
-      return;
+    if (this.typeView === 'chart') {
+      if (measurement.selected) {
+        return;
+      }
+      this.variables.forEach((variable) => {
+        variable.selected = false;
+      });
+      measurement.selected = true;
+      if (!this.areaChartComponent) {
+        return;
+      }
+      this.measureSelected = measurement;
+      await this.updateChart(measurement.graph);
     }
-    this.measureSelected = measurement;
-    await this.updateChart(measurement.graph);
   }
 
   /**
@@ -238,11 +243,91 @@ export class HistoricalPage implements OnInit {
     if (!$event || $event.state === 'future' || $event.state === 'normal') {
       return;
     }
-    await this.router.navigate(['app/tabs/history/detail'], {
+    await this.router.navigate(['measurement-detail'], {
       queryParams: $event,
     });
   }
 
+  // Función para cambiar el año
+  changeYear(direction: number): void {
+    this.currentYearIndex += direction;
+    void this.updateDataForYear(this.currentYearIndex);
+  }
+
+  // Función para determinar si el botón del próximo año está deshabilitado
+  isNextYearDisabled(): boolean {
+    return this.currentYearIndex + 1 > this.realCurrentYear;
+  }
+
+  // Actualizar datos según el año seleccionado
+  async updateDataForYear(year: number): Promise<void> {
+    console.log(`Actualizando datos para el año: ${year}`);
+    await this.initializeRegisters();
+    await this.initializeCompletedTasks();
+    if (this.measuresConfig?.historical) {
+      await this.initializeVariables(this.measuresConfig.historical);
+    }
+  }
+  /**
+   * Updates the area chart with data based on the provided graph configuration.
+   * @param {Graph} configGraph - Configuration object for the chart.
+   * @returns {Promise<void>} Resolves once the chart is updated.
+   */
+  private async updateChart(configGraph: Graph): Promise<void> {
+    const measuresMonth = await MeasurementDSService.getMeasurementsByMont(
+      this.currentYearIndex,
+      this.currentMonthIndex,
+    );
+    const transformedData = this.transformData(measuresMonth);
+    const measures = this.calculateMeasurement(
+      transformedData,
+      configGraph.measurementIds,
+      configGraph.aggregationFunction === 'sum' ? 'sum' : 'mean',
+    );
+    const rangeMeasurement = this.calculateRangeOfMeasurement(
+      configGraph.measurementIds,
+    );
+    if (measures) {
+      // Crear las fechas de inicio y fin del mes
+      const startOfMonth = new Date(
+        this.currentYearIndex,
+        this.currentMonthIndex,
+        1,
+        0,
+        0,
+        0,
+        0,
+      ).toLocaleDateString('en-CA');
+      const endOfMonth = new Date(
+        this.currentYearIndex,
+        this.currentMonthIndex + 1,
+        0,
+        23,
+        59,
+        59,
+        999,
+      ).toLocaleDateString('en-CA');
+      this.areaChartComponent.UpdateChart(
+        Object.keys(measures),
+        Object.values(measures),
+        configGraph.style.backgroundColor.colorHex,
+        configGraph.style.borderColor.colorHex,
+        configGraph.type === 'line' ? 'line' : 'bar',
+        rangeMeasurement.min,
+        rangeMeasurement.max,
+        startOfMonth,
+        endOfMonth,
+      );
+    } else {
+      this.areaChartComponent.UpdateChart(
+        [],
+        [],
+        configGraph.style.backgroundColor.colorHex,
+        configGraph.style.borderColor.colorHex,
+        configGraph.type === 'line' ? 'line' : 'bar',
+      );
+    }
+  }
   /**     Metodos privados */
   /**
    * Initializes the number of registers.
@@ -250,8 +335,8 @@ export class HistoricalPage implements OnInit {
    */
   private async initializeRegisters(): Promise<void> {
     this.nRegisters = await UserProgressDSService.getCountTasksByMonthYear(
-      2024,
-      11,
+      this.currentYearIndex,
+      this.currentMonthIndex + 1,
     );
   }
 
@@ -263,7 +348,7 @@ export class HistoricalPage implements OnInit {
     this.completedTaskYear = [];
 
     const tasksPromises = Array.from({ length: 12 }, (_, month) =>
-      this.getCompletedTaskForMonth(2024, month + 1),
+      this.getCompletedTaskForMonth(this.currentYearIndex, month + 1),
     );
 
     this.completedTaskYear = await Promise.all(tasksPromises);
@@ -310,23 +395,29 @@ export class HistoricalPage implements OnInit {
 
     const transformedData = this.transformData(measurementValues);
 
-    this.variables = historicalData.map((measurement) => ({
-      name: measurement.name,
-      symbol: measurement.symbol,
-      unit: measurement.unit,
-      measurementIds: measurement.measurementIds,
-      aggregationFunction: measurement.aggregationFunction,
-      style: measurement.style,
-      graph: measurement.graph,
-      value: this.calculateValue(measurement, transformedData),
-    })) as Historical[];
+    this.variables = historicalData.map((measurement) => {
+      const existingVariable = this.variables?.find(
+        (variable) => variable.name === measurement.name,
+      );
+      return {
+        name: measurement.name,
+        symbol: measurement.symbol,
+        unit: measurement.unit,
+        measurementIds: measurement.measurementIds,
+        aggregationFunction: measurement.aggregationFunction,
+        style: measurement.style,
+        graph: measurement.graph,
+        selected: existingVariable?.selected ?? false, //deberia tener eel mismo valor que teiene this.variables y si no tiene entonces false
+        value: this.calculateValue(measurement, transformedData),
+      };
+    }) as Historical[];
   }
 
   /**
    * Calculates the value for a measurement based on its aggregation function.
    * @param {Historical} measurement - The measurement configuration.
    * @param {HistoricalMeasurement} values - The transformed measurement data.
-   * @returns {number | undefined}
+   * @returns {number | undefined} The calculated value for the measurement.
    */
   private calculateValue(
     measurement: Historical,
@@ -386,9 +477,6 @@ export class HistoricalPage implements OnInit {
     }
     const sum1 = this.sum(list1) || 0;
     const sum2 = this.sum(list2) || 0;
-    console.log('mean');
-    console.log(list1);
-    console.log(list2);
     const totalSum = sum1 + sum2;
     const totalCount = list1.length + list2.length;
 
@@ -433,7 +521,52 @@ export class HistoricalPage implements OnInit {
 
     return result;
   }
+  /**
+   *
+   * @param {string[]} keys Measurementes IDs
+   * @returns { number | undefined, number | undefined } min min max
+   */
+  private calculateRangeOfMeasurement(
+    keys: string[], // Un arreglo de claves de HistoricalMeasurement
+  ): { min: number | undefined; max: number | undefined } {
+    let max: number | undefined;
+    let min: number | undefined;
 
+    // Iterar sobre todas las claves en 'keys'
+    for (let key of keys) {
+      const measureConfig = this.measuresConfig?.measurements[key];
+      if (!measureConfig) continue; // Si no existe la configuración, saltar al siguiente
+
+      const { max: currentMax, min: currentMin } = measureConfig.range;
+
+      // Actualizar el valor máximo
+      if (currentMax !== undefined) {
+        if (max === undefined || currentMax > max) {
+          max = currentMax;
+        }
+      }
+
+      // Actualizar el valor mínimo
+      if (currentMin !== undefined) {
+        if (min === undefined || currentMin < min) {
+          min = currentMin;
+        }
+      }
+    }
+
+    return { min, max };
+  }
+
+  /**
+   * Calculates aggregated measurement values (sum or mean) for the specified keys from historical data.
+   * Groups data by date (ignoring time) and performs the requested aggregation for each day.
+   * @private
+   * @param {HistoricalMeasurement} historicalData - The historical measurement data. Each key corresponds to a type of measurement
+   * and contains an array of timestamped values.
+   * @param {string[]} keys - An array of keys from `historicalData` to process.
+   * @param {'sum' | 'mean'} calculationType - The type of aggregation to perform ('sum' or 'mean').
+   * @returns {MeasurementEntry} - An object where each key is a date (in YYYY-MM-DD format) and its value is the aggregated result.
+   */
   private calculateMeasurement(
     historicalData: HistoricalMeasurement,
     keys: string[], // Un arreglo de claves de HistoricalMeasurement

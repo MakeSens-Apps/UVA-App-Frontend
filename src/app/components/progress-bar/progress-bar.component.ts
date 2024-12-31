@@ -16,12 +16,6 @@ export class ProgressBarComponent {
   @Input() currentProgress = 0;
 
   @Input() totalProgress = 1;
-  /**
-   * @property {number} value - The current value of the progress bar, ranging from 0 to 1.
-   */
-  @Input() value = 0;
-  @Input() totalTask = 0;
-  @Input() completedTask = 0;
 
   /**
    * @constructs
