@@ -233,7 +233,9 @@ export const getUserProgress = /* GraphQL */ `query GetUserProgress($id: ID!) {
     Seed
     Streak
     Milestones
+    SaveStreak
     completedTasks
+    additionalInfo
     userID
     createdAt
     updatedAt
@@ -259,7 +261,9 @@ export const listUserProgresses = /* GraphQL */ `query ListUserProgresses(
       Seed
       Streak
       Milestones
+      SaveStreak
       completedTasks
+      additionalInfo
       userID
       createdAt
       updatedAt
@@ -295,7 +299,9 @@ export const syncUserProgresses = /* GraphQL */ `query SyncUserProgresses(
       Seed
       Streak
       Milestones
+      SaveStreak
       completedTasks
+      additionalInfo
       userID
       createdAt
       updatedAt
@@ -335,7 +341,9 @@ export const userProgressesByUserIDAndTs = /* GraphQL */ `query UserProgressesBy
       Seed
       Streak
       Milestones
+      SaveStreak
       completedTasks
+      additionalInfo
       userID
       createdAt
       updatedAt

@@ -252,10 +252,24 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
+                "SaveStreak": {
+                    "name": "SaveStreak",
+                    "isArray": false,
+                    "type": "Boolean",
+                    "isRequired": false,
+                    "attributes": []
+                },
                 "completedTasks": {
                     "name": "completedTasks",
                     "isArray": false,
                     "type": "Int",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "additionalInfo": {
+                    "name": "additionalInfo",
+                    "isArray": false,
+                    "type": "String",
                     "isRequired": false,
                     "attributes": []
                 },
@@ -632,5 +646,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "13a9052fbdad281bcb76f54cbf1cee4a"
+    "version": "c540b0bbfedabb2a94a4a4e50163dbe3"
 };
