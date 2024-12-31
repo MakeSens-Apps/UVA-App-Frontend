@@ -78,6 +78,7 @@ export class ProfilePage implements OnInit {
   isSeed = false;
   seed: number | undefined | null;
   seedIcon = '';
+  logo = '';
   shareOptions: ShareOption[] = [
     {
       label: 'WhatsApp',
@@ -134,6 +135,13 @@ export class ProfilePage implements OnInit {
     this.isRanking = true;
     this.isSeed = true;
     this.seedIcon = '../../../assets/images/icons/semilla.svg';
+    const configModel = await this.configuration.getConfigurationApp();
+    if (configModel) {
+      const img = await this.configuration.loadImage(configModel.branding.logo);
+      if (img) {
+        this.logo = img;
+      }
+    }
   }
   /**
    * view about to enter

@@ -9,7 +9,7 @@ import {
   ModalController,
 } from '@ionic/angular/standalone';
 import { Guide } from 'src/models/configuration/measurements.model';
-
+import { SafeHtmlPipe } from '@app/core/pipes/safe-html.pipe';
 /**
  * Component for displaying guide measurements.
  * Handles displaying guide content, with optional HTML text or array text,
@@ -21,7 +21,14 @@ import { Guide } from 'src/models/configuration/measurements.model';
   templateUrl: './guide-measurement.component.html',
   styleUrls: ['./guide-measurement.component.scss'],
   standalone: true,
-  imports: [IonIcon, IonImg, IonCheckbox, IonButton, CommonModule],
+  imports: [
+    IonIcon,
+    IonImg,
+    IonCheckbox,
+    IonButton,
+    CommonModule,
+    SafeHtmlPipe,
+  ],
 })
 export class GuideMeasurementComponent implements OnInit {
   /**
@@ -47,11 +54,17 @@ export class GuideMeasurementComponent implements OnInit {
 
   img: string | null = '';
 
+  text = '';
+
   /**
    * Creates an instance of the GuideMeasurementComponent.
    * @param {ModalController} modalCtrl - The ModalController to manage modal actions.
+   * @param {ConfigurationAppService} configuration - Service to get configuration App.
    */
-  constructor(private modalCtrl: ModalController, private configuration: ConfigurationAppService,) {}
+  constructor(
+    private modalCtrl: ModalController,
+    private configuration: ConfigurationAppService,
+  ) {}
 
   /**
    * Lifecycle hook that runs when the component is initialized.
@@ -63,7 +76,15 @@ export class GuideMeasurementComponent implements OnInit {
       this.IsArrayText = true;
     }
     if (this.guide) {
-      this.img = await this.configuration.loadImage(this.guide.image);   
+      this.img = await this.configuration.loadImage(this.guide.image);
+      if (this.guide.icon.imagePath) {
+        this.guide.icon.imagePath = await this.configuration.loadImage(
+          this.guide.icon.imagePath as string,
+        );
+      }
+      if (this.isHtmlText) {
+        this.text = this.guide.text;
+      }
     }
   }
 

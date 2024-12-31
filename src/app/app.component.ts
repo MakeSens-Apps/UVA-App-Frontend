@@ -1,3 +1,4 @@
+import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.service';
 import { Component } from '@angular/core';
 import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
 import { ConfigurationAppService } from './core/services/storage/configuration-app.service';
@@ -16,16 +17,19 @@ export class AppComponent {
    * @memberof AppComponent
    * @param {ConfigurationAppService} configuration Configuretion Service to load branding/Colors
    * @param {Platform} platform -For Wait for the platform to load
+   * @param {AppMinimizeService} appMinimizeService - For initialize listener of the back button and can minimize app.
    */
   constructor(
     private configuration: ConfigurationAppService,
     private platform: Platform,
+    private appMinimizeService: AppMinimizeService,
   ) {
     void this.configuration.loadBranding();
     platform
       .ready()
       .then(() => {
         SyncMonitorDSService.subscribeToSync();
+        appMinimizeService.initializeBackButtonHandler();
       })
       .catch((err) => {
         console.error(err);

@@ -7,6 +7,7 @@
       [hasHeader]="true"
       [daysComplete]="completeTask?.daysComplete ?? []"
       [daysIncomplete]="completeTask?.daysIncomplete ?? []"
+      (dayClick)="goToDetail($event)"
     >
       <section header>
         <ion-card-header>

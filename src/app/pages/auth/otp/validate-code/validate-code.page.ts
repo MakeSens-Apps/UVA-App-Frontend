@@ -36,7 +36,8 @@ export class ValidateCodePage implements OnInit {
       if (this.type == 'login') {
         void this.router.navigate(['register/project-vinculation']);
       } else if (this.type == 'register') {
-        void this.router.navigate(['login']);
+        // void this.router.navigate(['login']);
+        void this.router.navigate(['register-success']);
       }
     }, 2 * 1000);
   }

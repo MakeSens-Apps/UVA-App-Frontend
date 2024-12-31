@@ -12,7 +12,7 @@ export const routes: Routes = [
           import('../home/home.page').then((m) => m.HomePage),
       },
       {
-        path: 'home/moon-phase',
+        path: 'moon-phase',
         loadComponent: () =>
           import('./../../pages/moon-phase/moon-phase.page').then(
             (m) => m.MoonPhasePage,
@@ -26,23 +26,9 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'register/measurement-new',
-        loadComponent: () =>
-          import(
-            '../measurement/register-measurement/register-measurement.page'
-          ).then((m) => m.RegisterMeasurementPage),
-      },
-      {
         path: 'history',
         loadComponent: () =>
           import('../historical/historical.page').then((m) => m.HistoricalPage),
-      },
-      {
-        path: 'history/detail',
-        loadComponent: () =>
-          import(
-            '../historical//measurement-detail/measurement-detail.page'
-          ).then((m) => m.MeasurementDetailPage),
       },
       {
         path: '',
