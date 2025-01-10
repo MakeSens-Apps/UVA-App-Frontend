@@ -27,6 +27,7 @@ import {
 } from '@app/pages/measurement/measurement.page';
 import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
 import { SafeHtmlPipe } from '@app/core/pipes/safe-html.pipe';
+import { GamificationService } from '@app/core/services/view/gamification/gamification.service';
 setDefaultOptions({ locale: es });
 
 /**
@@ -302,7 +303,7 @@ export class MeasurementDetailPage implements OnInit {
       .then(async (data) => {
         if (data.data.action === 'OK') {
           if (this.date) {
-            //TODO : AQUI REALIZAR ACCIONES DE RECUPERACION DE RACHO
+            await GamificationService.recoverStreak();
             this.date = { ...this.date, state: 'complete' };
             this.showAlert_complete_seed = true;
           }

@@ -22,11 +22,16 @@ import {
 import { HeaderComponent } from '@app/components/header/header.component';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
-import { Flow, Measurement } from 'src/models/configuration/measurements.model';
+import {
+  Flow,
+  Measurement,
+  MeasurementModel,
+} from 'src/models/configuration/measurements.model';
 
 import { Preferences } from '@capacitor/preferences';
 import { MeasurementDSService } from '@app/core/services/storage/datastore/measurement-ds.service';
 import { SafeHtmlPipe } from '@app/core/pipes/safe-html.pipe';
+import { GamificationService } from '@app/core/services/view/gamification/gamification.service';
 
 const operaciones: Record<
   string,
@@ -92,6 +97,8 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
   /** Stores the configuration data for measurements. */
   configurationMeasurement: any;
 
+  totalTask = 1;
+
   applyBlurFilter = false;
 
   @ViewChild('modal_modal_confirmation') modal_modal_confirmation!: IonModal;
@@ -118,7 +125,9 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
   async ngOnInit(): Promise<void> {
     this.configurationMeasurement =
       await this.configuration.getConfigurationMeasurement();
-
+    this.totalTask = await this.configuration.countTasks(
+      this.configurationMeasurement as MeasurementModel,
+    );
     this.data = this.configurationMeasurement;
 
     this.route.queryParams.subscribe((params: any) => {
@@ -476,13 +485,19 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
           );
         });
         this.OpenModalRegisterOk = false;
-        this.router
-          .navigate(['app/tabs/register'])
-          .catch((error) => {
-            console.error('Error al navegar a la página de inicio:', error);
+        GamificationService.completeTaskProcess(this.totalTask)
+          .then(() => {
+            this.router
+              .navigate(['app/tabs/register'])
+              .catch((error) => {
+                console.error('Error al navegar a la página de inicio:', error);
+              })
+              .finally(() => {
+                this.OpenModalRegisterOk = false;
+              });
           })
-          .finally(() => {
-            this.OpenModalRegisterOk = false;
+          .catch((err) => {
+            console.error(err);
           });
       }, 2000);
     } else {

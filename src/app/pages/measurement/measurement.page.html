@@ -1,4 +1,7 @@
-<app-header title="Registros climáticos"></app-header>
+<app-header
+  [seed]="userProgress?.Seed"
+  title="Registros climáticos"
+></app-header>
 <ion-content [fullscreen]="true">
   <section>
     <div class="cards ion-margin-top">
@@ -119,7 +122,7 @@
             id="open-modal_Days_question"
             color="uva_blue-600"
             expand="block"
-            (click)="responseBonus()"
+            (click)="responseBonus(true)"
           >
             Si
           </ion-button>
@@ -127,7 +130,7 @@
             id="open-modal_Days_question"
             color="uva_blue-600"
             expand="block"
-            (click)="responseBonus()"
+            (click)="responseBonus(true)"
           >
             No
           </ion-button>
@@ -135,7 +138,7 @@
             id="open-modal_Days_question"
             color="uva_blue-600"
             fill="clear"
-            (click)="responseBonus()"
+            (click)="responseBonus(false)"
           >
             Omitir
           </ion-button>
