@@ -7,17 +7,16 @@ import { SortDirection } from '@aws-amplify/datastore';
 })
 export class GamificationService extends UserProgressDSService {
   /**
-   *
+   * Constructor for GamificationService.
    */
-
   constructor() {
     super();
   }
 
   /**
-   * Update UserProgress with each completed task based on business logic
-   * @param {number} totalTask - total task
-   * @returns {Promise<boolean>} Returns true when the correctly function execute
+   * Update UserProgress with each completed task based on business logic.
+   * @param {number} totalTask - Total number of tasks.
+   * @returns {Promise<boolean>} Returns true when the function executes correctly.
    */
   static async completeTaskProcess(totalTask: number): Promise<boolean> {
     try {
@@ -61,7 +60,8 @@ export class GamificationService extends UserProgressDSService {
   }
 
   /**
-   * Este task adiciona un seed al progreso del usuario, en el lastprogress
+   * Adds a seed to the user's progress in the last progress entry.
+   * @returns {Promise<boolean>} Returns true when the function executes correctly.
    */
   static async surpriseTaskProcess(): Promise<boolean> {
     try {
@@ -84,6 +84,10 @@ export class GamificationService extends UserProgressDSService {
     }
   }
 
+  /**
+   * Recovers the user's streak by creating or updating progress entries.
+   * @returns {Promise<boolean>} Returns true when the function executes correctly.
+   */
   static async recoverStreak(): Promise<boolean> {
     const recoverStreakCost = 5;
 
@@ -168,6 +172,10 @@ export class GamificationService extends UserProgressDSService {
     return true;
   }
 
+  /**
+   * Adds a bonus seed to the user's progress if the streak is a multiple of the bonus interval.
+   * @returns {Promise<boolean>} Returns true when the function executes correctly.
+   */
   private static async streakBonus(): Promise<boolean> {
     const daysForStreak = 7;
     const bonusSeedForStreak = 3;

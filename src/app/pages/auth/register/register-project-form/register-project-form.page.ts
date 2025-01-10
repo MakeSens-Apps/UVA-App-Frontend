@@ -124,6 +124,10 @@ export class RegisterProjectFormPage implements OnInit {
     }
   }
 
+  /**
+   *
+   * @param {Event} event event
+   */
   hideKeyboard(event: Event): void {
     if (event.target instanceof HTMLInputElement) {
       event.target.blur();
