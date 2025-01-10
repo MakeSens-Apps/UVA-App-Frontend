@@ -25,7 +25,7 @@ import { LazyMeasurement } from 'src/models';
 import { UserProgress } from 'src/models';
 import { UserProgressDSService } from '@app/core/services/storage/datastore/user-progress-ds.service';
 import { SafeHtmlPipe } from '@app/core/pipes/safe-html.pipe';
-
+import { GamificationService } from '@app/core/services/view/gamification/gamification.service';
 /**
  * Translates day names to numbers.
  * @enum {number}
@@ -99,7 +99,6 @@ export class MeasurementPage implements OnInit {
   hasTaskIncomplete = false;
   completedTask = 0;
   userProgress: UserProgress | undefined;
-
   //FIXME: change type when realize query
   tasksCompleted: any[] = [];
 
@@ -132,6 +131,18 @@ export class MeasurementPage implements OnInit {
       await this.configuration.getConfigurationMeasurement();
     if (configMeasurement) {
       this.totalTask = this.configuration.countTasks(configMeasurement);
+    }
+  }
+  /**
+   * Lifecycle method that runs when the view is about to enter.
+   * Fetches the user's last progress and updates the seed property.
+   * @async
+   * @returns {Promise<void>} - A promise that resolves when data has been loaded.
+   */
+  async ionViewWillEnter(): Promise<void> {
+    const userprogress = await UserProgressDSService.getLastUserProgress();
+    if (userprogress) {
+      this.userProgress = userprogress;
     }
   }
 
@@ -391,9 +402,13 @@ export class MeasurementPage implements OnInit {
   }
 
   /**
-   * Closes the bonus modal.
+   * se ejecuta con la accion del usuario
+   * @param {boolean} response true si respondio, false si omitio
    */
-  responseBonus(): void {
+  async responseBonus(response: boolean): Promise<void> {
+    if (response) {
+      await GamificationService.surpriseTaskProcess();
+    }
     this.OpenModalSurprise = false;
   }
 

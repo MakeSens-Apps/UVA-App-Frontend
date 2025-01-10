@@ -243,7 +243,7 @@ export class HistoricalPage implements OnInit {
    * @returns {Promise<void>}
    */
   async goToDetail($event: calendar | null): Promise<void> {
-    if (!$event || $event.state === 'future' || $event.state === 'normal') {
+    if (!$event || $event.state === 'future') {
       return;
     }
     await this.router.navigate(['measurement-detail'], {
