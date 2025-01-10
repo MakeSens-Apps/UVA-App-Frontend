@@ -6,7 +6,6 @@ import {
   OnDestroy,
   OnInit,
   QueryList,
-  SecurityContext,
   ViewChild,
   ViewChildren,
 } from '@angular/core';
@@ -236,13 +235,13 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
 
   /**
    * Handles changes in digit inputs, ensuring valid input and managing focus for the next field.
-   * @param {Event} Event - The input event.
+   * @param {Event} event - The input event.
    * @param {number} i - Index of the input field.
    * @param {number} measurementIndex - Index of the measurement.
    * @returns {void}
    */
-  onDigitsChange(Event: Event, i: number, measurementIndex: number): void {
-    const inputValue = (Event.target as HTMLInputElement).value;
+  onDigitsChange(event: Event, i: number, measurementIndex: number): void {
+    const inputValue = (event.target as HTMLInputElement).value;
 
     // Si el valor está completo (es decir, tiene un solo dígito en este caso)
     if (
@@ -284,7 +283,7 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
         }
       }
     } else {
-      (Event.target as HTMLInputElement).value = '';
+      (event.target as HTMLInputElement).value = '';
     }
   }
 
@@ -527,6 +526,11 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   *
+   * @param {Measurement} item -Measuerement
+   * @returns {string} -alerta de errro en la medicion
+   */
   getMessageError(item: Measurement): string {
     if (item.showRestrictionAlert) {
       return item.textRestrictionAlert ?? '';

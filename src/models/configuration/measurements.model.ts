@@ -1,5 +1,3 @@
-import { SafeHtml } from '@angular/platform-browser';
-
 export interface Task {
   name: string;
   restrictions: Restrictions;

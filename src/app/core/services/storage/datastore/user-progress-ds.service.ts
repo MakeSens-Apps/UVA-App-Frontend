@@ -13,10 +13,11 @@ type UserProgressFields = Partial<Omit<UserProgress, 'id' | 'ts' | 'userID'>>;
  */
 export class UserProgressDSService {
   static session = new SessionService();
+
   /**
    * Adds a new UserProgress entry.
-   * @param {UserProgressFields} userData - userData
-   * @param {string} ts - date of userProgress
+   * @param {UserProgressFields} userData - User data.
+   * @param {string} ts - Date of user progress.
    * @returns {Promise<UserProgress>} The newly created UserProgress.
    */
   static async createUserProgress(
@@ -46,10 +47,10 @@ export class UserProgressDSService {
   }
 
   /**
-   * Update a UserProgress entry for id
-   * @param {string} id - id
-   * @param {UserProgressFields} updatedFields - updatedFields
-   * @returns {Promise<UserProgress | undefined>} The newly created UserProgress.
+   * Update a UserProgress entry by id.
+   * @param {string} id - ID of the UserProgress entry.
+   * @param {UserProgressFields} updatedFields - Updated fields.
+   * @returns {Promise<UserProgress | undefined>} The updated UserProgress.
    */
   static async updateUserProgress(
     id: string,
@@ -112,8 +113,8 @@ export class UserProgressDSService {
   }
 
   /**
-   * Retrieves laswt progress entries for a specific user.
-   * @returns {Promise<UserProgress | null>} List of UserProgress entries.
+   * Retrieves the last progress entry for a specific user.
+   * @returns {Promise<UserProgress | null>} The last UserProgress entry.
    */
   static async getLastUserProgress(): Promise<UserProgress | undefined | null> {
     // A. Obtener último registro
@@ -162,8 +163,8 @@ export class UserProgressDSService {
   }
 
   /**
-   * Description
-   * @returns {Promise<string[]>} return
+   * Retrieves the milestones for a specific user.
+   * @returns {Promise<string[]>} List of milestones.
    */
   static async getMilestones(): Promise<string[]> {
     const userID = (await this.session.getInfo()).userID ?? '';
@@ -184,9 +185,9 @@ export class UserProgressDSService {
   }
 
   /**
-   * Retrieves all task completed in the last week.
-   * @param {number} [totalTasks] - Maximun number of task in one day
-   * @returns {Promise<CompletedTask>} CompletedTask
+   * Retrieves all tasks completed in the last week.
+   * @param {number} [totalTasks] - Maximum number of tasks in one day.
+   * @returns {Promise<CompletedTask>} CompletedTask object.
    */
   static async getCompleteTaskWeek(totalTasks: number): Promise<CompletedTask> {
     try {
@@ -219,11 +220,11 @@ export class UserProgressDSService {
   }
 
   /**
-   *
-   * @param {number} year Year
-   * @param {number} month month
-   * @param {number} totalTasks - Maximun number of task in one day
-   * @returns {Promise<CompletedTask>} CompletedTask in month
+   * Retrieves all tasks completed in a specific month and year.
+   * @param {number} year - Year.
+   * @param {number} month - Month.
+   * @param {number} totalTasks - Maximum number of tasks in one day.
+   * @returns {Promise<CompletedTask>} CompletedTask object.
    */
   static async getCompletedTasksByMonthYear(
     year: number,
@@ -254,10 +255,10 @@ export class UserProgressDSService {
   }
 
   /**
-   *
-   * @param {number} year year
-   * @param {number} month month
-   * @returns {Promise<number>} counter task in one month
+   * Retrieves the count of tasks completed in a specific month and year.
+   * @param {number} year - Year.
+   * @param {number} month - Month.
+   * @returns {Promise<number>} Count of tasks completed in the month.
    */
   static async getCountTasksByMonthYear(
     year: number,
@@ -315,6 +316,12 @@ export class UserProgressDSService {
     return { daysComplete, daysIncomplete };
   }
 
+  /**
+   * Calculates the difference in days between two dates.
+   * @param {Date} startDate - The start date.
+   * @param {Date} endDate - The end date.
+   * @returns {number} - The number of days between the two dates.
+   */
   private static calculateDaysDifference(
     startDate: Date,
     endDate: Date,
@@ -340,6 +347,11 @@ export class UserProgressDSService {
     return daysDifference;
   }
 
+  /**
+   * Converts a seed value to a milestone.
+   * @param {number} seed - The seed value.
+   * @returns {{ seed: number; milestone: string }} - The seed and milestone.
+   */
   private static seedToMilestone(seed: number): {
     seed: number;
     milestone: string;
@@ -358,7 +370,7 @@ export class UserProgressDSService {
   /**
    * Handles the milestone assignment process.
    * @param {UserProgress} lastProgress - The last recorded UserProgress entry.
-   * @returns {Promise<number>} seed -The seeds actualizados
+   * @returns {Promise<number>} - The updated seed value.
    */
   private static async handleMilestoneAssignment(
     lastProgress: UserProgress,
@@ -366,11 +378,11 @@ export class UserProgressDSService {
     const currentDate = new Date();
     const lastProgressDate = new Date(lastProgress.ts);
     /**
-     *
-     * @param date
-     * @returns
+     * Checks if a date is the last day of the month.
+     * @param {Date} date - The date to check.
+     * @returns {boolean} - True if the date is the last day of the month, false otherwise.
      */
-    function isLastDayOfMonth(date) {
+    function isLastDayOfMonth(date: Date): boolean {
       const nextDay = new Date(date); // Clonamos la fecha original
       nextDay.setDate(date.getDate() + 1); // Avanzamos un día
 
