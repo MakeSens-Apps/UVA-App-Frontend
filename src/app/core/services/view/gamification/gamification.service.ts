@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { UserProgressDSService } from '../../storage/datastore/user-progress-ds.service';
+import { SortDirection } from '@aws-amplify/datastore';
 
 @Injectable({
   providedIn: 'root',
@@ -8,256 +9,186 @@ export class GamificationService extends UserProgressDSService {
   /**
    *
    */
+
   constructor() {
     super();
   }
-  //********************************************************* */
-  /*
-  static async processBonusSeedsForStreak(
-    totalTasks = 1,
-  ): Promise<UserProgress | undefined> {
-    const progress = await this.getUserProgress(1);
-    if (!progress || progress.length < 1) {
-      return;
-    }
-    const currentDate = new Date();
-    const lastProgressDate = new Date(progress[0].ts);
-    const daysDifference = this.calculateDaysDifference(
-      lastProgressDate,
-      currentDate,
-    );
-    if (daysDifference != 0) {
-      return;
-    }
 
-    if (
-      (progress[0].Streak ?? 0) % 7 &&
-      totalTasks <= (progress[0].completedTasks ?? 0)
-    ) {
-      return await DataStore.save(
-        //Suma 3 seeds
-        UserProgress.copyOf(progress[0], (updated) => {
-          updated.Seed = updated.Seed ?? 0 + 3;
-        }),
-      );
-    }
-  }
-  static async processLoseStreak(): Promise<UserProgress | undefined> {
-    const progress = await this.getUserProgress(1);
-    if (!progress || progress.length < 1) {
-      return;
-    }
-    const currentDate = new Date();
-    const lastProgressDate = new Date(progress[0].ts);
-    const daysDifference = this.calculateDaysDifference(
-      lastProgressDate,
-      currentDate,
-    );
-    if (daysDifference === 0) {
-      return;
-    }
-    if (daysDifference >= 2) {
-      return await this.createUserProgress({
-        Seed: progress[0].Seed,
-        Streak: 0,
-        completedTasks: 0,
+  /**
+   * Update UserProgress with each completed task based on business logic
+   * @param {number} totalTask - total task
+   * @returns {Promise<boolean>} Returns true when the correctly function execute
+   */
+  static async completeTaskProcess(totalTask: number): Promise<boolean> {
+    try {
+      // Obtener el último progreso del usuario
+      const userProgress = await this.getLastUserProgress();
+      if (!userProgress?.ts) {
+        return false; // No hay datos previos de progreso
+      }
+
+      const completedTasks = userProgress.completedTasks ?? 0;
+      const seed = userProgress.Seed ?? 0;
+      const streak = userProgress.Streak ?? 0;
+
+      // Día actual: Incrementar tareas completadas
+      const newCompletedTasks = completedTasks + 1;
+
+      // Actualizar progreso del usuario con las tareas completadas
+      const updatedProgress = await this.updateUserProgress(userProgress.id, {
+        completedTasks: newCompletedTasks,
       });
-    }
-    if (daysDifference === 1 && progress[0].completedTasks) {
-      
+
+      if (completedTasks === 0) {
+        //Primera tarea realizada
+        await this.updateUserProgress(userProgress.id, {
+          Seed: seed + 1,
+        });
+      } else if (updatedProgress && newCompletedTasks >= totalTask) {
+        // Si se alcanza el número total de tareas, incrementar Seed y Streak
+        await this.updateUserProgress(userProgress.id, {
+          Seed: seed + 1,
+          Streak: streak + 1,
+        });
+        await this.streakBonus();
+      }
+
+      return true; // Proceso completado exitosamente
+    } catch (error) {
+      console.error('Error en completeTaskProcess:', error);
+      return false; // Indicar fallo en caso de error
     }
   }
 
-  private static async processStreak(): Promise<UserProgress | undefined> {
-    const progress = await this.getUserProgress(1);
-    if (!progress || progress.length < 1) {
-      return;
-    }
-    //evalua la fecha del ultimo userprogress
-    //si es anterior a hoy
-    //si es anterior a mas de 2 dias entonces reininicia streacks en 0 en nuevo user progress y finaliza
-    //Determina si debe crear un nuevo userprogress con streaks en 0
-    //determinar si debe adicionar semillas por racha.
-    if (totalTasks > (progress[0].completedTasks ?? 0)) {
+  /**
+   * Este task adiciona un seed al progreso del usuario, en el lastprogress
+   */
+  static async surpriseTaskProcess(): Promise<boolean> {
+    try {
+      // Obtener el último progreso del usuario
+      const userProgress = await this.getLastUserProgress();
+      if (!userProgress?.ts) {
+        return false; // No hay datos previos de progreso
+      }
+
+      const seed = userProgress.Seed ?? 0;
+
+      // Actualizar progreso del usuario con las tareas completadas
+      await this.updateUserProgress(userProgress.id, {
+        Seed: seed + 1,
+      });
+      return true; // Proceso completado exitosamente
+    } catch (error) {
+      console.error('Error en surpriseTaskProcess:', error);
+      return false; // Indicar fallo en caso de error
     }
   }
 
-  static async getLastTTTUserProgress(): Promise<UserProgress | null> {
-    // A. Obtener último registro
-    const lastProgress = await this.getUserProgress(
+  static async recoverStreak(): Promise<boolean> {
+    const recoverStreakCost = 5;
+
+    // Crear progreso de ayer y mantener semillas del último registro
+    const latestProgress = await this.getLastUserProgress();
+    if ((latestProgress?.Seed ?? 0) < recoverStreakCost) {
+      return false;
+    }
+    // Obtener progreso de los últimos días
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000)
+      .toISOString()
+      .split('T')[0]; // Ayer
+    const twoDaysAgo = new Date(Date.now() - 2 * 86400000)
+      .toISOString()
+      .split('T')[0]; // Hace dos días
+
+    const todayProgress = await this.getUserProgress(
       1,
       SortDirection.DESCENDING,
+      today,
+    );
+    const yesterdayProgress = await this.getUserProgress(
+      1,
+      SortDirection.DESCENDING,
+      yesterday,
+    );
+    const twoDaysAgoProgress = await this.getUserProgress(
+      1,
+      SortDirection.DESCENDING,
+      twoDaysAgo,
     );
 
-    // B. Si no hay registros previos, retornar null
-    if (!lastProgress.length) {
-      return null;
+    let newStreak: number;
+    // Determinar nueva racha basada en el progreso de hace dos días
+    if (twoDaysAgoProgress.length > 0) {
+      newStreak = (twoDaysAgoProgress[0].Streak ?? 0) + 1;
+    } else {
+      newStreak = 1;
     }
 
-    // C. Procesar progreso del usuario
-    const processedProgress = await this.processUserProgress(lastProgress[0]);
-
-    return processedProgress;
-  }
-
-  private static async processUserProgress(
-    lastProgress: UserProgress,
-  ): Promise<UserProgress> {
-    const currentDate = new Date();
-    const lastProgressDate = new Date(lastProgress.ts);
-
-    // Calcular días de diferencia
-    const daysDifference = this.calculateDaysDifference(
-      lastProgressDate,
-      currentDate,
-    );
-
-    // Gestión de streak
-    if (daysDifference == 1) {
-      if (lastProgress.SaveStreak && (lastProgress.Seed ?? 0) >= 5) {
-        // Salvaguardar streak si cumple condiciones
-        await this.updateUserProgress(lastProgress, {
-          Seed: (lastProgress.Seed ?? 0) - 5,
-          SaveStreak: false,
-        });
-        await this.logStreakEvent(
-          'Streak salvado por inactividad de 1 día',
-          lastProgress,
-        );
-      } else {
-        // Reiniciar streak y registrar pérdida
-        await this.updateUserProgress(lastProgress, { Streak: 0 });
-        await this.logStreakEvent(
-          'Streak perdido por inactividad',
-          lastProgress,
-        );
-      }
-    } else if (lastProgress.completedTasks === 0) {
-      await this.updateUserProgress(lastProgress, { Streak: 0 });
-      await this.logStreakEvent(
-        'Streak perdido por no completar tareas',
-        lastProgress,
-      );
-    }
-
-    // Procesar milestones y transición de mes/año
-    await this.processMonthlyMilestones(
-      lastProgressDate,
-      currentDate,
-      lastProgress,
-    );
-
-    // Crear nuevo registro de progreso para hoy
-    return await this.createNewUserProgress(lastProgress, currentDate);
-  }
-
-  private static async processMonthlyMilestones(
-    startDate: Date,
-    endDate: Date,
-    lastProgress: UserProgress,
-  ): Promise<void> {
-    let currentDate = new Date(startDate);
-
-    while (currentDate <= endDate) {
-      const milestone = this.calculateMilestone(lastProgress.Seed ?? 0);
-
-      if (milestone) {
-        // Crear registro con el milestone
-        await this.createMilestoneProgress(
-          currentDate,
-          milestone,
-          lastProgress,
-        );
-
-        if (milestone === 'flor') {
-          await this.updateUserProgress(lastProgress, { Seed: 0 }); // Reiniciar seeds
-        }
-      }
-
-      // Avanzar al siguiente mes
-      currentDate.setMonth(currentDate.getMonth() + 1);
-    }
-  }
-
-  private static calculateMilestone(seeds: number): string | null {
-    if (seeds >= 65) {
-      return 'flor';
-    }
-    if (seeds > 40) {
-      return 'plantula';
-    }
-    if (seeds > 10) {
-      return 'brote';
-    }
-    return null;
-  }
-
-  private static async createMilestoneProgress(
-    date: Date,
-    milestone: string,
-    lastProgress: UserProgress,
-  ): Promise<void> {
-    const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-
-    await this.createNewUserProgress(lastProgress, lastDayOfMonth, milestone);
-  }
-
-  private static async logStreakEvent(
-    reason: string,
-    lastProgress: UserProgress,
-  ): Promise<void> {
-    // Registrar evento de streak
-    await this.createNewUserProgress(
-      lastProgress,
-      new Date(),
-      undefined,
-      `Evento de streak: ${reason}`,
-    );
-  }
-
-  private static async createNewUserProgress(
-    lastProgress: UserProgress,
-    date: Date,
-    milestone?: string,
-    additionalInfo?: string,
-  ): Promise<UserProgress> {
-    const newProgress = {
-      ts: date.toISOString(),
-      Seed: lastProgress.Seed,
-      Streak: lastProgress.Streak,
-      Milestones: milestone || lastProgress.Milestones,
-      SaveStreak: false,
-      completedTasks: 0,
-      userID: lastProgress.userID,
-      additionalInfo,
+    const newStreakRegister = {
+      Streak: newStreak,
+      SaveStreak: true,
+      additionalInfo:
+        'Salva racha con ' +
+        latestProgress?.Seed +
+        ' semillas y ' +
+        newStreak +
+        ' dias de racha.',
     };
+    // Manejar progreso del día anterior
+    if (yesterdayProgress.length > 0) {
+      // Actualizar progreso del día anterior con la nueva racha
+      await this.updateUserProgress(yesterdayProgress[0].id, newStreakRegister);
+    } else {
+      // Si no hay progreso de ayer, crearlo
+      const ts = new Date(Date.now() - 86400000).toISOString(); // Timestamp de ayer
+      if (todayProgress.length > 0) {
+        // Crear progreso de ayer sin monedas (ya hay registro de hoy)
+        await this.createUserProgress(newStreakRegister, ts);
+      } else {
+        await this.createUserProgress(
+          {
+            ...newStreakRegister,
+            Seed: latestProgress?.Seed,
+          },
+          ts,
+        );
+      }
+    }
 
-    // Crear un nuevo registro en DataStore
-    return await DataStore.save(new UserProgress(newProgress));
+    // Actualizar la racha del día actual si ya existe progreso
+    const newSeed = (latestProgress?.Seed ?? 0) - 5;
+
+    if (todayProgress.length > 0) {
+      await this.updateUserProgress(todayProgress[0].id, {
+        Streak: newStreak + (latestProgress?.Streak ?? 0),
+        Seed: newSeed,
+      });
+    }
+    return true;
   }
 
-  private static calculateDaysDifference(
-    startDate: Date,
-    endDate: Date,
-  ): number {
-    // Clonar las fechas para evitar modificar los objetos originales
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-
-    // Establecer las horas, minutos, segundos y milisegundos a 0
-    // para comparar solo las fechas
-    start.setHours(0, 0, 0, 0);
-    end.setHours(0, 0, 0, 0);
-
-    // Calcular la diferencia en milisegundos
-    const timeDifference = end.getTime() - start.getTime();
-
-    // Convertir milisegundos a días
-    const daysDifference = Math.floor(timeDifference / (1000 * 3600 * 24));
-
-    // Retornar el número de días entre las fechas
-    // Si es el mismo día, retornará 0
-    // Si es el día siguiente, retornará 1, y así sucesivamente
-    return daysDifference;
-  }*/
+  private static async streakBonus(): Promise<boolean> {
+    const daysForStreak = 7;
+    const bonusSeedForStreak = 3;
+    try {
+      const userProgress = await this.getLastUserProgress();
+      if (!userProgress?.ts) {
+        return false; // No hay datos previos de progreso
+      }
+      const streak = userProgress.Streak ?? 0;
+      const seed = userProgress.Seed ?? 0;
+      //Valida bonus por racha
+      if (streak % daysForStreak === 0) {
+        // Actualizar progreso del usuario con las tareas completadas
+        await this.updateUserProgress(userProgress.id, {
+          Seed: seed + bonusSeedForStreak,
+        });
+      }
+      return true;
+    } catch (error) {
+      console.error('Error en streakBonus', error);
+      return false;
+    }
+  }
 }

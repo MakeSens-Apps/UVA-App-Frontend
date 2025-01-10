@@ -16,17 +16,19 @@ export class UserProgressDSService {
   /**
    * Adds a new UserProgress entry.
    * @param {UserProgressFields} userData - userData
+   * @param {string} ts - date of userProgress
    * @returns {Promise<UserProgress>} The newly created UserProgress.
    */
   static async createUserProgress(
     userData: UserProgressFields,
+    ts?: string,
   ): Promise<UserProgress | undefined> {
     try {
       const userID = (await this.session.getInfo()).userID ?? '';
 
       const newUserProgress = await DataStore.save(
         new UserProgress({
-          ts: new Date().toISOString(),
+          ts: ts ? ts : new Date().toISOString(),
           Seed: userData.Seed ?? null,
           Streak: userData.Streak ?? null,
           Milestones: userData.Milestones ?? null,
@@ -47,17 +49,17 @@ export class UserProgressDSService {
    * Update a UserProgress entry for id
    * @param {string} id - id
    * @param {UserProgressFields} updatedFields - updatedFields
-   * @returns {Promise<UserProgress>} The newly created UserProgress.
+   * @returns {Promise<UserProgress | undefined>} The newly created UserProgress.
    */
   static async updateUserProgress(
     id: string,
     updatedFields: UserProgressFields,
-  ): Promise<UserProgress | void> {
+  ): Promise<UserProgress | undefined> {
     try {
       const userProgress = await DataStore.query(UserProgress, id);
       if (!userProgress) {
         console.error('UserProgress not found');
-        return;
+        return undefined;
       }
 
       const updatedUserProgress = await DataStore.save(
@@ -68,24 +70,41 @@ export class UserProgressDSService {
       return updatedUserProgress;
     } catch (error) {
       console.error('Error updating UserProgress:', error);
+      throw error;
     }
   }
 
   /**
-   * Retrieves all progress entries for a specific user.
-   * @param {number} [limit] - Maximum number of entries to retrieve.
-   * @param {SortDirection} [sortDirection] - Sorting direction: SortDirection.ASCENDING or SortDirection.DESCENDING.
+   * Retrieves all progress entries for a specific user or progress for a specific date if provided.
+   * @param {number} limit - Maximum number of entries to retrieve.
+   * @param {SortDirection} sortDirection - Sorting direction: SortDirection.ASCENDING or SortDirection.DESCENDING.
+   * @param {string} date - Optional date in the format "YYYY-MM-DD" to filter the progress entries.
    * @returns {Promise<UserProgress[]>} List of UserProgress entries.
+   * @throws Will throw an error if the `date` is not in the expected format.
    */
   static async getUserProgress(
     limit = 1,
     sortDirection: SortDirection = SortDirection.DESCENDING,
+    date?: string,
   ): Promise<UserProgress[]> {
     try {
-      return await DataStore.query(UserProgress, Predicates.ALL, {
-        sort: (up) => up.ts(sortDirection),
-        limit,
-      });
+      let response: UserProgress[];
+      if (date) {
+        response = await DataStore.query(
+          UserProgress,
+          (c) => c.ts.contains(date),
+          {
+            sort: (up) => up.ts(sortDirection),
+            limit,
+          },
+        );
+      } else {
+        response = await DataStore.query(UserProgress, Predicates.ALL, {
+          sort: (up) => up.ts(sortDirection),
+          limit,
+        });
+      }
+      return response;
     } catch (error) {
       console.error('Error fetching UserProgress', error);
       throw error;
@@ -96,22 +115,50 @@ export class UserProgressDSService {
    * Retrieves laswt progress entries for a specific user.
    * @returns {Promise<UserProgress | null>} List of UserProgress entries.
    */
-  static async getLastUserProgress(): Promise<UserProgress | null> {
+  static async getLastUserProgress(): Promise<UserProgress | undefined | null> {
     // A. Obtener último registro
-    const lastProgress = await this.getUserProgress(
+    const lastsProgress = await this.getUserProgress(
       1,
       SortDirection.DESCENDING,
     );
 
     // B. Si no hay registros previos, retornar null
-    if (!lastProgress.length) {
+    if (!lastsProgress.length) {
       return null;
     }
 
-    // C. Procesar progreso del usuario
-    //const processedProgress = await this.processUserProgress(lastProgress[0]);
+    const lastProgress = lastsProgress[0];
+    // Convertir fechas para el cálculo de la diferencia
+    const currentDate = new Date();
+    const lastProgressDate = new Date(lastProgress.ts);
 
-    return lastProgress[0];
+    // Calcular la diferencia en días entre el último registro y la fecha actual
+    const daysDifference = this.calculateDaysDifference(
+      lastProgressDate,
+      currentDate,
+    );
+    // Handle milestone assignment if necessary
+    const newSeed = await this.handleMilestoneAssignment(lastProgress);
+
+    if (daysDifference === 0) {
+      return lastProgress;
+    } else if (daysDifference === 1) {
+      // Día inmediatamente anterior: Mantener racha
+      const newUserProgress = await this.createUserProgress({
+        completedTasks: 0,
+        Seed: newSeed,
+        Streak:
+          lastProgress.completedTasks === 0 ? 0 : (lastProgress.Streak ?? 0),
+      });
+      return newUserProgress;
+    } else {
+      // Más de un día de inactividad: Reiniciar racha
+      return await this.createUserProgress({
+        completedTasks: 0,
+        Seed: newSeed,
+        Streak: 0,
+      });
+    }
   }
 
   /**
@@ -266,5 +313,96 @@ export class UserProgressDSService {
     });
 
     return { daysComplete, daysIncomplete };
+  }
+
+  private static calculateDaysDifference(
+    startDate: Date,
+    endDate: Date,
+  ): number {
+    // Clonar las fechas para evitar modificar los objetos originales
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    // Establecer las horas, minutos, segundos y milisegundos a 0
+    // para comparar solo las fechas
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+
+    // Calcular la diferencia en milisegundos
+    const timeDifference = end.getTime() - start.getTime();
+
+    // Convertir milisegundos a días
+    const daysDifference = Math.floor(timeDifference / (1000 * 3600 * 24));
+
+    // Retornar el número de días entre las fechas
+    // Si es el mismo día, retornará 0
+    // Si es el día siguiente, retornará 1, y así sucesivamente
+    return daysDifference;
+  }
+
+  private static seedToMilestone(seed: number): {
+    seed: number;
+    milestone: string;
+  } {
+    if (seed < 11) {
+      return { seed, milestone: '' };
+    } else if (seed < 41) {
+      return { seed: 0, milestone: 'brote' };
+    } else if (seed < 64) {
+      return { seed: 0, milestone: 'plantula' };
+    } else {
+      return { seed: 0, milestone: 'flor' };
+    }
+  }
+
+  /**
+   * Handles the milestone assignment process.
+   * @param {UserProgress} lastProgress - The last recorded UserProgress entry.
+   * @returns {Promise<number>} seed -The seeds actualizados
+   */
+  private static async handleMilestoneAssignment(
+    lastProgress: UserProgress,
+  ): Promise<number> {
+    const currentDate = new Date();
+    const lastProgressDate = new Date(lastProgress.ts);
+    /**
+     *
+     * @param date
+     * @returns
+     */
+    function isLastDayOfMonth(date) {
+      const nextDay = new Date(date); // Clonamos la fecha original
+      nextDay.setDate(date.getDate() + 1); // Avanzamos un día
+
+      return nextDay.getDate() === 1; // Si el día es 1, significa que la fecha inicial era el último día del mes
+    }
+    // Calculate the difference in months between the last record and the current date
+    const monthsDifference =
+      (currentDate.getFullYear() - lastProgressDate.getFullYear()) * 12 +
+      (currentDate.getMonth() - lastProgressDate.getMonth());
+    if (monthsDifference > 0) {
+      const { seed, milestone } = this.seedToMilestone(lastProgress.Seed ?? 0);
+
+      if (isLastDayOfMonth(lastProgressDate)) {
+        await this.updateUserProgress(lastProgress.id, {
+          Milestones: milestone,
+        });
+      } else {
+        await this.createUserProgress(
+          {
+            Milestones: milestone,
+            Seed: lastProgress.Seed,
+            completedTasks: 0,
+          },
+          new Date(
+            lastProgressDate.getFullYear(),
+            lastProgressDate.getMonth(),
+            0,
+          ).toISOString(),
+        );
+      }
+      return seed;
+    }
+    return lastProgress.Seed ?? 0;
   }
 }
