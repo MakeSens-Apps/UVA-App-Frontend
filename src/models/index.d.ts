@@ -88,7 +88,9 @@ type EagerUserProgress = {
   readonly Seed?: number | null;
   readonly Streak?: number | null;
   readonly Milestones?: string | null;
+  readonly SaveStreak?: boolean | null;
   readonly completedTasks?: number | null;
+  readonly additionalInfo?: string | null;
   readonly userID: string;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
@@ -104,7 +106,9 @@ type LazyUserProgress = {
   readonly Seed?: number | null;
   readonly Streak?: number | null;
   readonly Milestones?: string | null;
+  readonly SaveStreak?: boolean | null;
   readonly completedTasks?: number | null;
+  readonly additionalInfo?: string | null;
   readonly userID: string;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;

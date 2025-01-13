@@ -1,33 +1,21 @@
 <ion-card>
   <div class="modal-container">
     <div [innerHTML]="content"></div>
-    <div class="button-container">
+    <div
+      class="button-container"
+      [ngStyle]="{ 'flex-direction': reverseButton ? 'row-reverse' : 'row' }"
+    >
       @if (ShowCancelButton) {
         <ion-button
-          fill="outline"
+          [fill]="bordersInCancelBtn ? 'outline' : 'clear'"
           (click)="actionButton('CANCEL')"
-          color="uva_blue-500"
+          [color]="colorBtn"
           >{{ textCancelButton }}</ion-button
         >
       }
-      <ion-button (click)="actionButton('OK')" color="uva_blue-500">{{
+      <ion-button (click)="actionButton('OK')" [color]="colorBtn">{{
         textOkButton
       }}</ion-button>
     </div>
   </div>
 </ion-card>
-
-<!-- <ion-content class="ion-padding">
-  <div class="modal-header">
-    ¿Es correcto este número de teléfono?
-  </div>
-
-  <div class="modal-number">
-    {{ 'numeroTelefono' }}
-  </div>
-
-  <div class="modal-footer">
-    <button class="cancel-button" (click)="actionButton()">No, editar</button>
-    <button class="confirm-button" (click)="actionButton('OK')">Sí, continuar</button>
-  </div>
-</ion-content> -->

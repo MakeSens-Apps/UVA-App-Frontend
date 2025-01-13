@@ -162,7 +162,9 @@ export const onCreateUserProgress = /* GraphQL */ `subscription OnCreateUserProg
     Seed
     Streak
     Milestones
+    SaveStreak
     completedTasks
+    additionalInfo
     userID
     createdAt
     updatedAt
@@ -186,7 +188,9 @@ export const onUpdateUserProgress = /* GraphQL */ `subscription OnUpdateUserProg
     Seed
     Streak
     Milestones
+    SaveStreak
     completedTasks
+    additionalInfo
     userID
     createdAt
     updatedAt
@@ -210,7 +214,9 @@ export const onDeleteUserProgress = /* GraphQL */ `subscription OnDeleteUserProg
     Seed
     Streak
     Milestones
+    SaveStreak
     completedTasks
+    additionalInfo
     userID
     createdAt
     updatedAt

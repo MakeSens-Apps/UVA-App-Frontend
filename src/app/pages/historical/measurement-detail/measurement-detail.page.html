@@ -1,0 +1,108 @@
+<app-header
+  title="Historial de registros"
+  [hasProfileButton]="false"
+  [hasBackButton]="true"
+  [routerBackButton]="'app/tabs/history'"
+></app-header>
+<ion-content [fullscreen]="true">
+  <section class="header">
+    @if(date){
+
+    <div class="day">
+      <app-day [day]="date.dayOfMonth!" [state]="date.state"></app-day>
+    </div>
+    }
+    <div class="date">{{dateFormatted}}</div>
+  </section>
+  <section class="measurement">
+    @if(hasTaskComplete){
+
+    <section class="measurement_complete">
+      <div class="title">Registros completados</div>
+      @for (task of tasksCompleted; track $index) {
+      <!--  @if(task.completed){ -->
+      <div class="measurement_result">
+        <p class="measurement_result_title">
+          <ion-checkbox
+            slot="start"
+            color="uva_blue-500"
+            checked
+            [disabled]="true"
+          ></ion-checkbox>
+          {{task.name}}
+        </p>
+
+        <div class="measurement_result_value_content">
+          <div
+            class="measurement_result_value"
+            *ngFor="let item of task.measurements"
+          >
+            <p class="measurement_result_value_title"></p>
+            <div [innerHTML]="item.sortName | safeHtml "></div>
+            <p class="measurement_result_value_value">
+              {{item.value}}{{item.unit}}
+            </p>
+          </div>
+        </div>
+      </div>
+      }
+      <!--  } -->
+    </section>
+    }@if(tasks?.length){
+    <section class="measurement_incomplete">
+      <div class="title">Registros sin completar</div>
+      @for (task of tasks; track $index;) {
+      <!-- @if(!task.completed){ -->
+      <div class="measurement_result">
+        <!--  <div class="restrictionTime" *ngIf="hasRestrictionTimeTask(task)">
+            {{getTextRestrictionTime(task)}} -->
+        <p class="measurement_result_title">
+          <!--   [ngClass]="{disable: hasRestrictionTimeTask(task)}" -->
+          <ion-checkbox
+            slot="start"
+            color="uva_blue-500"
+            [disabled]="true"
+          ></ion-checkbox>
+          {{task.name}}
+        </p>
+      </div>
+
+      <!--  </div> -->
+      }
+      <!--     } -->
+    </section>
+    }
+  </section>
+
+  @if (showAlert_incomplete && isYesterday) {
+  <div class="alert danger">
+    <p>
+      No tienes suficientes semillas para recuperar tu racha😒, necesitas:
+      <span class="highlight">
+        5
+        <ion-icon
+          slot="end"
+          src="../../../../assets/images/icons/semilla.svg"
+        ></ion-icon>
+      </span>
+    </p>
+  </div>
+  } @if (showAlert_complete_seed) {
+  <div class="alert info">
+    <p>Día completado con semillas</p>
+  </div>
+  } @if(date?.state === 'incomplete' && isYesterday && !showAlert_incomplete){
+  <ion-button
+    expand="block"
+    color="uva_orange-500"
+    class="text-transform_none bth_recover"
+    (click)="openModal()"
+  >
+    Recupera tu racha
+    <ion-icon
+      slot="end"
+      src="./../../../../assets/images/icons/fire.svg"
+    ></ion-icon>
+  </ion-button>
+  }
+</ion-content>

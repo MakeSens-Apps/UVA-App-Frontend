@@ -45,12 +45,7 @@ ion-content {
   }
 }
 
-.title_series {
-  color: var(--Colors-Blue-800);
-  line-height: 150%;
-  /* 24px */
-  @include text_base(16px, 700);
-}
+
 
 
 // Add this to your global styles (src/global.scss) or adjust the component styles accordingly
@@ -171,4 +166,5 @@ ion-modal {
 }
 ion-button {
   text-transform: capitalize;
+  margin-top: 10px;
 }

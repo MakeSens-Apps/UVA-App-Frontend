@@ -1,0 +1,26 @@
+<app-header
+  title="Calendario lunar"
+  [hasBackButton]="true"
+  routerBackButton="/app/tabs/home"
+  [seed]="seed"
+></app-header>
+
+<ion-content [fullscreen]="true">
+  <h2 class="date-header">{{month}}</h2>
+  <app-moon-card
+    background="green"
+    [phase]="phase"
+    [hasArrow]="false"
+  ></app-moon-card>
+  <div>
+    <app-calendar typeCalendar="moon" [phaseMoonDays]="phaseMoonDays">
+    </app-calendar>
+  </div>
+
+  <section class="cards">
+    <div *ngFor="let event of moonEvents" class="text_container">
+      <h2>{{ event.type }}</h2>
+      <p>{{ event.date }}</p>
+    </div>
+  </section>
+</ion-content>

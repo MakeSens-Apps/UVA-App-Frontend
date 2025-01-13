@@ -1,3 +1,4 @@
+import { NotificationService } from './../../../services/notification/notification.service';
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -29,6 +30,7 @@ import { ToastController } from '@ionic/angular'; // La importación de ToastCon
 import { SyncActionComponent } from '@app/pages/profile/configuration/sync-action/sync-action.component';
 import { SyncMonitorDSService } from '@app/core/services/storage/datastore/sync-monitor-ds.service';
 import { DataStore } from '@aws-amplify/datastore';
+import { MoonPhaseService } from '@app/core/services/view/moon/moon-phase.service';
 
 /**
  * @class ConfigurationPage
@@ -72,16 +74,20 @@ export class ConfigurationPage {
   /**
    *  @param {Router} router - Angular Router instance used for navigation.
    *  @param {ConfigurationAppService} config The service handling application configuration and data download.
+   *  @param {MoonPhaseService} moonphase The service from moon Phase
    *  @param {ToastController} toastController Manage Alerts
    *  @param {LoadingController} loadingController Manage loading
    *  @param {SyncMonitorDSService} dsStateService Sync data service
+   *  @param {NotificationService} notificationService handler notifications
    */
   constructor(
     private router: Router,
     private config: ConfigurationAppService,
+    private moonphase: MoonPhaseService,
     private toastController: ToastController,
     private loadingController: LoadingController, // Añadimos el LoadingController
     private dsStateService: SyncMonitorDSService,
+    private notificationService: NotificationService,
   ) {}
 
   /**
@@ -90,6 +96,15 @@ export class ConfigurationPage {
   ionViewWillEnter(): void {
     this.isDataStoreSyncPending = !this.dsStateService.synchronizedData();
     this.isConfigurationAppAvailible = SyncMonitorDSService.networkStatus;
+
+    this.notificationService
+      .getEnableNotifications()
+      .then((isEnabled) => {
+        this.isNotificationsActive = isEnabled;
+      })
+      .catch((err) => {
+        console.error('Error al obtener el estado de notificaciones:', err);
+      });
   }
 
   /**
@@ -109,7 +124,18 @@ export class ConfigurationPage {
   activeNoti(event: Event): void {
     this.isNotificationsActive = (event as CustomEvent).detail.checked;
     // eslint-disable-next-line no-console
-    console.debug('Notificaciones activadas:', this.isNotificationsActive);
+    this.notificationService
+      .setEnableNotifications(this.isNotificationsActive)
+      .then(() => {
+        console.warn(
+          this.isNotificationsActive
+            ? 'Notificaciones Habilitadas.'
+            : 'Notificaciones Deshabilitadas.',
+        );
+      })
+      .catch((err) => {
+        console.error('Error al habilitar notificaciones:', err);
+      });
   }
   /**
    * Uploads data based on user configurations.
@@ -140,10 +166,15 @@ export class ConfigurationPage {
 
     try {
       const downloadSuccessPromise = this.config.downLoadData();
+      const downloadMoonPhasesPromise =
+        this.moonphase.downloadAndStoreMoonPhaseData();
 
-      const [downloadSuccess] = await Promise.all([downloadSuccessPromise]);
+      const [downloadSuccess, downloadMoonPhases] = await Promise.all([
+        downloadSuccessPromise,
+        downloadMoonPhasesPromise,
+      ]);
 
-      if (downloadSuccess) {
+      if (downloadSuccess && downloadMoonPhases) {
         await this.config.loadBranding();
       } else {
         await this.presentErrorToast(

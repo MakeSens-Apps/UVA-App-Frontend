@@ -1,2 +1,149 @@
-<app-header title="Registros climáticos"></app-header>
-<ion-content [fullscreen]="true"> </ion-content>
+<app-header
+  [seed]="userProgress?.Seed"
+  title="Registros climáticos"
+></app-header>
+<ion-content [fullscreen]="true">
+  <section>
+    <div class="cards ion-margin-top">
+      <ion-card-header>
+        <ion-card-title class="title_series">
+          Registra y gana: +2<ion-icon
+            src="./../../../assets/images/icons/semilla.svg"
+          ></ion-icon>
+        </ion-card-title>
+      </ion-card-header>
+      <ion-card-content *ngIf="tasks">
+        <app-progress-bar
+          [currentProgress]="tasksCompleted.length"
+          [totalProgress]="totalTask"
+        >
+        </app-progress-bar>
+      </ion-card-content>
+    </div>
+  </section>
+  @if(showBonus){
+  <section
+    (click)="dataBonusConfigurationMeasurement ? OpenModalSurprise = true : ''"
+  >
+    <div class="alert info">
+      <p>¡Sorpresa!</p>
+      <div>
+        <ion-img src="../../../assets/images/vault.svg"></ion-img>
+      </div>
+    </div>
+  </section>
+  }
+
+  <section class="measurement">
+    @if(tasks?.length){
+    <section class="measurement_incomplete">
+      <div class="title">Registros sin completar</div>
+      @for (task of tasks; track $index;) {
+      <!-- @if(!task.completed){ -->
+      <div class="measurement_result" (click)="goToRegister(task)">
+        <div class="restrictionTime" *ngIf="hasRestrictionTimeTask(task)">
+          {{getTextRestrictionTime(task)}}
+        </div>
+        <p
+          class="measurement_result_title"
+          [ngClass]="{disable: hasRestrictionTimeTask(task)}"
+        >
+          <ion-checkbox
+            slot="start"
+            color="uva_blue-500"
+            [disabled]="true"
+          ></ion-checkbox>
+          {{task.name}}
+        </p>
+      </div>
+      }
+      <!--     } -->
+    </section>
+    } @if(hasTaskComplete){
+
+    <section class="measurement_complete">
+      <div class="title">Registros completados</div>
+      @for (task of tasksCompleted; track $index) {
+      <!--  @if(task.completed){ -->
+      <div class="measurement_result">
+        <p class="measurement_result_title">
+          <ion-checkbox
+            slot="start"
+            color="uva_blue-500"
+            checked
+            [disabled]="true"
+          ></ion-checkbox>
+          {{task.name}}
+        </p>
+
+        <div class="measurement_result_value_content">
+          <div
+            class="measurement_result_value"
+            *ngFor="let item of task.measurements"
+          >
+            <p class="measurement_result_value_title"></p>
+            <div [innerHTML]="item.sortName | safeHtml"></div>
+            <p class="measurement_result_value_value">
+              {{item.value}}{{item.unit}}
+            </p>
+          </div>
+        </div>
+      </div>
+      }
+      <!--  } -->
+    </section>
+    }
+  </section>
+
+  <section></section>
+
+  <ion-modal
+    #modal_surprise
+    id="modal_surprise"
+    [isOpen]="OpenModalSurprise"
+    (ionModalDidDismiss)="OpenModalSurprise = false"
+    [initialBreakpoint]="1"
+    [breakpoints]="[0, 1]"
+    *ngIf="dataBonusConfigurationMeasurement"
+  >
+    <ng-template>
+      <div class="modal_surprise">
+        <div class="container_text">
+          <h1>Responde esta pregunta y gana:</h1>
+          <h1>
+            +{{dataBonusConfigurationMeasurement['moniliacisis'].seedReward}}
+            <ion-icon src="../../../assets/images/icons/semilla.svg"></ion-icon>
+          </h1>
+
+          <p>{{dataBonusConfigurationMeasurement['moniliacisis'].message}}</p>
+        </div>
+        <div class="contener_buttons_actions">
+          <ion-button
+            id="open-modal_Days_question"
+            color="uva_blue-600"
+            expand="block"
+            (click)="responseBonus(true)"
+          >
+            Si
+          </ion-button>
+          <ion-button
+            id="open-modal_Days_question"
+            color="uva_blue-600"
+            expand="block"
+            (click)="responseBonus(true)"
+          >
+            No
+          </ion-button>
+          <ion-button
+            id="open-modal_Days_question"
+            color="uva_blue-600"
+            fill="clear"
+            (click)="responseBonus(false)"
+          >
+            Omitir
+          </ion-button>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+</ion-content>
