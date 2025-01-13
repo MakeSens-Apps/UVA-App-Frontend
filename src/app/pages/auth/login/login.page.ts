@@ -17,7 +17,6 @@ import {
 } from '@angular/forms';
 import { AlertComponent } from '@app/components/alert/alert.component';
 import { SetupService } from '@app/core/services/view/setup/setup.service';
-import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -48,14 +47,12 @@ export class LoginPage implements OnDestroy {
    * @param {FormBuilder} formBuilder - The Angular FormBuilder for creating reactive forms.
    * @param {ModalController} modalCtrl - The Ionic ModalController to manage modals.
    * @param {SetupService} service - The SetupService to handle authentication and session management.
-   * @param {AppMinimizeService} minimizeService - The AppMinimizeService.
    */
   constructor(
     private router: Router,
     private formBuilder: FormBuilder,
     private modalCtrl: ModalController,
     private service: SetupService,
-    private minimizeService: AppMinimizeService,
   ) {
     this.form = this.formBuilder.group({
       phone: new FormControl(
@@ -67,7 +64,6 @@ export class LoginPage implements OnDestroy {
         ]),
       ),
     });
-    this.minimizeService.initializeBackButtonHandler();
   }
 
   /**

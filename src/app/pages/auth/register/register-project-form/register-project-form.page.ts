@@ -123,4 +123,14 @@ export class RegisterProjectFormPage implements OnInit {
       ($event.target as HTMLInputElement).classList.remove('border_error');
     }
   }
+
+  /**
+   *
+   * @param {Event} event event
+   */
+  hideKeyboard(event: Event): void {
+    if (event.target instanceof HTMLInputElement) {
+      event.target.blur();
+    }
+  }
 }

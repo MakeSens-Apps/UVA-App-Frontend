@@ -1,7 +1,8 @@
-interface Task {
+export interface Task {
   name: string;
   restrictions: Restrictions;
   flows: string[];
+  id?: string;
 }
 
 interface Restrictions {
@@ -32,7 +33,7 @@ interface RequiredTask {
   taskID: string | null;
 }
 
-interface Flow {
+export interface Flow {
   name: string;
   text: string;
   guides: string[];
@@ -48,22 +49,24 @@ interface FlowRestriction {
   validationFunction: string;
 }
 
-interface Guide {
+export interface Guide {
   name: string;
   icon: Icon;
   image: string;
   text: string;
   nextGuide: string | null;
+  showAutomatic?: boolean;
 }
 
 interface Icon {
   enable: boolean;
-  iconName: string;
+  name: string;
   colorName: string;
   colorHex: string;
+  imagePath: string | null;
 }
 
-interface Measurement {
+export interface Measurement {
   name: string;
   sortName: string;
   icon: Icon;
@@ -71,6 +74,11 @@ interface Measurement {
   unit: string;
   range: Range;
   style: Style;
+  fieldsArray?: string[];
+  value?: number;
+  id?: string | number | symbol;
+  showRestrictionAlert?: boolean;
+  textRestrictionAlert?: string;
 }
 
 interface Range {
@@ -89,7 +97,7 @@ interface Color {
   colorHex: string;
 }
 
-interface Historical {
+export interface Historical {
   name: string;
   symbol: string;
   unit: string;
@@ -97,16 +105,18 @@ interface Historical {
   aggregationFunction: string;
   style: Style;
   graph: Graph;
+  value?: number;
+  selected?: boolean;
 }
 
-interface Graph {
+export interface Graph {
   type: string;
   measurementIds: string[];
   aggregationFunction: string;
   style: Style;
 }
 
-interface Bonus {
+export interface Bonus {
   schedule: {
     daysOfWeek: string[];
     occurrences: string[];

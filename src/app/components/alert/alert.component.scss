@@ -1,3 +1,5 @@
+@import 'src/theme/mixins.scss';
+
 ion-modal {
     --height: auto;
     /* Valor por defecto, pero será sobrescrito dinámicamente */
@@ -50,4 +52,28 @@ p {
 
 h1 {
     text-align: center;
+}
+
+.custom-modal_recover-series{
+    text-align: center;
+    line-height: 150%;
+    h2 {
+        color: var(--Colors-Blue-900, #164551);
+        @include text-base(18px, 600);
+        
+        span{
+            color: var(--Colors-Blue-700, #14788A);
+
+        }
+    }
+
+    img {
+        vertical-align: middle;
+    }
+
+    p{
+        color: var(--Colors-Blue-900, #164551);
+        @include text-base(16px, 500);
+
+    }
 }

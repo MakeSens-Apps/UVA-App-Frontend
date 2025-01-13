@@ -117,4 +117,37 @@ export const routes: Routes = [
         (m) => m.PersonalInfoPage,
       ),
   },
+  {
+    path: 'measurement-detail',
+    loadComponent: () =>
+      import(
+        './pages/historical/measurement-detail/measurement-detail.page'
+      ).then((m) => m.MeasurementDetailPage),
+  },
+  {
+    path: 'moon-phase',
+    loadComponent: () =>
+      import('./pages/moon-phase/moon-phase.page').then((m) => m.MoonPhasePage),
+  },
+  {
+    path: 'register-measurement',
+    loadComponent: () =>
+      import(
+        './pages/measurement/register-measurement/register-measurement.page'
+      ).then((m) => m.RegisterMeasurementPage),
+  },
+  {
+    path: 'register-measurement-new',
+    loadComponent: () =>
+      import(
+        './pages/measurement/register-measurement/register-measurement.page'
+      ).then((m) => m.RegisterMeasurementPage),
+  },
+  {
+    path: 'register-success',
+    loadComponent: () =>
+      import(
+        './pages/auth/register/register-success/register-success.page'
+      ).then((m) => m.RegisterSuccessPage),
+  },
 ];

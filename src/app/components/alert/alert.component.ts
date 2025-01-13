@@ -1,3 +1,4 @@
+import { CommonModule } from '@angular/common';
 import { Component, Input, ViewEncapsulation } from '@angular/core';
 
 import {
@@ -11,7 +12,7 @@ import {
   selector: 'app-alert',
   templateUrl: './alert.component.html',
   styleUrls: ['./alert.component.scss'],
-  imports: [IonCard, IonContent, IonButton],
+  imports: [IonCard, IonContent, IonButton, CommonModule],
   standalone: true,
   encapsulation: ViewEncapsulation.None,
 })
@@ -20,6 +21,9 @@ export class AlertComponent {
   @Input() ShowCancelButton = true;
   @Input() textCancelButton = '';
   @Input() textOkButton = '';
+  @Input() reverseButton = false;
+  @Input() bordersInCancelBtn = true;
+  @Input() colorBtn = 'uva_blue-500';
 
   /**
    * Crea una instancia de AlertComponent.

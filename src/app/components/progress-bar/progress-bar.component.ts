@@ -16,6 +16,7 @@ export class ProgressBarComponent {
   @Input() currentProgress = 0;
 
   @Input() totalProgress = 1;
+
   /**
    * @constructs
    * Creates an instance of ProgressBarComponent.

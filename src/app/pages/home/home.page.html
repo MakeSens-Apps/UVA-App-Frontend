@@ -1,31 +1,37 @@
 <app-header [seed]="userProgress?.Seed"></app-header>
 <ion-content [fullscreen]="true">
   <h2 class="date-header">Hoy,{{today}}</h2>
-  <app-calendar calendarView="week" [hasHeader]="true">
-    <section header>
-      <ion-card-header>
-        <ion-card-title class="title_series">
-          Tienes {{userProgress?.Streak}} Días de racha 😌
-        </ion-card-title>
-        <ion-icon
-          src="./../../../assets/images/icons/information-circle.svg"
-          (click)="openModal('modal_Days')"
-          class="info-icon"
-        ></ion-icon>
-      </ion-card-header>
-    </section>
-
-    <section footer>
-      <ion-button
-        expand="block"
-        color="uva_blue-600"
-        href="app/tabs/history"
-        class="text-transform_none"
-        >Ver historial
-        <ion-icon name="arrow-forward-outline" slot="end"></ion-icon
-      ></ion-button>
-    </section>
-  </app-calendar>
+  <div class="cards">
+    <app-calendar
+      calendarView="week"
+      [hasHeader]="true"
+      [daysComplete]="completeTask?.daysComplete ?? []"
+      [daysIncomplete]="completeTask?.daysIncomplete ?? []"
+      [daysSaveStreak]="completeTask?.daysSaveStreak ?? []"
+      (dayClick)="goToDetail($event)"
+    >
+      <section header>
+        <ion-card-header>
+          <ion-card-title class="title_series">
+            Tienes {{userProgress?.Streak}} Días de racha 😌
+          </ion-card-title>
+          <ion-icon
+            src="./../../../assets/images/icons/information-circle.svg"
+            (click)="openModal('modal_Days')"
+            class="info-icon"
+          ></ion-icon>
+        </ion-card-header>
+      </section>
+    </app-calendar>
+    <ion-button
+      expand="block"
+      color="uva_blue-600"
+      href="app/tabs/history"
+      class="text-transform_none"
+      >Ver historial
+      <ion-icon name="arrow-forward-outline" slot="end"></ion-icon
+    ></ion-button>
+  </div>
 
   <div class="cards ion-margin-top">
     <ion-card-header>
@@ -55,8 +61,7 @@
       >
     </ion-card-content>
   </div>
-
-  <app-moon-card></app-moon-card>
+  <app-moon-card [phase]="phase" (click)="goToMoonCalendar()"></app-moon-card>
 
   <!-- Modal Days Info -->
   <ion-modal
