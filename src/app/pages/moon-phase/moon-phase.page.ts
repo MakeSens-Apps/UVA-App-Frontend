@@ -108,6 +108,13 @@ export class MoonPhasePage implements OnInit {
       console.error('Error al cargar los datos de la luna:', error);
     }
   }
+
+  /**
+   * Lifecycle method that runs when the view is about to enter.
+   * Fetches the user's last progress and updates the seed property.
+   * @async
+   * @returns {Promise<void>} - A promise that resolves when data has been loaded.
+   */
   async ionViewWillEnter(): Promise<void> {
     const userprogress = await UserProgressDSService.getLastUserProgress();
     if (userprogress) {

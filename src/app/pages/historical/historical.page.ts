@@ -110,7 +110,10 @@ export class HistoricalPage implements OnInit {
   }
 
   /**
-   * view about to enter
+   * Lifecycle method that runs when the view is about to enter.
+   * Fetches the user's last progress and updates the seed property.
+   * @async
+   * @returns {Promise<void>} - A promise that resolves when data has been loaded.
    */
   async ionViewWillEnter(): Promise<void> {
     const userprogress = await UserProgressDSService.getLastUserProgress();
@@ -120,7 +123,7 @@ export class HistoricalPage implements OnInit {
   }
   /**
    * Toggles the view mode between calendar and chart.
-   * @returns {void}
+   * @returns {Promise<void>}
    */
   async changeModeData(): Promise<void> {
     this.typeView = this.typeView === 'calendar' ? 'chart' : 'calendar';
@@ -176,7 +179,7 @@ export class HistoricalPage implements OnInit {
         }
         index = 0;
         this.currentYearIndex += 1;
-        await this.updateDataForYear(this.currentYearIndex);
+        await this.updateDataForYear();
       }
     }
     const month = this.completedTaskYear?.find(
@@ -240,7 +243,7 @@ export class HistoricalPage implements OnInit {
    * @returns {Promise<void>}
    */
   async goToDetail($event: calendar | null): Promise<void> {
-    if (!$event || $event.state === 'future' || $event.state === 'normal') {
+    if (!$event || $event.state === 'future') {
       return;
     }
     await this.router.navigate(['measurement-detail'], {
@@ -248,20 +251,29 @@ export class HistoricalPage implements OnInit {
     });
   }
 
-  // Función para cambiar el año
+  /**
+   * Changes the year for displaying data.
+   * @param {number} direction - The direction to change the year (1 for next year, -1 for previous year).
+   * @returns {void}
+   */
   changeYear(direction: number): void {
     this.currentYearIndex += direction;
-    void this.updateDataForYear(this.currentYearIndex);
+    void this.updateDataForYear();
   }
 
-  // Función para determinar si el botón del próximo año está deshabilitado
+  /**
+   * Determines if the next year button is disabled.
+   * @returns {boolean} - True if the next year button is disabled, false otherwise.
+   */
   isNextYearDisabled(): boolean {
     return this.currentYearIndex + 1 > this.realCurrentYear;
   }
 
-  // Actualizar datos según el año seleccionado
-  async updateDataForYear(year: number): Promise<void> {
-    console.log(`Actualizando datos para el año: ${year}`);
+  /**
+   * Updates data for the selected year.
+   * @returns {Promise<void>}
+   */
+  async updateDataForYear(): Promise<void> {
     await this.initializeRegisters();
     await this.initializeCompletedTasks();
     if (this.measuresConfig?.historical) {
@@ -377,6 +389,7 @@ export class HistoricalPage implements OnInit {
       name: this.monthsNames[month - 1],
       daysComplete: completedTask.daysComplete,
       daysIncomplete: completedTask.daysIncomplete,
+      daysSaveStreak: completedTask.daysSaveStreak,
     };
   }
 
@@ -441,9 +454,9 @@ export class HistoricalPage implements OnInit {
   }
 
   /**
-   *
-   * @param {MeasurementEntry[]} data MeasurementEntry
-   * @returns {number} sum
+   * Sums the values in the provided data.
+   * @param {MeasurementEntry[]} data - The data to sum.
+   * @returns {number | undefined} The sum of the values.
    */
   private sum(data: MeasurementEntry[]): number | undefined {
     // Sumar los valores
@@ -522,9 +535,9 @@ export class HistoricalPage implements OnInit {
     return result;
   }
   /**
-   *
-   * @param {string[]} keys Measurementes IDs
-   * @returns { number | undefined, number | undefined } min min max
+   * Calculates the range of measurement values (min and max) for the specified keys.
+   * @param {string[]} keys - The measurement keys.
+   * @returns {{ min: number | undefined; max: number | undefined }} The min and max values.
    */
   private calculateRangeOfMeasurement(
     keys: string[], // Un arreglo de claves de HistoricalMeasurement
@@ -535,7 +548,9 @@ export class HistoricalPage implements OnInit {
     // Iterar sobre todas las claves en 'keys'
     for (let key of keys) {
       const measureConfig = this.measuresConfig?.measurements[key];
-      if (!measureConfig) continue; // Si no existe la configuración, saltar al siguiente
+      if (!measureConfig) {
+        continue;
+      } // Si no existe la configuración, saltar al siguiente
 
       const { max: currentMax, min: currentMin } = measureConfig.range;
 
