@@ -6,6 +6,7 @@ import { SessionService } from '../../session/session.service';
 export interface CompletedTask {
   daysComplete: number[];
   daysIncomplete: number[];
+  daysSaveStreak: number[];
 }
 type UserProgressFields = Partial<Omit<UserProgress, 'id' | 'ts' | 'userID'>>;
 /**
@@ -204,12 +205,12 @@ export class UserProgressDSService {
         c.and((c) => [c.ts.ge(startdya), c.ts.le(todya)]),
       );
 
-      const taskData: { day: number; tasks: number }[] = userProgress.map(
-        (progress) => ({
+      const taskData: { day: number; tasks: number; saveStreak: boolean }[] =
+        userProgress.map((progress) => ({
           day: new Date(progress.ts).getDate(), // Extraer el día del mes
           tasks: progress.completedTasks ?? 0, // Número de tareas completadas
-        }),
-      );
+          saveStreak: progress.SaveStreak ?? false,
+        }));
 
       // Evaluar días completos e incompletos
       return this.evaluateCompletedTasks(totalTasks, taskData);
@@ -243,12 +244,12 @@ export class UserProgressDSService {
     );
 
     // Procesar los datos por día
-    const taskData: { day: number; tasks: number }[] = userProgress.map(
-      (progress) => ({
+    const taskData: { day: number; tasks: number; saveStreak: boolean }[] =
+      userProgress.map((progress) => ({
         day: new Date(progress.ts).getDate(), // Extraer el día del mes
         tasks: progress.completedTasks ?? 0, // Número de tareas completadas
-      }),
-    );
+        saveStreak: progress.SaveStreak ?? false,
+      }));
 
     // Evaluar días completos e incompletos
     return this.evaluateCompletedTasks(totalTasks, taskData);
@@ -295,25 +296,27 @@ export class UserProgressDSService {
   /**
    * Evaluates the completed tasks within a month.
    * @param {number} totalTasks - The total number of tasks to evaluate.
-   * @param {{ day: number; tasks: number }[]} taskData - An array of objects containing the day of the month and the number of tasks completed on that day.
+   * @param {{ day: number; tasks: number; saveStreak: boolean }[]} taskData - An array of objects containing the day of the month and the number of tasks completed on that day.
    * @returns {CompletedTask} - An object representing the total completed tasks in one month.
    */
   private static evaluateCompletedTasks(
     totalTasks: number,
-    taskData: { day: number; tasks: number }[],
+    taskData: { day: number; tasks: number; saveStreak: boolean }[],
   ): CompletedTask {
     const daysComplete: number[] = [];
     const daysIncomplete: number[] = [];
-
+    const daysSaveStreak: number[] = [];
     taskData.forEach((data) => {
       if (data.tasks >= totalTasks) {
         daysComplete.push(data.day); // Día con tareas completas
       } else if (data.tasks > 0) {
         daysIncomplete.push(data.day); // Día con al menos una tarea
       }
+      if (data.saveStreak) {
+        daysSaveStreak.push(data.day); // Día en que se salvó la racha
+      }
     });
-
-    return { daysComplete, daysIncomplete };
+    return { daysComplete, daysIncomplete, daysSaveStreak };
   }
 
   /**

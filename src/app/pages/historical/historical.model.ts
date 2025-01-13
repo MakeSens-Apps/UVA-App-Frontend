@@ -8,6 +8,7 @@ export interface CompleteTaskHistorical {
   name: string;
   daysComplete: number[];
   daysIncomplete: number[];
+  daysSaveStreak: number[];
 }
 export type MeasurementEntry = Record<string, number> | undefined; // Mapea timestamps a valores numéricos
 

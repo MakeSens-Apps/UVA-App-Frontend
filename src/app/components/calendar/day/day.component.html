@@ -6,6 +6,7 @@
     incomplete: state === 'incomplete',
     future: state === 'future',
     normal: state === 'normal',
+    saveStreak: state === 'saveStreak',
     mini: isMiniCalendar,
     none: state === 'none',
     isMoonCalendar: isMoonCalendar,
@@ -14,9 +15,18 @@
   @if (day) {
     {{ day < 10 ? '0' + day : day }}
     <ion-icon
-      *ngIf="state === 'complete' || customIcon"
-      [src]="icon"
-      [ngClass]="{ top: iconPosition === 'top' }"
+      *ngIf="state === 'complete' || state === 'saveStreak' || customIcon"
+      [src]="
+        state === 'complete'
+          ? './../../../../assets/images/icons/check.svg'
+          : state === 'saveStreak'
+            ? './../../../../assets/images/icons/checkSaveStreak.svg'
+            : icon
+      "
+      [ngClass]="{
+        top: iconPosition === 'top',
+        saveStreak: state === 'saveStreak',
+      }"
     ></ion-icon>
   }
 </div>
