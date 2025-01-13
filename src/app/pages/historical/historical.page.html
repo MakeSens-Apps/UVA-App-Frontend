@@ -57,6 +57,7 @@
         <app-calendar
           [daysComplete]="completedTaskMonth.daysComplete"
           [daysIncomplete]="completedTaskMonth.daysIncomplete"
+          [daysSaveStreak]="completedTaskMonth.daysSaveStreak"
           [viewDate]="completedTaskMonth.date"
           (dayClick)="goToDetail($event)"
         >
@@ -143,6 +144,7 @@
             [title]="register.name"
             [daysComplete]="register.daysComplete"
             [daysIncomplete]="register.daysIncomplete"
+            [daysSaveStreak]="register.daysSaveStreak"
             [viewDate]="register.date"
             (click)="setCurrentMonth(register.mes)"
           >

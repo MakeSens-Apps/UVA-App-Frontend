@@ -30,7 +30,7 @@ export class DayComponent {
 
   /**
    * The status of the day, which can indicate task completion, future dates, or other states.
-   * @type {'complete' | 'incomplete' | 'future' | 'normal' | 'none' | undefined}
+   * @type {'complete' | 'incomplete' | 'future' | 'saveStreak' |'normal' | 'none' | undefined}
    * @default 'normal'
    */
   @Input() state:
@@ -39,6 +39,7 @@ export class DayComponent {
     | 'future'
     | 'normal'
     | 'today'
+    | 'saveStreak'
     | 'none'
     | undefined = 'normal';
 
@@ -48,7 +49,7 @@ export class DayComponent {
    * @default './../../../../assets/images/icons/check.svg'
    */
   @Input() icon: string | null | undefined =
-    './../../../../assets/images/icons/check.svg';
+    './../../../../assets/images/icons/checkSaveStreak.svg';
 
   /**
    * Flag to specify if a custom icon is used instead of the default icon.

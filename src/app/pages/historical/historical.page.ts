@@ -389,6 +389,7 @@ export class HistoricalPage implements OnInit {
       name: this.monthsNames[month - 1],
       daysComplete: completedTask.daysComplete,
       daysIncomplete: completedTask.daysIncomplete,
+      daysSaveStreak: completedTask.daysSaveStreak,
     };
   }
 
