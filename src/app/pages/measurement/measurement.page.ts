@@ -383,9 +383,9 @@ export class MeasurementPage implements OnInit {
    * @param {ITask} task - The task to register data for.
    */
   goToRegister(task: ITask): void {
-    /*if (this.hasRestrictionTimeTask(task as Task)) {
+    if (this.hasRestrictionTimeTask(task as Task)) {
       return;
-    }*/
+    }
     if (task.flows) {
       const flowId = task.flows.find((flow) => {
         return !task.flowsComplete?.includes(flow);
