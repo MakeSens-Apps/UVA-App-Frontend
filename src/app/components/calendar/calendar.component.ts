@@ -27,6 +27,7 @@ export interface calendar {
     | 'incomplete'
     | 'future'
     | 'normal'
+    | 'saveStreak'
     | 'none'
     | undefined;
 
@@ -127,6 +128,7 @@ export class CalendarComponent implements OnInit {
     return this._daysIncomplete;
   }
 
+  @Input() daysSaveStreak: number[] = [];
   @Output() dayClick = new EventEmitter<calendar | null>();
 
   private _phaseMoonDays: { day: number; status: string }[] = [];
@@ -238,7 +240,10 @@ export class CalendarComponent implements OnInit {
    * @param {number} day - The day of the month to check the state for.
    * @returns {'complete' | 'incomplete' | 'normal'} The state of the specified day.
    */
-  getStatus(day: number): 'complete' | 'incomplete' | 'normal' {
+  getStatus(day: number): 'complete' | 'incomplete' | 'normal' | 'saveStreak' {
+    if (this.daysSaveStreak.includes(day)) {
+      return 'saveStreak';
+    }
     if (this.daysComplete.includes(day)) {
       return 'complete';
     }

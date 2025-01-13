@@ -171,7 +171,9 @@ export const createUserProgress = /* GraphQL */ `mutation CreateUserProgress(
     Seed
     Streak
     Milestones
+    SaveStreak
     completedTasks
+    additionalInfo
     userID
     createdAt
     updatedAt
@@ -195,7 +197,9 @@ export const updateUserProgress = /* GraphQL */ `mutation UpdateUserProgress(
     Seed
     Streak
     Milestones
+    SaveStreak
     completedTasks
+    additionalInfo
     userID
     createdAt
     updatedAt
@@ -219,7 +223,9 @@ export const deleteUserProgress = /* GraphQL */ `mutation DeleteUserProgress(
     Seed
     Streak
     Milestones
+    SaveStreak
     completedTasks
+    additionalInfo
     userID
     createdAt
     updatedAt

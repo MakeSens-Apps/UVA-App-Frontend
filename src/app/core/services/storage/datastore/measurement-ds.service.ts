@@ -14,7 +14,6 @@ export class MeasurementDSService {
    * @param {Record<string, number>} logs - Logs associated with the measurement (JSON).
    * @param {string} ts - Timestamp of the measurement.
    * @param {string} task - Task related to the measurement.
-   * @param {string} uvaID - ID of the associated UVA.
    * @returns {Promise<Measurement>}The newly created Measurement.
    */
   static async addMeasurement(

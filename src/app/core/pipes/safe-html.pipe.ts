@@ -7,6 +7,10 @@ import DOMPurify from 'dompurify';
   standalone: true, // Esto lo hace compatible con componentes standalone
 })
 export class SafeHtmlPipe implements PipeTransform {
+  /**
+   * Constructor for SafeHtmlPipe.
+   * @param {DomSanitizer} sanitizer - The DomSanitizer service.
+   */
   constructor(private sanitizer: DomSanitizer) {
     DOMPurify.addHook('uponSanitizeAttribute', (node, data) => {
       if (data.attrName === 'style') {
@@ -18,6 +22,11 @@ export class SafeHtmlPipe implements PipeTransform {
     });
   }
 
+  /**
+   * Transforms the input HTML string into a sanitized and safe HTML string.
+   * @param {string} value - The input HTML string.
+   * @returns {SafeHtml} The sanitized and safe HTML string.
+   */
   transform(value: string): SafeHtml {
     const sanitizedContent = DOMPurify.sanitize(value, {
       ALLOWED_TAGS: [
