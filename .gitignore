@@ -1,6 +1,12 @@
 # Compiled class file
 *.class
+# Compiled javascript file
+*.js
+# Compiled typescript file
+*.ttf
+# image
 
+*.webp
 # Log file
 *.log
 
@@ -110,6 +116,8 @@ packages/angular/css/
 packages/angular/test/build/
 .angular/
 
+#
+android/app/release/*
 # vue
 packages/vue/test/build/
 
