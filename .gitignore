@@ -209,10 +209,11 @@ testem.log
 *.jpg
 *.jpeg
 *.gif
-assets/images/
+# assets/images/
 
 # Excluir imágenes generadas dinámicamente pero permitir las de splash screen
-android/app/src/main/res/drawable*/splash_image.png
+android/app/src/main/res/drawable*/splash.png
+!**/splash.png
 
 #amplify-do-not-edit-begin
 amplify/\#current-cloud-backend

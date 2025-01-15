@@ -7,6 +7,7 @@ En este repositorio se alojará todo el software relacionado con la aplicación 
 ### Requisitos Previos
 
 1. **Node.js**:
+
    - Instala Node.js (versión 20 o superior) desde [nodejs.org](https://nodejs.org/).
    - Verifica la instalación ejecutando:
      ```sh
@@ -15,18 +16,21 @@ En este repositorio se alojará todo el software relacionado con la aplicación 
      ```
 
 2. **Ionic CLI**:
+
    - Instala Ionic CLI globalmente usando npm:
      ```sh
      npm install -g @ionic/cli
      ```
 
 3. **Capacitor CLI**:
+
    - Instala Capacitor CLI globalmente usando npm:
      ```sh
      npm install -g @capacitor/cli
      ```
 
 4. **AWS Amplify**:
+
    - Instala las librerías de AWS Amplify:
      ```sh
      npm install aws-amplify @aws-amplify/ui-react
@@ -43,6 +47,7 @@ En este repositorio se alojará todo el software relacionado con la aplicación 
      ```
 
 5. **Android Studio**:
+
    - Descarga e instala Android Studio desde [developer.android.com/studio](https://developer.android.com/studio).
    - Asegúrate de instalar el SDK de Android y las herramientas de línea de comandos.
 
@@ -61,16 +66,13 @@ En este repositorio se alojará todo el software relacionado con la aplicación 
 ### Configuración del Proyecto
 
 1. **Instalar dependencias del proyecto**:
+
    - Navega al directorio raíz del proyecto y ejecuta:
      ```sh
      npm install
      ```
 
-2. **Incluir carpetas necesarias**:
-   - Descarga e incluye la carpeta `assets` en [src](http://_vscodecontentref_/0).
-   - Descarga e incluye la carpeta `res` en [main](http://_vscodecontentref_/1).
-
-3. **Sincronizar Capacitor**:
+2. **Sincronizar Capacitor**:
    - Sincroniza tu proyecto con Capacitor:
      ```sh
      npx cap sync
