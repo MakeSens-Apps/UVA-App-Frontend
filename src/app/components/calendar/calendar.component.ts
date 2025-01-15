@@ -290,8 +290,8 @@ export class CalendarComponent implements OnInit {
    * @returns {void}
    */
   generateCalendarWeek(): void {
-    const startDate = startOfWeek(this.viewDate);
-    const endDate = endOfWeek(this.viewDate);
+    const startDate = startOfWeek(this.viewDate, { weekStartsOn: 0 }); // Ensure week starts on Sunday
+    const endDate = endOfWeek(this.viewDate, { weekStartsOn: 0 }); // Ensure week ends on Saturday
 
     const daysArray = eachDayOfInterval({
       start: startDate,
