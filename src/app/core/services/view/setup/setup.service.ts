@@ -53,6 +53,9 @@ export class SetupService {
     const response = await this.auth.SignIn(phone);
     if (response.success) {
       await this.sesion.setInfoField('phone', phone);
+      if (response.data.isSignedIn) {
+        await this.currentAuthenticatedUser();
+      }
       return response;
     }
     return response;
