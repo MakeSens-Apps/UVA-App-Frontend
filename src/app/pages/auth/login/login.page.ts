@@ -120,11 +120,18 @@ export class LoginPage implements OnDestroy {
               await this.openModalNoRegister();
               return;
             }
+          } else {
+            // Check if MFA is required
+            if (response.data.isSignedIn) {
+              await this.service.createNewUser();
+              await this.router.navigate(['register/project-vinculation']);
+            } else {
+              await this.router.navigate([
+                'otp/login',
+                this.form.controls['phone'].value,
+              ]);
+            }
           }
-          await this.router.navigate([
-            'otp/login',
-            this.form.controls['phone'].value,
-          ]);
         }
       })
       .catch((err) => {

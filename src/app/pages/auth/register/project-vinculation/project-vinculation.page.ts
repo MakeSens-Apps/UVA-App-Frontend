@@ -17,6 +17,7 @@ import { SetupRacimoService } from '@app/core/services/view/setup/setup-racimo.s
 import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
 import { Subscription } from 'rxjs';
 import { SyncMonitorDSService } from '@app/core/services/storage/datastore/sync-monitor-ds.service';
+import { MoonPhaseService } from '@app/core/services/view/moon/moon-phase.service';
 @Component({
   selector: 'app-project-vinculation',
   templateUrl: './project-vinculation.page.html',
@@ -47,6 +48,7 @@ export class ProjectVinculationPage implements OnInit, OnDestroy {
    * @param {SetupRacimoService} serviceRacimo - Service to manage UVA and RACIMO data.
    * @param {ConfigurationAppService} configuration -Service to manage S3 y FileSystem
    * @param {ChangeDetectorRef} cdr -CDR
+   * @param {MoonPhaseService} moonphase -Service to download data of moonPhase
    */
   constructor(
     private formBuilder: FormBuilder,
@@ -55,6 +57,7 @@ export class ProjectVinculationPage implements OnInit, OnDestroy {
     private serviceRacimo: SetupRacimoService,
     private configuration: ConfigurationAppService,
     private cdr: ChangeDetectorRef,
+    private moonphase: MoonPhaseService,
   ) {
     this.form = this.formBuilder.group({
       code: new FormControl(
@@ -78,8 +81,13 @@ export class ProjectVinculationPage implements OnInit, OnDestroy {
     if (this.user.userID) {
       const response = await this.serviceRacimo.getUVA(this.user.userID);
       if (response) {
-        await SyncMonitorDSService.waitForSyncDataStore(); //Espera a que DataStore este sincronizado
-        void this.router.navigate(['app/tabs/home']);
+        if (!(await this.configuration.configExists())) {
+          await SyncMonitorDSService.waitForSyncDataStore(); //Espera a que DataStore este sincronizado
+          void this.router.navigate(['register/validate-project']);
+        } else {
+          await SyncMonitorDSService.waitForSyncDataStore(); //Espera a que DataStore este sincronizado
+          void this.router.navigate(['app/tabs/home']);
+        }
       }
     } else {
       //FIXME: Adicionar evento de error ya que no tiene un ID de usuario
