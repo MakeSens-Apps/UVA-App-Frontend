@@ -360,7 +360,7 @@ export class MeasurementPage implements OnInit {
    * @returns {Promise<void>} - Resolves after executing necessary logic.
    */
   async ionViewDidEnter(): Promise<void> {
-    void (await this.getDataMeasurement());
+    await this.getDataMeasurement();
     const userprogress = await UserProgressDSService.getLastUserProgress();
     if (userprogress) {
       this.userProgress = userprogress;
