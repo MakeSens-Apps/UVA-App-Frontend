@@ -1,34 +1,54 @@
-import { Component, EventEmitter, Input, OnInit, Output, ViewEncapsulation } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Component, Input, ViewEncapsulation } from '@angular/core';
 
-import { IonButton, ModalController, IonContent, IonCard } from '@ionic/angular/standalone';
+import {
+  IonButton,
+  ModalController,
+  IonContent,
+  IonCard,
+} from '@ionic/angular/standalone';
 
 @Component({
   selector: 'app-alert',
   templateUrl: './alert.component.html',
   styleUrls: ['./alert.component.scss'],
-  imports: [IonCard, IonContent, IonButton],
+  imports: [IonCard, IonContent, IonButton, CommonModule],
   standalone: true,
   encapsulation: ViewEncapsulation.None,
 })
-export class AlertComponent  implements OnInit {
-  @Input() content: string = '';             // Contenido HTML dinámico del modal
-  @Input() ShowCancelButton: boolean = true;             
-  @Input() textCancelButton: string = '';             
-  @Input() textOkButton: string = '';             
+export class AlertComponent {
+  @Input() content = ''; // Contenido HTML dinámico del modal
+  @Input() ShowCancelButton = true;
+  @Input() textCancelButton = '';
+  @Input() textOkButton = '';
+  @Input() reverseButton = false;
+  @Input() bordersInCancelBtn = true;
+  @Input() colorBtn = 'uva_blue-500';
 
-  // @Output() ButtonSelected = new EventEmitter<string>();     // Para emitir qué botón fue seleccionado
+  /**
+   * Crea una instancia de AlertComponent.
+   * @param {ModalController} modalCtrl Controlador para manejar el modal.
+   * @memberof AlertComponent
+   */
+  constructor(private modalCtrl: ModalController) {}
 
-  constructor(private modalCtrl: ModalController) { }
-
-  ngOnInit() {
+  /**
+   * Cierra el modal y envía la acción del botón.
+   * @param {string} button El rol del botón que fue presionado (ej. "aceptar" o "cancelar").
+   * @returns {Promise<boolean>} Una promesa que se resuelve en `true` si el modal se cerró correctamente.
+   * @memberof AlertComponent
+   */
+  dismiss(button: string): Promise<boolean> {
+    return this.modalCtrl.dismiss({ action: button });
   }
-  // Cierra el modal
-  dismiss(button:string) {
-    this.modalCtrl.dismiss({ action: button });
-  }
 
-  // Ejecuta la acción del botón
-  actionButton(button: any) {   // Emitir el rol del botón (puedes usar "aceptar", "cancelar", etc.)
-    this.dismiss(button);                            // Cerrar el modal después de la acción
+  /**
+   * Ejecuta la acción asociada con el botón presionado.
+   * @param {string} button El rol del botón que fue presionado (ej. "aceptar", "cancelar", etc.).
+   * @returns {Promise<boolean>} Una promesa que se resuelve en `true` o `false` dependiendo de la acción.
+   * @memberof AlertComponent
+   */
+  actionButton(button: string): Promise<boolean> {
+    return this.dismiss(button);
   }
 }

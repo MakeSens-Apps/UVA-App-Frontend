@@ -1,24 +1,37 @@
-
-<app-explore-container title="Vinculación a un proyecto" message="[Nombre], por útlimo ingresa el código de invitación enviado a tu Whatsapp del proyecto al que quieres pertenecer.">
+<app-explore-container
+  title="Vinculación a un proyecto"
+  message="{{user?.name}}, por último ingresa el código de invitación enviado a tu Whatsapp del proyecto al que quieres pertenecer."
+>
   <form [formGroup]="form">
     <div class="input-container">
       <div class="content_label__start">
-        <ion-label >Código de invitación</ion-label>
+        <ion-label>Código de invitación</ion-label>
       </div>
-      <ion-input formControlName="code" class="border" maxlength="6"  placeholder="Ejemplo: ISA234"></ion-input>
+      <ion-input
+        formControlName="code"
+        class="border"
+        maxlength="6"
+        placeholder="Ejemplo: ISA234"
+      ></ion-input>
     </div>
-     <!-- Error Section -->
-     <section *ngIf="showError" class="ion-margin-bottom">
+    <!-- Error Section -->
+    <section *ngIf="showError" class="ion-margin-bottom">
       <div class="card_error">
-
-        <p color="danger" class="paragraph title"> El código ingresado es incorrecto. </p>
-        <p class="paragraph">Por favor, inténtalo de nuevo o pide un nuevo código.</p>
-
+        <p color="danger" class="paragraph title">
+          El código ingresado es incorrecto.
+        </p>
+        <p class="paragraph">Por favor, inténtalo de nuevo.</p>
       </div>
     </section>
-    <ion-button expand="block" color="uva_green-700" [disabled]="form.invalid" (click)="goToValidateProject()"  >Continuar</ion-button>
-    <ion-button expand="block" class="exit"  fill="clear" routerLink="/login"> salir</ion-button>
-
-  
+    <ion-button
+      expand="block"
+      color="uva_green-700"
+      [disabled]="form.invalid"
+      (click)="goToValidateProject()"
+      >Continuar</ion-button
+    >
+    <ion-button expand="block" class="exit" fill="clear" routerLink="/login">
+      salir</ion-button
+    >
   </form>
 </app-explore-container>

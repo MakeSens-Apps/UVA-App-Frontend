@@ -1,4 +1,7 @@
-<app-explore-container title="Verifica tu teléfono" message="Ingresa el código de 4 dígitos que enviamos a tus mensajes al número: {{phoneNumber}}">
+<app-explore-container
+  title="Verifica tu teléfono"
+  message="Ingresa el código de 6 dígitos que enviamos por mensaje de texto al número: {{phone}}"
+>
   <form>
     <div class="otp-container">
       <ion-input
@@ -6,31 +9,43 @@
         #otpInput
         [value]="digit"
         (ionInput)="onOtpChange($event, i)"
+        (ionFocus)="onOtpFocus($event, i)"
         maxlength="1"
         class="otp-input"
         inputmode="numeric"
         type="number"
       ></ion-input>
     </div>
-    
+
     <!-- Error Section -->
     <section *ngIf="showError">
       <div class="card_error">
-
-        <p color="danger" class="paragraph title"> El código ingresado es incorrecto. </p>
-        <p class="paragraph">Por favor, inténtalo de nuevo o pide un nuevo código. </p>
-
+        <p color="danger" class="paragraph title">
+          El código ingresado es incorrecto.
+        </p>
+        <p class="paragraph">
+          Por favor, inténtalo de nuevo o pide un nuevo código.
+        </p>
       </div>
     </section>
 
-    <p *ngIf="!showError" class="paragraph">¿No has recibido ningún código? </p>
-    <div  *ngIf="timer">
+    <p *ngIf="!showError" class="paragraph">¿No has recibido ningún código?</p>
+    <div *ngIf="timer">
       <p class="paragraph _500">
         Puedes pedir uno nuevo en {{ formatTime(timer) }} min.
       </p>
     </div>
 
-    <ion-button expand="block" color="uva_green-700" *ngIf="!timer" (click)="resetTime()">Reenviar Codigo</ion-button>
-    <ion-button expand="block" class="exit"  fill="clear" routerLink="/login"> salir</ion-button>
+    <ion-button
+      expand="block"
+      color="uva_green-700"
+      *ngIf="!timer"
+      class="text-transform_none"
+      (click)="resetTime()"
+      >Reenviar código</ion-button
+    >
+    <ion-button expand="block" class="exit" fill="clear" routerLink="/login">
+      salir</ion-button
+    >
   </form>
 </app-explore-container>

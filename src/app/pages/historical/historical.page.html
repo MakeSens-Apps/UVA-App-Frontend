@@ -1,0 +1,157 @@
+<app-header title="Historial de registros" [seed]="seed"></app-header>
+<ion-content [fullscreen]="true">
+  <app-time-frame
+    [timeFrame]="timeFrame"
+    (segmentChange)="changeSegment($event)"
+  ></app-time-frame>
+
+  @if(timeFrame === 'month'){
+  <section class="cards calendar">
+    <div class="calendar_header">
+      <div class="calendar_header_titles">
+        <h2 class="calendar_header_titles--h2">
+          {{completedTaskMonth?.name}}, <span>{{currentYearIndex}}</span>
+        </h2>
+        <p class="calendar_header_titles--p">{{nRegisters}} Registros</p>
+      </div>
+      <div class="calendar_header_btnGraph">
+        <ion-button
+          expand="block"
+          fill="outline"
+          shape="round"
+          color="uva_blue-500"
+          (click)="changeModeData()"
+          class="text-transform_none"
+        >
+          Ver como {{typeView === 'calendar' ? 'gráfica': 'calendario'}}
+          <ion-icon
+            slot="end"
+            src="./../../../assets/images/icons/switch-horizontal.svg"
+          ></ion-icon>
+        </ion-button>
+      </div>
+    </div>
+    <div>
+      <div class="calendar_variables_container">
+        <div
+          class="calendar_variables"
+          [ngStyle]="{
+            'background-color': typeView === 'chart' && variable.selected ? variable.style.backgroundColor.colorHex : 'White',
+            'border-color':typeView === 'chart' && variable.selected ? variable.style.borderColor.colorHex:'#E5E5E5'
+          }"
+          *ngFor="let variable of variables"
+          (click)="changeColorChart(variable)"
+        >
+          <p class="calendar_variables--p">{{variable.name}}</p>
+          <h2 class="calendar_variables--h2">
+            {{variable.symbol}}{{variable.value}}{{variable.unit}}
+          </h2>
+        </div>
+      </div>
+    </div>
+
+    <div class="meditions_container">
+      @if(typeView === 'calendar'){
+
+      <div *ngIf="completedTaskMonth">
+        <app-calendar
+          [daysComplete]="completedTaskMonth.daysComplete"
+          [daysIncomplete]="completedTaskMonth.daysIncomplete"
+          [daysSaveStreak]="completedTaskMonth.daysSaveStreak"
+          [viewDate]="completedTaskMonth.date"
+          (dayClick)="goToDetail($event)"
+        >
+        </app-calendar>
+      </div>
+      } @else if (typeView === 'chart'){
+
+      <div>
+        <app-areachart
+          [background]="variables[0].style.backgroundColor.colorHex"
+          [borderColor]="variables[0].style.borderColor.colorHex"
+        ></app-areachart>
+      </div>
+      }
+    </div>
+    <section *ngIf="completedTaskMonth">
+      <div class="footer">
+        <ion-button
+          fill="clear"
+          class="text-transform_none"
+          color="uva_blue-700"
+          (click)="setCurrentMonth(completedTaskMonth.mes - 1)"
+        >
+          <ion-icon slot="start" name="arrow-back"></ion-icon>
+          {{monthsNames[completedTaskMonth.mes - 1 ] || monthsNames[11] }}
+        </ion-button>
+
+        <ion-button
+          fill="clear"
+          class="text-transform_none"
+          color="uva_blue-700"
+          [disabled]="completedTaskMonth.mes === 11 && isNextYearDisabled()"
+          (click)="setCurrentMonth(completedTaskMonth.mes + 1)"
+        >
+          <ion-icon slot="end" name="arrow-forward"></ion-icon>
+          {{monthsNames[completedTaskMonth.mes + 1 ]|| monthsNames[0] }}
+        </ion-button>
+      </div>
+    </section>
+  </section>
+  } @else if(timeFrame === 'year') {
+  <section class="cards calendar">
+    <div class="calendar_years">
+      <ion-button
+        fill="clear"
+        class="text-transform_none"
+        (click)="changeYear(-1)"
+      >
+        <ion-icon slot="start" name="arrow-back"></ion-icon>
+        {{currentYearIndex - 1}}
+      </ion-button>
+      <ion-button fill="clear" class="text-transform_none current">
+        {{currentYearIndex}}
+      </ion-button>
+      <ion-button
+        fill="clear"
+        class="text-transform_none"
+        [disabled]="isNextYearDisabled()"
+        (click)="changeYear(1)"
+      >
+        <ion-icon slot="end" name="arrow-forward"></ion-icon>
+        {{currentYearIndex + 1}}
+      </ion-button>
+    </div>
+    <div class="calendar_variables_container">
+      <div
+        class="calendar_variables"
+        [ngStyle]="{'background-color':'white', 'border-color':'#E5E5E5'}"
+        *ngFor="let variable of variables"
+      >
+        <p class="calendar_variables--p">{{variable.name}}</p>
+        <h2 class="calendar_variables--h2">
+          {{variable.symbol}}{{variable.value}}{{variable.unit}}
+        </h2>
+      </div>
+    </div>
+
+    <ion-grid fixed>
+      <ion-row>
+        <ion-col size="4" *ngFor="let register of completedTaskYear">
+          <app-calendar
+            [IsMini]="true"
+            [hasTitle]="true"
+            [title]="register.name"
+            [daysComplete]="register.daysComplete"
+            [daysIncomplete]="register.daysIncomplete"
+            [daysSaveStreak]="register.daysSaveStreak"
+            [viewDate]="register.date"
+            (click)="setCurrentMonth(register.mes)"
+          >
+          </app-calendar>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+  </section>
+  }
+</ion-content>

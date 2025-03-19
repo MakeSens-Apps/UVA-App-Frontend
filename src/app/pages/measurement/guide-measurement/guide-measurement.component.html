@@ -1,0 +1,60 @@
+@if (guide) {
+  <section class="guide">
+    <div>
+      <ion-button (click)="closeModal()" class="btn_close" color="uva_blue-600">
+        <ion-icon slot="icon-only" name="close"></ion-icon>
+      </ion-button>
+    </div>
+    <ion-img [src]="img"></ion-img>
+    <div class="title">
+      <p [ngStyle]="{ color: guide.icon.colorHex }">{{ guide.name }}</p>
+      <ion-icon
+        slot="end"
+        class=""
+        *ngIf="guide.icon.enable"
+        [src]="guide.icon.imagePath"
+        [ngStyle]="{
+          color: guide.icon.colorHex,
+          width: '24px',
+          height: '24px',
+        }"
+      ></ion-icon>
+    </div>
+    @if (isHtmlText) {
+      <div [innerHTML]="text | safeHtml"></div>
+    } @else if (IsArrayText) {
+      <div>
+        @for (item of guide.text; track $index) {
+          <p>
+            {{ item }}
+          </p>
+        }
+      </div>
+    } @else {
+      <div>
+        {{ guide.text }}
+      </div>
+    }
+
+    <div class="ion-align-self-start">
+      <ion-checkbox
+        class="custom-checkbox"
+        labelPlacement="end"
+        color="uva_blue-600"
+      >
+        Mostrar automaticamente.
+      </ion-checkbox>
+    </div>
+
+    <div class="container_button">
+      <ion-button
+        color="uva_blue-600"
+        expand="block"
+        class="text-transform_none"
+        (click)="closeModal(true)"
+      >
+        {{ guide.nextGuide ? 'Siguiente' : 'Entendido' }}
+      </ion-button>
+    </div>
+  </section>
+}

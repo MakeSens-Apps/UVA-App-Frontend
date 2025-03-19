@@ -1,13 +1,26 @@
-
-<app-explore-container title="Número de teléfono" message="[Nombre], por favor ingresa tu número de teléfono">
+<app-explore-container
+  title="Número de teléfono"
+  message="{{user?.name}}, por favor ingresa tu número de teléfono"
+>
   <form [formGroup]="form">
     <div class="input-container">
       <div class="content_label__start">
-        <ion-label >Número de teléfono</ion-label>
+        <ion-label>Número de teléfono</ion-label>
       </div>
-      <ion-input class="border" type="tel" maxlength="10" placeholder="XXXXXXXXXX" formControlName="phone"></ion-input>
+      <ion-input
+        class="border"
+        type="tel"
+        maxlength="10"
+        placeholder="XXXXXXXXXX"
+        formControlName="phone"
+      ></ion-input>
     </div>
-    <ion-button expand="block" color="uva_green-700" [disabled]="form.invalid" (click)="goToOtp()"  >Continuar</ion-button>
-  
+    <ion-button
+      expand="block"
+      color="uva_green-700"
+      [disabled]="form.invalid"
+      (click)="goToOtp()"
+      >Continuar</ion-button
+    >
   </form>
 </app-explore-container>

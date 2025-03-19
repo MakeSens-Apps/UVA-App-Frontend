@@ -1,0 +1,82 @@
+@import'./day/day.mixin.scss';
+@import'src/theme/mixins.scss';
+
+.calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+  /*   margin-bottom: 10px; */
+    padding: 8px;
+    color: var(--Colors-Gray-400);
+
+    &_title {
+        &.mini {
+            color: var(--Colors-Blue-900, #164551);
+            text-align: center;
+            line-height: 150%;
+            @include text-base(12px, 500);
+            margin: 0;
+            margin-block: 2px;
+        }
+    }
+
+    &_content {
+        border-radius: 10px;
+        border: 1px solid var(--Colors-Gray-200);
+        background: var(--White, #FFF);
+
+        &.mini {
+            height: 120px;
+        }
+
+        &.moon{
+            border: none;
+            background: none;
+        }
+
+    }
+
+    &.mini {
+        gap: 1.322px;
+        padding: 0
+    }
+
+    .day {
+        @include dayCalendar;
+
+        &.mini {
+            width: 13.223px;
+            height: 13.223px;
+            padding: 4.298px 5.62px;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 3.306px;
+            min-width: 13px;
+            min-height: 13px;
+            font-size: 4.628px;
+        }
+    }
+
+    
+
+    &.moon {
+        border: none;
+        background: var(--Colors-Blue-800, #1A6270);
+        border-radius: var(--4xl, 16px);
+        color: white;
+        padding: 20px 10px 10px 10px;
+        gap: 6px;
+        margin-inline: 10px;
+
+        .header {
+            margin-bottom: 10px;
+        }
+
+    }
+
+}
+
+ion-card-content{
+    padding-inline: 0;
+}

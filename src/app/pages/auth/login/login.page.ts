@@ -1,70 +1,152 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnDestroy } from '@angular/core';
 import { ExploreContainerComponent } from '@app/explore-container/explore-container.component';
-import { IonButton, IonInput, IonLabel, ModalController } from '@ionic/angular/standalone';
+import {
+  IonButton,
+  IonInput,
+  IonLabel,
+  ModalController,
+} from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
-import Swal from 'sweetalert2'
-import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormBuilder,
+  FormControl,
+  FormGroup,
+  FormsModule,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { AlertComponent } from '@app/components/alert/alert.component';
-
+import { SetupService } from '@app/core/services/view/setup/setup.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-login',
   templateUrl: './login.page.html',
   styleUrls: ['./login.page.scss'],
   standalone: true,
-  imports: [ExploreContainerComponent,IonLabel,IonInput, IonButton,ReactiveFormsModule,FormsModule]
+  imports: [
+    ExploreContainerComponent,
+    IonLabel,
+    IonInput,
+    IonButton,
+    ReactiveFormsModule,
+    FormsModule,
+  ],
 })
-export class LoginPage implements OnInit {
-  form:FormGroup;
-  constructor(private router : Router,private formBuilder : FormBuilder, private modalCtrl: ModalController) {
+/**
+ * Class representing the login page.
+ * Handles user login, validation, and navigation.
+ */
+export class LoginPage implements OnDestroy {
+  form: FormGroup;
+  private backButtonSubscription!: Subscription;
+  /**
+   * Constructs the LoginPage component.
+   * Initializes the form and checks if there is a current authenticated user.
+   * @param {Router} router - The Angular Router for navigation.
+   * @param {FormBuilder} formBuilder - The Angular FormBuilder for creating reactive forms.
+   * @param {ModalController} modalCtrl - The Ionic ModalController to manage modals.
+   * @param {SetupService} service - The SetupService to handle authentication and session management.
+   */
+  constructor(
+    private router: Router,
+    private formBuilder: FormBuilder,
+    private modalCtrl: ModalController,
+    private service: SetupService,
+  ) {
     this.form = this.formBuilder.group({
-      phone: new FormControl('', Validators.compose([Validators.required, Validators.maxLength(10), Validators.minLength(10)])),
+      phone: new FormControl(
+        '',
+        Validators.compose([
+          Validators.required,
+          Validators.maxLength(10),
+          Validators.minLength(10),
+        ]),
+      ),
     });
-   }
-
-  ngOnInit() {
   }
 
-  goToRegister(){
-    this.router.navigate(['pre-register'])
+  /**
+   * Navigates the user to the home page.
+   * @returns {Promise<boolean>} A promise that resolves to true if navigation was successful.
+   */
+  goToHome(): Promise<boolean> {
+    return this.router.navigate(['app/tabs/home']);
   }
 
-  goToOtp(){  
-    this.abrirModal();
-  //this.router.navigate(['otp/login'])
+  /**
+   * Navigates the user to the pre-registration page.
+   * @returns {Promise<boolean>} A promise that resolves to true if navigation was successful.
+   */
+  goToRegister(): Promise<boolean> {
+    return this.router.navigate(['pre-register']);
   }
 
-  async abrirModal() {
+  /**
+   * Opens the OTP (One-Time Password) modal for the user.
+   */
+  goToOtp(): void {
+    void this.abrirModal();
+  }
+
+  /**
+   * Opens a modal asking the user to confirm their phone number before signing in.
+   * If the user confirms, it attempts to sign them in and navigate to the OTP page.
+   * If the user is not found, it opens a registration modal.
+   * @returns {Promise<void>} A promise that resolves once the modal has been processed.
+   */
+  async abrirModal(): Promise<void> {
     const modal = await this.modalCtrl.create({
       component: AlertComponent,
       componentProps: {
         content: `<p> ¿Es correcto este número de teléfono: <strong> ${this.form.controls['phone'].value} </strong>? </p>`,
-        textCancelButton : 'No, editar',
-        textOkButton : 'Sí, continuar'
-        
+        textCancelButton: 'No, editar',
+        textOkButton: 'Sí, continuar',
       },
       cssClass: 'custom-modal',
-      backdropDismiss: false 
+      backdropDismiss: false,
     });
 
     // Recibir la respuesta del modal
-    modal.onDidDismiss().then((data) => {
-      if (data.data.action === 'OK') {
-         // FIXME: remove validation
-       if (this.form.controls['phone'].value == '0000000000') {
-        this.openModalNoRegister();
-        return
-       }
-        this.router.navigate(['otp/login'])
-      } 
-    });
-    
+    modal
+      .onDidDismiss()
+      .then(async (data) => {
+        if (data.data.action === 'OK') {
+          const response = await this.service.signIn(
+            '+57' + this.form.controls['phone'].value,
+          );
+          if (!response.success) {
+            if (response.error.name == 'UserNotFoundException') {
+              await this.openModalNoRegister();
+              return;
+            }
+          } else {
+            // Check if MFA is required
+            if (response.data.isSignedIn) {
+              await this.service.createNewUser();
+              await this.router.navigate(['register/project-vinculation']);
+            } else {
+              await this.router.navigate([
+                'otp/login',
+                this.form.controls['phone'].value,
+              ]);
+            }
+          }
+        }
+      })
+      .catch((err) => {
+        console.error('No proceso respuesta de modal', err);
+      });
+
     await modal.present();
-    
   }
 
-  async openModalNoRegister(){
+  /**
+   * Opens a modal notifying the user that their phone number is not registered.
+   * Asks if the user wants to register. If the user confirms, they are navigated to the registration page.
+   * @returns {Promise<void>} A promise that resolves once the modal has been processed.
+   */
+  async openModalNoRegister(): Promise<void> {
     const modal = await this.modalCtrl.create({
       component: AlertComponent,
       componentProps: {
@@ -72,24 +154,36 @@ export class LoginPage implements OnInit {
         </p>
         <h3>¿Quieres registrarte?</h3>
           `,
-        textCancelButton : 'No',
-        textOkButton : 'Sí, registrame'
-        
+        textCancelButton: 'No',
+        textOkButton: 'Sí, registrame',
       },
       cssClass: 'custom-modal',
-      backdropDismiss: false 
+      backdropDismiss: false,
     });
 
     // Recibir la respuesta del modal
-    modal.onDidDismiss().then((data) => {
-      if (data.data.action === 'OK') {
-        this.goToRegister();
-      
-      } 
-    });
-    
-    await modal.present();
+    modal
+      .onDidDismiss()
+      .then(async (data) => {
+        if (data.data.action === 'OK') {
+          await this.goToRegister();
+        }
+      })
+      .catch((err) => {
+        console.error('No proceso modal de registro', err);
+      });
 
+    await modal.present();
   }
 
+  /**
+   * Cleans up the back button subscription when the component is destroyed.
+   * This prevents memory leaks and ensures no further events are handled for this subscription.
+   * @returns {void}
+   */
+  ngOnDestroy(): void {
+    if (this.backButtonSubscription) {
+      this.backButtonSubscription.unsubscribe();
+    }
+  }
 }

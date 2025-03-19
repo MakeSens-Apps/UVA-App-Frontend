@@ -1,0 +1,23 @@
+<div class="card_moon_container">
+  <div class="card_moon" [class]="{ green: background === 'green' }">
+    <ion-img class="moon" [src]="phaseIcon"></ion-img>
+
+    <div class="card_text">
+      <p class="subTitle">
+        Fase lunar
+        <br />
+        <span class="title"> {{ phaseName }} </span>
+      </p>
+    </div>
+
+    <div>
+      @if (hasArrow) {
+        <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
+      }
+    </div>
+  </div>
+  <ion-img
+    class="eclipses"
+    src="../../../assets/images/Moon/eclipses_card_home .svg"
+  ></ion-img>
+</div>
