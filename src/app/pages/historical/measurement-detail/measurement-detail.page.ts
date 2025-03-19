@@ -29,7 +29,13 @@ import { ConfigurationAppService } from '@app/core/services/storage/configuratio
 import { SafeHtmlPipe } from '@app/core/pipes/safe-html.pipe';
 import { GamificationService } from '@app/core/services/view/gamification/gamification.service';
 setDefaultOptions({ locale: es });
-
+// Define constants for repeated values
+const unknownTaskId = 'unknown';
+const modalContent = `
+  <h2 style="color: var(--Colors-Blue-900);"> Recupera tu racha pagando: </h2>
+  <h2> <span>5</span>  <img src="../../../../assets/images/icons/semilla.svg" alt="seed" style="width: 100px; height: 100px; margin: 10px 0;"></h2>
+  <p> ¿Quieres pagar 5 semillas para recuperar tu racha?</p>
+`;
 /**
  * Component representing the measurement details page.
  * This component displays details of a selected date and provides
@@ -82,6 +88,16 @@ export class MeasurementDetailPage implements OnInit {
    * @returns {void}
    */
   async ngOnInit(): Promise<void> {
+    await this.initializeUserProgress();
+    this.subscribeToRouteParams();
+  }
+
+  /**
+   * Initializes the user progress by fetching the last user progress data.
+   * Sets the `showAlert_incomplete` flag based on the user's seed count.
+   * @returns {Promise<void>}
+   */
+  private async initializeUserProgress(): Promise<void> {
     const userProgress = await UserProgressDSService.getLastUserProgress();
     if (userProgress) {
       this.userProgress = userProgress;
@@ -89,103 +105,145 @@ export class MeasurementDetailPage implements OnInit {
         this.showAlert_incomplete = userProgress.Seed < 5;
       }
     }
+  }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  /**
+   * Subscribes to route query parameters and processes the date and tasks.
+   * @returns {void}
+   */
+  private subscribeToRouteParams(): void {
     this.route.queryParams.subscribe((params: any) => {
-      this.date = params;
-      if (this.date?.date) {
-        this.dateFormatted = format(
-          new Date(this.date.date),
-          "EEEE d 'de' MMMM, yyyy",
-        );
-        this.isYesterday = isYesterday(this.date.date);
-      }
-      if (this.date?.date) {
-        const date = new Date(this.date.date);
-        MeasurementDSService.getMeasurementsByDay(
+      void this.processRouteParams(params);
+    });
+  }
+
+  /**
+   * Processes the route parameters, formats the date, and loads tasks and measurements.
+   * @param {any} params - The route query parameters.
+   * @returns {Promise<void>}
+   */
+  private async processRouteParams(params: any): Promise<void> {
+    this.date = params;
+    if (this.date?.date) {
+      this.dateFormatted = format(
+        new Date(this.date.date),
+        "EEEE d 'de' MMMM, yyyy",
+      );
+      this.isYesterday = isYesterday(this.date.date);
+
+      const date = new Date(this.date.date);
+      await this.loadTasksAndMeasurements(date);
+    }
+  }
+
+  /**
+   * Loads tasks and measurements for a specific date.
+   * Handles the grouping of measurements and filtering of completed tasks.
+   * @param {Date} date - The date to load tasks and measurements for.
+   * @returns {Promise<void>}
+   */
+  private async loadTasksAndMeasurements(date: Date): Promise<void> {
+    try {
+      const dataMeasurementCompleted =
+        await MeasurementDSService.getMeasurementsByDay(
           date.getFullYear(),
           date.getMonth() + 1,
           date.getDate(),
-        )
-          .then(async (dataMeasurementCompleted) => {
-            const configurationMeasurement =
-              await this.configuration.getConfigurationMeasurement();
-            if (!configurationMeasurement) {
-              return;
-            }
-            const keysTask = Object.keys(configurationMeasurement.tasks);
-            const tasksConfiguration = configurationMeasurement.tasks;
-            this.tasks = keysTask.map((key) => {
-              // Verifica si 'key' es una clave válida en 'this.measurementService.data.tasks'
-              if (key in configurationMeasurement.tasks) {
-                const keyName = key as keyof typeof tasksConfiguration;
-                const task: Task = configurationMeasurement.tasks[keyName];
-                task.id = keyName;
+        );
 
-                return task;
-              } else {
-                throw new Error(`Clave no válida: ${key}`);
-              }
-            });
-            this.tasksCompleted = [];
-            if (dataMeasurementCompleted.length) {
-              const configurationMeasurement =
-                await this.configuration.getConfigurationMeasurement();
-              this.hasTaskComplete = true;
-              const groupLazyMeasurement = this.groupRemainingLazyMeasurements(
-                this.tasksCompleted,
-                dataMeasurementCompleted,
-              );
-              const keysTask = Object.keys(groupLazyMeasurement);
+      const configurationMeasurement =
+        await this.configuration.getConfigurationMeasurement();
+      if (!configurationMeasurement) {
+        return;
+      }
 
-              if (keysTask) {
-                keysTask.forEach((taskId) => {
-                  if (this.tasks) {
-                    const indexTask = this.tasks?.findIndex(
-                      (task) => task.id === taskId,
-                    );
-                    const task =
-                      indexTask >= 0 || indexTask
-                        ? this.tasks[indexTask]
-                        : null;
+      this.initializeTasks(configurationMeasurement);
+      this.processCompletedMeasurements(
+        dataMeasurementCompleted,
+        configurationMeasurement,
+      );
+    } catch (error) {
+      console.error(
+        '📛❌⛔️ ~ MeasurementDetailPage ~ error in loadTasksAndMeasurements:',
+        error,
+      );
+    }
+  }
 
-                    if (!this.tasksCompleted.includes(task)) {
-                      const dataTask: any = { ...task, measurements: [] };
-                      groupLazyMeasurement[taskId].forEach((key) => {
-                        // const keyName = key as keyof typeof measurement.data;
-                        const measurementData =
-                          configurationMeasurement?.measurements[key.id];
-                        if (measurementData) {
-                          measurementData.id = key.id;
-                          measurementData.value = key.value;
-                          dataTask.measurements.push(measurementData);
-                        }
-                      });
-                      this.tasksCompleted.push(dataTask);
-                      this.tasks.splice(indexTask, 1);
-                    }
-                  }
-                });
-              }
-              this.tasks?.forEach((task: Task) => {
-                const taskIncludeTaskCompleteIndex =
-                  this.tasksCompleted.findIndex(
-                    (taskCompleted: ITask) => taskCompleted.id === task.id,
-                  );
-                if (taskIncludeTaskCompleteIndex >= 0) {
-                  this.tasks?.splice(taskIncludeTaskCompleteIndex, 1);
-                }
-              });
-            }
-          })
-          .catch((error) => {
-            console.error(
-              '📛❌⛔️ ~ MeasurementDetailPage ~ ).then ~ error:',
-              error,
-            );
-          });
+  /**
+   * Initializes the tasks based on the configuration.
+   * @param {any} configurationMeasurement - The configuration data for measurements.
+   * @returns {void}
+   */
+  private initializeTasks(configurationMeasurement: any): void {
+    const keysTask = Object.keys(configurationMeasurement.tasks);
+    //const tasksConfiguration = configurationMeasurement.tasks;
+    this.tasks = keysTask.map((key) => {
+      if (key in configurationMeasurement.tasks) {
+        const keyName = key as string; // Ensure keyName is treated as a string
+        const task: Task = configurationMeasurement.tasks[keyName];
+        task.id = keyName; // Assign keyName as a string
+        return task;
+      } else {
+        throw new Error(`Clave no válida: ${key}`);
       }
     });
+  }
+
+  /**
+   * Processes completed measurements, groups them, and filters out completed tasks.
+   * @param {LazyMeasurement[]} dataMeasurementCompleted - The completed measurements data.
+   * @param {any} configurationMeasurement - The configuration data for measurements.
+   * @returns {void}
+   */
+  private processCompletedMeasurements(
+    dataMeasurementCompleted: LazyMeasurement[],
+    configurationMeasurement: any,
+  ): void {
+    this.tasksCompleted = [];
+    if (dataMeasurementCompleted.length) {
+      this.hasTaskComplete = true;
+      const groupLazyMeasurement = this.groupRemainingLazyMeasurements(
+        this.tasksCompleted,
+        dataMeasurementCompleted,
+      );
+      const keysTask = Object.keys(groupLazyMeasurement);
+
+      if (keysTask) {
+        keysTask.forEach((taskId) => {
+          if (this.tasks) {
+            const task = this.tasks.find((task) => task.id === taskId);
+            if (task && !this.tasksCompleted.includes(task)) {
+              // Crear una copia independiente de la tarea
+              const dataTask: any = { ...task, measurements: [] };
+
+              groupLazyMeasurement[taskId].forEach((key) => {
+                const measurementData =
+                  configurationMeasurement?.measurements[key.id];
+                if (measurementData) {
+                  // Crear una copia independiente de cada medición
+                  const clonedMeasurement = { ...measurementData };
+                  clonedMeasurement.id = key.id;
+                  clonedMeasurement.value = key.value;
+                  dataTask.measurements.push(clonedMeasurement);
+                }
+              });
+
+              // Agregar la tarea clonada a tasksCompleted
+              this.tasksCompleted.push(dataTask);
+            }
+          }
+        });
+      }
+
+      // Filtrar las tareas ya completadas
+      this.tasks = this.tasks?.filter(
+        (task) =>
+          !this.tasksCompleted.some(
+            (taskCompleted: ITask) => taskCompleted.id === task.id,
+          ),
+      );
+    }
   }
 
   /**
@@ -233,7 +291,7 @@ export class MeasurementDetailPage implements OnInit {
     const groupedMeasurements: Record<string, Measurement[]> =
       remainingMeasurements.reduce(
         (acc, lazyMeasurement) => {
-          const taskId = lazyMeasurement.task || 'unknown'; // Si no hay task, usar 'unknown'
+          const taskId = lazyMeasurement.task || unknownTaskId; // Use camelCase constant name
 
           // Asegurar que el grupo para la tarea exista
           if (!acc[taskId]) {
@@ -282,11 +340,7 @@ export class MeasurementDetailPage implements OnInit {
     const modal = await this.modalCtrl.create({
       component: AlertComponent,
       componentProps: {
-        content: `
-        <h2 style="color:  var(--Colors-Blue-900);"> Recupera tu racha pagando: </h2>
-        <h2> <span>5</span>  <img src="../../../../assets/images/icons/semilla.svg" alt="seed" style="width: 100px; height: 100px; margin: 10px 0;"></h2>
-        <p> ¿Quieres pagar 5 semillas para recuperar tu racha?</p>
-        `,
+        content: modalContent, // Use camelCase constant name
         textCancelButton: 'omitir',
         textOkButton: 'Pagar',
         reverseButton: true,

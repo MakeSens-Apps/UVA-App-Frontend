@@ -32,6 +32,7 @@ import { Preferences } from '@capacitor/preferences';
 import { MeasurementDSService } from '@app/core/services/storage/datastore/measurement-ds.service';
 import { SafeHtmlPipe } from '@app/core/pipes/safe-html.pipe';
 import { GamificationService } from '@app/core/services/view/gamification/gamification.service';
+import { Location } from '@angular/common';
 
 const operaciones: Record<
   string,
@@ -110,12 +111,14 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
    * @param {ActivatedRoute} route - Service to manage and access route parameters.
    * @param {Router} router - Service for programmatic navigation.
    * @param {ConfigurationAppService} configuration - Service to fetch and manage app configurations.
+   * @param {Location} location - Service to interact with the browser's URL.
    */
   constructor(
     private modalCtrl: ModalController,
     private route: ActivatedRoute,
     private router: Router,
     private configuration: ConfigurationAppService,
+    private location: Location,
   ) {}
 
   /**
@@ -488,12 +491,18 @@ export class RegisterMeasurementPage implements OnInit, OnDestroy {
         GamificationService.completeTaskProcess(this.totalTask)
           .then(() => {
             this.router
-              .navigate(['app/tabs/register'])
-              .catch((error) => {
-                console.error('Error al navegar a la página de inicio:', error);
+              .navigate(['app/tabs/register'], {
+                queryParams: {
+                  update: true,
+                },
               })
-              .finally(() => {
-                this.OpenModalRegisterOk = false;
+              .then(() => {
+                // Forzar la recarga completa de la página
+                this.location.go(this.router.url);
+                window.location.reload();
+              })
+              .catch((err) => {
+                console.error(err);
               });
           })
           .catch((err) => {
