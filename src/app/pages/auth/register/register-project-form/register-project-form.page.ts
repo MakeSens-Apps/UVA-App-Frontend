@@ -61,6 +61,14 @@ export class RegisterProjectFormPage implements OnInit {
    */
   async ngOnInit(): Promise<void> {
     this.user = await this.service.getParametersUser();
+
+    // Check if a UVA is associated with the user
+    const uvaExists = await this.serviceRacimo.getUVA(this.user?.userID ?? '');
+    if (uvaExists) {
+      await this.router.navigate(['register', 'register-completed']);
+      return;
+    }
+
     this.configModel = await this.configuration.getConfigurationApp();
     if (this.configModel) {
       this.buildForm();

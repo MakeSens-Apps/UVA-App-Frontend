@@ -10,6 +10,7 @@ import {
   FetchUserAttributesOutput,
   ConfirmSignInOutput,
   ConfirmSignUpOutput,
+  updateMFAPreference,
 } from 'aws-amplify/auth';
 import {
   signUp,
@@ -19,6 +20,7 @@ import {
   SignUpOutput,
   AuthError,
 } from 'aws-amplify/auth';
+import { TestUsersService } from './test-users.service';
 
 interface SignOutResult {
   success: boolean;
@@ -52,9 +54,10 @@ export type AuthResponse<T> = AuthSuccessResponse<T> | AuthErrorResponse;
 export class AuthService {
   /**
    * Creates an instance of AuthService.
+   * @param {TestUsersService} testUsersService - Service for validate if user is user test
    * @memberof AuthService
    */
-  constructor() {}
+  constructor(private testUsersService: TestUsersService) {}
   /**
    * Maneja errores de autenticación específicos y genera una respuesta de error.
    * @param {unknown} err - El error capturado durante el proceso de autenticación.
@@ -112,12 +115,39 @@ export class AuthService {
    */
   async SignIn(phone: string): Promise<AuthResponse<SignInOutput>> {
     try {
+      const signInResponse = await signIn({ username: phone, password: phone });
+
+      // Configure MFA for non-test users on their first login
+      if (
+        !this.testUsersService.isTestUser(phone) &&
+        signInResponse.isSignedIn
+      ) {
+        await this.enableMFAForUser();
+      }
+      if (
+        signInResponse.nextStep.signInStep ===
+        'CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED'
+      ) {
+        return await this.ConfirmSignIn(phone);
+      }
       return {
         success: true,
-        data: await signIn({ username: phone, password: phone }),
+        data: signInResponse,
       };
     } catch (err: unknown) {
       return { success: false, error: this.handleAuthError(err) };
+    }
+  }
+
+  /**
+   * Enables MFA for the given user.
+   * @private
+   */
+  private async enableMFAForUser(): Promise<void> {
+    try {
+      await updateMFAPreference({ sms: 'PREFERRED' });
+    } catch (error) {
+      console.error(error);
     }
   }
 
