@@ -1,0 +1,69 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="uva_blue-500">
+    <div class="header">
+      <ion-buttons slot="start">
+        <ion-button (click)="goBack('/profile')" fill="clear">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+      <div class="user-info">
+        <p class="title">Configuración</p>
+      </div>
+    </div>
+  </ion-toolbar>
+</ion-header>
+<ion-content [fullscreen]="true" class="content">
+  <div class="profile-content">
+    <div class="profile-card">
+      <div class="content-items">
+        <div class="form">
+          <ion-list class="menu-list" lines="none">
+            <div class="div_items">
+              <div class="items-titles">
+                <ion-label class="color-n"
+                  ><strong> Activar notificaciones </strong></ion-label
+                >
+
+                <ion-toggle
+                  mode="ios"
+                  slot="end"
+                  color="uva_blue-600"
+                  [checked]="isNotificationsActive"
+                  (ionChange)="activeNoti($event)"
+                >
+                </ion-toggle>
+              </div>
+
+              <ion-item class="ion-item ion-item-w">
+                <ion-label class="color-n">
+                  Al mantener las notificaciones <br />
+                  activas, podrás recibir alertas de<br />
+                  cuando debes hacer tus registros.
+                </ion-label>
+              </ion-item>
+            </div>
+          </ion-list>
+        </div>
+      </div>
+
+      <app-sync-action
+        [title]="'Sincronizar mediciones'"
+        [infoPendingText]="'Con sincronizaciones pendientes'"
+        [noInfoPendingText]="'Sin sincronizaciones pendientes'"
+        [buttonText]="'Sincronizacion con la nube'"
+        [isInfoPending]="isDataStoreSyncPending"
+        (clickSync)="syncData()"
+      >
+      </app-sync-action>
+      <app-sync-action
+        [title]="'Actualizaciones'"
+        [infoPendingText]="'Con actualizaciones pendientes'"
+        [noInfoPendingText]="'Sin actualizaciones pendientes'"
+        [buttonText]="'Actualizar configuraciones'"
+        [isInfoPending]="isConfigurationAppAvailible"
+        (clickSync)="updateConfiguration()"
+      >
+      </app-sync-action>
+    </div>
+  </div>
+</ion-content>

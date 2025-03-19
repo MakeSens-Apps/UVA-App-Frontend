@@ -1,6 +1,12 @@
 # Compiled class file
 *.class
+# Compiled javascript file
+*.js
+# Compiled typescript file
+*.ttf
+# image
 
+*.webp
 # Log file
 *.log
 
@@ -23,27 +29,6 @@
 hs_err_pid*
 replay_pid*
 
-#amplify-do-not-edit-begin
-amplify/\#current-cloud-backend
-amplify/.config/local-*
-amplify/logs
-amplify/mock-data
-amplify/mock-api-resources
-amplify/backend/amplify-meta.json
-amplify/backend/.temp
-build/
-dist/
-node_modules/
-aws-exports.js
-awsconfiguration.json
-amplifyconfiguration.json
-amplifyconfiguration.dart
-amplify-build-config.json
-amplify-gradle-config.json
-amplifytools.xcconfig
-.secret-*
-**.sample
-#amplify-do-not-edit-end
 
 *~
 *.sw[mnpcod]
@@ -131,6 +116,8 @@ packages/angular/css/
 packages/angular/test/build/
 .angular/
 
+#
+android/app/release/*
 # vue
 packages/vue/test/build/
 
@@ -222,7 +209,30 @@ testem.log
 *.jpg
 *.jpeg
 *.gif
-assets/images/
+# assets/images/
 
 # Excluir imágenes generadas dinámicamente pero permitir las de splash screen
-android/app/src/main/res/drawable*/splash_image.png
+android/app/src/main/res/drawable*/splash.png
+!**/splash.png
+
+#amplify-do-not-edit-begin
+amplify/\#current-cloud-backend
+amplify/.config/local-*
+amplify/logs
+amplify/mock-data
+amplify/mock-api-resources
+amplify/backend/amplify-meta.json
+amplify/backend/.temp
+build/
+dist/
+node_modules/
+aws-exports.js
+awsconfiguration.json
+amplifyconfiguration.json
+amplifyconfiguration.dart
+amplify-build-config.json
+amplify-gradle-config.json
+amplifytools.xcconfig
+.secret-*
+**.sample
+#amplify-do-not-edit-end

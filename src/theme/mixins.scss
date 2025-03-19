@@ -1,0 +1,20 @@
+@mixin align($padding: 0) {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    @if $padding !='0' {
+        padding: $padding;
+    }
+}
+
+@mixin text_base($font-size: 16px, $font-weigh: 500) {
+    font-size: $font-size;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    font-weight: $font-weigh;
+    line-height: normal;
+    font-style: normal;
+    /* max-width: 300px */
+}

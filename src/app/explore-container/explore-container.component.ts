@@ -1,13 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
-import {  ReactiveFormsModule } from '@angular/forms';
-import {  IonHeader, IonTitle, IonToolbar, IonInput, IonLabel } from '@ionic/angular/standalone';
+import { ReactiveFormsModule } from '@angular/forms';
 @Component({
   selector: 'app-explore-container',
   templateUrl: './explore-container.component.html',
   styleUrls: ['./explore-container.component.scss'],
-  imports:[CommonModule, IonicModule, IonInput, IonHeader, IonTitle, IonToolbar,ReactiveFormsModule, IonLabel],
+  imports: [CommonModule, IonicModule, ReactiveFormsModule],
   standalone: true,
 })
 export class ExploreContainerComponent {
@@ -16,6 +15,5 @@ export class ExploreContainerComponent {
   @Input() subTitle?: string;
   @Input() message?: string;
   @Input() BgBlue?: boolean = false;
-  @Input() Icon?: string ;
-
+  @Input() Icon?: string;
 }

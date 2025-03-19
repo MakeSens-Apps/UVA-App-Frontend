@@ -1,0 +1,27 @@
+@import 'src/theme/mixins';
+
+.progress {
+  &_container {
+    display: flex;
+    padding: 10px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    align-self: stretch;
+    border-radius: var(--3xl, 14px);
+    background: var(--White, #fff);
+  }
+  &_text {
+    @include text_base(14px, 500);
+    margin-top: 0;
+    margin-bottom: 0;
+    line-height: 150%;
+    color: var(--Colors-Gray-500);
+  }
+}
+ion-progress-bar {
+  height: 7px;
+  background: var(--Colors-Green-200); // Color base para la barra vacía
+  min-width: 2px; // Ancho mínimo visible
+  border-radius: 4px;
+}

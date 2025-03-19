@@ -1,0 +1,137 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="uva_blue-500">
+    <div class="header">
+      <ion-buttons slot="start">
+        <ion-button (click)="goBack('/app/tabs/home')" fill="clear">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+      <div class="user-info">
+        <p class="title">Perfil</p>
+      </div>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="content">
+  <div class="profile-content">
+    <div class="profile-card">
+      <div class="profile-header">
+        <img
+          class="avatar"
+          src="../../../assets/images/icons/user-circle.png"
+          alt="User Avatar"
+        />
+        <p class="user-name">{{name}}</p>
+        <div class="status-container">
+          <div class="status-item" *ngIf="isRanking">Graduado 🎓</div>
+          <div class="status-item" *ngIf="isSeed">
+            Semillas: <strong class="colorB">{{seed}}</strong>
+            <img [src]="seedIcon" alt="Semilla Icon" class="seed-icon" />
+          </div>
+        </div>
+      </div>
+
+      <ion-list class="menu-list" lines="none">
+        <ion-item (click)="goBack('/personal-info')">
+          <ion-label>Información personal</ion-label>
+          <ion-icon
+            slot="end"
+            src="../../../assets/images/icons/profile/arrow-forward.svg"
+          ></ion-icon>
+        </ion-item>
+        <ion-item (click)="goBack('/achievement')">
+          <ion-label>Tus logros</ion-label>
+          <ion-icon
+            slot="end"
+            src="../../../assets/images/icons/profile/Medal.svg"
+          ></ion-icon>
+        </ion-item>
+        <ion-item (click)="goBack('/configuration')">
+          <ion-label>Configuración</ion-label>
+          <ion-icon
+            slot="end"
+            src="../../../assets/images/icons/profile/Options.svg"
+          ></ion-icon>
+        </ion-item>
+        <ion-item (click)="openModal()">
+          <ion-label>Comparte la aplicación</ion-label>
+          <ion-icon
+            slot="end"
+            src="../../../assets/images/icons/profile/share-social.svg"
+          ></ion-icon>
+        </ion-item>
+        <ion-item (click)="goUrl()">
+          <ion-label>Soporte documental</ion-label>
+          <ion-icon
+            slot="end"
+            src="../../../assets/images/icons/profile/Open.svg"
+          ></ion-icon>
+        </ion-item>
+      </ion-list>
+
+      <!-- Cerrar Sesión -->
+      <div class="a-left">
+        <ion-button
+          (click)="goBack('/login')"
+          size="small"
+          expand="block"
+          fill="outline"
+          class="logout-button"
+        >
+          <ion-label> Cerrar sesión</ion-label>
+          <ion-icon
+            src="../../../assets/images/icons/profile/logout.svg"
+            slot="end"
+          ></ion-icon>
+        </ion-button>
+      </div>
+    </div>
+    <div class="footer-logo">
+      <img [src]="logo" alt="Fundación Natura Logo" />
+    </div>
+  </div>
+  <ion-modal
+    #modal_show_comparte
+    [isOpen]="modals['modal_show_comparte']"
+    (ionModalDidDismiss)="onModalDismiss('modal_show_comparte')"
+    [initialBreakpoint]="1"
+    [breakpoints]="[0, 1]"
+  >
+    <ng-template>
+      <div class="modal_show_comparte" line="none">
+        <div class="container_text">
+          <ion-item lines="none">
+            <ion-icon
+              size="large"
+              slot="start"
+              src="../../../assets/images/icons/logop.svg"
+            ></ion-icon>
+            <p class="s-p">
+              Hola, cónoce la aplicación Uva-App para registrar tus datos del
+              clima!
+            </p>
+          </ion-item>
+          <ion-grid>
+            <hr class="divider" />
+            <ion-row>
+              <ion-col
+                size="4"
+                class="share-option"
+                *ngFor="let option of shareOptions"
+              >
+                <ion-icon
+                  (click)="option.action()"
+                  [src]="option.icon"
+                  size="large"
+                ></ion-icon>
+                <p class="s-p">{{ option.label }}</p>
+              </ion-col>
+            </ion-row>
+            <hr class="divider" />
+          </ion-grid>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+</ion-content>
