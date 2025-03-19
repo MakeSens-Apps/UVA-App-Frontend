@@ -26,6 +26,7 @@ import { UserProgress } from 'src/models';
 import { UserProgressDSService } from '@app/core/services/storage/datastore/user-progress-ds.service';
 import { SafeHtmlPipe } from '@app/core/pipes/safe-html.pipe';
 import { GamificationService } from '@app/core/services/view/gamification/gamification.service';
+import { TestUsersService } from '@app/core/services/auth/test-users.service';
 /**
  * Translates day names to numbers.
  * @enum {number}
@@ -112,12 +113,14 @@ export class MeasurementPage implements OnInit {
    * @param {SessionService} session - SessionService to manage user session data.
    * @param {SetupService} service - SetupService to handle user configuration flows.
    * @param {ConfigurationAppService} configuration - Service to retrieve configuration data from storage.
+   * @param {TestUsersService}userTest - Servicio for validate if user is test user
    */
   constructor(
     private router: Router,
     private session: SessionService,
     private service: SetupService,
     private configuration: ConfigurationAppService,
+    private userTest: TestUsersService,
   ) {}
   /**
    * Lifecycle hook that runs on component initialization.
@@ -357,7 +360,7 @@ export class MeasurementPage implements OnInit {
    * @returns {Promise<void>} - Resolves after executing necessary logic.
    */
   async ionViewDidEnter(): Promise<void> {
-    void (await this.getDataMeasurement());
+    await this.getDataMeasurement();
     const userprogress = await UserProgressDSService.getLastUserProgress();
     if (userprogress) {
       this.userProgress = userprogress;
@@ -383,7 +386,10 @@ export class MeasurementPage implements OnInit {
    * @param {ITask} task - The task to register data for.
    */
   goToRegister(task: ITask): void {
-    if (this.hasRestrictionTimeTask(task as Task)) {
+    if (
+      this.hasRestrictionTimeTask(task as Task) &&
+      !this.userTest.isTestUser(this.user?.phone ?? '')
+    ) {
       return;
     }
     if (task.flows) {

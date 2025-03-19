@@ -1,4 +1,4 @@
-package io.ionic.starter;
+package com.makesens.uvaapp;
 
 import com.getcapacitor.BridgeActivity;
 

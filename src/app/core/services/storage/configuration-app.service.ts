@@ -89,6 +89,20 @@ export class ConfigurationAppService {
       return false;
     }
   }
+
+  /**
+   * Checks if the configuration file exists.
+   * @returns {Promise<boolean>} - Returns `true` if the configuration file exists, `false` otherwise.
+   */
+  async configExists(): Promise<boolean> {
+    if (!(await this.getPathRacimo())) {
+      return false;
+    }
+    const path = `${this.pathRacimo}/config.json`;
+    const response = await this.fileSystem.readFile(path, Directory.Data);
+    return response.success;
+  }
+
   /**
    * Retrieves the application configuration.
    * @returns {Promise<ConfigModel | null>} - Application configuration or `null` if not found.

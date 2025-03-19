@@ -107,7 +107,7 @@ export class SplashAnimationPage implements OnInit {
         void this.session.setInfoField('uvaID', uva.id);
         void this.session.setInfoField('racimoID', racimoID);
         void this.session.setInfoField('racimoLinkCode', racimoCode);
-        await identifyUser({
+        /*await identifyUser({
           userId: response.data.userId,
           userProfile: await getUserProfile({
             name: user.Name,
@@ -115,7 +115,7 @@ export class SplashAnimationPage implements OnInit {
             racimoCode: racimoCode,
             uvaId: uva.id,
           }),
-        });
+        });*/
         void this.redirectToPage('app/tabs/home');
       } else {
         void this.redirectToPage('register/validate-project');
