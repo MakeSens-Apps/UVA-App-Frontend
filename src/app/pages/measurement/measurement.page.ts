@@ -244,10 +244,10 @@ export class MeasurementPage implements OnInit {
                   const measurementData =
                     configurationMeasurement.measurements[key.id];
                   if (measurementData) {
-                    measurementData.id = key.id;
-                    measurementData.value = key.value;
-
-                    dataTask.measurements.push(measurementData);
+                    const clonedMeasurement = { ...measurementData };
+                    clonedMeasurement.id = key.id;
+                    clonedMeasurement.value = key.value;
+                    dataTask.measurements.push(clonedMeasurement);
                   }
                 });
                 this.tasksCompleted.push(dataTask);
