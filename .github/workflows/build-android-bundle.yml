@@ -34,6 +34,7 @@ env:
   AMPLIFY_APP_ID: d2l8hh51bqhq16
   JAVA_VERSION: '17'
   NODE_VERSION: '20'
+  AWS_REGION: us-east-1
 
 jobs:
   build-bundle:
@@ -90,15 +91,20 @@ jobs:
             echo "🚧 Using DEVELOP environment as default"
           fi
 
-      - name: 🔄 Configure Amplify
+      - name: 🔄 Amplify Pull
         run: |
-          # Configurar Amplify sin interacción
-          amplify configure --usage-data-off
+          echo "🔧 Descargando configuración de Amplify..."
+          echo "📍 App ID: ${{ env.AMPLIFY_APP_ID }}"
+          echo "🌍 Environment: ${{ steps.amplify-env.outputs.env_name }}"
+          echo "📍 Region: ${{ env.AWS_REGION }}"
 
-          # Descargar configuración del backend usando appId y environment
-          amplify pull --appId ${{ env.AMPLIFY_APP_ID }} --envName ${{ steps.amplify-env.outputs.env_name }} --yes
+          amplify pull \
+            --appId ${{ env.AMPLIFY_APP_ID }} \
+            --envName ${{ steps.amplify-env.outputs.env_name }} \
+            --yes
+            --accessToken ${{ secrets.AMPLIFY_ACCESS_TOKEN }}
 
-          echo "✅ Amplify configurado para ambiente: ${{ steps.amplify-env.outputs.env_name }}"
+          echo "✅ Configuración de Amplify descargada exitosamente"
 
       - name: 🏗️ Build web application
         run: |
@@ -193,6 +199,7 @@ jobs:
           echo "- **Amplify Environment**: ${{ steps.amplify-env.outputs.env_name }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Build Type**: ${{ github.event.inputs.build_type || 'release' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Trigger**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **AWS Region**: ${{ env.AWS_REGION }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📦 Generated Bundles" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

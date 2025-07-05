@@ -19,6 +19,7 @@ env:
   AMPLIFY_APP_ID: d2l8hh51bqhq16
   JAVA_VERSION: '17'
   NODE_VERSION: '20'
+  AWS_REGION: us-east-1
 
 jobs:
   build:
@@ -53,12 +54,12 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: 📦 Install dependencies
         run: |
           npm ci
-          npm install -g @aws-amplify/cli @ionic/cli @capacitor/cli
+          npm install -g @aws-amplify/cli@latest @ionic/cli @capacitor/cli
 
       - name: 🌍 Determine Amplify environment
         id: amplify-env
@@ -74,15 +75,31 @@ jobs:
             echo "🚧 Using DEVELOP environment for development"
           fi
 
-      - name: 🔄 Configure Amplify
+      - name: 🔄 Amplify Pull (Headless Mode)
+        env:
+          AMPLIFY_CLI_DISABLE_BROWSER_AUTH: true
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'us-east-1'
         run: |
-          # Configurar Amplify sin interacción
-          amplify configure --usage-data-off
+          echo "🔧 Descargando configuración de Amplify en modo headless..."
+          echo "📍 App ID: ${{ env.AMPLIFY_APP_ID }}"
+          echo "🌍 Environment: ${{ steps.amplify-env.outputs.env_name }}"
+          echo "📍 Region: ${{ env.AWS_REGION }}"
 
-          # Descargar configuración del backend usando appId y environment
-          amplify pull --appId ${{ env.AMPLIFY_APP_ID }} --envName ${{ steps.amplify-env.outputs.env_name }} --yes
+          # Configuración JSON para modo headless
+          AMPLIFY_JSON="{\"projectName\":\"UVA\",\"appId\":\"${{ env.AMPLIFY_APP_ID }}\",\"envName\":\"${{ steps.amplify-env.outputs.env_name }}\"}"
+          PROVIDERS_JSON="{\"awscloudformation\":{\"configLevel\":\"project\",\"useProfile\":false,\"accessKeyId\":\"${{ secrets.AWS_ACCESS_KEY_ID }}\",\"secretAccessKey\":\"${{ secrets.AWS_SECRET_ACCESS_KEY }}\",\"region\":\"${{ env.AWS_REGION }}\"}}"
+          FRONTEND_JSON="{\"frontend\":\"javascript\",\"framework\":\"ionic\",\"config\":{\"SourceDir\":\"src\",\"DistributionDir\":\"www\",\"BuildCommand\":\"npm run build\",\"StartCommand\":\"ionic serve\"}}"
 
-          echo "✅ Amplify configurado para ambiente: ${{ steps.amplify-env.outputs.env_name }}"
+          echo "🚀 Ejecutando amplify pull en modo headless..."
+          amplify pull \
+            --amplify "$AMPLIFY_JSON" \
+            --providers "$PROVIDERS_JSON" \
+            --frontend "$FRONTEND_JSON" \
+            --yes
+
+          echo "✅ Configuración de Amplify descargada exitosamente"
 
       - name: 🏗️ Build web application
         run: |
@@ -100,8 +117,26 @@ jobs:
           # Generar assets si es necesario
           npx @capacitor/assets generate --android || true
 
-          # Dar permisos de ejecución al gradlew
-          chmod +x android/gradlew
+          # Verificar y configurar Gradle Wrapper
+          echo "🔧 Verificando Gradle Wrapper..."
+          cd android
+
+          # Verificar si existe gradlew
+          if [ ! -f "gradlew" ]; then
+            echo "⚠️ gradlew no encontrado, generando Gradle Wrapper..."
+            gradle wrapper --gradle-version 8.5
+          fi
+
+          # Dar permisos de ejecución
+          chmod +x gradlew
+
+          # Verificar si los archivos del wrapper están completos
+          if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ] || [ ! -f "gradle/wrapper/gradle-wrapper.properties" ]; then
+            echo "⚠️ Archivos del wrapper incompletos, regenerando..."
+            gradle wrapper --gradle-version 8.5
+          fi
+
+          cd ..
 
           echo "✅ Android platform configured"
 
@@ -111,13 +146,23 @@ jobs:
 
           cd android
 
+          # Verificar que gradlew funcione, sino usar gradle directamente
+          if ! ./gradlew --version &> /dev/null; then
+            echo "⚠️ Gradle Wrapper no funciona, usando Gradle del sistema..."
+            GRADLE_CMD="gradle"
+          else
+            echo "✅ Usando Gradle Wrapper"
+            GRADLE_CMD="./gradlew"
+          fi
+
           # Compilar APK de debug (más rápido para CI)
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          echo "🔨 Compilando APK debug..."
+          $GRADLE_CMD assembleDebug --no-daemon --stacktrace
 
           # Compilar APK de release para branches principales
           if [[ "${{ github.ref }}" == "refs/heads/main" ]] || [[ "${{ github.ref }}" == "refs/heads/test" ]]; then
             echo "🚀 Building release APK for ${{ github.ref }}"
-            ./gradlew assembleRelease --no-daemon --stacktrace
+            $GRADLE_CMD assembleRelease --no-daemon --stacktrace
           fi
 
           cd ..
@@ -133,32 +178,142 @@ jobs:
           done
 
       - name: 🏷️ Generate artifact names
-        id: artifact-names
+        id: extract-branch
         run: |
           BRANCH_NAME=${GITHUB_REF#refs/heads/}
           BRANCH_NAME=${BRANCH_NAME//\//-}  # Reemplazar / con -
           TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
-          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          # Configurar retención basada en la rama
+          if [[ "$BRANCH_NAME" == "main" ]] || [[ "$BRANCH_NAME" == "test" ]] || [[ "$BRANCH_NAME" == "develop" ]]; then
+            RETENTION_DAYS=90
+          else
+            RETENTION_DAYS=30
+          fi
+
+          echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
           echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
-          echo "apk_name=UVA-APK-${BRANCH_NAME}-${TIMESTAMP}" >> $GITHUB_OUTPUT
+          echo "retention-days=$RETENTION_DAYS" >> $GITHUB_OUTPUT
 
-      - name: 📦 Upload Debug APK
+      - name: 📦 Upload APK Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.artifact-names.outputs.apk_name }}-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 30
+          name: android-apk-${{ steps.extract-branch.outputs.branch }}-${{ steps.extract-branch.outputs.timestamp }}
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/release/app-release.apk
+          retention-days: ${{ steps.extract-branch.outputs.retention-days }}
+          if-no-files-found: ignore
 
-      - name: 📦 Upload Release APK
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test'
-        uses: actions/upload-artifact@v4
+      - name: 📬 Send APK to Slack
+        if: success()
+        uses: 8398a7/action-slack@v3
         with:
-          name: ${{ steps.artifact-names.outputs.apk_name }}-release
-          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
-          retention-days: 90
+          status: custom
+          custom_payload: |
+            {
+              "text": "📱 Nueva APK generada para UVA App",
+              "attachments": [
+                {
+                  "color": "good",
+                  "fields": [
+                    {
+                      "title": "Rama",
+                      "value": "${{ steps.extract-branch.outputs.branch }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Commit",
+                      "value": "${{ github.sha }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Autor",
+                      "value": "${{ github.actor }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Ambiente",
+                      "value": "${{ steps.amplify-env.outputs.env_name }}",
+                      "short": true
+                    },
+                    {
+                      "title": "APK Debug",
+                      "value": "✅ Generado",
+                      "short": true
+                    },
+                    {
+                      "title": "APK Release",
+                      "value": "${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test') && '✅ Generado' || '❌ Solo para main/test' }}",
+                      "short": true
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "button",
+                      "text": "📥 Descargar APK",
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    },
+                    {
+                      "type": "button",
+                      "text": "📋 Ver Commit",
+                      "url": "${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: 📬 Send Failure Notification to Slack
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "text": "❌ Error al generar APK para UVA App",
+              "attachments": [
+                {
+                  "color": "danger",
+                  "fields": [
+                    {
+                      "title": "Rama",
+                      "value": "${{ steps.extract-branch.outputs.branch }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Commit",
+                      "value": "${{ github.sha }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Autor",
+                      "value": "${{ github.actor }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Error",
+                      "value": "Falló la compilación de APK",
+                      "short": false
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "button",
+                      "text": "🔍 Ver Logs",
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: 📊 Build summary
+        if: always()
         run: |
           echo "## 🚀 Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -166,6 +321,7 @@ jobs:
           echo "- **Amplify Environment**: ${{ steps.amplify-env.outputs.env_name }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Node Version**: ${{ env.NODE_VERSION }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Java Version**: ${{ env.JAVA_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **AWS Region**: ${{ env.AWS_REGION }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📱 Generated APKs" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -175,8 +331,8 @@ jobs:
             echo "- ✅ **Debug APK**: $DEBUG_SIZE" >> $GITHUB_STEP_SUMMARY
           fi
 
-          if [ -f "android/app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
-            RELEASE_SIZE=$(du -h android/app/build/outputs/apk/release/app-release-unsigned.apk | cut -f1)
+          if [ -f "android/app/build/outputs/apk/release/app-release.apk" ]; then
+            RELEASE_SIZE=$(du -h android/app/build/outputs/apk/release/app-release.apk | cut -f1)
             echo "- ✅ **Release APK**: $RELEASE_SIZE" >> $GITHUB_STEP_SUMMARY
           fi
 
