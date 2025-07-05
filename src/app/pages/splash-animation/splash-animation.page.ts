@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   IonContent,
@@ -8,16 +8,14 @@ import {
   IonToolbar,
 } from '@ionic/angular/standalone';
 
-import { Animation, AnimationController } from '@ionic/angular';
 import { Router } from '@angular/router';
-import { SyncMonitorDSService } from '@app/core/services/storage/datastore/sync-monitor-ds.service';
+import { AuthService } from '@app/core/services/auth/auth.service';
 import { SessionService } from '@app/core/services/session/session.service';
 import { RacimoDSService } from '@app/core/services/storage/datastore/racimo-ds.service';
+import { SyncMonitorDSService } from '@app/core/services/storage/datastore/sync-monitor-ds.service';
 import { UvaDSService } from '@app/core/services/storage/datastore/uva-ds.service';
-import { AuthService } from '@app/core/services/auth/auth.service';
-import { identifyUser } from 'aws-amplify/analytics';
-import { UserProfile } from '@aws-amplify/core';
-import { Device } from '@capacitor/device';
+
+import { Animation, AnimationController } from '@ionic/angular';
 //import { AppVersion } from '@ionic-native/app-version/ngx';
 //import { Globalization } from '@ionic-native/globalization/ngx';
 import { UserDSService } from '@app/core/services/storage/datastore/user-ds.service';
@@ -64,28 +62,100 @@ export class SplashAnimationPage implements OnInit {
     this.setupAnimations();
     await this.checkUserAuthentication();
   }
-
+  /* eslint-disable no-console */
   /**
    * Verifies user authentication and navigates to the appropriate page.
+   * Implements offline-first authentication strategy.
    * @memberof SplashAnimationPage
    */
   async checkUserAuthentication(): Promise<void> {
     try {
-      // Check if the current user is authenticated
-      const response = await this.auth.CurrentAuthenticatedUser();
-      if (!response.success) {
-        // Redirect to login if no user is authenticated
-        void this.redirectToPage('/login');
-        return;
-      }
-      const userID = response.data.userId;
-      void this.session.setInfoField('userID', userID);
-      // Retrieve the current user's ID
+      console.log('🔍 Starting authentication check...');
+
+      // Primero verificar DataStore local
+      console.log('📊 Checking DataStore sync status...');
       await SyncMonitorDSService.waitForSyncDataStore();
 
+      console.log('👤 Checking for local user data...');
+      const localUser = await UserDSService.getUser();
+
+      if (localUser) {
+        console.log('✅ Local user found, attempting offline-first flow...');
+
+        // Usuario existe en DataStore, intentar validar auth solo si hay internet
+        if (SyncMonitorDSService.networkStatus) {
+          console.log('🌐 Network available, validating authentication...');
+
+          try {
+            const response = await this.auth.CurrentAuthenticatedUser();
+            if (!response.success) {
+              console.log(
+                '❌ Auth validation failed with internet, redirecting to login',
+              );
+              void this.redirectToPage('/login');
+              return;
+            }
+
+            console.log(
+              '✅ Auth validation successful, continuing with online flow',
+            );
+            await this.continueWithAuthenticatedFlow(response.data.userId);
+          } catch (authError) {
+            console.error('⚠️ Auth validation error with internet:', authError);
+            // Si falla auth con internet, algo está mal, redirigir a login
+            void this.redirectToPage('/login');
+            return;
+          }
+        } else {
+          console.log(
+            '📱 No network, continuing with offline flow using local data',
+          );
+          // Sin internet, usar datos locales y obtener userID de la sesión
+          const sessionInfo = await this.session.getInfo();
+          if (sessionInfo.userID) {
+            await this.continueWithAuthenticatedFlow(sessionInfo.userID);
+          } else {
+            console.log('❌ No userID in session, redirecting to login');
+            void this.redirectToPage('/login');
+          }
+        }
+      } else {
+        console.log(
+          '❌ No local user data found, requiring fresh authentication',
+        );
+
+        // No hay datos locales, requiere autenticación completa
+        const response = await this.auth.CurrentAuthenticatedUser();
+        if (!response.success) {
+          console.log('❌ Fresh authentication failed, redirecting to login');
+          void this.redirectToPage('/login');
+          return;
+        }
+
+        console.log('✅ Fresh authentication successful');
+        await this.continueWithAuthenticatedFlow(response.data.userId);
+      }
+    } catch (err) {
+      console.error('💥 Authentication check failed:', err);
+      void this.redirectToPage('/login');
+    }
+  }
+  /**
+   * Continues the authenticated flow after successful authentication or offline validation.
+   * @param {string} userID - The authenticated user ID
+   * @memberof SplashAnimationPage
+   */
+  async continueWithAuthenticatedFlow(userID: string): Promise<void> {
+    try {
+      console.log('🚀 Continuing with authenticated flow for user:', userID);
+
+      void this.session.setInfoField('userID', userID);
+
       // Check if the user has an assigned UVA
+      console.log('🍇 Checking UVA assignment...');
       const uva = await UvaDSService.getUVAByuserID(userID);
       if (!uva) {
+        console.log('❌ No UVA found, redirecting to project validation');
         void this.redirectToPage('register/validate-project');
         return;
       }
@@ -93,35 +163,37 @@ export class SplashAnimationPage implements OnInit {
       // Check if the UVA has an associated racimo ID
       const racimoID = uva.racimoID ?? '';
       if (!racimoID) {
+        console.log('❌ No racimo ID found, redirecting to project validation');
         void this.redirectToPage('register/validate-project');
         return;
       }
 
+      // Verify user still exists (redundant check but kept for safety)
       const user = await UserDSService.getUser();
       if (!user) {
+        console.log('❌ User data inconsistency detected');
         return;
       }
+
       // Check if the racimo has a valid code
+      console.log('🔗 Checking racimo code...');
       const racimoCode = await RacimoDSService.getRacimoCode(racimoID);
       if (racimoCode) {
+        console.log('✅ All validations passed, navigating to home');
+
         void this.session.setInfoField('uvaID', uva.id);
         void this.session.setInfoField('racimoID', racimoID);
         void this.session.setInfoField('racimoLinkCode', racimoCode);
-        /*await identifyUser({
-          userId: response.data.userId,
-          userProfile: await getUserProfile({
-            name: user.Name,
-            phone: user.PhoneNumber,
-            racimoCode: racimoCode,
-            uvaId: uva.id,
-          }),
-        });*/
+
         void this.redirectToPage('app/tabs/home');
       } else {
+        console.log(
+          '❌ No valid racimo code, redirecting to project validation',
+        );
         void this.redirectToPage('register/validate-project');
       }
     } catch (err) {
-      console.error('No user found', err);
+      console.error('💥 Error in authenticated flow:', err);
       void this.redirectToPage('/login');
     }
   }
@@ -220,52 +292,4 @@ export class SplashAnimationPage implements OnInit {
       console.error('Error en la animacion');
     }
   }
-}
-
-interface userCustomProperties {
-  name: string;
-  phone: string;
-  racimoCode: string;
-  uvaId: string;
-}
-/**
- * @param {userCustomProperties} customProperties customProperties
- * @returns {Promise<UserProfile>} return UserProfile
- */
-async function getUserProfile(
-  customProperties: userCustomProperties,
-): Promise<UserProfile> {
-  // Información básica
-  ///onst appVersion = await AppVersion.getVersionNumber(); // Versión de la app
-  //const locale = await Globalization.getLocaleName(); // Idioma y región
-
-  // Información del dispositivo
-  const deviceInfo = await Device.getInfo();
-
-  // Crear el objeto UserProfile
-  const userProfile = {
-    customProperties: {
-      racimoCode: [customProperties.racimoCode],
-      uvaId: [customProperties.uvaId],
-      phone: [customProperties.phone],
-    },
-    demographic: {
-      //appVersion: appVersion, // Versión de la aplicación
-      //locale: locale.value, // Idioma y región (locale)
-      make: deviceInfo.manufacturer, // Marca del dispositivo
-      model: deviceInfo.model, // Modelo del dispositivo
-      modelVersion: deviceInfo.osVersion, // Versión del sistema operativo
-      platform: deviceInfo.platform, // Plataforma (android, ios)
-      platformVersion: deviceInfo.osVersion, // Versión del sistema operativo
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, // Zona horaria*/
-    },
-    metrics: {
-      // Puedes agregar métricas personalizadas si es necesario
-      screenWidth: window.innerWidth, // Ejemplo de métrica
-    },
-    name: 'Miguel', // Nombre del usuario (deberías obtenerlo del estado de la aplicación)
-    plan: 'Pro', // Plan del usuario si es relevante
-  };
-
-  return userProfile;
 }

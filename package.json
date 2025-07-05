@@ -19,7 +19,13 @@
     "format": "prettier --write 'src/**/*.{js,ts,html,css}'",
     "build-android-debug": "ionic capacitor build android --prod --no-open && cd android && ./gradlew assembleDebug",
     "amplify-modelgen": "node amplify/scripts/amplify-modelgen.js",
-    "amplify-push": "node amplify/scripts/amplify-push.js"
+    "amplify-push": "node amplify/scripts/amplify-push.js",
+    "android:setup": "./scripts/setup-android.sh",
+    "android:build": "./scripts/build-android.sh",
+    "android:bundle": "./scripts/build-bundle.sh",
+    "android:full": "npm run android:setup && npm run android:build",
+    "android:prod": "./scripts/build-production.sh",
+    "android:prod-safe": "./scripts/build-production-safe.sh"
   },
   "dependencies": {
     "@angular/animations": "^18.0.0",
