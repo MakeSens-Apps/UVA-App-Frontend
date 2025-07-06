@@ -417,21 +417,31 @@ jobs:
           echo "   Size: $KEYSTORE_SIZE"
 
           # Verificar que los secrets de password existan
+          echo "🔍 Checking GitHub Secrets availability..."
+
           if [ -z "${{ secrets.KEYSTORE_PASSWORD }}" ]; then
-            echo "❌ Error: KEYSTORE_PASSWORD secret not found"
-            echo "ℹ️  Only password secrets are needed (keystore is in repo)"
+            echo "❌ Error: KEYSTORE_PASSWORD secret is missing or empty"
+            echo "ℹ️  Go to: Settings → Secrets and variables → Actions"
+            echo "ℹ️  Add secret: KEYSTORE_PASSWORD"
             exit 1
           fi
+          echo "✅ KEYSTORE_PASSWORD secret exists"
 
           if [ -z "${{ secrets.KEY_ALIAS }}" ]; then
-            echo "❌ Error: KEY_ALIAS secret not found"
+            echo "❌ Error: KEY_ALIAS secret is missing or empty"
+            echo "ℹ️  Go to: Settings → Secrets and variables → Actions"
+            echo "ℹ️  Add secret: KEY_ALIAS"
             exit 1
           fi
+          echo "✅ KEY_ALIAS secret exists: '${{ secrets.KEY_ALIAS }}'"
 
           if [ -z "${{ secrets.KEY_PASSWORD }}" ]; then
-            echo "❌ Error: KEY_PASSWORD secret not found"
+            echo "❌ Error: KEY_PASSWORD secret is missing or empty"
+            echo "ℹ️  Go to: Settings → Secrets and variables → Actions"
+            echo "ℹ️  Add secret: KEY_PASSWORD"
             exit 1
           fi
+          echo "✅ KEY_PASSWORD secret exists"
 
           echo "✅ All required secrets are configured"
 
@@ -448,14 +458,30 @@ jobs:
           echo "✅ Keystore validation successful"
 
           # Crear signing.properties apuntando al keystore del repositorio
-          cat > android/signing.properties << EOF
-          storeFile=keys/keystore.jks
-          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
-          keyAlias=${{ secrets.KEY_ALIAS }}
-          keyPassword=${{ secrets.KEY_PASSWORD }}
-          EOF
+          echo "📝 Creating signing.properties..."
+          echo "storeFile=../keys/keystore.jks" > android/app/signing.properties
+          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" >> android/app/signing.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/app/signing.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/app/signing.properties
 
           echo "✅ signing.properties created"
+
+          # Verificar que el archivo se creó correctamente y no tiene valores vacíos
+          echo "🔍 Verifying signing.properties content..."
+          if [ ! -f "android/signing.properties" ]; then
+            echo "❌ Error: signing.properties was not created"
+            exit 1
+          fi
+
+          # Verificar que no hay líneas vacías o con valores nulos
+          if grep -q "=$" android/signing.properties; then
+            echo "❌ Error: signing.properties contains empty values"
+            echo "📄 Content (without passwords):"
+            cat android/signing.properties | sed 's/Password=.*/Password=***/'
+            exit 1
+          fi
+
+          echo "✅ signing.properties verification passed"
 
           # Verificar la configuración
           echo "📋 Signing configuration:"
@@ -712,15 +738,17 @@ jobs:
             echo "📋 Bundle structure:"
             unzip -l android/app/build/outputs/bundle/release/app-release.aab | head -20
             
-            # Verificar si contiene archivos de firma
-            SIGNATURE_FILES=$(unzip -l android/app/build/outputs/bundle/release/app-release.aab | grep -E "META-INF.*\.(RSA|DSA|EC)" | wc -l)
+            # Verificar si contiene archivos de firma (incluir todos los tipos)
+            SIGNATURE_FILES=$(unzip -l android/app/build/outputs/bundle/release/app-release.aab | grep -E "META-INF.*\.(RSA|DSA|EC|SF|MF)" | wc -l)
             if [ $SIGNATURE_FILES -gt 0 ]; then
               echo "✅ Bundle contains signature files ($SIGNATURE_FILES found)"
               unzip -l android/app/build/outputs/bundle/release/app-release.aab | grep "META-INF"
             else
-              echo "❌ Warning: No signature files found in bundle"
+              echo "❌ ERROR: No signature files found in bundle"
               echo "📋 META-INF contents:"
               unzip -l android/app/build/outputs/bundle/release/app-release.aab | grep "META-INF" || echo "No META-INF found"
+              echo "🔍 This bundle will be REJECTED by Google Play Store"
+              exit 1
             fi
           fi
 
