@@ -1,49 +1,108 @@
-name: 📦 Build Android Bundle (AAB)
+name: Build Android Bundle (AAB)
 
 on:
-  # Activación manual del workflow
+  # Activación manual con opciones
   workflow_dispatch:
     inputs:
       environment:
         description: 'Ambiente de Amplify'
-        required: true
-        default: 'develop'
+        required: false
+        default: 'main'
         type: choice
         options:
-          - develop
-          - test
           - main
+          - test
+          - develop
       build_type:
         description: 'Tipo de build'
-        required: true
+        required: false
         default: 'release'
         type: choice
         options:
-          - debug
           - release
+          - debug
+      version_name:
+        description: 'Version Name (ej: 1.0.0)'
+        required: false
+        type: string
+      version_code:
+        description: 'Version Code (número entero)'
+        required: false
+        type: string
 
-  # También se puede ejecutar en pushes a main para releases
+  # Activación automática en releases y tags
+  release:
+    types: [published]
+
   push:
-    branches:
-      - 'main'
     tags:
       - 'v*'
+    branches:
+      - main
 
-# Variables de entorno
 env:
   AMPLIFY_APP_ID: d2l8hh51bqhq16
-  JAVA_VERSION: '17'
-  NODE_VERSION: '20'
+  NODE_VERSION: 20
+  JAVA_VERSION: 17
   AWS_REGION: us-east-1
 
 jobs:
-  build-bundle:
-    name: 📦 Build Android Bundle
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout repository
+      - name: 🛒 Checkout code
         uses: actions/checkout@v4
+
+      - name: 🏷️ Generate version information
+        id: version
+        run: |
+          # Obtener versión desde diferentes fuentes
+          if [ "${{ github.event_name }}" == "release" ]; then
+            VERSION_NAME="${{ github.event.release.tag_name }}"
+            VERSION_NAME=${VERSION_NAME#v}  # Remover 'v' del prefijo
+            echo "source=release" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION_NAME="${{ github.ref_name }}"
+            VERSION_NAME=${VERSION_NAME#v}  # Remover 'v' del prefijo
+            echo "source=tag" >> $GITHUB_OUTPUT
+          elif [ -n "${{ inputs.version_name }}" ]; then
+            VERSION_NAME="${{ inputs.version_name }}"
+            echo "source=manual" >> $GITHUB_OUTPUT
+          else
+            # Generar versión automática basada en timestamp
+            VERSION_NAME="1.0.$(date +%Y%m%d%H%M)"
+            echo "source=auto" >> $GITHUB_OUTPUT
+          fi
+
+          # Generar VERSION_CODE
+          if [ -n "${{ inputs.version_code }}" ]; then
+            VERSION_CODE="${{ inputs.version_code }}"
+          else
+            # Generar versionCode automático: YYYYMMDDHHMM
+            VERSION_CODE=$(date +%Y%m%d%H%M)
+          fi
+
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+
+          echo "🏷️ Version Name: $VERSION_NAME"
+          echo "🔢 Version Code: $VERSION_CODE"
+
+      - name: 🎯 Determine environment
+        id: auto-env
+        run: |
+          if [ "${{ github.event_name }}" == "release" ] || [ "${{ github.ref }}" == "refs/heads/main" ] || [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "environment=main" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" == "refs/heads/test" ]; then
+            echo "environment=test" >> $GITHUB_OUTPUT
+          else
+            echo "environment=develop" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 📅 Generate timestamp
+        id: timestamp
+        run: echo "timestamp=$(date +%Y%m%d_%H%M%S)" >> $GITHUB_OUTPUT
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
@@ -57,167 +116,144 @@ jobs:
           distribution: 'temurin'
           java-version: ${{ env.JAVA_VERSION }}
 
-      - name: 🤖 Setup Android SDK
+      - name: 🔧 Setup Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          api-level: 33
-          build-tools: 33.0.0
-          ndk-version: 23.1.7779620
 
-      - name: 🔐 Configure AWS credentials
+      - name: 🔧 Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: ⚡ Pull Amplify backend
         run: |
-          npm ci
-          npm install -g @aws-amplify/cli @ionic/cli @capacitor/cli
+          echo "🔄 Pulling Amplify backend..."
+          export AMPLIFY_CLI_DISABLE_BROWSER_AUTH=true
+          npm install -g @aws-amplify/cli@latest
 
-      - name: 🌍 Determine Amplify environment
-        id: amplify-env
+          AMPLIFY_ENV="${{ inputs.environment || steps.auto-env.outputs.environment }}"
+          echo "🎯 Using environment: $AMPLIFY_ENV"
+
+          AMPLIFY_JSON='{"projectName":"UVA","appId":"'$AMPLIFY_APP_ID'","envName":"'$AMPLIFY_ENV'"}'
+          PROVIDERS_JSON='{"awscloudformation":{"configLevel":"project","useProfile":false,"accessKeyId":"'$AWS_ACCESS_KEY_ID'","secretAccessKey":"'$AWS_SECRET_ACCESS_KEY'","region":"'$AWS_REGION'"}}'
+          FRONTEND_JSON='{"frontend":"javascript","framework":"angular","config":{"SourceDir":"src","DistributionDir":"www","BuildCommand":"npm run build","StartCommand":"ionic serve"}}'
+
+          amplify pull --amplify "$AMPLIFY_JSON" --providers "$PROVIDERS_JSON" --frontend "$FRONTEND_JSON" --yes
+
+          echo "✅ Amplify backend configured"
+
+      - name: 🏗️ Build Ionic project
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            ENV_NAME="${{ github.event.inputs.environment }}"
-            echo "env_name=$ENV_NAME" >> $GITHUB_OUTPUT
-            echo "🎯 Using environment: $ENV_NAME (manual selection)"
-          elif [[ "${{ github.ref }}" == "refs/heads/main" ]] || [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            echo "env_name=main" >> $GITHUB_OUTPUT
-            echo "🎯 Using MAIN environment for production"
-          else
-            echo "env_name=develop" >> $GITHUB_OUTPUT
-            echo "🚧 Using DEVELOP environment as default"
-          fi
-
-      - name: 🔄 Amplify Pull
-        run: |
-          echo "🔧 Descargando configuración de Amplify..."
-          echo "📍 App ID: ${{ env.AMPLIFY_APP_ID }}"
-          echo "🌍 Environment: ${{ steps.amplify-env.outputs.env_name }}"
-          echo "📍 Region: ${{ env.AWS_REGION }}"
-
-          amplify pull \
-            --appId ${{ env.AMPLIFY_APP_ID }} \
-            --envName ${{ steps.amplify-env.outputs.env_name }} \
-            --yes
-            --accessToken ${{ secrets.AMPLIFY_ACCESS_TOKEN }}
-
-          echo "✅ Configuración de Amplify descargada exitosamente"
-
-      - name: 🏗️ Build web application
-        run: |
-          echo "🔨 Building web application for production..."
-          npm run build
-          echo "✅ Web build completed"
+          echo "🔨 Building Ionic project..."
+          npm run build --prod
+          echo "✅ Ionic build completed"
 
       - name: 📱 Setup Android platform
         run: |
           echo "🔧 Setting up Android platform..."
-
-          # Sincronizar Capacitor
           npx cap sync android
-
-          # Generar assets
           npx @capacitor/assets generate --android || true
 
-          # Dar permisos de ejecución al gradlew
-          chmod +x android/gradlew
-
-          echo "✅ Android platform configured"
-
-      - name: 🔨 Build Android Bundle
-        run: |
-          echo "📦 Building Android Bundle (AAB)..."
-
+          # Verificar y configurar Gradle Wrapper
+          echo "🔧 Verificando Gradle Wrapper..."
           cd android
 
-          # Determinar tipo de build
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            BUILD_TYPE="${{ github.event.inputs.build_type }}"
-          else
-            BUILD_TYPE="release"
+          if [ ! -f "gradlew" ]; then
+            echo "⚠️ gradlew no encontrado, generando Gradle Wrapper..."
+            gradle wrapper --gradle-version 8.2.1
           fi
 
-          echo "🚀 Building $BUILD_TYPE bundle..."
+          chmod +x gradlew
 
-          if [[ "$BUILD_TYPE" == "debug" ]]; then
-            ./gradlew bundleDebug --no-daemon --stacktrace
-          else
-            ./gradlew bundleRelease --no-daemon --stacktrace
+          if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ] || [ ! -f "gradle/wrapper/gradle-wrapper.properties" ]; then
+            echo "⚠️ Archivos del wrapper incompletos, regenerando..."
+            gradle wrapper --gradle-version 8.2.1
           fi
 
           cd ..
+          echo "✅ Android platform configured"
 
+      - name: 🏷️ Update Android version
+        run: |
+          echo "🏷️ Updating Android version..."
+
+          # Actualizar build.gradle
+          sed -i "s/versionCode [0-9]*/versionCode ${{ steps.version.outputs.version_code }}/" android/app/build.gradle
+          sed -i "s/versionName \"[^\"]*\"/versionName \"${{ steps.version.outputs.version_name }}\"/" android/app/build.gradle
+
+          # Verificar cambios
+          echo "📋 Version info updated:"
+          grep -n "versionCode\|versionName" android/app/build.gradle
+
+          echo "✅ Android version updated"
+
+      - name: 🔐 Setup Release Signing (Production)
+        if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/')
+        run: |
+          echo "🔐 Setting up release signing..."
+
+          # Crear keystore para release (solo si existe el secret)
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
+            
+            # Crear signing.properties
+            cat > android/signing.properties << EOF
+          storeFile=release.keystore
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          EOF
+            
+            echo "✅ Release signing configured"
+          else
+            echo "⚠️ No se encontraron secrets para signing. Usando debug signing."
+          fi
+
+      - name: 🔨 Build Android Bundle
+        run: |
+          echo "📦 Building Android Bundle..."
+
+          cd android
+
+          # Verificar que gradlew funcione
+          if ! ./gradlew --version &> /dev/null; then
+            echo "⚠️ Gradle Wrapper no funciona, usando Gradle del sistema..."
+            GRADLE_CMD="gradle"
+          else
+            echo "✅ Usando Gradle Wrapper"
+            GRADLE_CMD="./gradlew"
+          fi
+
+          # Compilar Bundle según el tipo
+          BUILD_TYPE="${{ inputs.build_type || 'release' }}"
+
+          if [ "$BUILD_TYPE" == "release" ]; then
+            echo "🚀 Building release bundle..."
+            if [ -f "signing.properties" ]; then
+              echo "🔐 Using production signing"
+              $GRADLE_CMD bundleRelease --no-daemon --stacktrace
+            else
+              echo "⚠️ Using debug signing for release"
+              $GRADLE_CMD bundleDebug --no-daemon --stacktrace
+            fi
+          else
+            echo "🔨 Building debug bundle..."
+            $GRADLE_CMD bundleDebug --no-daemon --stacktrace
+          fi
+
+          cd ..
           echo "✅ Bundle build completed"
 
-      - name: 📄 List generated bundles
-        run: |
-          echo "📋 Generated Bundle files:"
-          find android/app/build/outputs/bundle -name "*.aab" -type f | while read bundle; do
-            size=$(du -h "$bundle" | cut -f1)
-            echo "  📦 $bundle ($size)"
-          done
-
-      - name: 🏷️ Generate artifact names
-        id: artifact-names
-        run: |
-          BRANCH_NAME=${GITHUB_REF#refs/heads/}
-          BRANCH_NAME=${BRANCH_NAME//\//-}  # Reemplazar / con -
-          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-
-          # Si es un tag, usar el tag como nombre
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            TAG_NAME=${GITHUB_REF#refs/tags/}
-            echo "bundle_name=UVA-Bundle-${TAG_NAME}-${TIMESTAMP}" >> $GITHUB_OUTPUT
-          else
-            echo "bundle_name=UVA-Bundle-${BRANCH_NAME}-${TIMESTAMP}" >> $GITHUB_OUTPUT
-          fi
-
-      - name: 📦 Upload Debug Bundle
-        if: (github.event_name == 'workflow_dispatch' && github.event.inputs.build_type == 'debug') || github.event_name == 'push'
+      - name: 📦 Upload AAB Bundle
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.artifact-names.outputs.bundle_name }}-debug
-          path: android/app/build/outputs/bundle/debug/app-debug.aab
-          retention-days: 30
-
-      - name: 📦 Upload Release Bundle
-        if: (github.event_name == 'workflow_dispatch' && github.event.inputs.build_type == 'release') || github.event_name == 'push'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.artifact-names.outputs.bundle_name }}-release
-          path: android/app/build/outputs/bundle/release/app-release.aab
+          name: android-bundle-v${{ steps.version.outputs.version_name }}-${{ steps.timestamp.outputs.timestamp }}
+          path: |
+            android/app/build/outputs/bundle/release/app-release.aab
+            android/app/build/outputs/bundle/debug/app-debug.aab
           retention-days: 90
-
-      - name: 📊 Build summary
-        run: |
-          echo "## 📦 Bundle Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Branch/Tag**: ${{ github.ref }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Amplify Environment**: ${{ steps.amplify-env.outputs.env_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Build Type**: ${{ github.event.inputs.build_type || 'release' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Trigger**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **AWS Region**: ${{ env.AWS_REGION }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📦 Generated Bundles" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          if [ -f "android/app/build/outputs/bundle/debug/app-debug.aab" ]; then
-            DEBUG_SIZE=$(du -h android/app/build/outputs/bundle/debug/app-debug.aab | cut -f1)
-            echo "- ✅ **Debug Bundle**: $DEBUG_SIZE" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          if [ -f "android/app/build/outputs/bundle/release/app-release.aab" ]; then
-            RELEASE_SIZE=$(du -h android/app/build/outputs/bundle/release/app-release.aab | cut -f1)
-            echo "- ✅ **Release Bundle**: $RELEASE_SIZE" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🎯 Environment Configuration" >> $GITHUB_STEP_SUMMARY
-          echo "- **App ID**: ${{ env.AMPLIFY_APP_ID }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Backend**: ${{ steps.amplify-env.outputs.env_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📱 Google Play Store" >> $GITHUB_STEP_SUMMARY
-          echo "El Bundle AAB está listo para subir a Google Play Store." >> $GITHUB_STEP_SUMMARY
+          if-no-files-found: ignore
