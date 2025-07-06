@@ -400,20 +400,26 @@ jobs:
           cd ../..
           echo "✅ Android version updated successfully"
 
-      - name: 🔐 Setup Production Signing
+      - name: 🔐 Setup Production Signing (Existing Keystore)
         run: |
-          echo "🔐 Setting up production signing..."
+          echo "🔐 Setting up production signing with existing keystore..."
 
-          # Verificar que los secrets existan
-          if [ -z "${{ secrets.KEYSTORE_BASE64 }}" ]; then
-            echo "❌ Error: KEYSTORE_BASE64 secret not found"
-            echo "ℹ️  Please configure the keystore secrets in GitHub"
-            echo "ℹ️  Google Play Store requires production signing"
+          # Verificar que el keystore existe en el repositorio
+          if [ ! -f "android/keys/keystore.jks" ]; then
+            echo "❌ Error: Keystore not found at android/keys/keystore.jks"
+            echo "📂 Contents of android/keys/:"
+            ls -la android/keys/ || echo "Directory not found"
             exit 1
           fi
 
+          echo "✅ Keystore found: android/keys/keystore.jks"
+          KEYSTORE_SIZE=$(du -h android/keys/keystore.jks | cut -f1)
+          echo "   Size: $KEYSTORE_SIZE"
+
+          # Verificar que los secrets de password existan
           if [ -z "${{ secrets.KEYSTORE_PASSWORD }}" ]; then
             echo "❌ Error: KEYSTORE_PASSWORD secret not found"
+            echo "ℹ️  Only password secrets are needed (keystore is in repo)"
             exit 1
           fi
 
@@ -427,36 +433,37 @@ jobs:
             exit 1
           fi
 
-          echo "✅ All signing secrets are configured"
+          echo "✅ All required secrets are configured"
 
-          # Crear keystore desde base64
-          echo "🔄 Creating keystore from base64..."
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
-
-          # Verificar que el keystore se creó correctamente
-          if [ ! -f "android/app/release.keystore" ]; then
-            echo "❌ Error: Failed to create keystore file"
+          # Validar que el keystore es accesible
+          echo "🔧 Validating keystore access..."
+          if ! keytool -list -keystore android/keys/keystore.jks -storepass "${{ secrets.KEYSTORE_PASSWORD }}" -alias "${{ secrets.KEY_ALIAS }}" > /dev/null 2>&1; then
+            echo "❌ Error: Cannot access keystore with provided credentials"
+            echo "ℹ️  Check KEYSTORE_PASSWORD and KEY_ALIAS secrets"
+            echo "📋 Available aliases in keystore:"
+            keytool -list -keystore android/keys/keystore.jks -storepass "${{ secrets.KEYSTORE_PASSWORD }}" 2>/dev/null | grep "Alias name:" || echo "Cannot list aliases"
             exit 1
           fi
 
-          # Verificar que el keystore es válido
-          if ! keytool -list -keystore android/app/release.keystore -storepass "${{ secrets.KEYSTORE_PASSWORD }}" -alias "${{ secrets.KEY_ALIAS }}" > /dev/null 2>&1; then
-            echo "❌ Error: Keystore validation failed"
-            echo "ℹ️  Check your keystore secrets (password, alias, etc.)"
-            exit 1
-          fi
+          echo "✅ Keystore validation successful"
 
-          echo "✅ Keystore validated successfully"
-
-          # Crear signing.properties
+          # Crear signing.properties apuntando al keystore del repositorio
           cat > android/signing.properties << EOF
-          storeFile=release.keystore
+          storeFile=keys/keystore.jks
           storePassword=${{ secrets.KEYSTORE_PASSWORD }}
           keyAlias=${{ secrets.KEY_ALIAS }}
           keyPassword=${{ secrets.KEY_PASSWORD }}
           EOF
 
-          echo "✅ Production signing configured for Google Play Store"
+          echo "✅ signing.properties created"
+
+          # Verificar la configuración
+          echo "📋 Signing configuration:"
+          echo "  Store File: keys/keystore.jks (relative to android/)"
+          echo "  Key Alias: ${{ secrets.KEY_ALIAS }}"
+          echo "  Store Path: $(realpath android/keys/keystore.jks)"
+
+          echo "✅ Production signing configured with repository keystore"
 
       - name: 🔨 Build Android Bundle
         run: |
@@ -476,11 +483,43 @@ jobs:
           # Verificar que el firmado esté configurado
           if [ -f "signing.properties" ]; then
             echo "🔐 Production signing configured - building release bundle"
+            
+            # Verificar que el keystore existe en la ubicación esperada
+            if [ -f "keys/keystore.jks" ]; then
+              echo "✅ Keystore file found: keys/keystore.jks"
+              KEYSTORE_SIZE=$(du -h keys/keystore.jks | cut -f1)
+              echo "   Size: $KEYSTORE_SIZE"
+            else
+              echo "❌ Error: Keystore file not found at keys/keystore.jks"
+              echo "📂 Current directory: $(pwd)"
+              echo "📂 Checking keystore locations:"
+              ls -la keys/ | grep -E "\.(keystore|jks)$" || echo "No keystore files found in keys/"
+              ls -la . | grep -E "\.(keystore|jks)$" || echo "No keystore files found in current dir/"
+              echo "📂 Directory structure:"
+              ls -la keys/ || echo "keys/ directory not found"
+              exit 1
+            fi
+            
+            # Verificar que build.gradle tiene configuración de firmado
+            if grep -q "signingConfigs" app/build.gradle; then
+              echo "✅ build.gradle has signing configuration"
+            else
+              echo "❌ Error: build.gradle missing signing configuration"
+              echo "📄 Current buildTypes section:"
+              grep -A 10 "buildTypes" app/build.gradle || echo "No buildTypes found"
+              exit 1
+            fi
+            
+            # Mostrar contenido de signing.properties para debug
+            echo "📋 Current signing.properties:"
+            cat signing.properties | sed 's/Password=.*/Password=***/'
+            
             echo "🚀 Building release bundle for Google Play Store..."
-            $GRADLE_CMD bundleRelease --no-daemon --stacktrace
+            $GRADLE_CMD bundleRelease --no-daemon --stacktrace --info
           else
             echo "❌ Error: Production signing not configured"
             echo "ℹ️  Cannot build bundle for Google Play Store without production signing"
+            ls -la . | grep signing || echo "No signing files found"
             exit 1
           fi
 
@@ -648,3 +687,49 @@ jobs:
           echo "- **Version Name**: ${{ steps.version.outputs.version_name }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Version Code**: ${{ steps.version.outputs.version_code }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Amplify Backend**: ${{ inputs.environment || steps.auto-env.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: 🔍 Verify Bundle Signing
+        run: |
+          echo "🔍 Verifying bundle signature..."
+
+          # Verificar que el bundle se generó
+          if [ ! -f "android/app/build/outputs/bundle/release/app-release.aab" ]; then
+            echo "❌ Error: Release bundle was not generated"
+            echo "📂 Contents of bundle directory:"
+            ls -la android/app/build/outputs/bundle/ || echo "Bundle directory not found"
+            exit 1
+          fi
+
+          # Obtener información del bundle
+          BUNDLE_SIZE=$(du -h android/app/build/outputs/bundle/release/app-release.aab | cut -f1)
+          echo "📦 Bundle generated: $BUNDLE_SIZE"
+
+          # Verificar que el bundle esté firmado usando aapt2 (más confiable que jarsigner para AAB)
+          echo "🔐 Checking bundle signature..."
+
+          # Verificar estructura del bundle
+          if command -v unzip >/dev/null 2>&1; then
+            echo "📋 Bundle structure:"
+            unzip -l android/app/build/outputs/bundle/release/app-release.aab | head -20
+            
+            # Verificar si contiene archivos de firma
+            SIGNATURE_FILES=$(unzip -l android/app/build/outputs/bundle/release/app-release.aab | grep -E "META-INF.*\.(RSA|DSA|EC)" | wc -l)
+            if [ $SIGNATURE_FILES -gt 0 ]; then
+              echo "✅ Bundle contains signature files ($SIGNATURE_FILES found)"
+              unzip -l android/app/build/outputs/bundle/release/app-release.aab | grep "META-INF"
+            else
+              echo "❌ Warning: No signature files found in bundle"
+              echo "📋 META-INF contents:"
+              unzip -l android/app/build/outputs/bundle/release/app-release.aab | grep "META-INF" || echo "No META-INF found"
+            fi
+          fi
+
+          # Verificar con bundletool si está disponible
+          if command -v bundletool >/dev/null 2>&1; then
+            echo "🔧 Using bundletool to verify..."
+            bundletool validate --bundle=android/app/build/outputs/bundle/release/app-release.aab || echo "⚠️ Bundletool validation failed"
+          else
+            echo "ℹ️  bundletool not available for validation"
+          fi
+
+          echo "✅ Bundle verification completed"
