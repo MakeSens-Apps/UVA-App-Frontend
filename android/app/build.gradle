@@ -16,10 +16,36 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+
+    // Configuración de firmado para Google Play Store
+    signingConfigs {
+        release {
+            if (project.hasProperty('android.injected.signing.store.file')) {
+                // Firmado desde Android Studio
+                storeFile file(project.property('android.injected.signing.store.file'))
+                storePassword project.property('android.injected.signing.store.password')
+                keyAlias project.property('android.injected.signing.key.alias')
+                keyPassword project.property('android.injected.signing.key.password')
+            } else if (file('signing.properties').exists()) {
+                // Firmado desde CI/CD o local con signing.properties
+                def props = new Properties()
+                props.load(new FileInputStream(file('signing.properties')))
+                storeFile file(props['storeFile'])
+                storePassword props['storePassword']
+                keyAlias props['keyAlias']
+                keyPassword props['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // Aplicar firmado solo si está configurado correctamente
+            if (signingConfigs.release.storeFile != null) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }
