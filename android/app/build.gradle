@@ -42,10 +42,8 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            // Usar firmado de producción si está disponible
-            if (signingConfigs.release.storeFile != null) {
-                signingConfig signingConfigs.release
-            }
+            // Aplicar firmado siempre que esté configurado
+            signingConfig signingConfigs.release
         }
     }
 }

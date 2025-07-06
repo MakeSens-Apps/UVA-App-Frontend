@@ -448,12 +448,10 @@ jobs:
           echo "✅ Keystore validation successful"
 
           # Crear signing.properties apuntando al keystore del repositorio
-          cat > android/signing.properties << EOF
-          storeFile=keys/keystore.jks
-          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
-          keyAlias=${{ secrets.KEY_ALIAS }}
-          keyPassword=${{ secrets.KEY_PASSWORD }}
-          EOF
+          echo "storeFile=keys/keystore.jks" > android/signing.properties
+          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" >> android/signing.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/signing.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/signing.properties
 
           echo "✅ signing.properties created"
 
@@ -712,15 +710,17 @@ jobs:
             echo "📋 Bundle structure:"
             unzip -l android/app/build/outputs/bundle/release/app-release.aab | head -20
             
-            # Verificar si contiene archivos de firma
-            SIGNATURE_FILES=$(unzip -l android/app/build/outputs/bundle/release/app-release.aab | grep -E "META-INF.*\.(RSA|DSA|EC)" | wc -l)
+            # Verificar si contiene archivos de firma (incluir todos los tipos)
+            SIGNATURE_FILES=$(unzip -l android/app/build/outputs/bundle/release/app-release.aab | grep -E "META-INF.*\.(RSA|DSA|EC|SF|MF)" | wc -l)
             if [ $SIGNATURE_FILES -gt 0 ]; then
               echo "✅ Bundle contains signature files ($SIGNATURE_FILES found)"
               unzip -l android/app/build/outputs/bundle/release/app-release.aab | grep "META-INF"
             else
-              echo "❌ Warning: No signature files found in bundle"
+              echo "❌ ERROR: No signature files found in bundle"
               echo "📋 META-INF contents:"
               unzip -l android/app/build/outputs/bundle/release/app-release.aab | grep "META-INF" || echo "No META-INF found"
+              echo "🔍 This bundle will be REJECTED by Google Play Store"
+              exit 1
             fi
           fi
 
