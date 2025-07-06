@@ -1,4 +1,4 @@
-name: Build Android Bundle (AAB)
+name: Build Android Bundle (AAB) - Production Signed
 
 on:
   # Activación manual con opciones
@@ -13,14 +13,6 @@ on:
           - main
           - test
           - develop
-      build_type:
-        description: 'Tipo de build'
-        required: false
-        default: 'release'
-        type: choice
-        options:
-          - release
-          - debug
       version_name:
         description: 'Version Name (ej: 1.0.0)'
         required: false
@@ -113,7 +105,11 @@ jobs:
 
           if [ -z "$VERSION_CODE" ]; then
             echo "❌ Error: VERSION_CODE is empty"
-            VERSION_CODE=$(date +%Y%m%d%H%M)
+            TIMESTAMP=$(date +%s)
+            VERSION_CODE=$(( $TIMESTAMP / 10 ))
+            if [ $VERSION_CODE -gt 2147483647 ]; then
+              VERSION_CODE=$(( $TIMESTAMP / 100 ))
+            fi
             echo "🔧 Using fallback version code: $VERSION_CODE"
           fi
 
@@ -404,15 +400,15 @@ jobs:
           cd ../..
           echo "✅ Android version updated successfully"
 
-      - name: 🔐 Setup Release Signing (Production)
-        if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/')
+      - name: 🔐 Setup Production Signing
         run: |
-          echo "🔐 Setting up release signing..."
+          echo "🔐 Setting up production signing..."
 
           # Verificar que los secrets existan
           if [ -z "${{ secrets.KEYSTORE_BASE64 }}" ]; then
             echo "❌ Error: KEYSTORE_BASE64 secret not found"
             echo "ℹ️  Please configure the keystore secrets in GitHub"
+            echo "ℹ️  Google Play Store requires production signing"
             exit 1
           fi
 
@@ -460,33 +456,11 @@ jobs:
           keyPassword=${{ secrets.KEY_PASSWORD }}
           EOF
 
-          echo "✅ Release signing configured"
-
-      - name: 🔐 Setup Debug Signing (Fallback)
-        if: github.event_name != 'release' && !startsWith(github.ref, 'refs/tags/')
-        run: |
-          echo "🔧 Using debug signing (not a release build)"
-
-          # Para builds que no son release, usar debug signing
-          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
-            echo "🔄 Production keystore available, using it for debug build too"
-            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
-            
-            cat > android/signing.properties << EOF
-          storeFile=release.keystore
-          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
-          keyAlias=${{ secrets.KEY_ALIAS }}
-          keyPassword=${{ secrets.KEY_PASSWORD }}
-          EOF
-            
-            echo "✅ Using production signing for debug build"
-          else
-            echo "ℹ️  Using default debug signing"
-          fi
+          echo "✅ Production signing configured for Google Play Store"
 
       - name: 🔨 Build Android Bundle
         run: |
-          echo "📦 Building Android Bundle..."
+          echo "📦 Building Android Bundle with Production Signing..."
 
           cd android
 
@@ -499,35 +473,27 @@ jobs:
             GRADLE_CMD="./gradlew"
           fi
 
-          # Compilar Bundle según el tipo
-          BUILD_TYPE="${{ inputs.build_type || 'release' }}"
-
-          if [ "$BUILD_TYPE" == "release" ]; then
-            echo "🚀 Building release bundle..."
-            if [ -f "signing.properties" ]; then
-              echo "🔐 Using production signing"
-              $GRADLE_CMD bundleRelease --no-daemon --stacktrace
-            else
-              echo "⚠️ Using debug signing for release"
-              $GRADLE_CMD bundleDebug --no-daemon --stacktrace
-            fi
+          # Verificar que el firmado esté configurado
+          if [ -f "signing.properties" ]; then
+            echo "🔐 Production signing configured - building release bundle"
+            echo "🚀 Building release bundle for Google Play Store..."
+            $GRADLE_CMD bundleRelease --no-daemon --stacktrace
           else
-            echo "🔨 Building debug bundle..."
-            $GRADLE_CMD bundleDebug --no-daemon --stacktrace
+            echo "❌ Error: Production signing not configured"
+            echo "ℹ️  Cannot build bundle for Google Play Store without production signing"
+            exit 1
           fi
 
           cd ..
-          echo "✅ Bundle build completed"
+          echo "✅ Bundle build completed with production signing"
 
       - name: 📦 Upload AAB Bundle
         uses: actions/upload-artifact@v4
         with:
           name: android-bundle-v${{ steps.version.outputs.version_name }}-${{ steps.timestamp.outputs.timestamp }}
-          path: |
-            android/app/build/outputs/bundle/release/app-release.aab
-            android/app/build/outputs/bundle/debug/app-debug.aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
           retention-days: 90
-          if-no-files-found: ignore
+          if-no-files-found: error
 
       - name: 📬 Send Bundle to Slack
         if: success()
@@ -655,7 +621,7 @@ jobs:
           echo "- **Fuente**: ${{ steps.version.outputs.source }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Rama**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Ambiente**: ${{ inputs.environment || steps.auto-env.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Tipo**: ${{ inputs.build_type || 'release' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tipo**: Production Release (signed)" >> $GITHUB_STEP_SUMMARY
           echo "- **Timestamp**: ${{ steps.timestamp.outputs.timestamp }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
@@ -665,26 +631,17 @@ jobs:
 
           if [ -f "android/app/build/outputs/bundle/release/app-release.aab" ]; then
             BUNDLE_SIZE=$(du -h android/app/build/outputs/bundle/release/app-release.aab | cut -f1)
-            echo "- ✅ **Release Bundle**: $BUNDLE_SIZE" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          if [ -f "android/app/build/outputs/bundle/debug/app-debug.aab" ]; then
-            DEBUG_SIZE=$(du -h android/app/build/outputs/bundle/debug/app-debug.aab | cut -f1)
-            echo "- ✅ **Debug Bundle**: $DEBUG_SIZE" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ **Production Bundle**: $BUNDLE_SIZE (firmado para Google Play Store)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ **Error**: No se generó el bundle de producción" >> $GITHUB_STEP_SUMMARY
           fi
 
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Estado del signing
-          if [ -f "android/signing.properties" ]; then
-            echo "### 🔐 Signing Status" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ **Producción**: Firmado con keystore de producción" >> $GITHUB_STEP_SUMMARY
-            echo "- 🚀 **Google Play**: Listo para subir a Play Store" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "### 🔐 Signing Status" >> $GITHUB_STEP_SUMMARY
-            echo "- ⚠️ **Debug**: Firmado con certificado de debug" >> $GITHUB_STEP_SUMMARY
-            echo "- 🧪 **Testing**: Solo para pruebas internas" >> $GITHUB_STEP_SUMMARY
-          fi
+          # Estado del signing (siempre producción)
+          echo "### 🔐 Signing Status" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Producción**: Firmado con keystore de producción" >> $GITHUB_STEP_SUMMARY
+          echo "- 🚀 **Google Play**: Listo para subir a Play Store" >> $GITHUB_STEP_SUMMARY
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📋 Información de Versión" >> $GITHUB_STEP_SUMMARY
