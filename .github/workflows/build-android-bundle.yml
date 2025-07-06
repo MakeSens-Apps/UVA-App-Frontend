@@ -36,7 +36,8 @@ on:
 
   push:
     tags:
-      - 'v*'
+      - 'V*.*.*'
+      - 'v*.*.*'
     branches:
       - main
 
@@ -57,47 +58,75 @@ jobs:
       - name: 🏷️ Generate version information
         id: version
         run: |
+          echo "🏷️ Generating version information..."
+
           # Obtener versión desde diferentes fuentes
           if [ "${{ github.event_name }}" == "release" ]; then
             VERSION_NAME="${{ github.event.release.tag_name }}"
             VERSION_NAME=${VERSION_NAME#v}  # Remover 'v' del prefijo
+            VERSION_NAME=${VERSION_NAME#V}  # Remover 'V' del prefijo
             echo "source=release" >> $GITHUB_OUTPUT
+            echo "📦 Source: GitHub Release"
           elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
             VERSION_NAME="${{ github.ref_name }}"
             VERSION_NAME=${VERSION_NAME#v}  # Remover 'v' del prefijo
+            VERSION_NAME=${VERSION_NAME#V}  # Remover 'V' del prefijo
             echo "source=tag" >> $GITHUB_OUTPUT
+            echo "📦 Source: Git Tag"
           elif [ -n "${{ inputs.version_name }}" ]; then
             VERSION_NAME="${{ inputs.version_name }}"
             echo "source=manual" >> $GITHUB_OUTPUT
+            echo "📦 Source: Manual Input"
           else
             # Generar versión automática basada en timestamp
             VERSION_NAME="1.0.$(date +%Y%m%d%H%M)"
             echo "source=auto" >> $GITHUB_OUTPUT
+            echo "📦 Source: Auto-generated"
           fi
 
-          # Generar VERSION_CODE
+          # Generar VERSION_CODE único
           if [ -n "${{ inputs.version_code }}" ]; then
             VERSION_CODE="${{ inputs.version_code }}"
+            echo "📦 Version Code: Manual Input"
           else
-            # Generar versionCode automático: YYYYMMDDHHMM
+            # Generar versionCode automático: YYYYMMDDHHMM (siempre único)
             VERSION_CODE=$(date +%Y%m%d%H%M)
+            echo "📦 Version Code: Auto-generated"
           fi
 
+          # Validar que no estén vacíos
+          if [ -z "$VERSION_NAME" ]; then
+            echo "❌ Error: VERSION_NAME is empty"
+            VERSION_NAME="1.0.0"
+            echo "🔧 Using fallback version: $VERSION_NAME"
+          fi
+
+          if [ -z "$VERSION_CODE" ]; then
+            echo "❌ Error: VERSION_CODE is empty"
+            VERSION_CODE=$(date +%Y%m%d%H%M)
+            echo "🔧 Using fallback version code: $VERSION_CODE"
+          fi
+
+          # Outputs
           echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
           echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
 
-          echo "🏷️ Version Name: $VERSION_NAME"
-          echo "🔢 Version Code: $VERSION_CODE"
+          echo "✅ Final values:"
+          echo "  📛 Version Name: $VERSION_NAME"
+          echo "  🔢 Version Code: $VERSION_CODE"
 
       - name: 🎯 Determine environment
         id: auto-env
         run: |
           if [ "${{ github.event_name }}" == "release" ] || [ "${{ github.ref }}" == "refs/heads/main" ] || [[ "${{ github.ref }}" == refs/tags/* ]]; then
             echo "environment=main" >> $GITHUB_OUTPUT
+            echo "🎯 Environment: main (production)"
           elif [ "${{ github.ref }}" == "refs/heads/test" ]; then
             echo "environment=test" >> $GITHUB_OUTPUT
+            echo "🎯 Environment: test"
           else
             echo "environment=develop" >> $GITHUB_OUTPUT
+            echo "🎯 Environment: develop"
           fi
 
       - name: 📅 Generate timestamp
@@ -181,37 +210,63 @@ jobs:
         run: |
           echo "🏷️ Updating Android version..."
 
-          # Mostrar valores actuales
+          # Obtener valores validados
+          VERSION_NAME="${{ steps.version.outputs.version_name }}"
+          VERSION_CODE="${{ steps.version.outputs.version_code }}"
+
+          echo "📋 Values to update:"
+          echo "  Version Name: '$VERSION_NAME'"
+          echo "  Version Code: '$VERSION_CODE'"
+
+          # Validar que los valores no estén vacíos
+          if [ -z "$VERSION_NAME" ] || [ -z "$VERSION_CODE" ]; then
+            echo "❌ Error: Empty version values detected"
+            echo "  VERSION_NAME: '$VERSION_NAME'"
+            echo "  VERSION_CODE: '$VERSION_CODE'"
+            exit 1
+          fi
+
+          # Mostrar contenido actual
           echo "📋 Current build.gradle version info:"
           grep -n "versionCode\|versionName" android/app/build.gradle || echo "No version info found"
 
-          echo "🔄 Updating to:"
-          echo "  versionCode: ${{ steps.version.outputs.version_code }}"
-          echo "  versionName: ${{ steps.version.outputs.version_name }}"
-
-          # Actualizar build.gradle con sed más específico
+          # Trabajar en el directorio correcto
           cd android/app
 
-          # Backup del archivo original
+          # Crear backup
           cp build.gradle build.gradle.backup
+          echo "💾 Backup created: build.gradle.backup"
 
-          # Actualizar versionCode (formato: "versionCode 8" -> "versionCode 123")
-          sed -i.tmp "s/versionCode [0-9][0-9]*/versionCode ${{ steps.version.outputs.version_code }}/" build.gradle
+          # Usar perl en lugar de sed para mejor compatibilidad
+          echo "🔄 Updating versionCode..."
+          perl -i -pe "s/versionCode\s+\d+/versionCode $VERSION_CODE/" build.gradle
 
-          # Actualizar versionName (formato: "versionName \"2.1.7\"" -> "versionName \"1.0.0\"")
-          sed -i.tmp "s/versionName \"[^\"]*\"/versionName \"${{ steps.version.outputs.version_name }}\"/" build.gradle
-
-          # Limpiar archivos temporales
-          rm -f build.gradle.tmp
+          echo "🔄 Updating versionName..."
+          perl -i -pe "s/versionName\s+\"[^\"]*\"/versionName \"$VERSION_NAME\"/" build.gradle
 
           # Verificar cambios
           echo "📋 Updated version info:"
           grep -n "versionCode\|versionName" build.gradle
 
-          # Verificar que no hay valores null
-          if grep -q "null" build.gradle; then
-            echo "❌ Error: Found null values in build.gradle"
+          # Verificar que no hay valores problemáticos
+          if grep -q "versionCode\s*$" build.gradle || grep -q "versionName\s*\"\"" build.gradle; then
+            echo "❌ Error: Invalid version values detected in build.gradle"
+            echo "📄 Content after update:"
+            cat build.gradle
             echo "📄 Restoring backup..."
+            mv build.gradle.backup build.gradle
+            exit 1
+          fi
+
+          # Verificar que las actualizaciones fueron exitosas
+          if ! grep -q "versionCode $VERSION_CODE" build.gradle; then
+            echo "❌ Error: versionCode update failed"
+            mv build.gradle.backup build.gradle
+            exit 1
+          fi
+
+          if ! grep -q "versionName \"$VERSION_NAME\"" build.gradle; then
+            echo "❌ Error: versionName update failed"
             mv build.gradle.backup build.gradle
             exit 1
           fi
