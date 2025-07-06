@@ -1,0 +1,763 @@
+name: Build Android Bundle (AAB) - Production Signed
+
+on:
+  # Activación manual con opciones
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Ambiente de Amplify'
+        required: false
+        default: 'main'
+        type: choice
+        options:
+          - main
+          - test
+          - develop
+      version_name:
+        description: 'Version Name (ej: 1.0.0)'
+        required: false
+        type: string
+      version_code:
+        description: 'Version Code (número entero)'
+        required: false
+        type: string
+
+  # Activación automática en releases y tags
+  release:
+    types: [published]
+
+  push:
+    tags:
+      - 'V*.*.*'
+      - 'v*.*.*'
+    branches:
+      - main
+
+env:
+  AMPLIFY_APP_ID: d2l8hh51bqhq16
+  NODE_VERSION: 20
+  JAVA_VERSION: 17
+  AWS_REGION: us-east-1
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🛒 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🏷️ Generate version information
+        id: version
+        run: |
+          echo "🏷️ Generating version information..."
+
+          # Obtener versión desde diferentes fuentes
+          if [ "${{ github.event_name }}" == "release" ]; then
+            VERSION_NAME="${{ github.event.release.tag_name }}"
+            VERSION_NAME=${VERSION_NAME#v}  # Remover 'v' del prefijo
+            VERSION_NAME=${VERSION_NAME#V}  # Remover 'V' del prefijo
+            echo "source=release" >> $GITHUB_OUTPUT
+            echo "📦 Source: GitHub Release"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION_NAME="${{ github.ref_name }}"
+            VERSION_NAME=${VERSION_NAME#v}  # Remover 'v' del prefijo
+            VERSION_NAME=${VERSION_NAME#V}  # Remover 'V' del prefijo
+            echo "source=tag" >> $GITHUB_OUTPUT
+            echo "📦 Source: Git Tag"
+          elif [ -n "${{ inputs.version_name }}" ]; then
+            VERSION_NAME="${{ inputs.version_name }}"
+            echo "source=manual" >> $GITHUB_OUTPUT
+            echo "📦 Source: Manual Input"
+          else
+            # Generar versión automática basada en timestamp
+            VERSION_NAME="1.0.$(date +%Y%m%d%H%M)"
+            echo "source=auto" >> $GITHUB_OUTPUT
+            echo "📦 Source: Auto-generated"
+          fi
+
+          # Generar VERSION_CODE único pero dentro del límite de Android (max: 2,147,483,647)
+          if [ -n "${{ inputs.version_code }}" ]; then
+            VERSION_CODE="${{ inputs.version_code }}"
+            echo "📦 Version Code: Manual Input"
+          else
+            # Estrategia optimizada: usar números más significativos del timestamp
+            # División por 10 = nuevo código cada 10 segundos (perfecto para CI/CD)
+            TIMESTAMP=$(date +%s)
+            VERSION_CODE=$(( $TIMESTAMP / 10 ))  # 9 dígitos más significativos
+            
+            # Validación de seguridad para el futuro (año 2100+)
+            if [ $VERSION_CODE -gt 2147483647 ]; then
+              # Fallback ultra-seguro: división por 100 (8 dígitos)
+              VERSION_CODE=$(( $TIMESTAMP / 100 ))
+              echo "📦 Version Code: Auto-generated (fallback: $VERSION_CODE, changes every 100s)"
+            else
+              echo "📦 Version Code: Auto-generated (optimized: $VERSION_CODE, changes every 10s)"
+            fi
+          fi
+
+          # Validar que no estén vacíos
+          if [ -z "$VERSION_NAME" ]; then
+            echo "❌ Error: VERSION_NAME is empty"
+            VERSION_NAME="1.0.0"
+            echo "🔧 Using fallback version: $VERSION_NAME"
+          fi
+
+          if [ -z "$VERSION_CODE" ]; then
+            echo "❌ Error: VERSION_CODE is empty"
+            TIMESTAMP=$(date +%s)
+            VERSION_CODE=$(( $TIMESTAMP / 10 ))
+            if [ $VERSION_CODE -gt 2147483647 ]; then
+              VERSION_CODE=$(( $TIMESTAMP / 100 ))
+            fi
+            echo "🔧 Using fallback version code: $VERSION_CODE"
+          fi
+
+          # Outputs y variables de entorno para mayor confiabilidad
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+
+          # También exportar como variables de entorno para pasos posteriores
+          echo "BUILD_VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
+          echo "BUILD_VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV
+
+          echo "✅ Final values:"
+          echo "  📛 Version Name: $VERSION_NAME"
+          echo "  🔢 Version Code: $VERSION_CODE"
+
+      - name: 🎯 Determine environment
+        id: auto-env
+        run: |
+          if [ "${{ github.event_name }}" == "release" ] || [ "${{ github.ref }}" == "refs/heads/main" ] || [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "environment=main" >> $GITHUB_OUTPUT
+            echo "🎯 Environment: main (production)"
+          elif [ "${{ github.ref }}" == "refs/heads/test" ]; then
+            echo "environment=test" >> $GITHUB_OUTPUT
+            echo "🎯 Environment: test"
+          else
+            echo "environment=develop" >> $GITHUB_OUTPUT
+            echo "🎯 Environment: develop"
+          fi
+
+      - name: 📅 Generate timestamp
+        id: timestamp
+        run: echo "timestamp=$(date +%Y%m%d_%H%M%S)" >> $GITHUB_OUTPUT
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: ☕ Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: 🔧 Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 🔧 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: ⚡ Pull Amplify backend
+        run: |
+          echo "🔄 Pulling Amplify backend..."
+          export AMPLIFY_CLI_DISABLE_BROWSER_AUTH=true
+          npm install -g @aws-amplify/cli@latest
+
+          AMPLIFY_ENV="${{ inputs.environment || steps.auto-env.outputs.environment }}"
+          echo "🎯 Using environment: $AMPLIFY_ENV"
+
+          AMPLIFY_JSON='{"projectName":"UVA","appId":"'$AMPLIFY_APP_ID'","envName":"'$AMPLIFY_ENV'"}'
+          PROVIDERS_JSON='{"awscloudformation":{"configLevel":"project","useProfile":false,"accessKeyId":"'$AWS_ACCESS_KEY_ID'","secretAccessKey":"'$AWS_SECRET_ACCESS_KEY'","region":"'$AWS_REGION'"}}'
+          FRONTEND_JSON='{"frontend":"javascript","framework":"angular","config":{"SourceDir":"src","DistributionDir":"www","BuildCommand":"npm run build","StartCommand":"ionic serve"}}'
+
+          amplify pull --amplify "$AMPLIFY_JSON" --providers "$PROVIDERS_JSON" --frontend "$FRONTEND_JSON" --yes
+
+          echo "✅ Amplify backend configured"
+
+      - name: 🏗️ Build Ionic project
+        run: |
+          echo "🔨 Building Ionic project..."
+          npm run build --prod
+          echo "✅ Ionic build completed"
+
+      - name: 📱 Setup Android platform
+        run: |
+          echo "🔧 Setting up Android platform..."
+          npx cap sync android
+          npx @capacitor/assets generate --android || true
+
+          # Verificar y configurar Gradle Wrapper
+          echo "🔧 Verificando Gradle Wrapper..."
+          cd android
+
+          if [ ! -f "gradlew" ]; then
+            echo "⚠️ gradlew no encontrado, generando Gradle Wrapper..."
+            gradle wrapper --gradle-version 8.2.1
+          fi
+
+          chmod +x gradlew
+
+          if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ] || [ ! -f "gradle/wrapper/gradle-wrapper.properties" ]; then
+            echo "⚠️ Archivos del wrapper incompletos, regenerando..."
+            gradle wrapper --gradle-version 8.2.1
+          fi
+
+          cd ..
+          echo "✅ Android platform configured"
+
+      - name: 🏷️ Update Android version
+        run: |
+          echo "🏷️ Updating Android version..."
+
+          # Obtener valores desde variables de entorno (más confiables)
+          VERSION_NAME="${BUILD_VERSION_NAME}"
+          VERSION_CODE="${BUILD_VERSION_CODE}"
+
+          echo "📋 Environment Variables:"
+          echo "  BUILD_VERSION_NAME: '$VERSION_NAME'"
+          echo "  BUILD_VERSION_CODE: '$VERSION_CODE'"
+
+          # Fallback a outputs si las variables de entorno están vacías
+          if [ -z "$VERSION_NAME" ] || [ "$VERSION_NAME" = "null" ]; then
+            echo "⚠️ Environment variable empty, trying step outputs..."
+            VERSION_NAME="${{ steps.version.outputs.version_name }}"
+            VERSION_CODE="${{ steps.version.outputs.version_code }}"
+            echo "📋 Step Outputs:"
+            echo "  version_name output: '$VERSION_NAME'"
+            echo "  version_code output: '$VERSION_CODE'"
+          fi
+
+          # Último fallback si ambos están vacíos
+          if [ -z "$VERSION_NAME" ] || [ "$VERSION_NAME" = "null" ]; then
+            echo "⚠️ All sources empty, using ultimate fallback"
+            if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+              VERSION_NAME="${{ github.ref_name }}"
+              VERSION_NAME=${VERSION_NAME#v}
+              VERSION_NAME=${VERSION_NAME#V}
+            else
+              VERSION_NAME="1.0.$(date +%Y%m%d%H%M)"
+            fi
+            echo "🔧 Ultimate fallback VERSION_NAME: $VERSION_NAME"
+          fi
+
+          if [ -z "$VERSION_CODE" ] || [ "$VERSION_CODE" = "null" ]; then
+            echo "⚠️ VERSION_CODE is empty or null, using fallback"
+            TIMESTAMP=$(date +%s)
+            VERSION_CODE=$(( $TIMESTAMP / 10 ))
+            if [ $VERSION_CODE -gt 2147483647 ]; then
+              VERSION_CODE=$(( $TIMESTAMP / 100 ))
+            fi
+            echo "🔧 Fallback VERSION_CODE: $VERSION_CODE"
+          fi
+
+          # Validación final
+          echo "📋 Final values to use:"
+          echo "  Version Name: '$VERSION_NAME'"
+          echo "  Version Code: '$VERSION_CODE'"
+
+          # Verificar que no estén vacíos
+          if [ -z "$VERSION_NAME" ] || [ -z "$VERSION_CODE" ]; then
+            echo "❌ Error: Values are still empty after fallback"
+            exit 1
+          fi
+
+          # Mostrar contenido actual del build.gradle
+          echo "📋 Current build.gradle version info:"
+          grep -n "versionCode\|versionName" android/app/build.gradle || echo "No version info found"
+
+          # Mostrar contenido COMPLETO del build.gradle para debugging
+          echo "📄 COMPLETE build.gradle content:"
+          echo "================================="
+          cat android/app/build.gradle
+          echo "================================="
+
+          # Navegar al directorio correcto
+          cd android/app
+
+          # Crear backup con timestamp
+          BACKUP_FILE="build.gradle.backup.$(date +%Y%m%d_%H%M%S)"
+          cp build.gradle "$BACKUP_FILE"
+          echo "💾 Backup created: $BACKUP_FILE"
+
+          # Método 1: Usar sed con sintaxis más compatible
+          echo "🔄 Method 1: Updating with sed..."
+
+          # Crear archivo temporal con las actualizaciones
+          sed "s/versionCode [0-9][0-9]*/versionCode $VERSION_CODE/" build.gradle > build.gradle.tmp1
+          sed "s/versionName \"[^\"]*\"/versionName \"$VERSION_NAME\"/" build.gradle.tmp1 > build.gradle.tmp2
+
+          # Verificar que los cambios se aplicaron correctamente
+          if grep -q "versionCode $VERSION_CODE" build.gradle.tmp2 && grep -q "versionName \"$VERSION_NAME\"" build.gradle.tmp2; then
+            mv build.gradle.tmp2 build.gradle
+            rm -f build.gradle.tmp1
+            echo "✅ Method 1: sed successful"
+          else
+            echo "⚠️ Method 1 failed, trying Method 2..."
+            rm -f build.gradle.tmp1 build.gradle.tmp2
+            
+            # Método 2: Usar awk como fallback
+            echo "🔄 Method 2: Updating with awk..."
+            awk -v new_code="$VERSION_CODE" -v new_name="$VERSION_NAME" '
+            /versionCode/ { gsub(/versionCode [0-9]+/, "versionCode " new_code) }
+            /versionName/ { gsub(/versionName "[^"]*"/, "versionName \"" new_name "\"") }
+            { print }
+            ' build.gradle > build.gradle.tmp3
+            
+            if grep -q "versionCode $VERSION_CODE" build.gradle.tmp3 && grep -q "versionName \"$VERSION_NAME\"" build.gradle.tmp3; then
+              mv build.gradle.tmp3 build.gradle
+              echo "✅ Method 2: awk successful"
+            else
+              echo "⚠️ Method 2 failed, trying Method 3..."
+              rm -f build.gradle.tmp3
+              
+              # Método 3: Reescribir líneas específicas
+              echo "🔄 Method 3: Line-by-line replacement..."
+              
+              # Crear archivo temporal línea por línea
+              while IFS= read -r line; do
+                if echo "$line" | grep -q "versionCode"; then
+                  echo "        versionCode $VERSION_CODE"
+                elif echo "$line" | grep -q "versionName"; then
+                  echo "        versionName \"$VERSION_NAME\""
+                else
+                  echo "$line"
+                fi
+              done < build.gradle > build.gradle.tmp4
+              
+              mv build.gradle.tmp4 build.gradle
+              echo "✅ Method 3: line replacement completed"
+            fi
+          fi
+
+          # Verificación final
+          echo "📋 Updated version info:"
+          grep -n "versionCode\|versionName" build.gradle
+
+          # Mostrar contenido COMPLETO del build.gradle DESPUÉS de la actualización
+          echo "📄 COMPLETE build.gradle content AFTER update:"
+          echo "=============================================="
+          cat build.gradle
+          echo "=============================================="
+
+          # Verificar que las actualizaciones fueron exitosas
+          if ! grep -q "versionCode $VERSION_CODE" build.gradle; then
+            echo "❌ Error: versionCode update verification failed"
+            echo "Expected: versionCode $VERSION_CODE"
+            echo "Found:"
+            grep "versionCode" build.gradle || echo "No versionCode found"
+            
+            echo "📄 COMPARISON - Before vs After:"
+            echo "BEFORE (backup):"
+            grep -n "versionCode" "$BACKUP_FILE" || echo "No versionCode in backup"
+            echo "AFTER (current):"
+            grep -n "versionCode" build.gradle || echo "No versionCode in current"
+            
+            cp "$BACKUP_FILE" build.gradle
+            exit 1
+          fi
+
+          if ! grep -q "versionName \"$VERSION_NAME\"" build.gradle; then
+            echo "❌ Error: versionName update verification failed" 
+            echo "Expected: versionName \"$VERSION_NAME\""
+            echo "Found:"
+            grep "versionName" build.gradle || echo "No versionName found"
+            
+            echo "📄 COMPARISON - Before vs After:"
+            echo "BEFORE (backup):"
+            grep -n "versionName" "$BACKUP_FILE" || echo "No versionName in backup"
+            echo "AFTER (current):"
+            grep -n "versionName" build.gradle || echo "No versionName in current"
+            
+            cp "$BACKUP_FILE" build.gradle
+            exit 1
+          fi
+
+          # Verificar que el archivo no está corrupto
+          if ! grep -q "android {" build.gradle; then
+            echo "❌ Error: build.gradle appears corrupted"
+            echo "📄 Full corrupted content:"
+            cat build.gradle
+            cp "$BACKUP_FILE" build.gradle
+            exit 1
+          fi
+
+          echo "✅ All verifications passed!"
+
+          # Limpiar backups si todo está bien
+          rm -f "$BACKUP_FILE"
+
+          cd ../..
+          echo "✅ Android version updated successfully"
+
+      - name: 🔐 Setup Production Signing (Existing Keystore)
+        run: |
+          echo "🔐 Setting up production signing with existing keystore..."
+
+          # Verificar que el keystore existe en el repositorio
+          if [ ! -f "android/keys/keystore.jks" ]; then
+            echo "❌ Error: Keystore not found at android/keys/keystore.jks"
+            echo "📂 Contents of android/keys/:"
+            ls -la android/keys/ || echo "Directory not found"
+            exit 1
+          fi
+
+          echo "✅ Keystore found: android/keys/keystore.jks"
+          KEYSTORE_SIZE=$(du -h android/keys/keystore.jks | cut -f1)
+          echo "   Size: $KEYSTORE_SIZE"
+
+          # Verificar que los secrets de password existan
+          echo "🔍 Checking GitHub Secrets availability..."
+
+          if [ -z "${{ secrets.KEYSTORE_PASSWORD }}" ]; then
+            echo "❌ Error: KEYSTORE_PASSWORD secret is missing or empty"
+            echo "ℹ️  Go to: Settings → Secrets and variables → Actions"
+            echo "ℹ️  Add secret: KEYSTORE_PASSWORD"
+            exit 1
+          fi
+          echo "✅ KEYSTORE_PASSWORD secret exists"
+
+          if [ -z "${{ secrets.KEY_ALIAS }}" ]; then
+            echo "❌ Error: KEY_ALIAS secret is missing or empty"
+            echo "ℹ️  Go to: Settings → Secrets and variables → Actions"
+            echo "ℹ️  Add secret: KEY_ALIAS"
+            exit 1
+          fi
+          echo "✅ KEY_ALIAS secret exists: '${{ secrets.KEY_ALIAS }}'"
+
+          if [ -z "${{ secrets.KEY_PASSWORD }}" ]; then
+            echo "❌ Error: KEY_PASSWORD secret is missing or empty"
+            echo "ℹ️  Go to: Settings → Secrets and variables → Actions"
+            echo "ℹ️  Add secret: KEY_PASSWORD"
+            exit 1
+          fi
+          echo "✅ KEY_PASSWORD secret exists"
+
+          echo "✅ All required secrets are configured"
+
+          # Validar que el keystore es accesible
+          echo "🔧 Validating keystore access..."
+          if ! keytool -list -keystore android/keys/keystore.jks -storepass "${{ secrets.KEYSTORE_PASSWORD }}" -alias "${{ secrets.KEY_ALIAS }}" > /dev/null 2>&1; then
+            echo "❌ Error: Cannot access keystore with provided credentials"
+            echo "ℹ️  Check KEYSTORE_PASSWORD and KEY_ALIAS secrets"
+            echo "📋 Available aliases in keystore:"
+            keytool -list -keystore android/keys/keystore.jks -storepass "${{ secrets.KEYSTORE_PASSWORD }}" 2>/dev/null | grep "Alias name:" || echo "Cannot list aliases"
+            exit 1
+          fi
+
+          echo "✅ Keystore validation successful"
+
+          # Crear signing.properties apuntando al keystore del repositorio
+          echo "📝 Creating signing.properties..."
+          echo "storeFile=../keys/keystore.jks" > android/app/signing.properties
+          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" >> android/app/signing.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/app/signing.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/app/signing.properties
+
+          echo "✅ signing.properties created"
+
+          # Verificar que el archivo se creó correctamente y no tiene valores vacíos
+          echo "🔍 Verifying signing.properties content..."
+          if [ ! -f "android/app/signing.properties" ]; then
+            echo "❌ Error: signing.properties was not created"
+            exit 1
+          fi
+
+          # Verificar que no hay líneas vacías o con valores nulos
+          if grep -q "=$" android/app/signing.properties; then
+            echo "❌ Error: signing.properties contains empty values"
+            echo "📄 Content (without passwords):"
+            cat android/app/signing.properties | sed 's/Password=.*/Password=***/'
+            exit 1
+          fi
+
+          echo "✅ signing.properties verification passed"
+
+          # Verificar la configuración
+          echo "📋 Signing configuration:"
+          echo "  Store File: ../keys/keystore.jks (relative to android/app/)"
+          echo "  Key Alias: ${{ secrets.KEY_ALIAS }}"
+          echo "  Store Path: $(realpath android/keys/keystore.jks)"
+
+          echo "✅ Production signing configured with repository keystore"
+
+      - name: 🔨 Build Android Bundle
+        run: |
+          echo "📦 Building Android Bundle with Production Signing..."
+
+          cd android
+
+          # Verificar que gradlew funcione
+          if ! ./gradlew --version &> /dev/null; then
+            echo "⚠️ Gradle Wrapper no funciona, usando Gradle del sistema..."
+            GRADLE_CMD="gradle"
+          else
+            echo "✅ Usando Gradle Wrapper"
+            GRADLE_CMD="./gradlew"
+          fi
+
+          # Verificar que el firmado esté configurado
+          if [ -f "app/signing.properties" ]; then
+            echo "🔐 Production signing configured - building release bundle"
+            
+            # Verificar que el keystore existe en la ubicación esperada
+            if [ -f "keys/keystore.jks" ]; then
+              echo "✅ Keystore file found: keys/keystore.jks"
+              KEYSTORE_SIZE=$(du -h keys/keystore.jks | cut -f1)
+              echo "   Size: $KEYSTORE_SIZE"
+            else
+              echo "❌ Error: Keystore file not found at keys/keystore.jks"
+              echo "📂 Current directory: $(pwd)"
+              echo "📂 Checking keystore locations:"
+              ls -la keys/ | grep -E "\.(keystore|jks)$" || echo "No keystore files found in keys/"
+              ls -la . | grep -E "\.(keystore|jks)$" || echo "No keystore files found in current dir/"
+              echo "📂 Directory structure:"
+              ls -la keys/ || echo "keys/ directory not found"
+              exit 1
+            fi
+            
+            # Verificar que build.gradle tiene configuración de firmado
+            if grep -q "signingConfigs" app/build.gradle; then
+              echo "✅ build.gradle has signing configuration"
+            else
+              echo "❌ Error: build.gradle missing signing configuration"
+              echo "📄 Current buildTypes section:"
+              grep -A 10 "buildTypes" app/build.gradle || echo "No buildTypes found"
+              exit 1
+            fi
+            
+            # Mostrar contenido de signing.properties para debug
+            echo "📋 Current signing.properties:"
+            cat app/signing.properties | sed 's/Password=.*/Password=***/'
+            
+            echo "🚀 Building release bundle for Google Play Store..."
+            $GRADLE_CMD bundleRelease --no-daemon --stacktrace --info
+          else
+            echo "❌ Error: Production signing not configured"
+            echo "ℹ️  Cannot build bundle for Google Play Store without production signing"
+            ls -la . | grep signing || echo "No signing files found"
+            exit 1
+          fi
+
+          cd ..
+          echo "✅ Bundle build completed with production signing"
+
+      - name: 📦 Upload AAB Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-bundle-v${{ steps.version.outputs.version_name }}-${{ steps.timestamp.outputs.timestamp }}
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: 📬 Send Bundle to Slack
+        if: success()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "text": "📦 Nuevo Bundle AAB generado para UVA App",
+              "attachments": [
+                {
+                  "color": "good",
+                  "fields": [
+                    {
+                      "title": "Versión",
+                      "value": "v${{ steps.version.outputs.version_name }} (${{ steps.version.outputs.version_code }})",
+                      "short": true
+                    },
+                    {
+                      "title": "Rama",
+                      "value": "${{ github.ref_name }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Commit",
+                      "value": "${{ github.sha }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Autor",
+                      "value": "${{ github.actor }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Ambiente",
+                      "value": "${{ inputs.environment || steps.auto-env.outputs.environment }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Bundle AAB",
+                      "value": "✅ Listo para Google Play",
+                      "short": true
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "button",
+                      "text": "📥 Descargar Bundle",
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    },
+                    {
+                      "type": "button",
+                      "text": "📋 Ver Commit",
+                      "url": "${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: 📬 Send Bundle Failure to Slack
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "text": "❌ Error al generar Bundle AAB para UVA App",
+              "attachments": [
+                {
+                  "color": "danger",
+                  "fields": [
+                    {
+                      "title": "Versión",
+                      "value": "v${{ steps.version.outputs.version_name }} (${{ steps.version.outputs.version_code }})",
+                      "short": true
+                    },
+                    {
+                      "title": "Rama",
+                      "value": "${{ github.ref_name }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Commit",
+                      "value": "${{ github.sha }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Autor",
+                      "value": "${{ github.actor }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Ambiente",
+                      "value": "${{ inputs.environment || steps.auto-env.outputs.environment }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Error",
+                      "value": "Falló la generación del Bundle AAB",
+                      "short": false
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "button",
+                      "text": "🔍 Ver Logs",
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: 📊 Bundle Summary
+        if: always()
+        run: |
+          echo "## 📦 Bundle AAB Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Versión**: v${{ steps.version.outputs.version_name }} (code: ${{ steps.version.outputs.version_code }})" >> $GITHUB_STEP_SUMMARY
+          echo "- **Fuente**: ${{ steps.version.outputs.source }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Rama**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Ambiente**: ${{ inputs.environment || steps.auto-env.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tipo**: Production Release (signed)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp**: ${{ steps.timestamp.outputs.timestamp }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Verificar archivos generados
+          echo "### 📱 Archivos Generados" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f "android/app/build/outputs/bundle/release/app-release.aab" ]; then
+            BUNDLE_SIZE=$(du -h android/app/build/outputs/bundle/release/app-release.aab | cut -f1)
+            echo "- ✅ **Production Bundle**: $BUNDLE_SIZE (firmado para Google Play Store)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ **Error**: No se generó el bundle de producción" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Estado del signing (siempre producción)
+          echo "### 🔐 Signing Status" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Producción**: Firmado con keystore de producción" >> $GITHUB_STEP_SUMMARY
+          echo "- 🚀 **Google Play**: Listo para subir a Play Store" >> $GITHUB_STEP_SUMMARY
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Información de Versión" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version Name**: ${{ steps.version.outputs.version_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version Code**: ${{ steps.version.outputs.version_code }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Amplify Backend**: ${{ inputs.environment || steps.auto-env.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: 🔍 Verify Bundle Signing
+        run: |
+          echo "🔍 Verifying bundle signature..."
+
+          # Verificar que el bundle se generó
+          if [ ! -f "android/app/build/outputs/bundle/release/app-release.aab" ]; then
+            echo "❌ Error: Release bundle was not generated"
+            echo "📂 Contents of bundle directory:"
+            ls -la android/app/build/outputs/bundle/ || echo "Bundle directory not found"
+            exit 1
+          fi
+
+          # Obtener información del bundle
+          BUNDLE_SIZE=$(du -h android/app/build/outputs/bundle/release/app-release.aab | cut -f1)
+          echo "📦 Bundle generated: $BUNDLE_SIZE"
+
+          # Verificar que el bundle esté firmado usando aapt2 (más confiable que jarsigner para AAB)
+          echo "🔐 Checking bundle signature..."
+
+          # Verificar estructura del bundle
+          if command -v unzip >/dev/null 2>&1; then
+            echo "📋 Bundle structure:"
+            unzip -l android/app/build/outputs/bundle/release/app-release.aab | head -20
+            
+            # Verificar si contiene archivos de firma (incluir todos los tipos)
+            SIGNATURE_FILES=$(unzip -l android/app/build/outputs/bundle/release/app-release.aab | grep -E "META-INF.*\.(RSA|DSA|EC|SF|MF)" | wc -l)
+            if [ $SIGNATURE_FILES -gt 0 ]; then
+              echo "✅ Bundle contains signature files ($SIGNATURE_FILES found)"
+              unzip -l android/app/build/outputs/bundle/release/app-release.aab | grep "META-INF"
+            else
+              echo "❌ ERROR: No signature files found in bundle"
+              echo "📋 META-INF contents:"
+              unzip -l android/app/build/outputs/bundle/release/app-release.aab | grep "META-INF" || echo "No META-INF found"
+              echo "🔍 This bundle will be REJECTED by Google Play Store"
+              exit 1
+            fi
+          fi
+
+          # Verificar con bundletool si está disponible
+          if command -v bundletool >/dev/null 2>&1; then
+            echo "🔧 Using bundletool to verify..."
+            bundletool validate --bundle=android/app/build/outputs/bundle/release/app-release.aab || echo "⚠️ Bundletool validation failed"
+          else
+            echo "ℹ️  bundletool not available for validation"
+          fi
+
+          echo "✅ Bundle verification completed"

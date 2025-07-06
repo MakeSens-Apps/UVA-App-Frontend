@@ -1,0 +1,47 @@
+task debugSigning {
+    doLast {
+        println "🔍 DEBUG SIGNING CONFIGURATION"
+        println "==============================="
+        
+        println "📂 Current directory: ${projectDir}"
+        println "📄 signing.properties exists: ${file('signing.properties').exists()}"
+        
+        if (file('signing.properties').exists()) {
+            println "✅ signing.properties found"
+            def props = new Properties()
+            props.load(new FileInputStream(file('signing.properties')))
+            
+            println "📋 Properties loaded:"
+            println "  storeFile: '${props['storeFile']}'"
+            println "  keyAlias: '${props['keyAlias']}'"
+            println "  storePassword: ${props['storePassword'] ? 'SET' : 'NOT SET'}"
+            println "  keyPassword: ${props['keyPassword'] ? 'SET' : 'NOT SET'}"
+            
+            // Verificar archivo
+            def storeFileValue = props['storeFile']
+            def storeFileObj = file(storeFileValue)
+            println "📂 Store file path: '${storeFileValue}'"
+            println "📂 Full store file path: '${storeFileObj.absolutePath}'"
+            println "📂 Store file exists: ${storeFileObj.exists()}"
+            
+        } else {
+            println "❌ signing.properties NOT found"
+        }
+        
+        println ""
+        println "🔧 SigningConfig state:"
+        println "======================="
+        def releaseConfig = android.signingConfigs.release
+        println "📋 release.storeFile: ${releaseConfig.storeFile}"
+        println "📋 release.keyAlias: ${releaseConfig.keyAlias}"
+        println "📋 release.storePassword: ${releaseConfig.storePassword ? 'SET' : 'NOT SET'}"
+        println "📋 release.keyPassword: ${releaseConfig.keyPassword ? 'SET' : 'NOT SET'}"
+        
+        println ""
+        println "🔧 BuildType configuration:"
+        println "=========================="
+        def releaseBuildType = android.buildTypes.release
+        println "📋 release.signingConfig: ${releaseBuildType.signingConfig}"
+        println "📋 Will use signing: ${releaseBuildType.signingConfig != null}"
+    }
+}
