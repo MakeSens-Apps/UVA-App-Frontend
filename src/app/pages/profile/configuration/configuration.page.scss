@@ -180,3 +180,135 @@ div.inner-scroll.scroll-y.overscroll {
 :host(.ion-color.toggle-checked) .toggle-inner {
   background: white !important;
 }
+
+// Notification status styles using UVA design system
+.notification-status {
+  &-panel {
+    background-color: var(--Colors-Gray-50);
+    border-radius: 8px;
+    border-left: 4px solid var(--ion-color-uva_blue-500);
+    padding: 12px;
+    margin-top: 12px;
+    
+    .status-title {
+      color: var(--Colors-Gray-700);
+      margin: 0 0 8px 0;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    .status-item {
+      margin-bottom: 6px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 14px;
+      
+      &.success {
+        color: var(--ion-color-uva_green-500);
+      }
+      
+      &.warning {
+        color: var(--ion-color-uva_orange-500);
+      }
+      
+      &.error {
+        color: var(--Colors-Danger);
+      }
+    }
+    
+    .action-buttons {
+      margin-top: 8px;
+      
+      ion-button {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 12px;
+        font-weight: 500;
+        text-transform: none;
+        margin-right: 8px;
+        
+        &.primary-action {
+          --background: var(--ion-color-uva_blue-500);
+          --color: white;
+        }
+        
+        &.warning-action {
+          --border-color: var(--ion-color-uva_orange-500);
+          --color: var(--ion-color-uva_orange-500);
+        }
+      }
+    }
+    
+    .issues-list {
+      margin-top: 8px;
+      
+      .issues-title {
+        color: var(--Colors-Gray-600);
+        font-size: 12px;
+        font-family: 'Montserrat', sans-serif;
+        margin-bottom: 4px;
+      }
+      
+      .issue-item {
+        margin-left: 8px;
+        color: var(--Colors-Danger);
+        font-size: 12px;
+        font-family: 'Montserrat', sans-serif;
+      }
+    }
+  }
+  
+  &-chip {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    
+    &.success {
+      --background: var(--Colors-Green-50);
+      --color: var(--ion-color-uva_green-500);
+    }
+    
+    &.warning {
+      --background: var(--Colors-Orange-50);
+      --color: var(--ion-color-uva_orange-500);
+    }
+    
+    &.error {
+      --background: #fef2f2;
+      --color: var(--Colors-Danger);
+    }
+  }
+  
+  &-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 8px 0;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+    
+    &:hover {
+      background-color: var(--Colors-Gray-50);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+      transform: translateY(-1px);
+    }
+    
+    &:active {
+      background-color: var(--Colors-Gray-100);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      transform: translateY(0);
+    }
+    
+    .toggle-icon {
+      color: var(--Colors-Gray-500);
+      font-size: 20px;
+      transition: color 0.2s ease;
+    }
+    
+    &:hover .toggle-icon {
+      color: var(--ion-color-uva_blue-500);
+    }
+  }
+}

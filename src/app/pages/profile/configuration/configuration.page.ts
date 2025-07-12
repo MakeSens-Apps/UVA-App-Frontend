@@ -2,6 +2,7 @@ import { NotificationService } from './../../../services/notification/notificati
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { App } from '@capacitor/app';
 import {
   IonContent,
   IonHeader,
@@ -23,6 +24,10 @@ import {
   IonFooter,
   IonList,
   IonInput,
+  IonBadge,
+  IonText,
+  IonNote,
+  IonChip,
 } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
 import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
@@ -63,6 +68,10 @@ import { MoonPhaseService } from '@app/core/services/view/moon/moon-phase.servic
     IonFooter,
     IonList,
     IonInput,
+    IonBadge,
+    IonText,
+    IonNote,
+    IonChip,
     SyncActionComponent,
   ],
 })
@@ -71,6 +80,32 @@ export class ConfigurationPage {
   isDataStoreSyncPending = false;
   isNotificationsActive = false;
   isLoading = false;
+  private appStateListener: any;
+  
+  // Enhanced notification status properties
+  notificationSystemStatus: {
+    canSchedule: boolean;
+    permissionsGranted: boolean;
+    exactAlarmAvailable: boolean;
+    batteryOptimized: boolean;
+    issues: string[];
+  } = {
+    canSchedule: false,
+    permissionsGranted: false,
+    exactAlarmAvailable: false,
+    batteryOptimized: false,
+    issues: []
+  };
+  notificationState: {
+    userEnabled: boolean;
+    systemPermissionGranted: boolean;
+    notificationsScheduled: boolean;
+  } = {
+    userEnabled: false,
+    systemPermissionGranted: false,
+    notificationsScheduled: false
+  };
+  showNotificationDetails = false;
   /**
    *  @param {Router} router - Angular Router instance used for navigation.
    *  @param {ConfigurationAppService} config The service handling application configuration and data download.
@@ -97,14 +132,66 @@ export class ConfigurationPage {
     this.isDataStoreSyncPending = !this.dsStateService.synchronizedData();
     this.isConfigurationAppAvailible = SyncMonitorDSService.networkStatus;
 
-    this.notificationService
-      .getEnableNotifications()
-      .then((isEnabled) => {
-        this.isNotificationsActive = isEnabled;
-      })
-      .catch((err) => {
-        console.error('Error al obtener el estado de notificaciones:', err);
-      });
+    // Load comprehensive notification status
+    this.loadNotificationStatus();
+    
+    // Listen for app state changes to refresh status when returning from settings
+    this.setupAppStateListener();
+  }
+  
+  /**
+   * Sets up listener for app state changes to refresh notification status
+   * when user returns from system settings
+   */
+  private setupAppStateListener(): void {
+    // Remove existing listener if any
+    if (this.appStateListener) {
+      this.appStateListener.remove();
+    }
+    
+    this.appStateListener = App.addListener('appStateChange', (state) => {
+      if (state.isActive) {
+        // App became active again, refresh notification status
+        setTimeout(() => {
+          void this.loadNotificationStatus();
+        }, 500); // Small delay to ensure system state is updated
+      }
+    });
+  }
+  
+  /**
+   * Cleanup when leaving the page
+   */
+  ionViewWillLeave(): void {
+    if (this.appStateListener) {
+      this.appStateListener.remove();
+      this.appStateListener = null;
+    }
+  }
+  
+  /**
+   * Loads comprehensive notification status including system permissions and settings
+   * @returns {Promise<void>}
+   */
+  async loadNotificationStatus(): Promise<void> {
+    try {
+      // Get basic user setting
+      const isEnabled = await this.notificationService.getEnableNotifications();
+      this.isNotificationsActive = isEnabled;
+      
+      // Get comprehensive system status
+      this.notificationSystemStatus = await this.notificationService.getSystemStatus();
+      
+      // Get detailed notification state
+      this.notificationState = await this.notificationService.getComprehensiveNotificationState();
+      
+      // Show Private Space guidance for Android 15+
+      void this.notificationService.showPrivateSpaceGuidance();
+      
+    } catch (err) {
+      console.error('Error al obtener el estado de notificaciones:', err);
+      await this.presentErrorToast('Error al verificar estado de notificaciones');
+    }
   }
 
   /**
@@ -121,21 +208,41 @@ export class ConfigurationPage {
    * @param {Event} event - The event object containing the toggle state.
    * @returns {void}
    */
-  activeNoti(event: Event): void {
-    this.isNotificationsActive = (event as CustomEvent).detail.checked;
-    // eslint-disable-next-line no-console
-    this.notificationService
-      .setEnableNotifications(this.isNotificationsActive)
-      .then(() => {
-        console.warn(
-          this.isNotificationsActive
-            ? 'Notificaciones Habilitadas.'
-            : 'Notificaciones Deshabilitadas.',
-        );
-      })
-      .catch((err) => {
-        console.error('Error al habilitar notificaciones:', err);
-      });
+  async activeNoti(event: Event): Promise<void> {
+    const checked = (event as CustomEvent).detail.checked;
+    
+    if (checked) {
+      // Check if system permissions are available before enabling
+      const hasPermissions = await this.notificationService.requestPermissions();
+      
+      if (!hasPermissions) {
+        // Revert toggle state if permissions denied
+        this.isNotificationsActive = false;
+        await this.presentErrorToast('Permisos de notificación requeridos. Ve a Configuración de la app para habilitarlos.');
+        return;
+      }
+    }
+    
+    this.isNotificationsActive = checked;
+    
+    try {
+      await this.notificationService.setEnableNotifications(this.isNotificationsActive);
+      
+      // Reload status after change
+      await this.loadNotificationStatus();
+      
+      const message = this.isNotificationsActive 
+        ? 'Notificaciones habilitadas correctamente'
+        : 'Notificaciones deshabilitadas';
+      
+      void this.presentSuccessToast(message);
+      
+    } catch (err) {
+      console.error('Error al cambiar notificaciones:', err);
+      // Revert toggle state on error
+      this.isNotificationsActive = !this.isNotificationsActive;
+      await this.presentErrorToast('Error al cambiar configuración de notificaciones');
+    }
   }
   /**
    * Uploads data based on user configurations.
@@ -197,9 +304,99 @@ export class ConfigurationPage {
   async presentErrorToast(message: string): Promise<void> {
     const toast = await this.toastController.create({
       message: message,
-      duration: 2000,
+      duration: 3000,
       color: 'danger',
     });
     await toast.present();
+  }
+  
+  /**
+   * Displays a toast message for success.
+   * @param {string} message - The success message to display.
+   * @returns {Promise<void>} - Resolves when the toast is presented.
+   */
+  async presentSuccessToast(message: string): Promise<void> {
+    const toast = await this.toastController.create({
+      message: message,
+      duration: 2000,
+      color: 'success',
+    });
+    await toast.present();
+  }
+  
+  /**
+   * Toggles the visibility of notification details
+   * @returns {void}
+   */
+  toggleNotificationDetails(): void {
+    this.showNotificationDetails = !this.showNotificationDetails;
+  }
+  
+  /**
+   * Requests notification permissions manually
+   * @returns {Promise<void>}
+   */
+  async requestNotificationPermissions(): Promise<void> {
+    try {
+      const granted = await this.notificationService.requestPermissions();
+      
+      if (granted) {
+        await this.presentSuccessToast('Permisos de notificación otorgados');
+        await this.loadNotificationStatus();
+      } else {
+        // On mobile, the user might be redirected to settings
+        await this.presentErrorToast('Permisos de notificación requeridos. Si no aparece el diálogo, ve a Configuración del sistema.');
+        
+        // For devices where native dialog doesn't appear, try to refresh after a delay
+        setTimeout(() => {
+          void this.loadNotificationStatus();
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error requesting notification permissions:', error);
+      await this.presentErrorToast('Error al solicitar permisos de notificación');
+    }
+  }
+  
+  /**
+   * Shows battery optimization guidance
+   * @returns {Promise<void>}
+   */
+  async showBatteryOptimizationGuidance(): Promise<void> {
+    await this.notificationService.showBatteryOptimizationGuidance();
+  }
+  
+  /**
+   * Gets status color for notification state using UVA design system
+   * @returns {string} Color name for ion components
+   */
+  getNotificationStatusColor(): string {
+    if (!this.notificationSystemStatus.permissionsGranted) {
+      return 'danger'; // Uses system danger color #E5245E
+    }
+    if (this.notificationSystemStatus.batteryOptimized) {
+      return 'uva_orange-500'; // Orange for warnings #E58B24
+    }
+    if (this.notificationSystemStatus.canSchedule) {
+      return 'uva_green-500'; // Green for success #69AB3C
+    }
+    return 'medium'; // Default medium gray
+  }
+  
+  /**
+   * Gets status text for notification state
+   * @returns {string} Status description
+   */
+  getNotificationStatusText(): string {
+    if (!this.notificationSystemStatus.permissionsGranted) {
+      return 'Permisos requeridos';
+    }
+    if (this.notificationSystemStatus.batteryOptimized) {
+      return 'Optimización de batería activa';
+    }
+    if (this.notificationSystemStatus.canSchedule) {
+      return 'Funcionando correctamente';
+    }
+    return 'Estado desconocido';
   }
 }

@@ -34,11 +34,112 @@
                 </ion-toggle>
               </div>
 
+              <!-- Enhanced notification status display -->
               <ion-item class="ion-item ion-item-w">
                 <ion-label class="color-n">
-                  Al mantener las notificaciones <br />
-                  activas, podrás recibir alertas de<br />
-                  cuando debes hacer tus registros.
+                  <div style="margin-bottom: 8px">
+                    Al mantener las notificaciones activas, recibirás
+                    recordatorios diarios para registrar tus mediciones
+                    ambientales.
+                  </div>
+
+                  <!-- Notification status indicator -->
+                  <div
+                    class="notification-status-indicator"
+                    (click)="toggleNotificationDetails()"
+                  >
+                    <ion-chip
+                      [color]="getNotificationStatusColor()"
+                      size="medium"
+                      class="notification-status-chip"
+                    >
+                      <ion-text>{{ getNotificationStatusText() }}</ion-text>
+                    </ion-chip>
+
+                    <ion-icon
+                      [name]="showNotificationDetails ? 'chevron-up' : 'chevron-down'"
+                      class="toggle-icon"
+                    >
+                    </ion-icon>
+                  </div>
+
+                  <!-- Detailed notification status (collapsible) -->
+                  <div
+                    *ngIf="showNotificationDetails"
+                    class="notification-status-panel"
+                  >
+                    <h6 class="status-title">Estado del Sistema:</h6>
+
+                    <div
+                      class="status-item"
+                      [class.success]="notificationSystemStatus.permissionsGranted"
+                      [class.error]="!notificationSystemStatus.permissionsGranted"
+                    >
+                      • Permisos: {{ notificationSystemStatus.permissionsGranted
+                      ? 'Otorgados' : 'No otorgados' }}
+                    </div>
+
+                    <div
+                      class="status-item"
+                      [class.success]="notificationState.notificationsScheduled"
+                      [class.warning]="!notificationState.notificationsScheduled"
+                    >
+                      • Programación: {{
+                      notificationState.notificationsScheduled ? 'Activa' : 'No
+                      programadas' }}
+                    </div>
+
+                    <div
+                      class="status-item"
+                      [class.success]="!notificationSystemStatus.batteryOptimized"
+                      [class.warning]="notificationSystemStatus.batteryOptimized"
+                    >
+                      • Batería: {{ !notificationSystemStatus.batteryOptimized ?
+                      'Optimizada' : 'Puede interferir' }}
+                    </div>
+
+                    <!-- Action buttons for issues -->
+                    <div
+                      class="action-buttons"
+                      *ngIf="!notificationSystemStatus.permissionsGranted || notificationSystemStatus.batteryOptimized"
+                    >
+                      <ion-button
+                        *ngIf="!notificationSystemStatus.permissionsGranted"
+                        size="small"
+                        fill="solid"
+                        color="uva_blue-500"
+                        class="primary-action"
+                        (click)="requestNotificationPermissions()"
+                      >
+                        Solicitar Permisos
+                      </ion-button>
+
+                      <ion-button
+                        *ngIf="notificationSystemStatus.batteryOptimized"
+                        size="small"
+                        fill="outline"
+                        color="uva_orange-500"
+                        class="warning-action"
+                        (click)="showBatteryOptimizationGuidance()"
+                      >
+                        Guía de Batería
+                      </ion-button>
+                    </div>
+
+                    <!-- Issues list -->
+                    <div
+                      class="issues-list"
+                      *ngIf="notificationSystemStatus.issues.length > 0"
+                    >
+                      <div class="issues-title">Problemas detectados:</div>
+                      <div
+                        *ngFor="let issue of notificationSystemStatus.issues"
+                        class="issue-item"
+                      >
+                        • {{ issue }}
+                      </div>
+                    </div>
+                  </div>
                 </ion-label>
               </ion-item>
             </div>
