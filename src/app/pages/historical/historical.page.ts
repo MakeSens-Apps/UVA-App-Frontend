@@ -285,7 +285,7 @@ export class HistoricalPage implements OnInit {
       return;
     }
     await this.router.navigate(['measurement-detail'], {
-      queryParams: $event,
+      queryParams: { ...$event, origin: 'history' },
     });
   }
 
