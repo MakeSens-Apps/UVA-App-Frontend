@@ -107,6 +107,9 @@ export interface Historical {
   graph: Graph;
   value?: number;
   selected?: boolean;
+  min?: number;
+  max?: number;
+  avg?: number;
 }
 
 export interface Graph {
