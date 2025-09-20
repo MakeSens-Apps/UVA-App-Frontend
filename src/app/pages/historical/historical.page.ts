@@ -777,10 +777,11 @@ export class HistoricalPage implements OnInit {
 
       if (measures) {
         const values = Object.values(measures);
+        const total = values.length > 0 ? values.reduce((sum, val) => sum + val, 0) : 0;
         return {
           min: values.length > 0 ? Math.min(...values) : undefined,
           max: values.length > 0 ? Math.max(...values) : undefined,
-          avg: values.length > 0 ? values.reduce((sum, val) => sum + val, 0) / values.length : undefined,
+          avg: measurement.aggregationFunction === 'sum' ? total : (values.length > 0 ? total / values.length : undefined),
         };
       }
     }
