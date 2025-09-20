@@ -32,6 +32,8 @@ import {
   CompleteTaskHistorical,
   HistoricalMeasurement,
   MeasurementEntry,
+  DetailedMeasurementEntry,
+  DailyStats,
   monthsNames,
   TypeView,
 } from './historical.model';
@@ -291,53 +293,106 @@ export class HistoricalPage implements OnInit {
       this.currentMonthIndex,
     );
     const transformedData = this.transformData(measuresMonth);
-    const measures = this.calculateMeasurement(
-      transformedData,
-      configGraph.measurementIds,
-      configGraph.aggregationFunction === 'sum' ? 'sum' : 'mean',
-    );
     const rangeMeasurement = this.calculateRangeOfMeasurement(
       configGraph.measurementIds,
     );
-    if (measures) {
-      // Crear las fechas de inicio y fin del mes
-      const startOfMonth = new Date(
-        this.currentYearIndex,
-        this.currentMonthIndex,
-        1,
-        0,
-        0,
-        0,
-        0,
-      ).toLocaleDateString('en-CA');
-      const endOfMonth = new Date(
-        this.currentYearIndex,
-        this.currentMonthIndex + 1,
-        0,
-        23,
-        59,
-        59,
-        999,
-      ).toLocaleDateString('en-CA');
-      this.areaChartComponent.UpdateChart(
-        Object.keys(measures),
-        Object.values(measures),
-        configGraph.style.backgroundColor.colorHex,
-        configGraph.style.borderColor.colorHex,
-        configGraph.type === 'line' ? 'line' : 'bar',
-        rangeMeasurement.min,
-        rangeMeasurement.max,
-        startOfMonth,
-        endOfMonth,
+
+    // Crear las fechas de inicio y fin del mes
+    const startOfMonth = new Date(
+      this.currentYearIndex,
+      this.currentMonthIndex,
+      1,
+      0,
+      0,
+      0,
+      0,
+    ).toLocaleDateString('en-CA');
+    const endOfMonth = new Date(
+      this.currentYearIndex,
+      this.currentMonthIndex + 1,
+      0,
+      23,
+      59,
+      59,
+      999,
+    ).toLocaleDateString('en-CA');
+
+    if (configGraph.type === 'line' && configGraph.aggregationFunction === 'mean') {
+      // Modo detallado para gráficas de línea con promedio
+      const detailedMeasures = this.calculateDetailedMeasurement(
+        transformedData,
+        configGraph.measurementIds,
       );
+
+      if (detailedMeasures && Object.keys(detailedMeasures).length > 0) {
+        const labels = Object.keys(detailedMeasures).sort();
+        const avgData = labels.map(date => detailedMeasures[date]?.avg || 0);
+        const minData = labels.map(date => detailedMeasures[date]?.min || 0);
+        const maxData = labels.map(date => detailedMeasures[date]?.max || 0);
+
+        this.areaChartComponent.UpdateChart(
+          labels,
+          avgData,
+          configGraph.style.backgroundColor.colorHex,
+          configGraph.style.borderColor.colorHex,
+          'line',
+          rangeMeasurement.min,
+          rangeMeasurement.max,
+          startOfMonth,
+          endOfMonth,
+          true, // detailedMode
+          minData,
+          maxData,
+        );
+      } else {
+        this.areaChartComponent.UpdateChart(
+          [],
+          [],
+          configGraph.style.backgroundColor.colorHex,
+          configGraph.style.borderColor.colorHex,
+          'line',
+          rangeMeasurement.min,
+          rangeMeasurement.max,
+          startOfMonth,
+          endOfMonth,
+          false,
+        );
+      }
     } else {
-      this.areaChartComponent.UpdateChart(
-        [],
-        [],
-        configGraph.style.backgroundColor.colorHex,
-        configGraph.style.borderColor.colorHex,
-        configGraph.type === 'line' ? 'line' : 'bar',
+      // Modo normal para gráficas de barras o suma
+      const measures = this.calculateMeasurement(
+        transformedData,
+        configGraph.measurementIds,
+        configGraph.aggregationFunction === 'sum' ? 'sum' : 'mean',
       );
+
+      if (measures) {
+        this.areaChartComponent.UpdateChart(
+          Object.keys(measures),
+          Object.values(measures),
+          configGraph.style.backgroundColor.colorHex,
+          configGraph.style.borderColor.colorHex,
+          configGraph.type === 'line' ? 'line' : 'bar',
+          rangeMeasurement.min,
+          rangeMeasurement.max,
+          startOfMonth,
+          endOfMonth,
+          false, // detailedMode
+        );
+      } else {
+        this.areaChartComponent.UpdateChart(
+          [],
+          [],
+          configGraph.style.backgroundColor.colorHex,
+          configGraph.style.borderColor.colorHex,
+          configGraph.type === 'line' ? 'line' : 'bar',
+          rangeMeasurement.min,
+          rangeMeasurement.max,
+          startOfMonth,
+          endOfMonth,
+          false,
+        );
+      }
     }
   }
   /**     Metodos privados */
@@ -620,6 +675,56 @@ export class HistoricalPage implements OnInit {
             const mean =
               values.reduce((acc, val) => acc + val, 0) / values.length;
             result[date] = mean;
+          }
+        }
+      }
+    });
+
+    return result;
+  }
+
+  /**
+   * Calculates detailed daily statistics (average, min, max) for the specified keys from historical data.
+   * Groups data by date (ignoring time) and calculates avg, min, max for each day.
+   * @private
+   * @param {HistoricalMeasurement} historicalData - The historical measurement data.
+   * @param {string[]} keys - An array of keys from `historicalData` to process.
+   * @returns {DetailedMeasurementEntry} - An object where each key is a date and its value contains {avg, min, max}.
+   */
+  private calculateDetailedMeasurement(
+    historicalData: HistoricalMeasurement,
+    keys: string[],
+  ): DetailedMeasurementEntry {
+    const result: Record<string, DailyStats> = {};
+
+    // Recorrer cada clave proporcionada en `keys`
+    keys.forEach((key) => {
+      if (historicalData[key]) {
+        // Crear un objeto temporal para almacenar las mediciones agrupadas por fecha
+        const dailyValues: Record<string, number[]> = {};
+
+        // Agrupar las mediciones por fecha (ignorando la hora)
+        historicalData[key].forEach((entry) => {
+          for (const timestamp in entry) {
+            const date = timestamp.split('T')[0]; // Extraemos la fecha (YYYY-MM-DD)
+
+            if (!dailyValues[date]) {
+              dailyValues[date] = [];
+            }
+
+            dailyValues[date].push(entry[timestamp]);
+          }
+        });
+
+        // Calcular estadísticas diarias (avg, min, max)
+        for (const date in dailyValues) {
+          const values = dailyValues[date];
+          if (values.length > 0) {
+            const avg = values.reduce((acc, val) => acc + val, 0) / values.length;
+            const min = Math.min(...values);
+            const max = Math.max(...values);
+
+            result[date] = { avg, min, max };
           }
         }
       }

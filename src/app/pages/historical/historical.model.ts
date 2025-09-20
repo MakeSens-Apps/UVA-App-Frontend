@@ -12,6 +12,14 @@ export interface CompleteTaskHistorical {
 }
 export type MeasurementEntry = Record<string, number> | undefined; // Mapea timestamps a valores numéricos
 
+export interface DailyStats {
+  avg: number;
+  min: number;
+  max: number;
+}
+
+export type DetailedMeasurementEntry = Record<string, DailyStats> | undefined; // Mapea fechas a estadísticas diarias
+
 export type HistoricalMeasurement = Record<string, MeasurementEntry[]>;
 
 export const monthsNames = [
