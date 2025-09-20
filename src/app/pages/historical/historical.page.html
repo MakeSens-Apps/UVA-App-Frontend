@@ -36,16 +36,39 @@
         <div
           class="calendar_variables"
           [ngStyle]="{
-            'background-color': typeView === 'chart' && variable.selected ? variable.style.backgroundColor.colorHex : 'White',
-            'border-color':typeView === 'chart' && variable.selected ? variable.style.borderColor.colorHex:'#E5E5E5'
+            'background-color': 'white',
+            'border-color':  typeView === 'chart' && variable.selected ? variable.style.borderColor.colorHex : 'white',
           }"
           *ngFor="let variable of variables"
           (click)="changeColorChart(variable)"
         >
-          <p class="calendar_variables--p">{{variable.name}}</p>
-          <h2 class="calendar_variables--h2">
-            {{variable.symbol}}{{variable.value}}{{variable.unit}}
+          <h2 class="calendar_variables--title">
+            {{variable.symbol}}{{variable.name.substring(0, 3)}}
           </h2>
+          <div
+            class="calendar_variables--stat-box"
+            [ngStyle]="{
+              'background-color': typeView === 'chart' && variable.selected ? variable.style.backgroundColor.colorHex : 'white',
+            }"
+          >
+            <span
+              class="calendar_variables--stat-text"
+              [ngStyle]="{'font-weight': typeView === 'chart' && variable.selected ? '700' : '600'}"
+              >{{variable.avg | number:'1.0-1'}}{{variable.unit}}</span
+            >
+          </div>
+          <div class="calendar_variables--stat-line">
+            <span class="calendar_variables--stat-label">Max:</span>
+            <span class="calendar_variables--stat-value"
+              >{{variable.max | number:'1.0-1'}}{{variable.unit}}</span
+            >
+          </div>
+          <div class="calendar_variables--stat-line">
+            <span class="calendar_variables--stat-label">Min:</span>
+            <span class="calendar_variables--stat-value"
+              >{{variable.min | number:'1.0-1'}}{{variable.unit}}</span
+            >
+          </div>
         </div>
       </div>
     </div>
@@ -125,13 +148,35 @@
     <div class="calendar_variables_container">
       <div
         class="calendar_variables"
-        [ngStyle]="{'background-color':'white', 'border-color':'#E5E5E5'}"
+        [ngStyle]="{
+          'background-color': 'white',
+          'border-color': 'white'
+        }"
         *ngFor="let variable of variables"
       >
-        <p class="calendar_variables--p">{{variable.name}}</p>
-        <h2 class="calendar_variables--h2">
-          {{variable.symbol}}{{variable.value}}{{variable.unit}}
+        <h2 class="calendar_variables--title">
+          {{variable.symbol}}{{variable.name.substring(0, 3)}}
         </h2>
+        <div
+          class="calendar_variables--stat-box"
+          [ngStyle]="{'background-color': 'white'}"
+        >
+          <span class="calendar_variables--stat-text"
+            >{{variable.avg | number:'1.0-1'}}{{variable.unit}}</span
+          >
+        </div>
+        <div class="calendar_variables--stat-line">
+          <span class="calendar_variables--stat-label">Max:</span>
+          <span class="calendar_variables--stat-value"
+            >{{variable.max | number:'1.0-1'}}{{variable.unit}}</span
+          >
+        </div>
+        <div class="calendar_variables--stat-line">
+          <span class="calendar_variables--stat-label">Min:</span>
+          <span class="calendar_variables--stat-value"
+            >{{variable.min | number:'1.0-1'}}{{variable.unit}}</span
+          >
+        </div>
       </div>
     </div>
 

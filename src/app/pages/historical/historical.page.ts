@@ -467,6 +467,7 @@ export class HistoricalPage implements OnInit {
       const existingVariable = this.variables?.find(
         (variable) => variable.name === measurement.name,
       );
+      const stats = this.calculateOverallStats(measurement, transformedData);
       return {
         name: measurement.name,
         symbol: measurement.symbol,
@@ -477,6 +478,9 @@ export class HistoricalPage implements OnInit {
         graph: measurement.graph,
         selected: existingVariable?.selected ?? false, //deberia tener eel mismo valor que teiene this.variables y si no tiene entonces false
         value: this.calculateValue(measurement, transformedData),
+        min: stats.min,
+        max: stats.max,
+        avg: stats.avg,
       };
     }) as Historical[];
   }
@@ -731,5 +735,56 @@ export class HistoricalPage implements OnInit {
     });
 
     return result;
+  }
+
+  /**
+   * Calculates overall statistics (min, max, avg) for a measurement across all detailed data.
+   * @private
+   * @param {Historical} measurement - The measurement configuration.
+   * @param {HistoricalMeasurement} transformedData - The transformed measurement data.
+   * @returns {{ min: number | undefined; max: number | undefined; avg: number | undefined }} The calculated statistics.
+   */
+  private calculateOverallStats(
+    measurement: Historical,
+    transformedData: HistoricalMeasurement,
+  ): { min: number | undefined; max: number | undefined; avg: number | undefined } {
+    if (measurement.aggregationFunction === 'mean' && measurement.graph.type === 'line') {
+      // Para gráficas de línea con promedio, usar estadísticas detalladas
+      const detailedMeasures = this.calculateDetailedMeasurement(
+        transformedData,
+        measurement.measurementIds,
+      );
+
+      if (detailedMeasures && Object.keys(detailedMeasures).length > 0) {
+        const dailyStats = Object.values(detailedMeasures);
+        const mins = dailyStats.map(stats => stats.min);
+        const maxs = dailyStats.map(stats => stats.max);
+        const avgs = dailyStats.map(stats => stats.avg);
+
+        return {
+          min: mins.length > 0 ? Math.min(...mins) : undefined,
+          max: maxs.length > 0 ? Math.max(...maxs) : undefined,
+          avg: avgs.length > 0 ? avgs.reduce((sum, avg) => sum + avg, 0) / avgs.length : undefined,
+        };
+      }
+    } else {
+      // Para otros tipos de gráficas, usar los datos calculados normalmente
+      const measures = this.calculateMeasurement(
+        transformedData,
+        measurement.measurementIds,
+        measurement.aggregationFunction === 'sum' ? 'sum' : 'mean',
+      );
+
+      if (measures) {
+        const values = Object.values(measures);
+        return {
+          min: values.length > 0 ? Math.min(...values) : undefined,
+          max: values.length > 0 ? Math.max(...values) : undefined,
+          avg: values.length > 0 ? values.reduce((sum, val) => sum + val, 0) / values.length : undefined,
+        };
+      }
+    }
+
+    return { min: undefined, max: undefined, avg: undefined };
   }
 }
