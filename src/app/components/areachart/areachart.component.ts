@@ -275,13 +275,10 @@ export class AreachartComponent implements AfterViewInit {
                 }
 
                 // Caso normal: todos diferentes
-                const rango = maxValue - minValue;
                 return [
                   `Máximo: ${maxValue}`,
                   `Mínimo: ${minValue}`,
                   `Promedio: ${promValue}`,
-                  '',
-                  `Rango: ${rango}`,
                 ];
               } else if (!this.detailedMode) {
                 return `Promedio: ${context.parsed.y}`;
