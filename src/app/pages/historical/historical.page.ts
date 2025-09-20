@@ -196,7 +196,16 @@ export class HistoricalPage implements OnInit {
     if (!month) {
       return;
     }
-    // this.typeView = 'calendar';
+    // Si venimos de vista de año, cambiar a calendario
+    if (this.timeFrame === 'year') {
+      this.typeView = 'calendar';
+      // Limpiar selecciones de variables al cambiar a calendario
+      this.variables.forEach((variable) => {
+        variable.selected = false;
+      });
+      this.measureSelected = undefined;
+    }
+
     this.currentMonthIndex = index;
     this.completedTaskMonth = this.completedTaskYear?.find(
       (historical) => historical.mes === index,
@@ -205,11 +214,15 @@ export class HistoricalPage implements OnInit {
     await this.initializeRegisters();
     if (this.measuresConfig?.historical) {
       await this.initializeVariables(this.measuresConfig.historical);
-      if (this.measureSelected) {
-        this.measureSelected.selected = true;
-        await this.updateChart(this.measureSelected.graph);
-      } else {
-        await this.changeColorChart(this.variables[0]);
+
+      // Solo actualizar gráfico si ya estábamos en modo gráfico
+      if (this.typeView === 'chart') {
+        if (this.measureSelected) {
+          this.measureSelected.selected = true;
+          await this.updateChart(this.measureSelected.graph);
+        } else {
+          await this.changeColorChart(this.variables[0]);
+        }
       }
     }
 
@@ -229,7 +242,23 @@ export class HistoricalPage implements OnInit {
    * @returns {void}
    */
   async changeColorChart(measurement: Historical): Promise<void> {
-    if (this.typeView === 'chart') {
+    if (this.typeView === 'calendar') {
+      // Si estamos en vista de calendario, cambiar a gráfico y seleccionar esta variable
+      this.typeView = 'chart';
+      this.variables.forEach((variable) => {
+        variable.selected = false;
+      });
+      measurement.selected = true;
+      this.measureSelected = measurement;
+
+      // Esperar a que se renderice el componente antes de actualizar el gráfico
+      setTimeout(async () => {
+        if (this.areaChartComponent) {
+          await this.updateChart(measurement.graph);
+        }
+      }, 100);
+
+    } else if (this.typeView === 'chart') {
       if (measurement.selected) {
         return;
       }
@@ -243,6 +272,7 @@ export class HistoricalPage implements OnInit {
       this.measureSelected = measurement;
       await this.updateChart(measurement.graph);
     }
+    this.ref.detectChanges();
   }
 
   /**
