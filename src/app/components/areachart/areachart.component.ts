@@ -7,22 +7,22 @@ import {
 } from '@angular/core';
 // import Chart from 'chart.js/auto';
 import {
+  BarController,
+  BarElement,
+  CategoryScale,
   Chart,
   ChartConfiguration,
   ChartData,
   ChartOptions,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  LineController,
-  BarController,
   Filler,
+  Legend,
+  LinearScale,
+  LineController,
+  LineElement,
+  PointElement,
+  TimeScale,
   Title,
   Tooltip,
-  Legend,
-  TimeScale,
 } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 
@@ -101,6 +101,25 @@ export class AreachartComponent implements AfterViewInit {
 
   @Input() xmin: string | undefined;
   @Input() xmax: string | undefined;
+
+  /**
+   * Enable detailed mode with min/max area visualization.
+   * @type {boolean}
+   * @default false
+   */
+  @Input() detailedMode = false;
+
+  /**
+   * Minimum values for detailed visualization.
+   * @type {number[]}
+   */
+  @Input() chartMinData: number[] = [];
+
+  /**
+   * Maximum values for detailed visualization.
+   * @type {number[]}
+   */
+  @Input() chartMaxData: number[] = [];
   /**
    * Creates an instance of AreachartComponent.
    * @memberof AreachartComponent
@@ -140,32 +159,137 @@ export class AreachartComponent implements AfterViewInit {
       gradient = this.borderColor;
     } else {
       gradient = ctx.createLinearGradient(0, 0, 0, 300);
-      gradient.addColorStop(0, this.hexToRgba(this.background, 1));
-      gradient.addColorStop(1, this.hexToRgba(this.background, 0));
+      gradient.addColorStop(0, this.hexToRgba(this.background, 0.8));
+      gradient.addColorStop(1, this.hexToRgba(this.background, 0.2));
+    }
+
+    const datasets: any[] = [];
+
+    if (this.detailedMode && this.chartType === 'line') {
+      // Dataset para área min-max (debe ir primero para que quede detrás)
+      if (this.chartMinData.length > 0 && this.chartMaxData.length > 0) {
+        datasets.push({
+          label: 'Rango Máximo',
+          data: this.chartMaxData,
+          fill: '+1',
+          backgroundColor: this.hexToRgba(this.background, 0.6),
+          borderColor: 'transparent',
+          pointRadius: 0,
+          tension: 0.5,
+        });
+        datasets.push({
+          label: 'Rango Mínimo',
+          data: this.chartMinData,
+          fill: false,
+          backgroundColor: 'transparent',
+          borderColor: 'transparent',
+          pointRadius: 0,
+          tension: 0.5,
+        });
+      }
+
+      // Dataset para línea promedio (va encima)
+      datasets.push({
+        label: 'Promedio',
+        data: this.chartData,
+        fill: false,
+        backgroundColor: 'transparent',
+        borderColor: this.borderColor,
+        borderWidth: 2,
+        pointRadius: 1,
+        pointBackgroundColor: this.borderColor,
+        tension: 0.5,
+      });
+    } else {
+      // Modo normal (gráfica simple)
+      datasets.push({
+        label: 'Medicion',
+        data: this.chartData,
+        fill: true,
+        backgroundColor: gradient,
+        borderColor: this.borderColor,
+        pointRadius: 1,
+        tension: 0.5,
+      });
     }
 
     const data: ChartData<'line'> = {
       labels: this.chartLabels,
-      datasets: [
-        {
-          label: 'Medicion',
-          data: this.chartData,
-          fill: true,
-          backgroundColor: gradient,
-          borderColor: this.borderColor, // Color de la línea
-          tension: 0.5, // Suavidad de la curva
-        },
-      ],
+      datasets: datasets,
     };
     const options: ChartOptions = {
       responsive: true,
       interaction: {
-        mode: 'nearest',
+        mode: 'index',
         intersect: false,
+        axis: 'x',
       },
       plugins: {
         legend: {
           display: false, // Oculta la leyenda
+        },
+        tooltip: {
+          backgroundColor: 'white',
+          titleColor: 'black',
+          bodyColor: 'black',
+          borderColor: '#ccc',
+          borderWidth: 1,
+          displayColors: false,
+          bodyFont: {
+            size: 12,
+          },
+          titleFont: {
+            size: 14,
+          },
+          callbacks: {
+            title: (context: any) => {
+              const date = new Date(context[0].parsed.x);
+              return date.toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+              });
+            },
+            labelTextColor: (context: any) => {
+              if (this.detailedMode && context.dataset.label === 'Promedio') {
+                const labelText = context.label || '';
+                // Si la línea contiene "Promedio", usar el color de la gráfica
+                if (labelText.includes('Promedio:')) {
+                  return this.borderColor;
+                }
+              }
+              // Para el resto de texto, usar negro
+              return 'black';
+            },
+            label: (context: any) => {
+              // Solo mostrar información para el dataset principal (Promedio)
+              if (this.detailedMode && context.dataset.label === 'Promedio') {
+                const index = context.dataIndex;
+                const promValue = this.chartData[index];
+                const maxValue = this.chartMaxData[index];
+                const minValue = this.chartMinData[index];
+
+                // Si todos los valores son iguales, mostrar solo uno
+                if (promValue === maxValue && maxValue === minValue) {
+                  return `Promedio: ${promValue}`;
+                }
+
+                // Caso normal: todos diferentes
+                const rango = maxValue - minValue;
+                return [
+                  `Máximo: ${maxValue}`,
+                  `Mínimo: ${minValue}`,
+                  `Promedio: ${promValue}`,
+                  '',
+                  `Rango: ${rango}`,
+                ];
+              } else if (!this.detailedMode) {
+                return `Promedio: ${context.parsed.y}`;
+              }
+              // No mostrar nada para los otros datasets en modo detallado
+              return '';
+            },
+          },
         },
       },
       scales: {
@@ -208,6 +332,9 @@ export class AreachartComponent implements AfterViewInit {
    * @param {number|undefined} [ymax] - Range Max in Graph
    * @param {string|undefined} [xmin] - Range Min in Graph
    * @param {string|undefined} [xmax] - Range Max in Graph
+   * @param {boolean} [detailedMode] - Enable detailed mode with min/max area
+   * @param {number[]} [minData] - Minimum values for detailed visualization
+   * @param {number[]} [maxData] - Maximum values for detailed visualization
    * @returns {void}
    */
   UpdateChart(
@@ -220,6 +347,9 @@ export class AreachartComponent implements AfterViewInit {
     ymax?: number | undefined,
     xmin?: string | undefined,
     xmax?: string | undefined,
+    detailedMode?: boolean,
+    minData?: number[],
+    maxData?: number[],
   ): void {
     this.chartType = newType; // Actualiza el tipo
     this.background = background || this.background;
@@ -230,6 +360,9 @@ export class AreachartComponent implements AfterViewInit {
     this.ymin = ymin;
     this.xmax = xmax;
     this.xmin = xmin;
+    this.detailedMode = detailedMode || false;
+    this.chartMinData = minData || [];
+    this.chartMaxData = maxData || [];
     if (this.chart) {
       this.chart.destroy();
     }
