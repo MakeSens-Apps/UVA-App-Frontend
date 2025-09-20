@@ -153,6 +153,12 @@ export class HistoricalPage implements OnInit {
     } else {
       this.timeFrame = this.timeFrame === 'month' ? 'year' : 'month';
     }
+
+    // Actualizar datos cuando cambie de timeFrame
+    if (this.measuresConfig?.historical) {
+      await this.initializeVariables(this.measuresConfig.historical);
+    }
+
     if (this.timeFrame === 'month' && this.typeView == 'chart') {
       if (this.measureSelected) {
         await this.updateChart(this.measureSelected.graph);
@@ -456,10 +462,20 @@ export class HistoricalPage implements OnInit {
   private async initializeVariables(
     historicalData: Historical[],
   ): Promise<void> {
-    const measurementValues = await MeasurementDSService.getMeasurementsByMont(
-      this.currentYearIndex,
-      this.currentMonthIndex,
-    );
+    let measurementValues: any[];
+
+    if (this.timeFrame === 'year') {
+      // Para vista de año, obtener datos de todo el año
+      const startDate = new Date(this.currentYearIndex, 0, 1); // 1 de enero
+      const endDate = new Date(this.currentYearIndex, 11, 31, 23, 59, 59); // 31 de diciembre
+      measurementValues = await MeasurementDSService.getMeasurementsByDateRange(startDate, endDate);
+    } else {
+      // Para vista de mes, obtener datos del mes específico
+      measurementValues = await MeasurementDSService.getMeasurementsByMont(
+        this.currentYearIndex,
+        this.currentMonthIndex,
+      );
+    }
 
     const transformedData = this.transformData(measurementValues);
 
