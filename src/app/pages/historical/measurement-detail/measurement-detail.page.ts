@@ -65,6 +65,7 @@ export class MeasurementDetailPage implements OnInit {
   showAlert_complete_seed = false;
   isYesterday = false;
   userProgress: UserProgress | undefined;
+  backRoute = 'app/tabs/history'; // default
 
   hasTaskComplete = false;
   tasks: Task[] | undefined;
@@ -124,6 +125,14 @@ export class MeasurementDetailPage implements OnInit {
    */
   private async processRouteParams(params: any): Promise<void> {
     this.date = params;
+
+    // Determinar la ruta de regreso basada en el origen
+    if (params.origin === 'home') {
+      this.backRoute = 'app/tabs/home';
+    } else {
+      this.backRoute = 'app/tabs/history';
+    }
+
     if (this.date?.date) {
       this.dateFormatted = format(
         new Date(this.date.date),

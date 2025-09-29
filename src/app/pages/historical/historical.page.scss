@@ -66,12 +66,11 @@ ion-segment-button {
     gap: 6px;
     flex: 1 0 0;
     border-radius: 10px;
-    border: 1px solid; //var(--Colors-Orange-400, #EBA84C);
+    border: 2px solid; //var(--Colors-Orange-400, #EBA84C);
     // background: var(--Colors-Orange-200, #F7DFB1);
     color: #545454;
     max-width: 28vw;
-    height: 90px;
-    justify-content: space-between;
+    min-height: fit-content;
 
     &--p {
       @include text-base(12px, 500);
@@ -85,6 +84,45 @@ ion-segment-button {
       span {
         font-weight: 500;
       }
+    }
+
+    &--title {
+      @include text-base(16px, 600);
+      margin: 0;
+      color: #545454;
+      text-align: center;
+      width: 100%;
+    }
+
+    &--stat-box {
+      padding: 0px 4px 0px 4px;
+      border-radius: 4px;
+      width: 100%;
+      text-align: center;
+    }
+
+    &--stat-text {
+      @include text-base(14px, 600);
+      color: #545454;
+    }
+
+    &--stat-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+
+    &--stat-label {
+      @include text-base(12px, 500);
+      margin: 0;
+      color: #545454;
+    }
+
+    &--stat-value {
+      @include text-base(12px, 500);
+      margin: 0;
+      color: #545454;
     }
 
     &_container {
