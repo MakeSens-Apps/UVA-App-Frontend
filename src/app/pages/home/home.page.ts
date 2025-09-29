@@ -205,7 +205,7 @@ export class HomePage implements OnInit, OnDestroy {
       return;
     }
     await this.router.navigate(['measurement-detail'], {
-      queryParams: $event,
+      queryParams: { ...$event, origin: 'home' },
     });
   }
 }
