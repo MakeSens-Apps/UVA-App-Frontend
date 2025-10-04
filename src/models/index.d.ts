@@ -16,6 +16,8 @@ type EagerRACIMO = {
   readonly LinkageCode: string;
   readonly Configuration?: string | null;
   readonly UVAs?: (UVA | null)[] | null;
+  readonly GamificationEvents?: (GamificationEvent | null)[] | null;
+  readonly AppUsageEvents?: (AppUsageEvent | null)[] | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -30,6 +32,8 @@ type LazyRACIMO = {
   readonly LinkageCode: string;
   readonly Configuration?: string | null;
   readonly UVAs: AsyncCollection<UVA>;
+  readonly GamificationEvents: AsyncCollection<GamificationEvent>;
+  readonly AppUsageEvents: AsyncCollection<AppUsageEvent>;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -120,6 +124,82 @@ export declare const UserProgress: (new (init: ModelInit<UserProgress>) => UserP
   copyOf(source: UserProgress, mutator: (draft: MutableModel<UserProgress>) => MutableModel<UserProgress> | void): UserProgress;
 }
 
+type EagerGamificationEvent = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<GamificationEvent, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly userID: string;
+  readonly racimoID: string;
+  readonly eventType: string;
+  readonly ts: string;
+  readonly data?: string | null;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+type LazyGamificationEvent = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<GamificationEvent, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly userID: string;
+  readonly racimoID: string;
+  readonly eventType: string;
+  readonly ts: string;
+  readonly data?: string | null;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+export declare type GamificationEvent = LazyLoading extends LazyLoadingDisabled ? EagerGamificationEvent : LazyGamificationEvent
+
+export declare const GamificationEvent: (new (init: ModelInit<GamificationEvent>) => GamificationEvent) & {
+  copyOf(source: GamificationEvent, mutator: (draft: MutableModel<GamificationEvent>) => MutableModel<GamificationEvent> | void): GamificationEvent;
+}
+
+type EagerAppUsageEvent = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<AppUsageEvent, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly userID: string;
+  readonly racimoID: string;
+  readonly sessionID: string;
+  readonly screenName: string;
+  readonly ts: string;
+  readonly action: string;
+  readonly duration?: number | null;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+type LazyAppUsageEvent = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<AppUsageEvent, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly userID: string;
+  readonly racimoID: string;
+  readonly sessionID: string;
+  readonly screenName: string;
+  readonly ts: string;
+  readonly action: string;
+  readonly duration?: number | null;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+export declare type AppUsageEvent = LazyLoading extends LazyLoadingDisabled ? EagerAppUsageEvent : LazyAppUsageEvent
+
+export declare const AppUsageEvent: (new (init: ModelInit<AppUsageEvent>) => AppUsageEvent) & {
+  copyOf(source: AppUsageEvent, mutator: (draft: MutableModel<AppUsageEvent>) => MutableModel<AppUsageEvent> | void): AppUsageEvent;
+}
+
 type EagerUser = {
   readonly [__modelMeta__]: {
     identifier: ManagedIdentifier<User, 'id'>;
@@ -132,6 +212,8 @@ type EagerUser = {
   readonly Email?: string | null;
   readonly Rank?: string | null;
   readonly UserProgresses?: (UserProgress | null)[] | null;
+  readonly GamificationEvents?: (GamificationEvent | null)[] | null;
+  readonly AppUsageEvents?: (AppUsageEvent | null)[] | null;
   readonly uvaID?: string | null;
   readonly UVA?: UVA | null;
   readonly createdAt?: string | null;
@@ -150,6 +232,8 @@ type LazyUser = {
   readonly Email?: string | null;
   readonly Rank?: string | null;
   readonly UserProgresses: AsyncCollection<UserProgress>;
+  readonly GamificationEvents: AsyncCollection<GamificationEvent>;
+  readonly AppUsageEvents: AsyncCollection<AppUsageEvent>;
   readonly uvaID?: string | null;
   readonly UVA: AsyncItem<UVA | undefined>;
   readonly createdAt?: string | null;
