@@ -4,12 +4,14 @@ import { schema } from './schema';
 
 
 
-const { RACIMO, Measurement, UserProgress, User, UVA } = initSchema(schema);
+const { RACIMO, Measurement, UserProgress, GamificationEvent, AppUsageEvent, User, UVA } = initSchema(schema);
 
 export {
   RACIMO,
   Measurement,
   UserProgress,
+  GamificationEvent,
+  AppUsageEvent,
   User,
   UVA
 };

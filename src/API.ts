@@ -76,6 +76,8 @@ export type RACIMO = {
   LinkageCode: string,
   Configuration?: string | null,
   UVAs?: ModelUVAConnection | null,
+  GamificationEvents?: ModelGamificationEventConnection | null,
+  AppUsageEvents?: ModelAppUsageEventConnection | null,
   createdAt: string,
   updatedAt: string,
   _version: number,
@@ -118,6 +120,8 @@ export type User = {
   Email?: string | null,
   Rank?: string | null,
   UserProgresses?: ModelUserProgressConnection | null,
+  GamificationEvents?: ModelGamificationEventConnection | null,
+  AppUsageEvents?: ModelAppUsageEventConnection | null,
   uvaID?: string | null,
   UVA?: UVA | null,
   createdAt: string,
@@ -145,6 +149,52 @@ export type UserProgress = {
   completedTasks?: number | null,
   additionalInfo?: string | null,
   userID: string,
+  createdAt: string,
+  updatedAt: string,
+  _version: number,
+  _deleted?: boolean | null,
+  _lastChangedAt: number,
+};
+
+export type ModelGamificationEventConnection = {
+  __typename: "ModelGamificationEventConnection",
+  items:  Array<GamificationEvent | null >,
+  nextToken?: string | null,
+  startedAt?: number | null,
+};
+
+export type GamificationEvent = {
+  __typename: "GamificationEvent",
+  id: string,
+  userID: string,
+  racimoID: string,
+  eventType: string,
+  ts: string,
+  data?: string | null,
+  createdAt: string,
+  updatedAt: string,
+  _version: number,
+  _deleted?: boolean | null,
+  _lastChangedAt: number,
+};
+
+export type ModelAppUsageEventConnection = {
+  __typename: "ModelAppUsageEventConnection",
+  items:  Array<AppUsageEvent | null >,
+  nextToken?: string | null,
+  startedAt?: number | null,
+};
+
+export type AppUsageEvent = {
+  __typename: "AppUsageEvent",
+  id: string,
+  userID: string,
+  racimoID: string,
+  sessionID: string,
+  screenName: string,
+  ts: string,
+  action: string,
+  duration?: number | null,
   createdAt: string,
   updatedAt: string,
   _version: number,
@@ -304,6 +354,90 @@ export type UpdateUserProgressInput = {
 };
 
 export type DeleteUserProgressInput = {
+  id: string,
+  _version?: number | null,
+};
+
+export type CreateGamificationEventInput = {
+  id?: string | null,
+  userID: string,
+  racimoID: string,
+  eventType: string,
+  ts: string,
+  data?: string | null,
+  _version?: number | null,
+};
+
+export type ModelGamificationEventConditionInput = {
+  userID?: ModelIDInput | null,
+  racimoID?: ModelIDInput | null,
+  eventType?: ModelStringInput | null,
+  ts?: ModelStringInput | null,
+  data?: ModelStringInput | null,
+  and?: Array< ModelGamificationEventConditionInput | null > | null,
+  or?: Array< ModelGamificationEventConditionInput | null > | null,
+  not?: ModelGamificationEventConditionInput | null,
+  _deleted?: ModelBooleanInput | null,
+  createdAt?: ModelStringInput | null,
+  updatedAt?: ModelStringInput | null,
+};
+
+export type UpdateGamificationEventInput = {
+  id: string,
+  userID?: string | null,
+  racimoID?: string | null,
+  eventType?: string | null,
+  ts?: string | null,
+  data?: string | null,
+  _version?: number | null,
+};
+
+export type DeleteGamificationEventInput = {
+  id: string,
+  _version?: number | null,
+};
+
+export type CreateAppUsageEventInput = {
+  id?: string | null,
+  userID: string,
+  racimoID: string,
+  sessionID: string,
+  screenName: string,
+  ts: string,
+  action: string,
+  duration?: number | null,
+  _version?: number | null,
+};
+
+export type ModelAppUsageEventConditionInput = {
+  userID?: ModelIDInput | null,
+  racimoID?: ModelIDInput | null,
+  sessionID?: ModelStringInput | null,
+  screenName?: ModelStringInput | null,
+  ts?: ModelStringInput | null,
+  action?: ModelStringInput | null,
+  duration?: ModelIntInput | null,
+  and?: Array< ModelAppUsageEventConditionInput | null > | null,
+  or?: Array< ModelAppUsageEventConditionInput | null > | null,
+  not?: ModelAppUsageEventConditionInput | null,
+  _deleted?: ModelBooleanInput | null,
+  createdAt?: ModelStringInput | null,
+  updatedAt?: ModelStringInput | null,
+};
+
+export type UpdateAppUsageEventInput = {
+  id: string,
+  userID?: string | null,
+  racimoID?: string | null,
+  sessionID?: string | null,
+  screenName?: string | null,
+  ts?: string | null,
+  action?: string | null,
+  duration?: number | null,
+  _version?: number | null,
+};
+
+export type DeleteAppUsageEventInput = {
   id: string,
   _version?: number | null,
 };
@@ -469,6 +603,38 @@ export type ModelUserProgressFilterInput = {
   _deleted?: ModelBooleanInput | null,
 };
 
+export type ModelGamificationEventFilterInput = {
+  id?: ModelIDInput | null,
+  userID?: ModelIDInput | null,
+  racimoID?: ModelIDInput | null,
+  eventType?: ModelStringInput | null,
+  ts?: ModelStringInput | null,
+  data?: ModelStringInput | null,
+  createdAt?: ModelStringInput | null,
+  updatedAt?: ModelStringInput | null,
+  and?: Array< ModelGamificationEventFilterInput | null > | null,
+  or?: Array< ModelGamificationEventFilterInput | null > | null,
+  not?: ModelGamificationEventFilterInput | null,
+  _deleted?: ModelBooleanInput | null,
+};
+
+export type ModelAppUsageEventFilterInput = {
+  id?: ModelIDInput | null,
+  userID?: ModelIDInput | null,
+  racimoID?: ModelIDInput | null,
+  sessionID?: ModelStringInput | null,
+  screenName?: ModelStringInput | null,
+  ts?: ModelStringInput | null,
+  action?: ModelStringInput | null,
+  duration?: ModelIntInput | null,
+  createdAt?: ModelStringInput | null,
+  updatedAt?: ModelStringInput | null,
+  and?: Array< ModelAppUsageEventFilterInput | null > | null,
+  or?: Array< ModelAppUsageEventFilterInput | null > | null,
+  not?: ModelAppUsageEventFilterInput | null,
+  _deleted?: ModelBooleanInput | null,
+};
+
 export type ModelUserFilterInput = {
   id?: ModelIDInput | null,
   Name?: ModelStringInput | null,
@@ -601,6 +767,36 @@ export type ModelSubscriptionBooleanInput = {
   eq?: boolean | null,
 };
 
+export type ModelSubscriptionGamificationEventFilterInput = {
+  id?: ModelSubscriptionIDInput | null,
+  racimoID?: ModelSubscriptionIDInput | null,
+  eventType?: ModelSubscriptionStringInput | null,
+  ts?: ModelSubscriptionStringInput | null,
+  data?: ModelSubscriptionStringInput | null,
+  createdAt?: ModelSubscriptionStringInput | null,
+  updatedAt?: ModelSubscriptionStringInput | null,
+  and?: Array< ModelSubscriptionGamificationEventFilterInput | null > | null,
+  or?: Array< ModelSubscriptionGamificationEventFilterInput | null > | null,
+  _deleted?: ModelBooleanInput | null,
+  userID?: ModelStringInput | null,
+};
+
+export type ModelSubscriptionAppUsageEventFilterInput = {
+  id?: ModelSubscriptionIDInput | null,
+  racimoID?: ModelSubscriptionIDInput | null,
+  sessionID?: ModelSubscriptionStringInput | null,
+  screenName?: ModelSubscriptionStringInput | null,
+  ts?: ModelSubscriptionStringInput | null,
+  action?: ModelSubscriptionStringInput | null,
+  duration?: ModelSubscriptionIntInput | null,
+  createdAt?: ModelSubscriptionStringInput | null,
+  updatedAt?: ModelSubscriptionStringInput | null,
+  and?: Array< ModelSubscriptionAppUsageEventFilterInput | null > | null,
+  or?: Array< ModelSubscriptionAppUsageEventFilterInput | null > | null,
+  _deleted?: ModelBooleanInput | null,
+  userID?: ModelStringInput | null,
+};
+
 export type ModelSubscriptionUserFilterInput = {
   Name?: ModelSubscriptionStringInput | null,
   LastName?: ModelSubscriptionStringInput | null,
@@ -649,6 +845,16 @@ export type CreateRACIMOMutation = {
       nextToken?: string | null,
       startedAt?: number | null,
     } | null,
+    GamificationEvents?:  {
+      __typename: "ModelGamificationEventConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
+    AppUsageEvents?:  {
+      __typename: "ModelAppUsageEventConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
     createdAt: string,
     updatedAt: string,
     _version: number,
@@ -674,6 +880,16 @@ export type UpdateRACIMOMutation = {
       nextToken?: string | null,
       startedAt?: number | null,
     } | null,
+    GamificationEvents?:  {
+      __typename: "ModelGamificationEventConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
+    AppUsageEvents?:  {
+      __typename: "ModelAppUsageEventConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
     createdAt: string,
     updatedAt: string,
     _version: number,
@@ -696,6 +912,16 @@ export type DeleteRACIMOMutation = {
     Configuration?: string | null,
     UVAs?:  {
       __typename: "ModelUVAConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
+    GamificationEvents?:  {
+      __typename: "ModelGamificationEventConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
+    AppUsageEvents?:  {
+      __typename: "ModelAppUsageEventConnection",
       nextToken?: string | null,
       startedAt?: number | null,
     } | null,
@@ -854,6 +1080,144 @@ export type DeleteUserProgressMutation = {
   } | null,
 };
 
+export type CreateGamificationEventMutationVariables = {
+  input: CreateGamificationEventInput,
+  condition?: ModelGamificationEventConditionInput | null,
+};
+
+export type CreateGamificationEventMutation = {
+  createGamificationEvent?:  {
+    __typename: "GamificationEvent",
+    id: string,
+    userID: string,
+    racimoID: string,
+    eventType: string,
+    ts: string,
+    data?: string | null,
+    createdAt: string,
+    updatedAt: string,
+    _version: number,
+    _deleted?: boolean | null,
+    _lastChangedAt: number,
+  } | null,
+};
+
+export type UpdateGamificationEventMutationVariables = {
+  input: UpdateGamificationEventInput,
+  condition?: ModelGamificationEventConditionInput | null,
+};
+
+export type UpdateGamificationEventMutation = {
+  updateGamificationEvent?:  {
+    __typename: "GamificationEvent",
+    id: string,
+    userID: string,
+    racimoID: string,
+    eventType: string,
+    ts: string,
+    data?: string | null,
+    createdAt: string,
+    updatedAt: string,
+    _version: number,
+    _deleted?: boolean | null,
+    _lastChangedAt: number,
+  } | null,
+};
+
+export type DeleteGamificationEventMutationVariables = {
+  input: DeleteGamificationEventInput,
+  condition?: ModelGamificationEventConditionInput | null,
+};
+
+export type DeleteGamificationEventMutation = {
+  deleteGamificationEvent?:  {
+    __typename: "GamificationEvent",
+    id: string,
+    userID: string,
+    racimoID: string,
+    eventType: string,
+    ts: string,
+    data?: string | null,
+    createdAt: string,
+    updatedAt: string,
+    _version: number,
+    _deleted?: boolean | null,
+    _lastChangedAt: number,
+  } | null,
+};
+
+export type CreateAppUsageEventMutationVariables = {
+  input: CreateAppUsageEventInput,
+  condition?: ModelAppUsageEventConditionInput | null,
+};
+
+export type CreateAppUsageEventMutation = {
+  createAppUsageEvent?:  {
+    __typename: "AppUsageEvent",
+    id: string,
+    userID: string,
+    racimoID: string,
+    sessionID: string,
+    screenName: string,
+    ts: string,
+    action: string,
+    duration?: number | null,
+    createdAt: string,
+    updatedAt: string,
+    _version: number,
+    _deleted?: boolean | null,
+    _lastChangedAt: number,
+  } | null,
+};
+
+export type UpdateAppUsageEventMutationVariables = {
+  input: UpdateAppUsageEventInput,
+  condition?: ModelAppUsageEventConditionInput | null,
+};
+
+export type UpdateAppUsageEventMutation = {
+  updateAppUsageEvent?:  {
+    __typename: "AppUsageEvent",
+    id: string,
+    userID: string,
+    racimoID: string,
+    sessionID: string,
+    screenName: string,
+    ts: string,
+    action: string,
+    duration?: number | null,
+    createdAt: string,
+    updatedAt: string,
+    _version: number,
+    _deleted?: boolean | null,
+    _lastChangedAt: number,
+  } | null,
+};
+
+export type DeleteAppUsageEventMutationVariables = {
+  input: DeleteAppUsageEventInput,
+  condition?: ModelAppUsageEventConditionInput | null,
+};
+
+export type DeleteAppUsageEventMutation = {
+  deleteAppUsageEvent?:  {
+    __typename: "AppUsageEvent",
+    id: string,
+    userID: string,
+    racimoID: string,
+    sessionID: string,
+    screenName: string,
+    ts: string,
+    action: string,
+    duration?: number | null,
+    createdAt: string,
+    updatedAt: string,
+    _version: number,
+    _deleted?: boolean | null,
+    _lastChangedAt: number,
+  } | null,
+};
+
 export type CreateUserMutationVariables = {
   input: CreateUserInput,
   condition?: ModelUserConditionInput | null,
@@ -870,6 +1234,16 @@ export type CreateUserMutation = {
     Rank?: string | null,
     UserProgresses?:  {
       __typename: "ModelUserProgressConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
+    GamificationEvents?:  {
+      __typename: "ModelGamificationEventConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
+    AppUsageEvents?:  {
+      __typename: "ModelAppUsageEventConnection",
       nextToken?: string | null,
       startedAt?: number | null,
     } | null,
@@ -917,6 +1291,16 @@ export type UpdateUserMutation = {
       nextToken?: string | null,
       startedAt?: number | null,
     } | null,
+    GamificationEvents?:  {
+      __typename: "ModelGamificationEventConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
+    AppUsageEvents?:  {
+      __typename: "ModelAppUsageEventConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
     uvaID?: string | null,
     UVA?:  {
       __typename: "UVA",
@@ -958,6 +1342,16 @@ export type DeleteUserMutation = {
     Rank?: string | null,
     UserProgresses?:  {
       __typename: "ModelUserProgressConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
+    GamificationEvents?:  {
+      __typename: "ModelGamificationEventConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
+    AppUsageEvents?:  {
+      __typename: "ModelAppUsageEventConnection",
       nextToken?: string | null,
       startedAt?: number | null,
     } | null,
@@ -1140,6 +1534,16 @@ export type GetRACIMOQuery = {
     Configuration?: string | null,
     UVAs?:  {
       __typename: "ModelUVAConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
+    GamificationEvents?:  {
+      __typename: "ModelGamificationEventConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
+    AppUsageEvents?:  {
+      __typename: "ModelAppUsageEventConnection",
       nextToken?: string | null,
       startedAt?: number | null,
     } | null,
@@ -1442,6 +1846,296 @@ export type UserProgressesByUserIDAndTsQuery = {
   } | null,
 };
 
+export type GetGamificationEventQueryVariables = {
+  id: string,
+};
+
+export type GetGamificationEventQuery = {
+  getGamificationEvent?:  {
+    __typename: "GamificationEvent",
+    id: string,
+    userID: string,
+    racimoID: string,
+    eventType: string,
+    ts: string,
+    data?: string | null,
+    createdAt: string,
+    updatedAt: string,
+    _version: number,
+    _deleted?: boolean | null,
+    _lastChangedAt: number,
+  } | null,
+};
+
+export type ListGamificationEventsQueryVariables = {
+  filter?: ModelGamificationEventFilterInput | null,
+  limit?: number | null,
+  nextToken?: string | null,
+};
+
+export type ListGamificationEventsQuery = {
+  listGamificationEvents?:  {
+    __typename: "ModelGamificationEventConnection",
+    items:  Array< {
+      __typename: "GamificationEvent",
+      id: string,
+      userID: string,
+      racimoID: string,
+      eventType: string,
+      ts: string,
+      data?: string | null,
+      createdAt: string,
+      updatedAt: string,
+      _version: number,
+      _deleted?: boolean | null,
+      _lastChangedAt: number,
+    } | null >,
+    nextToken?: string | null,
+    startedAt?: number | null,
+  } | null,
+};
+
+export type SyncGamificationEventsQueryVariables = {
+  filter?: ModelGamificationEventFilterInput | null,
+  limit?: number | null,
+  nextToken?: string | null,
+  lastSync?: number | null,
+};
+
+export type SyncGamificationEventsQuery = {
+  syncGamificationEvents?:  {
+    __typename: "ModelGamificationEventConnection",
+    items:  Array< {
+      __typename: "GamificationEvent",
+      id: string,
+      userID: string,
+      racimoID: string,
+      eventType: string,
+      ts: string,
+      data?: string | null,
+      createdAt: string,
+      updatedAt: string,
+      _version: number,
+      _deleted?: boolean | null,
+      _lastChangedAt: number,
+    } | null >,
+    nextToken?: string | null,
+    startedAt?: number | null,
+  } | null,
+};
+
+export type GamificationEventsByUserIDAndTsQueryVariables = {
+  userID: string,
+  ts?: ModelStringKeyConditionInput | null,
+  sortDirection?: ModelSortDirection | null,
+  filter?: ModelGamificationEventFilterInput | null,
+  limit?: number | null,
+  nextToken?: string | null,
+};
+
+export type GamificationEventsByUserIDAndTsQuery = {
+  gamificationEventsByUserIDAndTs?:  {
+    __typename: "ModelGamificationEventConnection",
+    items:  Array< {
+      __typename: "GamificationEvent",
+      id: string,
+      userID: string,
+      racimoID: string,
+      eventType: string,
+      ts: string,
+      data?: string | null,
+      createdAt: string,
+      updatedAt: string,
+      _version: number,
+      _deleted?: boolean | null,
+      _lastChangedAt: number,
+    } | null >,
+    nextToken?: string | null,
+    startedAt?: number | null,
+  } | null,
+};
+
+export type GamificationEventsByRacimoIDAndTsQueryVariables = {
+  racimoID: string,
+  ts?: ModelStringKeyConditionInput | null,
+  sortDirection?: ModelSortDirection | null,
+  filter?: ModelGamificationEventFilterInput | null,
+  limit?: number | null,
+  nextToken?: string | null,
+};
+
+export type GamificationEventsByRacimoIDAndTsQuery = {
+  gamificationEventsByRacimoIDAndTs?:  {
+    __typename: "ModelGamificationEventConnection",
+    items:  Array< {
+      __typename: "GamificationEvent",
+      id: string,
+      userID: string,
+      racimoID: string,
+      eventType: string,
+      ts: string,
+      data?: string | null,
+      createdAt: string,
+      updatedAt: string,
+      _version: number,
+      _deleted?: boolean | null,
+      _lastChangedAt: number,
+    } | null >,
+    nextToken?: string | null,
+    startedAt?: number | null,
+  } | null,
+};
+
+export type GetAppUsageEventQueryVariables = {
+  id: string,
+};
+
+export type GetAppUsageEventQuery = {
+  getAppUsageEvent?:  {
+    __typename: "AppUsageEvent",
+    id: string,
+    userID: string,
+    racimoID: string,
+    sessionID: string,
+    screenName: string,
+    ts: string,
+    action: string,
+    duration?: number | null,
+    createdAt: string,
+    updatedAt: string,
+    _version: number,
+    _deleted?: boolean | null,
+    _lastChangedAt: number,
+  } | null,
+};
+
+export type ListAppUsageEventsQueryVariables = {
+  filter?: ModelAppUsageEventFilterInput | null,
+  limit?: number | null,
+  nextToken?: string | null,
+};
+
+export type ListAppUsageEventsQuery = {
+  listAppUsageEvents?:  {
+    __typename: "ModelAppUsageEventConnection",
+    items:  Array< {
+      __typename: "AppUsageEvent",
+      id: string,
+      userID: string,
+      racimoID: string,
+      sessionID: string,
+      screenName: string,
+      ts: string,
+      action: string,
+      duration?: number | null,
+      createdAt: string,
+      updatedAt: string,
+      _version: number,
+      _deleted?: boolean | null,
+      _lastChangedAt: number,
+    } | null >,
+    nextToken?: string | null,
+    startedAt?: number | null,
+  } | null,
+};
+
+export type SyncAppUsageEventsQueryVariables = {
+  filter?: ModelAppUsageEventFilterInput | null,
+  limit?: number | null,
+  nextToken?: string | null,
+  lastSync?: number | null,
+};
+
+export type SyncAppUsageEventsQuery = {
+  syncAppUsageEvents?:  {
+    __typename: "ModelAppUsageEventConnection",
+    items:  Array< {
+      __typename: "AppUsageEvent",
+      id: string,
+      userID: string,
+      racimoID: string,
+      sessionID: string,
+      screenName: string,
+      ts: string,
+      action: string,
+      duration?: number | null,
+      createdAt: string,
+      updatedAt: string,
+      _version: number,
+      _deleted?: boolean | null,
+      _lastChangedAt: number,
+    } | null >,
+    nextToken?: string | null,
+    startedAt?: number | null,
+  } | null,
+};
+
+export type AppUsageEventsByUserIDAndTsQueryVariables = {
+  userID: string,
+  ts?: ModelStringKeyConditionInput | null,
+  sortDirection?: ModelSortDirection | null,
+  filter?: ModelAppUsageEventFilterInput | null,
+  limit?: number | null,
+  nextToken?: string | null,
+};
+
+export type AppUsageEventsByUserIDAndTsQuery = {
+  appUsageEventsByUserIDAndTs?:  {
+    __typename: "ModelAppUsageEventConnection",
+    items:  Array< {
+      __typename: "AppUsageEvent",
+      id: string,
+      userID: string,
+      racimoID: string,
+      sessionID: string,
+      screenName: string,
+      ts: string,
+      action: string,
+      duration?: number | null,
+      createdAt: string,
+      updatedAt: string,
+      _version: number,
+      _deleted?: boolean | null,
+      _lastChangedAt: number,
+    } | null >,
+    nextToken?: string | null,
+    startedAt?: number | null,
+  } | null,
+};
+
+export type AppUsageEventsByRacimoIDAndTsQueryVariables = {
+  racimoID: string,
+  ts?: ModelStringKeyConditionInput | null,
+  sortDirection?: ModelSortDirection | null,
+  filter?: ModelAppUsageEventFilterInput | null,
+  limit?: number | null,
+  nextToken?: string | null,
+};
+
+export type AppUsageEventsByRacimoIDAndTsQuery = {
+  appUsageEventsByRacimoIDAndTs?:  {
+    __typename: "ModelAppUsageEventConnection",
+    items:  Array< {
+      __typename: "AppUsageEvent",
+      id: string,
+      userID: string,
+      racimoID: string,
+      sessionID: string,
+      screenName: string,
+      ts: string,
+      action: string,
+      duration?: number | null,
+      createdAt: string,
+      updatedAt: string,
+      _version: number,
+      _deleted?: boolean | null,
+      _lastChangedAt: number,
+    } | null >,
+    nextToken?: string | null,
+    startedAt?: number | null,
+  } | null,
+};
+
 export type GetUserQueryVariables = {
   id: string,
 };
@@ -1457,6 +2151,16 @@ export type GetUserQuery = {
     Rank?: string | null,
     UserProgresses?:  {
       __typename: "ModelUserProgressConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
+    GamificationEvents?:  {
+      __typename: "ModelGamificationEventConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
+    AppUsageEvents?:  {
+      __typename: "ModelAppUsageEventConnection",
       nextToken?: string | null,
       startedAt?: number | null,
     } | null,
@@ -1729,6 +2433,16 @@ export type OnCreateRACIMOSubscription = {
       nextToken?: string | null,
       startedAt?: number | null,
     } | null,
+    GamificationEvents?:  {
+      __typename: "ModelGamificationEventConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
+    AppUsageEvents?:  {
+      __typename: "ModelAppUsageEventConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
     createdAt: string,
     updatedAt: string,
     _version: number,
@@ -1753,6 +2467,16 @@ export type OnUpdateRACIMOSubscription = {
       nextToken?: string | null,
       startedAt?: number | null,
     } | null,
+    GamificationEvents?:  {
+      __typename: "ModelGamificationEventConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
+    AppUsageEvents?:  {
+      __typename: "ModelAppUsageEventConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
     createdAt: string,
     updatedAt: string,
     _version: number,
@@ -1774,6 +2498,16 @@ export type OnDeleteRACIMOSubscription = {
     Configuration?: string | null,
     UVAs?:  {
       __typename: "ModelUVAConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
+    GamificationEvents?:  {
+      __typename: "ModelGamificationEventConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
+    AppUsageEvents?:  {
+      __typename: "ModelAppUsageEventConnection",
       nextToken?: string | null,
       startedAt?: number | null,
     } | null,
@@ -1932,6 +2666,144 @@ export type OnDeleteUserProgressSubscription = {
   } | null,
 };
 
+export type OnCreateGamificationEventSubscriptionVariables = {
+  filter?: ModelSubscriptionGamificationEventFilterInput | null,
+  userID?: string | null,
+};
+
+export type OnCreateGamificationEventSubscription = {
+  onCreateGamificationEvent?:  {
+    __typename: "GamificationEvent",
+    id: string,
+    userID: string,
+    racimoID: string,
+    eventType: string,
+    ts: string,
+    data?: string | null,
+    createdAt: string,
+    updatedAt: string,
+    _version: number,
+    _deleted?: boolean | null,
+    _lastChangedAt: number,
+  } | null,
+};
+
+export type OnUpdateGamificationEventSubscriptionVariables = {
+  filter?: ModelSubscriptionGamificationEventFilterInput | null,
+  userID?: string | null,
+};
+
+export type OnUpdateGamificationEventSubscription = {
+  onUpdateGamificationEvent?:  {
+    __typename: "GamificationEvent",
+    id: string,
+    userID: string,
+    racimoID: string,
+    eventType: string,
+    ts: string,
+    data?: string | null,
+    createdAt: string,
+    updatedAt: string,
+    _version: number,
+    _deleted?: boolean | null,
+    _lastChangedAt: number,
+  } | null,
+};
+
+export type OnDeleteGamificationEventSubscriptionVariables = {
+  filter?: ModelSubscriptionGamificationEventFilterInput | null,
+  userID?: string | null,
+};
+
+export type OnDeleteGamificationEventSubscription = {
+  onDeleteGamificationEvent?:  {
+    __typename: "GamificationEvent",
+    id: string,
+    userID: string,
+    racimoID: string,
+    eventType: string,
+    ts: string,
+    data?: string | null,
+    createdAt: string,
+    updatedAt: string,
+    _version: number,
+    _deleted?: boolean | null,
+    _lastChangedAt: number,
+  } | null,
+};
+
+export type OnCreateAppUsageEventSubscriptionVariables = {
+  filter?: ModelSubscriptionAppUsageEventFilterInput | null,
+  userID?: string | null,
+};
+
+export type OnCreateAppUsageEventSubscription = {
+  onCreateAppUsageEvent?:  {
+    __typename: "AppUsageEvent",
+    id: string,
+    userID: string,
+    racimoID: string,
+    sessionID: string,
+    screenName: string,
+    ts: string,
+    action: string,
+    duration?: number | null,
+    createdAt: string,
+    updatedAt: string,
+    _version: number,
+    _deleted?: boolean | null,
+    _lastChangedAt: number,
+  } | null,
+};
+
+export type OnUpdateAppUsageEventSubscriptionVariables = {
+  filter?: ModelSubscriptionAppUsageEventFilterInput | null,
+  userID?: string | null,
+};
+
+export type OnUpdateAppUsageEventSubscription = {
+  onUpdateAppUsageEvent?:  {
+    __typename: "AppUsageEvent",
+    id: string,
+    userID: string,
+    racimoID: string,
+    sessionID: string,
+    screenName: string,
+    ts: string,
+    action: string,
+    duration?: number | null,
+    createdAt: string,
+    updatedAt: string,
+    _version: number,
+    _deleted?: boolean | null,
+    _lastChangedAt: number,
+  } | null,
+};
+
+export type OnDeleteAppUsageEventSubscriptionVariables = {
+  filter?: ModelSubscriptionAppUsageEventFilterInput | null,
+  userID?: string | null,
+};
+
+export type OnDeleteAppUsageEventSubscription = {
+  onDeleteAppUsageEvent?:  {
+    __typename: "AppUsageEvent",
+    id: string,
+    userID: string,
+    racimoID: string,
+    sessionID: string,
+    screenName: string,
+    ts: string,
+    action: string,
+    duration?: number | null,
+    createdAt: string,
+    updatedAt: string,
+    _version: number,
+    _deleted?: boolean | null,
+    _lastChangedAt: number,
+  } | null,
+};
+
 export type OnCreateUserSubscriptionVariables = {
   filter?: ModelSubscriptionUserFilterInput | null,
   id?: string | null,
@@ -1948,6 +2820,16 @@ export type OnCreateUserSubscription = {
     Rank?: string | null,
     UserProgresses?:  {
       __typename: "ModelUserProgressConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
+    GamificationEvents?:  {
+      __typename: "ModelGamificationEventConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
+    AppUsageEvents?:  {
+      __typename: "ModelAppUsageEventConnection",
       nextToken?: string | null,
       startedAt?: number | null,
     } | null,
@@ -1995,6 +2877,16 @@ export type OnUpdateUserSubscription = {
       nextToken?: string | null,
       startedAt?: number | null,
     } | null,
+    GamificationEvents?:  {
+      __typename: "ModelGamificationEventConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
+    AppUsageEvents?:  {
+      __typename: "ModelAppUsageEventConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
     uvaID?: string | null,
     UVA?:  {
       __typename: "UVA",
@@ -2036,6 +2928,16 @@ export type OnDeleteUserSubscription = {
     Rank?: string | null,
     UserProgresses?:  {
       __typename: "ModelUserProgressConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
+    GamificationEvents?:  {
+      __typename: "ModelGamificationEventConnection",
+      nextToken?: string | null,
+      startedAt?: number | null,
+    } | null,
+    AppUsageEvents?:  {
+      __typename: "ModelAppUsageEventConnection",
       nextToken?: string | null,
       startedAt?: number | null,
     } | null,

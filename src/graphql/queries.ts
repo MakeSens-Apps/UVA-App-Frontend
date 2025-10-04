@@ -26,6 +26,16 @@ export const getRACIMO = /* GraphQL */ `query GetRACIMO($id: ID!) {
       startedAt
       __typename
     }
+    GamificationEvents {
+      nextToken
+      startedAt
+      __typename
+    }
+    AppUsageEvents {
+      nextToken
+      startedAt
+      __typename
+    }
     createdAt
     updatedAt
     _version
@@ -361,6 +371,344 @@ export const userProgressesByUserIDAndTs = /* GraphQL */ `query UserProgressesBy
   APITypes.UserProgressesByUserIDAndTsQueryVariables,
   APITypes.UserProgressesByUserIDAndTsQuery
 >;
+export const getGamificationEvent = /* GraphQL */ `query GetGamificationEvent($id: ID!) {
+  getGamificationEvent(id: $id) {
+    id
+    userID
+    racimoID
+    eventType
+    ts
+    data
+    createdAt
+    updatedAt
+    _version
+    _deleted
+    _lastChangedAt
+    __typename
+  }
+}
+` as GeneratedQuery<
+  APITypes.GetGamificationEventQueryVariables,
+  APITypes.GetGamificationEventQuery
+>;
+export const listGamificationEvents = /* GraphQL */ `query ListGamificationEvents(
+  $filter: ModelGamificationEventFilterInput
+  $limit: Int
+  $nextToken: String
+) {
+  listGamificationEvents(
+    filter: $filter
+    limit: $limit
+    nextToken: $nextToken
+  ) {
+    items {
+      id
+      userID
+      racimoID
+      eventType
+      ts
+      data
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+    nextToken
+    startedAt
+    __typename
+  }
+}
+` as GeneratedQuery<
+  APITypes.ListGamificationEventsQueryVariables,
+  APITypes.ListGamificationEventsQuery
+>;
+export const syncGamificationEvents = /* GraphQL */ `query SyncGamificationEvents(
+  $filter: ModelGamificationEventFilterInput
+  $limit: Int
+  $nextToken: String
+  $lastSync: AWSTimestamp
+) {
+  syncGamificationEvents(
+    filter: $filter
+    limit: $limit
+    nextToken: $nextToken
+    lastSync: $lastSync
+  ) {
+    items {
+      id
+      userID
+      racimoID
+      eventType
+      ts
+      data
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+    nextToken
+    startedAt
+    __typename
+  }
+}
+` as GeneratedQuery<
+  APITypes.SyncGamificationEventsQueryVariables,
+  APITypes.SyncGamificationEventsQuery
+>;
+export const gamificationEventsByUserIDAndTs = /* GraphQL */ `query GamificationEventsByUserIDAndTs(
+  $userID: ID!
+  $ts: ModelStringKeyConditionInput
+  $sortDirection: ModelSortDirection
+  $filter: ModelGamificationEventFilterInput
+  $limit: Int
+  $nextToken: String
+) {
+  gamificationEventsByUserIDAndTs(
+    userID: $userID
+    ts: $ts
+    sortDirection: $sortDirection
+    filter: $filter
+    limit: $limit
+    nextToken: $nextToken
+  ) {
+    items {
+      id
+      userID
+      racimoID
+      eventType
+      ts
+      data
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+    nextToken
+    startedAt
+    __typename
+  }
+}
+` as GeneratedQuery<
+  APITypes.GamificationEventsByUserIDAndTsQueryVariables,
+  APITypes.GamificationEventsByUserIDAndTsQuery
+>;
+export const gamificationEventsByRacimoIDAndTs = /* GraphQL */ `query GamificationEventsByRacimoIDAndTs(
+  $racimoID: ID!
+  $ts: ModelStringKeyConditionInput
+  $sortDirection: ModelSortDirection
+  $filter: ModelGamificationEventFilterInput
+  $limit: Int
+  $nextToken: String
+) {
+  gamificationEventsByRacimoIDAndTs(
+    racimoID: $racimoID
+    ts: $ts
+    sortDirection: $sortDirection
+    filter: $filter
+    limit: $limit
+    nextToken: $nextToken
+  ) {
+    items {
+      id
+      userID
+      racimoID
+      eventType
+      ts
+      data
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+    nextToken
+    startedAt
+    __typename
+  }
+}
+` as GeneratedQuery<
+  APITypes.GamificationEventsByRacimoIDAndTsQueryVariables,
+  APITypes.GamificationEventsByRacimoIDAndTsQuery
+>;
+export const getAppUsageEvent = /* GraphQL */ `query GetAppUsageEvent($id: ID!) {
+  getAppUsageEvent(id: $id) {
+    id
+    userID
+    racimoID
+    sessionID
+    screenName
+    ts
+    action
+    duration
+    createdAt
+    updatedAt
+    _version
+    _deleted
+    _lastChangedAt
+    __typename
+  }
+}
+` as GeneratedQuery<
+  APITypes.GetAppUsageEventQueryVariables,
+  APITypes.GetAppUsageEventQuery
+>;
+export const listAppUsageEvents = /* GraphQL */ `query ListAppUsageEvents(
+  $filter: ModelAppUsageEventFilterInput
+  $limit: Int
+  $nextToken: String
+) {
+  listAppUsageEvents(filter: $filter, limit: $limit, nextToken: $nextToken) {
+    items {
+      id
+      userID
+      racimoID
+      sessionID
+      screenName
+      ts
+      action
+      duration
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+    nextToken
+    startedAt
+    __typename
+  }
+}
+` as GeneratedQuery<
+  APITypes.ListAppUsageEventsQueryVariables,
+  APITypes.ListAppUsageEventsQuery
+>;
+export const syncAppUsageEvents = /* GraphQL */ `query SyncAppUsageEvents(
+  $filter: ModelAppUsageEventFilterInput
+  $limit: Int
+  $nextToken: String
+  $lastSync: AWSTimestamp
+) {
+  syncAppUsageEvents(
+    filter: $filter
+    limit: $limit
+    nextToken: $nextToken
+    lastSync: $lastSync
+  ) {
+    items {
+      id
+      userID
+      racimoID
+      sessionID
+      screenName
+      ts
+      action
+      duration
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+    nextToken
+    startedAt
+    __typename
+  }
+}
+` as GeneratedQuery<
+  APITypes.SyncAppUsageEventsQueryVariables,
+  APITypes.SyncAppUsageEventsQuery
+>;
+export const appUsageEventsByUserIDAndTs = /* GraphQL */ `query AppUsageEventsByUserIDAndTs(
+  $userID: ID!
+  $ts: ModelStringKeyConditionInput
+  $sortDirection: ModelSortDirection
+  $filter: ModelAppUsageEventFilterInput
+  $limit: Int
+  $nextToken: String
+) {
+  appUsageEventsByUserIDAndTs(
+    userID: $userID
+    ts: $ts
+    sortDirection: $sortDirection
+    filter: $filter
+    limit: $limit
+    nextToken: $nextToken
+  ) {
+    items {
+      id
+      userID
+      racimoID
+      sessionID
+      screenName
+      ts
+      action
+      duration
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+    nextToken
+    startedAt
+    __typename
+  }
+}
+` as GeneratedQuery<
+  APITypes.AppUsageEventsByUserIDAndTsQueryVariables,
+  APITypes.AppUsageEventsByUserIDAndTsQuery
+>;
+export const appUsageEventsByRacimoIDAndTs = /* GraphQL */ `query AppUsageEventsByRacimoIDAndTs(
+  $racimoID: ID!
+  $ts: ModelStringKeyConditionInput
+  $sortDirection: ModelSortDirection
+  $filter: ModelAppUsageEventFilterInput
+  $limit: Int
+  $nextToken: String
+) {
+  appUsageEventsByRacimoIDAndTs(
+    racimoID: $racimoID
+    ts: $ts
+    sortDirection: $sortDirection
+    filter: $filter
+    limit: $limit
+    nextToken: $nextToken
+  ) {
+    items {
+      id
+      userID
+      racimoID
+      sessionID
+      screenName
+      ts
+      action
+      duration
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+    nextToken
+    startedAt
+    __typename
+  }
+}
+` as GeneratedQuery<
+  APITypes.AppUsageEventsByRacimoIDAndTsQueryVariables,
+  APITypes.AppUsageEventsByRacimoIDAndTsQuery
+>;
 export const getUser = /* GraphQL */ `query GetUser($id: ID!) {
   getUser(id: $id) {
     id
@@ -370,6 +718,16 @@ export const getUser = /* GraphQL */ `query GetUser($id: ID!) {
     Email
     Rank
     UserProgresses {
+      nextToken
+      startedAt
+      __typename
+    }
+    GamificationEvents {
+      nextToken
+      startedAt
+      __typename
+    }
+    AppUsageEvents {
       nextToken
       startedAt
       __typename
