@@ -11,7 +11,8 @@
       </div>
       <ion-buttons slot="end">
         <ion-button (click)="goBack('/alerts')" fill="clear">
-          <ion-icon name="notifications-outline"></ion-icon>
+          <ion-icon name="notifications"></ion-icon>
+          <ion-badge *ngIf="hasUnreadNotifications" color="danger"></ion-badge>
         </ion-button>
       </ion-buttons>
     </div>

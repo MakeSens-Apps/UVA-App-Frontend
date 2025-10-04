@@ -3,6 +3,7 @@ import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
+import { NotificationService } from '../../../core/services/view/gamification/notification.service';
 
 interface GamificationAlerts {
   id: string;
@@ -28,8 +29,12 @@ export class AlertsPage {
 
   /**
    * @param {Router} router - Angular Router instance used for navigation.
+   * @param {NotificationService} notificationService - Service for managing notification state.
    */
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private notificationService: NotificationService,
+  ) {}
 
   /**
    * Lifecycle hook that is called when the view is about to enter.
@@ -37,6 +42,7 @@ export class AlertsPage {
   async ionViewWillEnter(): Promise<void> {
     // Load mock notifications for now
     this.notifications = this.getMockNotifications();
+    this.updateUnreadCount();
   }
 
   /**
@@ -45,6 +51,7 @@ export class AlertsPage {
    */
   markAsRead(notification: GamificationAlerts): void {
     notification.data.isUnread = false;
+    this.updateUnreadCount();
   }
 
   /**
@@ -67,6 +74,17 @@ export class AlertsPage {
    */
   deleteAllNotifications(): void {
     this.notifications = [];
+    this.updateUnreadCount();
+  }
+
+  /**
+   * Updates the unread notification count in the notification service.
+   */
+  private updateUnreadCount(): void {
+    const unreadCount = this.notifications.filter(
+      (n) => n.data.isUnread,
+    ).length;
+    this.notificationService.updateUnreadCount(unreadCount);
   }
 
   /**
