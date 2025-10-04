@@ -2,19 +2,18 @@ import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { GamificationEventDSService } from '@app/core/services/storage/datastore/gamification-event-ds.service';
 import { IonicModule } from '@ionic/angular';
-import { GamificationEvent } from 'src/models';
 
-interface MockGamificationEvent {
+interface GamificationAlerts {
   id: string;
-  userID: string;
-  racimoID: string;
-  eventType: string;
-  ts: string;
-  data: string;
-  createdAt: string;
-  updatedAt: string;
+  data: {
+    title: string;
+    description: string;
+    isUnread: boolean;
+  };
+  isUnclean: boolean;
+  timestamp: string;
+  type?: 'seeds' | 'streak' | 'achievement' | 'surprise' | 'bonus';
 }
 
 @Component({
@@ -25,7 +24,7 @@ interface MockGamificationEvent {
   imports: [IonicModule, CommonModule, FormsModule],
 })
 export class AlertsPage {
-  events: (GamificationEvent | MockGamificationEvent)[] = [];
+  notifications: GamificationAlerts[] = [];
 
   /**
    * @param {Router} router - Angular Router instance used for navigation.
@@ -36,17 +35,24 @@ export class AlertsPage {
    * Lifecycle hook that is called when the view is about to enter.
    */
   async ionViewWillEnter(): Promise<void> {
-    try {
-      this.events = await GamificationEventDSService.getGamificationEvents();
-      // Add mock data if no events exist
-      if (this.events.length === 0) {
-        this.events = this.getMockEvents();
-      }
-    } catch (error) {
-      console.error('Error loading gamification events:', error);
-      // Fallback to mock data on error
-      this.events = this.getMockEvents();
-    }
+    // Load mock notifications for now
+    this.notifications = this.getMockNotifications();
+  }
+
+  /**
+   * Marks a notification as read.
+   * @param {GamificationAlerts} notification - The notification to mark as read.
+   */
+  markAsRead(notification: GamificationAlerts): void {
+    notification.data.isUnread = false;
+  }
+
+  /**
+   * Opens settings menu (placeholder for now).
+   */
+  openSettings(): void {
+    // TODO: Implement settings menu
+    console.log('Settings clicked');
   }
 
   /**
@@ -58,89 +64,145 @@ export class AlertsPage {
   }
 
   /**
-   * Formats the event data for display.
-   * @param {GamificationEvent | MockGamificationEvent} event - The event to format.
-   * @returns {string} Formatted data string.
+   * Deletes all notifications.
    */
-  formatEventData(event: GamificationEvent | MockGamificationEvent): string {
-    try {
-      const data = JSON.parse(event.data || '{}');
-      switch (event.eventType) {
-        case 'first_task_completed':
-          return `First task completed! Earned ${data.seed} seed(s).`;
-        case 'all_tasks_completed':
-          return `All tasks completed! Earned ${data.seed} seed(s) and increased streak to ${data.streak}.`;
-        case 'streak_recovered':
-          return `Streak recovered! New streak: ${data.newStreak}. Cost: ${data.cost} seeds.`;
-        case 'streak_bonus':
-          return `Streak bonus! Earned ${data.bonusSeeds} extra seed(s) for streak of ${data.streak} days.`;
-        default:
-          return event.data || 'No details available.';
-      }
-    } catch {
-      return event.data || 'No details available.';
+  deleteAllNotifications(): void {
+    this.notifications = [];
+  }
+
+  /**
+   * Returns the appropriate icon for the notification type.
+   * @param {GamificationAlerts} notification - The notification.
+   * @returns {string} Icon name.
+   */
+  getNotificationIcon(notification: GamificationAlerts): string {
+    switch (notification.type) {
+      case 'seeds':
+        return 'sparkles';
+      case 'streak':
+        return 'flame';
+      case 'achievement':
+        return 'trophy';
+      case 'surprise':
+        return 'gift';
+      case 'bonus':
+        return 'flash';
+      default:
+        return 'notifications-outline';
     }
   }
 
   /**
-   * Formats the timestamp for display.
-   * @param {string} ts - The timestamp string.
-   * @returns {string} Formatted date string.
+   * Returns the background color class for the notification icon.
+   * @param {GamificationAlerts} notification - The notification.
+   * @returns {string} CSS class for background color.
    */
-  formatTimestamp(ts: string): string {
-    return new Date(ts).toLocaleString();
+  getNotificationIconBg(notification: GamificationAlerts): string {
+    switch (notification.type) {
+      case 'seeds':
+        return 'icon-bg-accent';
+      case 'streak':
+        return 'icon-bg-orange';
+      case 'achievement':
+        return 'icon-bg-primary';
+      case 'surprise':
+        return 'icon-bg-pink';
+      case 'bonus':
+        return 'icon-bg-yellow';
+      default:
+        return 'icon-bg-muted';
+    }
   }
 
   /**
-   * Returns mock gamification events for testing purposes.
-   * @returns {(GamificationEvent | MockGamificationEvent)[]} Array of mock events.
+   * Returns mock notifications for testing purposes.
+   * @returns {GamificationAlerts[]} Array of mock notifications.
    */
-  private getMockEvents(): (GamificationEvent | MockGamificationEvent)[] {
-    const now = new Date();
+  private getMockNotifications(): GamificationAlerts[] {
     return [
       {
-        id: 'mock-1',
-        userID: 'user123',
-        racimoID: 'racimo123',
-        eventType: 'first_task_completed',
-        ts: new Date(now.getTime() - 5 * 60 * 1000).toISOString(), // 5 minutes ago
-        data: JSON.stringify({ seed: 1 }),
-        createdAt: new Date(now.getTime() - 5 * 60 * 1000).toISOString(),
-        updatedAt: new Date(now.getTime() - 5 * 60 * 1000).toISOString(),
+        id: '1',
+        data: {
+          title: '¡Recompensa sorpresa!',
+          description:
+            'Has ganado 50 semillas extras por tu dedicación esta semana. ¡Sigue así!',
+          isUnread: true,
+        },
+        isUnclean: false,
+        timestamp: 'Hoy • 14:30',
+        type: 'surprise',
       },
       {
-        id: 'mock-2',
-        userID: 'user123',
-        racimoID: 'racimo123',
-        eventType: 'all_tasks_completed',
-        ts: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-        data: JSON.stringify({ seed: 2, streak: 3 }),
-        createdAt: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+        id: '2',
+        data: {
+          title: 'Racha de 7 días completada',
+          description:
+            'Has completado todas tus tareas durante 7 días consecutivos. ¡Increíble constancia!',
+          isUnread: true,
+        },
+        isUnclean: false,
+        timestamp: 'Hoy • 09:15',
+        type: 'streak',
       },
       {
-        id: 'mock-3',
-        userID: 'user123',
-        racimoID: 'racimo123',
-        eventType: 'streak_recovered',
-        ts: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
-        data: JSON.stringify({ newStreak: 5, cost: 5 }),
-        createdAt: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+        id: '3',
+        data: {
+          title: 'Primera tarea completada',
+          description:
+            'Completaste tu primera tarea del día. Has ganado 10 semillas.',
+          isUnread: false,
+        },
+        isUnclean: true,
+        timestamp: 'Ayer • 18:45',
+        type: 'achievement',
       },
       {
-        id: 'mock-4',
-        userID: 'user123',
-        racimoID: 'racimo123',
-        eventType: 'streak_bonus',
-        ts: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
-        data: JSON.stringify({ bonusSeeds: 3, streak: 7 }),
-        createdAt: new Date(
-          now.getTime() - 2 * 24 * 60 * 60 * 1000,
-        ).toISOString(),
-        updatedAt: new Date(
-          now.getTime() - 2 * 24 * 60 * 60 * 1000,
-        ).toISOString(),
+        id: '4',
+        data: {
+          title: 'Bono de racha semanal',
+          description:
+            'Por mantener tu racha de 7 días, has recibido 100 semillas de bonificación.',
+          isUnread: false,
+        },
+        isUnclean: true,
+        timestamp: 'Ayer • 16:20',
+        type: 'bonus',
+      },
+      {
+        id: '5',
+        data: {
+          title: 'Semillas ganadas',
+          description:
+            'Has completado 3 tareas hoy y ganado 30 semillas en total.',
+          isUnread: false,
+        },
+        isUnclean: false,
+        timestamp: 'Ayer • 12:00',
+        type: 'seeds',
+      },
+      {
+        id: '6',
+        data: {
+          title: 'Todas las tareas completadas',
+          description:
+            'Completaste todas las tareas del día. ¡Excelente trabajo! +25 semillas.',
+          isUnread: false,
+        },
+        isUnclean: true,
+        timestamp: 'Hace 2 días • 20:30',
+        type: 'achievement',
+      },
+      {
+        id: '7',
+        data: {
+          title: 'Racha recuperada',
+          description:
+            'Has usado 20 semillas para recuperar tu racha. ¡No pierdas el ritmo!',
+          isUnread: false,
+        },
+        isUnclean: false,
+        timestamp: 'Hace 3 días • 15:10',
+        type: 'streak',
       },
     ];
   }
