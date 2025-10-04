@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { UserProgressDSService } from '../../storage/datastore/user-progress-ds.service';
 import { SortDirection } from '@aws-amplify/datastore';
+import { GamificationEventDSService } from '../../storage/datastore/gamification-event-ds.service';
+import { UserProgressDSService } from '../../storage/datastore/user-progress-ds.service';
 
 @Injectable({
   providedIn: 'root',
@@ -43,12 +44,20 @@ export class GamificationService extends UserProgressDSService {
         await this.updateUserProgress(userProgress.id, {
           Seed: seed + 1,
         });
+        await GamificationEventDSService.createGamificationEvent(
+          'first_task_completed',
+          JSON.stringify({ seed: seed + 1 }),
+        );
       } else if (updatedProgress && newCompletedTasks >= totalTask) {
         // Si se alcanza el número total de tareas, incrementar Seed y Streak
         await this.updateUserProgress(userProgress.id, {
           Seed: seed + 1,
           Streak: streak + 1,
         });
+        await GamificationEventDSService.createGamificationEvent(
+          'all_tasks_completed',
+          JSON.stringify({ seed: seed + 1, streak: streak + 1 }),
+        );
         await this.streakBonus();
       }
 
@@ -169,6 +178,10 @@ export class GamificationService extends UserProgressDSService {
         Seed: newSeed,
       });
     }
+    await GamificationEventDSService.createGamificationEvent(
+      'streak_recovered',
+      JSON.stringify({ newStreak, cost: recoverStreakCost }),
+    );
     return true;
   }
 
@@ -192,6 +205,10 @@ export class GamificationService extends UserProgressDSService {
         await this.updateUserProgress(userProgress.id, {
           Seed: seed + bonusSeedForStreak,
         });
+        await GamificationEventDSService.createGamificationEvent(
+          'streak_bonus',
+          JSON.stringify({ bonusSeeds: bonusSeedForStreak, streak }),
+        );
       }
       return true;
     } catch (error) {

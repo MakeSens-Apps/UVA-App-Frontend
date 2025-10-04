@@ -118,6 +118,11 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'alerts',
+    loadComponent: () =>
+      import('./pages/profile/alerts/alerts.page').then((m) => m.AlertsPage),
+  },
+  {
     path: 'measurement-detail',
     loadComponent: () =>
       import(
