@@ -412,6 +412,13 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
+                "isUnclean": {
+                    "name": "isUnclean",
+                    "isArray": false,
+                    "type": "Boolean",
+                    "isRequired": false,
+                    "attributes": []
+                },
                 "createdAt": {
                     "name": "createdAt",
                     "isArray": false,
@@ -944,5 +951,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "4077e52e7faaafab4bf98148d56ae3d0"
+    "version": "6c5f6208ca33b7c985d06e67f45fbe9d"
 };

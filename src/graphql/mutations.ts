@@ -280,6 +280,7 @@ export const createGamificationEvent = /* GraphQL */ `mutation CreateGamificatio
     eventType
     ts
     data
+    isUnclean
     createdAt
     updatedAt
     _version
@@ -303,6 +304,7 @@ export const updateGamificationEvent = /* GraphQL */ `mutation UpdateGamificatio
     eventType
     ts
     data
+    isUnclean
     createdAt
     updatedAt
     _version
@@ -326,6 +328,7 @@ export const deleteGamificationEvent = /* GraphQL */ `mutation DeleteGamificatio
     eventType
     ts
     data
+    isUnclean
     createdAt
     updatedAt
     _version

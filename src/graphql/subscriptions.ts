@@ -271,6 +271,7 @@ export const onCreateGamificationEvent = /* GraphQL */ `subscription OnCreateGam
     eventType
     ts
     data
+    isUnclean
     createdAt
     updatedAt
     _version
@@ -294,6 +295,7 @@ export const onUpdateGamificationEvent = /* GraphQL */ `subscription OnUpdateGam
     eventType
     ts
     data
+    isUnclean
     createdAt
     updatedAt
     _version
@@ -317,6 +319,7 @@ export const onDeleteGamificationEvent = /* GraphQL */ `subscription OnDeleteGam
     eventType
     ts
     data
+    isUnclean
     createdAt
     updatedAt
     _version

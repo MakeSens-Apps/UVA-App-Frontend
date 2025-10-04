@@ -379,6 +379,7 @@ export const getGamificationEvent = /* GraphQL */ `query GetGamificationEvent($i
     eventType
     ts
     data
+    isUnclean
     createdAt
     updatedAt
     _version
@@ -408,6 +409,7 @@ export const listGamificationEvents = /* GraphQL */ `query ListGamificationEvent
       eventType
       ts
       data
+      isUnclean
       createdAt
       updatedAt
       _version
@@ -443,6 +445,7 @@ export const syncGamificationEvents = /* GraphQL */ `query SyncGamificationEvent
       eventType
       ts
       data
+      isUnclean
       createdAt
       updatedAt
       _version
@@ -482,6 +485,7 @@ export const gamificationEventsByUserIDAndTs = /* GraphQL */ `query Gamification
       eventType
       ts
       data
+      isUnclean
       createdAt
       updatedAt
       _version
@@ -521,6 +525,7 @@ export const gamificationEventsByRacimoIDAndTs = /* GraphQL */ `query Gamificati
       eventType
       ts
       data
+      isUnclean
       createdAt
       updatedAt
       _version
