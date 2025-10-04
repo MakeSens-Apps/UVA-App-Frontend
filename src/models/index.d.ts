@@ -135,6 +135,7 @@ type EagerGamificationEvent = {
   readonly eventType: string;
   readonly ts: string;
   readonly data?: string | null;
+  readonly isUnclean?: boolean | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -150,6 +151,7 @@ type LazyGamificationEvent = {
   readonly eventType: string;
   readonly ts: string;
   readonly data?: string | null;
+  readonly isUnclean?: boolean | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
