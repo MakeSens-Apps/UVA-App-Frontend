@@ -1,0 +1,35 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="uva_blue-500">
+    <div class="header">
+      <ion-buttons slot="start">
+        <ion-button (click)="goBack('/profile')" fill="clear">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+      <div class="user-info">
+        <p class="title">Alertas de Gamificación</p>
+      </div>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="content">
+    <div class="events-container" *ngIf="events.length > 0; else noEvents">
+      <ion-card *ngFor="let event of events" class="event-card">
+        <ion-card-header>
+          <ion-card-title>{{ event.eventType }}</ion-card-title>
+          <ion-card-subtitle>{{ formatTimestamp(event.ts) }}</ion-card-subtitle>
+        </ion-card-header>
+        <ion-card-content>
+          <p>{{ formatEventData(event) }}</p>
+        </ion-card-content>
+      </ion-card>
+    </div>
+    <ng-template #noEvents>
+      <div class="no-events">
+        <p>No hay alertas de gamificación disponibles.</p>
+      </div>
+    </ng-template>
+  </div>
+</ion-content>
