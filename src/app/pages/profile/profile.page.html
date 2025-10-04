@@ -9,6 +9,11 @@
       <div class="user-info">
         <p class="title">Perfil</p>
       </div>
+      <ion-buttons slot="end">
+        <ion-button (click)="goBack('/alerts')" fill="clear">
+          <ion-icon name="notifications-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
     </div>
   </ion-toolbar>
 </ion-header>
@@ -45,13 +50,6 @@
           <ion-icon
             slot="end"
             src="../../../assets/images/icons/profile/Medal.svg"
-          ></ion-icon>
-        </ion-item>
-        <ion-item (click)="goBack('/alerts')">
-          <ion-label>Alertas de Gamificación</ion-label>
-          <ion-icon
-            slot="end"
-            src="../../../assets/images/icons/profile/arrow-forward.svg"
           ></ion-icon>
         </ion-item>
         <ion-item (click)="goBack('/configuration')">

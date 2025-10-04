@@ -48,11 +48,10 @@ export class AlertsPage {
   }
 
   /**
-   * Opens settings menu (placeholder for now).
+   * Navigates to the configuration page.
    */
-  openSettings(): void {
-    // TODO: Implement settings menu
-    console.log('Settings clicked');
+  async openSettings(): Promise<void> {
+    await this.router.navigate(['/configuration']);
   }
 
   /**
