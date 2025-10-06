@@ -19,6 +19,45 @@ export type GamificationEventSubtype =
   | 'streak_lost'
   | 'streak_progress';
 
+export type EventData =
+  | { subtype: 'first_task'; isUnread: boolean }
+  | { subtype: 'all_tasks'; isUnread: boolean }
+  | { subtype: 'streak_reward'; days: number; isUnread: boolean }
+  | { subtype: 'germination'; stage: string; isUnread: boolean }
+  | { subtype: 'failed_germination'; isUnread: boolean }
+  | { subtype: 'streak_recovery'; isUnread: boolean }
+  | { subtype: 'streak_lost'; isUnread: boolean }
+  | { subtype: 'streak_progress'; days: number; isUnread: boolean };
+
+/**
+ *
+ * @param data
+ */
+export function validateEventData(data: unknown): data is EventData {
+  if (!data || typeof data !== 'object') {
+    return false;
+  }
+  const obj = data as Record<string, unknown>;
+  if (!obj['subtype'] || typeof obj['isUnread'] !== 'boolean') {
+    return false;
+  }
+  switch (obj['subtype']) {
+    case 'streak_reward':
+    case 'streak_progress':
+      return typeof obj['days'] === 'number';
+    case 'germination':
+      return typeof obj['stage'] === 'string';
+    case 'first_task':
+    case 'all_tasks':
+    case 'failed_germination':
+    case 'streak_recovery':
+    case 'streak_lost':
+      return true;
+    default:
+      return false;
+  }
+}
+
 export interface GamificationNotification {
   id: string;
   data: {
@@ -40,9 +79,10 @@ export class GamificationAlertsService {
    * @returns {Promise<GamificationEvent | undefined>} The created event.
    */
   static async createFirstTaskAlert(): Promise<GamificationEvent | undefined> {
+    const data: EventData = { subtype: 'first_task', isUnread: true };
     return GamificationEventDSService.createGamificationEvent(
       'seeds',
-      JSON.stringify({ subtype: 'first_task', isUnread: true }),
+      JSON.stringify(data),
     );
   }
 
@@ -51,9 +91,10 @@ export class GamificationAlertsService {
    * @returns {Promise<GamificationEvent | undefined>} The created event.
    */
   static async createAllTasksAlert(): Promise<GamificationEvent | undefined> {
+    const data: EventData = { subtype: 'all_tasks', isUnread: true };
     return GamificationEventDSService.createGamificationEvent(
       'seeds',
-      JSON.stringify({ subtype: 'all_tasks', isUnread: true }),
+      JSON.stringify(data),
     );
   }
 
@@ -65,9 +106,10 @@ export class GamificationAlertsService {
   static async createStreakRewardAlert(
     days: number,
   ): Promise<GamificationEvent | undefined> {
+    const data: EventData = { subtype: 'streak_reward', days, isUnread: true };
     return GamificationEventDSService.createGamificationEvent(
       'streak',
-      JSON.stringify({ subtype: 'streak_reward', days, isUnread: true }),
+      JSON.stringify(data),
     );
   }
 
@@ -79,9 +121,10 @@ export class GamificationAlertsService {
   static async createGerminationAlert(
     stage: string,
   ): Promise<GamificationEvent | undefined> {
+    const data: EventData = { subtype: 'germination', stage, isUnread: true };
     return GamificationEventDSService.createGamificationEvent(
       'achievement',
-      JSON.stringify({ subtype: 'germination', stage, isUnread: true }),
+      JSON.stringify(data),
     );
   }
 
@@ -92,9 +135,10 @@ export class GamificationAlertsService {
   static async createFailedGerminationAlert(): Promise<
     GamificationEvent | undefined
   > {
+    const data: EventData = { subtype: 'failed_germination', isUnread: true };
     return GamificationEventDSService.createGamificationEvent(
       'seeds',
-      JSON.stringify({ subtype: 'failed_germination', isUnread: true }),
+      JSON.stringify(data),
     );
   }
 
@@ -105,9 +149,10 @@ export class GamificationAlertsService {
   static async createStreakRecoveryAlert(): Promise<
     GamificationEvent | undefined
   > {
+    const data: EventData = { subtype: 'streak_recovery', isUnread: true };
     return GamificationEventDSService.createGamificationEvent(
       'bonus',
-      JSON.stringify({ subtype: 'streak_recovery', isUnread: true }),
+      JSON.stringify(data),
     );
   }
 
@@ -116,9 +161,10 @@ export class GamificationAlertsService {
    * @returns {Promise<GamificationEvent | undefined>} The created event.
    */
   static async createStreakLostAlert(): Promise<GamificationEvent | undefined> {
+    const data: EventData = { subtype: 'streak_lost', isUnread: true };
     return GamificationEventDSService.createGamificationEvent(
       'streak',
-      JSON.stringify({ subtype: 'streak_lost', isUnread: true }),
+      JSON.stringify(data),
     );
   }
 
@@ -130,9 +176,14 @@ export class GamificationAlertsService {
   static async createStreakProgressAlert(
     days: number,
   ): Promise<GamificationEvent | undefined> {
+    const data: EventData = {
+      subtype: 'streak_progress',
+      days,
+      isUnread: true,
+    };
     return GamificationEventDSService.createGamificationEvent(
       'streak',
-      JSON.stringify({ subtype: 'streak_progress', days, isUnread: true }),
+      JSON.stringify(data),
     );
   }
   /**
@@ -161,28 +212,42 @@ export class GamificationAlertsService {
             parsedData = event.data;
           }
         }
-        const subtype = parsedData['subtype'] as GamificationEventSubtype;
-        return {
-          id: event.id,
-          data: {
-            title: this.getEventTitle(
-              event.eventType as GamificationEventType,
-              subtype,
-            ),
-            description: this.getEventDescription(
-              event.eventType as GamificationEventType,
-              subtype,
-              typeof event.data === 'string'
-                ? event.data
-                : JSON.stringify(event.data),
-            ),
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            isUnread: (parsedData as any).isUnread ?? false,
-          },
-          isUnclean: event.isUnclean ?? false,
-          timestamp: this.formatTimestamp(event.ts),
-          type: event.eventType as GamificationEventType,
-        };
+        if (validateEventData(parsedData)) {
+          const eventData = parsedData;
+          return {
+            id: event.id,
+            data: {
+              title: this.getEventTitle(
+                event.eventType as GamificationEventType,
+                eventData.subtype,
+              ),
+              description: this.getEventDescription(
+                event.eventType as GamificationEventType,
+                eventData.subtype,
+                typeof event.data === 'string'
+                  ? event.data
+                  : JSON.stringify(event.data),
+              ),
+              isUnread: eventData.isUnread,
+            },
+            isUnclean: event.isUnclean ?? false,
+            timestamp: this.formatTimestamp(event.ts),
+            type: event.eventType as GamificationEventType,
+          };
+        } else {
+          // Fallback for invalid data
+          return {
+            id: event.id,
+            data: {
+              title: 'Notificación',
+              description: 'Has recibido una notificación de gamificación.',
+              isUnread: false,
+            },
+            isUnclean: event.isUnclean ?? false,
+            timestamp: this.formatTimestamp(event.ts),
+            type: event.eventType as GamificationEventType,
+          };
+        }
       });
     } catch (error) {
       console.error('Error getting notifications:', error);
