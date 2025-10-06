@@ -31,7 +31,8 @@ export type EventData =
 
 /**
  *
- * @param data
+ * @param {unknown} data - The data to validate.
+ * @returns {data is EventData} True if the data is valid, false otherwise.
  */
 export function validateEventData(data: unknown): data is EventData {
   if (!data || typeof data !== 'object') {
@@ -76,105 +77,136 @@ export interface GamificationNotification {
 export class GamificationAlertsService {
   /**
    * Creates a first task completed alert.
+   * @param {Date | undefined} ts Date of the event.
    * @returns {Promise<GamificationEvent | undefined>} The created event.
    */
-  static async createFirstTaskAlert(): Promise<GamificationEvent | undefined> {
+  static async createFirstTaskAlert(
+    ts?: Date,
+  ): Promise<GamificationEvent | undefined> {
     const data: EventData = { subtype: 'first_task', isUnread: true };
     return GamificationEventDSService.createGamificationEvent(
       'seeds',
       JSON.stringify(data),
+      undefined,
+      ts?.toISOString(),
     );
   }
 
   /**
    * Creates an all tasks completed alert.
+   * @param {Date | undefined} ts Date of the event.
    * @returns {Promise<GamificationEvent | undefined>} The created event.
    */
-  static async createAllTasksAlert(): Promise<GamificationEvent | undefined> {
+  static async createAllTasksAlert(
+    ts?: Date,
+  ): Promise<GamificationEvent | undefined> {
     const data: EventData = { subtype: 'all_tasks', isUnread: true };
     return GamificationEventDSService.createGamificationEvent(
       'seeds',
       JSON.stringify(data),
+      undefined,
+      ts?.toISOString(),
     );
   }
 
   /**
    * Creates a streak reward alert.
    * @param {number} days - Number of days in streak.
+   * @param {Date | undefined} ts Date of the event.
    * @returns {Promise<GamificationEvent | undefined>} The created event.
    */
   static async createStreakRewardAlert(
     days: number,
+    ts?: Date,
   ): Promise<GamificationEvent | undefined> {
     const data: EventData = { subtype: 'streak_reward', days, isUnread: true };
     return GamificationEventDSService.createGamificationEvent(
       'streak',
       JSON.stringify(data),
+      undefined,
+      ts?.toISOString(),
     );
   }
 
   /**
    * Creates a germination alert.
    * @param {string} stage - The germination stage.
+   * @param {Date | undefined} ts Date of the event.
    * @returns {Promise<GamificationEvent | undefined>} The created event.
    */
   static async createGerminationAlert(
     stage: string,
+    ts?: Date,
   ): Promise<GamificationEvent | undefined> {
     const data: EventData = { subtype: 'germination', stage, isUnread: true };
     return GamificationEventDSService.createGamificationEvent(
       'achievement',
       JSON.stringify(data),
+      undefined,
+      ts?.toISOString(),
     );
   }
 
   /**
    * Creates a failed germination alert.
+   * @param {Date | undefined} ts Date of the event.
    * @returns {Promise<GamificationEvent | undefined>} The created event.
    */
-  static async createFailedGerminationAlert(): Promise<
-    GamificationEvent | undefined
-  > {
+  static async createFailedGerminationAlert(
+    ts?: Date,
+  ): Promise<GamificationEvent | undefined> {
     const data: EventData = { subtype: 'failed_germination', isUnread: true };
     return GamificationEventDSService.createGamificationEvent(
       'seeds',
       JSON.stringify(data),
+      undefined,
+      ts?.toISOString(),
     );
   }
 
   /**
    * Creates a streak recovery alert.
+   * @param {Date | undefined} ts Date of the event.
    * @returns {Promise<GamificationEvent | undefined>} The created event.
    */
-  static async createStreakRecoveryAlert(): Promise<
-    GamificationEvent | undefined
-  > {
+  static async createStreakRecoveryAlert(
+    ts?: Date,
+  ): Promise<GamificationEvent | undefined> {
     const data: EventData = { subtype: 'streak_recovery', isUnread: true };
     return GamificationEventDSService.createGamificationEvent(
       'bonus',
       JSON.stringify(data),
+      undefined,
+      ts?.toISOString(),
     );
   }
 
   /**
    * Creates a streak lost alert.
+   * @param {Date | undefined} ts Date of the event.
    * @returns {Promise<GamificationEvent | undefined>} The created event.
    */
-  static async createStreakLostAlert(): Promise<GamificationEvent | undefined> {
+  static async createStreakLostAlert(
+    ts?: Date,
+  ): Promise<GamificationEvent | undefined> {
     const data: EventData = { subtype: 'streak_lost', isUnread: true };
     return GamificationEventDSService.createGamificationEvent(
       'streak',
       JSON.stringify(data),
+      undefined,
+      ts?.toISOString(),
     );
   }
 
   /**
    * Creates a streak progress alert.
    * @param {number} days - Number of days in streak.
+   * @param {Date | undefined} ts Date of the event.
    * @returns {Promise<GamificationEvent | undefined>} The created event.
    */
   static async createStreakProgressAlert(
     days: number,
+    ts?: Date,
   ): Promise<GamificationEvent | undefined> {
     const data: EventData = {
       subtype: 'streak_progress',
@@ -184,6 +216,8 @@ export class GamificationAlertsService {
     return GamificationEventDSService.createGamificationEvent(
       'streak',
       JSON.stringify(data),
+      undefined,
+      ts?.toISOString(),
     );
   }
   /**

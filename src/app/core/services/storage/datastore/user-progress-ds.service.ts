@@ -398,29 +398,37 @@ export class UserProgressDSService {
       (currentDate.getMonth() - lastProgressDate.getMonth());
     if (monthsDifference > 0) {
       const { seed, milestone } = this.seedToMilestone(lastProgress.Seed ?? 0);
+      let milestoneTs: string;
 
       if (isLastDayOfMonth(lastProgressDate)) {
         await this.updateUserProgress(lastProgress.id, {
           Milestones: milestone,
         });
+        milestoneTs = lastProgress.ts;
       } else {
+        milestoneTs = new Date(
+          lastProgressDate.getFullYear(),
+          lastProgressDate.getMonth(),
+          0,
+        ).toISOString();
         await this.createUserProgress(
           {
             Milestones: milestone,
             Seed: lastProgress.Seed,
             completedTasks: 0,
           },
-          new Date(
-            lastProgressDate.getFullYear(),
-            lastProgressDate.getMonth(),
-            0,
-          ).toISOString(),
+          milestoneTs,
         );
       }
       if (milestone) {
-        await GamificationAlertsService.createGerminationAlert(milestone);
+        await GamificationAlertsService.createGerminationAlert(
+          milestone,
+          new Date(milestoneTs),
+        );
       } else {
-        await GamificationAlertsService.createFailedGerminationAlert();
+        await GamificationAlertsService.createFailedGerminationAlert(
+          new Date(milestoneTs),
+        );
       }
       return seed;
     }
