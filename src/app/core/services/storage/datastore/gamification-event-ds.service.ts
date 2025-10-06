@@ -15,7 +15,11 @@ export class GamificationEventDSService {
     new GamificationEvent({
       ts: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 min ago
       eventType: 'bonus',
-      data: JSON.stringify({ subtype: 'streak_recovery', isUnread: true }),
+      data: JSON.stringify({
+        subtype: 'streak_recovery',
+        isUnread: true,
+        messageIndex: 1,
+      }),
       userID: '123d-adda-1234-5678-abcdef123456',
       racimoID: 'racimo-1234-5678-abcdef',
       isUnclean: true,
@@ -25,8 +29,9 @@ export class GamificationEventDSService {
       eventType: 'streak',
       data: JSON.stringify({
         subtype: 'streak_reward',
-        days: 7,
+        days: 14,
         isUnread: true,
+        messageIndex: 1,
       }),
       userID: '123d-adda-1234-5678-abcdef123456',
       racimoID: 'racimo-1234-5678-abcdef',
@@ -35,7 +40,11 @@ export class GamificationEventDSService {
     new GamificationEvent({
       ts: new Date(Date.now() - 1000 * 60 * 60 * 18).toISOString(), // 18 hours ago
       eventType: 'seeds',
-      data: JSON.stringify({ subtype: 'first_task', isUnread: false }),
+      data: JSON.stringify({
+        subtype: 'first_task',
+        isUnread: false,
+        messageIndex: 1,
+      }),
       userID: '123d-adda-1234-5678-abcdef123456',
       racimoID: 'racimo-1234-5678-abcdef',
       isUnclean: true,

@@ -2,12 +2,11 @@ import { Injectable } from '@angular/core';
 import { SortDirection } from '@aws-amplify/datastore';
 import { UserProgressDSService } from '../../storage/datastore/user-progress-ds.service';
 import {
-  GamificationAlertsService,
   GamificationEventSubtype,
   GamificationEventType,
   GamificationNotification,
-} from './gamification-alerts.service';
-
+} from './gamification-alerts-types.service';
+import { GamificationAlertsService } from './gamification-alerts.service';
 export {
   GamificationEventSubtype,
   GamificationEventType,

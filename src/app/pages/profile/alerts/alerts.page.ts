@@ -3,10 +3,8 @@ import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
-import {
-  GamificationNotification,
-  GamificationService,
-} from '../../../core/services/view/gamification/gamification.service';
+import { GamificationNotification } from '../../../core/services/view/gamification/gamification-alerts-types.service';
+import { GamificationService } from '../../../core/services/view/gamification/gamification.service';
 import { NotificationService } from '../../../core/services/view/gamification/notification.service';
 
 @Component({

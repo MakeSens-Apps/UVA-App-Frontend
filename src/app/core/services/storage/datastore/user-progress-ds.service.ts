@@ -421,12 +421,12 @@ export class UserProgressDSService {
         );
       }
       if (milestone) {
-        await GamificationAlertsService.createGerminationAlert(
+        await GamificationAlertsService.createGerminationSuccessAlert(
           milestone,
           new Date(milestoneTs),
         );
       } else {
-        await GamificationAlertsService.createFailedGerminationAlert(
+        await GamificationAlertsService.createGerminationFailAlert(
           new Date(milestoneTs),
         );
       }
