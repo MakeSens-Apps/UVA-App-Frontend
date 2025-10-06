@@ -11,45 +11,6 @@ type GamificationEventFields = Partial<
  */
 export class GamificationEventDSService {
   static session = new SessionService();
-  static mockEvents: GamificationEvent[] = [
-    new GamificationEvent({
-      ts: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 min ago
-      eventType: 'bonus',
-      data: JSON.stringify({
-        subtype: 'streak_recovery',
-        isUnread: true,
-        messageIndex: 1,
-      }),
-      userID: '123d-adda-1234-5678-abcdef123456',
-      racimoID: 'racimo-1234-5678-abcdef',
-      isUnclean: true,
-    }),
-    new GamificationEvent({
-      ts: new Date(Date.now() - 1000 * 60 * 60 * 9).toISOString(), // 9 hours ago
-      eventType: 'streak',
-      data: JSON.stringify({
-        subtype: 'streak_reward',
-        days: 14,
-        isUnread: true,
-        messageIndex: 1,
-      }),
-      userID: '123d-adda-1234-5678-abcdef123456',
-      racimoID: 'racimo-1234-5678-abcdef',
-      isUnclean: true,
-    }),
-    new GamificationEvent({
-      ts: new Date(Date.now() - 1000 * 60 * 60 * 18).toISOString(), // 18 hours ago
-      eventType: 'seeds',
-      data: JSON.stringify({
-        subtype: 'first_task',
-        isUnread: false,
-        messageIndex: 1,
-      }),
-      userID: '123d-adda-1234-5678-abcdef123456',
-      racimoID: 'racimo-1234-5678-abcdef',
-      isUnclean: true,
-    }),
-  ];
 
   /**
    * Adds a new GamificationEvent entry.
@@ -70,19 +31,6 @@ export class GamificationEventDSService {
       const userID = sessionInfo.userID ?? '';
       const racimo = racimoID || sessionInfo.racimoID || '';
 
-      // Mock data instead of saving to DataStore
-      const mockEvent = new GamificationEvent({
-        ts: ts ? ts : new Date().toISOString(),
-        eventType,
-        data,
-        userID,
-        racimoID: racimo,
-        isUnclean: data ? JSON.parse(data).isUnclean : false,
-      });
-      // Add to global mock events
-      GamificationEventDSService.mockEvents.push(mockEvent);
-      return mockEvent;
-      /*
       const newEvent = await DataStore.save(
         new GamificationEvent({
           ts: ts ? ts : new Date().toISOString(),
@@ -90,10 +38,10 @@ export class GamificationEventDSService {
           data,
           userID,
           racimoID: racimo,
+          isUnclean: true,
         }),
       );
       return newEvent;
-      */
     } catch (error) {
       console.error('Error creating GamificationEvent:', error);
       throw error;
@@ -112,32 +60,17 @@ export class GamificationEventDSService {
   ): Promise<GamificationEvent[]> {
     try {
       const userID = (await this.session.getInfo()).userID ?? '';
-      const racimoID = (await this.session.getInfo()).racimoID ?? '';
-
-      // Initialize mock events if empty
-
-      // Filter to only return events where isUnclean is true
-      const filteredEvents = GamificationEventDSService.mockEvents.filter(
-        (event) => event.isUnclean === true,
-      );
-
-      // Sort by ts descending
-      filteredEvents.sort(
-        (a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime(),
-      );
-
-      return filteredEvents.slice(0, limit);
-      /*
+      console.log('Fetching GamificationEvents for userID:', userID);
       const response = await DataStore.query(
         GamificationEvent,
-        (c) => c.userID.eq(userID),
+        (c) => c.userID.eq(userID) && c.isUnclean.eq(true),
         {
           sort: (ge) => ge.ts(sortDirection),
           limit,
         },
       );
+      console.log('Fetched GamificationEvents:', response);
       return response;
-      */
     } catch (error) {
       console.error('Error fetching GamificationEvents', error);
       throw error;
