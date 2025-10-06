@@ -31,6 +31,7 @@ import {
   IonTitle,
   IonToolbar,
 } from '@ionic/angular/standalone';
+import { GamificationService } from '../../core/services/view/gamification/gamification.service';
 import { NotificationService } from '../../core/services/view/gamification/notification.service';
 /* eslint-disable @typescript-eslint/type-annotation-spacing */
 interface ShareOption {
@@ -82,6 +83,7 @@ export class ProfilePage implements OnInit {
   seedIcon = '';
   logo = '';
   hasUnreadNotifications = false;
+  notificationIcon = 'notifications-outline';
   shareOptions: ShareOption[] = [
     {
       label: 'WhatsApp',
@@ -162,8 +164,30 @@ export class ProfilePage implements OnInit {
     // Subscribe to unread notification count changes
     this.notificationService.unreadCount$.subscribe((count) => {
       this.hasUnreadNotifications = count > 0;
+      this.notificationIcon = this.hasUnreadNotifications
+        ? 'notifications'
+        : 'notifications-outline';
       this.cdr.detectChanges();
     });
+
+    // Initialize unread count
+    void this.loadUnreadCount();
+  }
+
+  /**
+   * Loads and updates the unread notification count.
+   */
+  private async loadUnreadCount(): Promise<void> {
+    try {
+      const notifications = await GamificationService.getNotifications();
+      const unreadCount = notifications.filter(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (n: any) => n.data.isUnread,
+      ).length;
+      this.notificationService.updateUnreadCount(unreadCount);
+    } catch (error) {
+      console.error('Error loading unread count:', error);
+    }
   }
 
   // Método para compartir en WhatsApp
