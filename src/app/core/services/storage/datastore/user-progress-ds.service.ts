@@ -1,8 +1,7 @@
-import { DataStore } from '@aws-amplify/datastore';
+import { DataStore, Predicates, SortDirection } from '@aws-amplify/datastore';
 import { UserProgress } from 'src/models';
-import { SortDirection, Predicates } from '@aws-amplify/datastore';
 import { SessionService } from '../../session/session.service';
-
+import { GamificationAlertsService } from '../../view/gamification/gamification-alerts.service';
 export interface CompletedTask {
   daysComplete: number[];
   daysIncomplete: number[];
@@ -155,11 +154,13 @@ export class UserProgressDSService {
       return newUserProgress;
     } else {
       // Más de un día de inactividad: Reiniciar racha
-      return await this.createUserProgress({
+      const resetProgress = await this.createUserProgress({
         completedTasks: 0,
         Seed: newSeed,
         Streak: 0,
       });
+      await GamificationAlertsService.createStreakLostAlert();
+      return resetProgress;
     }
   }
 
@@ -415,6 +416,11 @@ export class UserProgressDSService {
             0,
           ).toISOString(),
         );
+      }
+      if (milestone) {
+        await GamificationAlertsService.createGerminationAlert(milestone);
+      } else {
+        await GamificationAlertsService.createFailedGerminationAlert();
       }
       return seed;
     }
