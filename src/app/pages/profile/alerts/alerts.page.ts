@@ -40,9 +40,10 @@ export class AlertsPage {
 
   /**
    * Marks a notification as read.
-   * @param {GamificationAlerts} notification - The notification to mark as read.
+   * @param {GamificationNotification} notification - The notification to mark as read.
    */
-  markAsRead(notification: GamificationNotification): void {
+  async markAsRead(notification: GamificationNotification): Promise<void> {
+    await GamificationService.markNotificationAsRead(notification.id);
     notification.data.isUnread = false;
     this.updateUnreadCount();
   }
@@ -65,7 +66,8 @@ export class AlertsPage {
   /**
    * Deletes all notifications.
    */
-  deleteAllNotifications(): void {
+  async deleteAllNotifications(): Promise<void> {
+    await GamificationService.deleteAllNotifications();
     this.notifications = [];
     this.updateUnreadCount();
   }

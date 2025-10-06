@@ -104,4 +104,54 @@ export class GamificationEventDSService {
       throw error;
     }
   }
+
+  /**
+   * Updates the data of a GamificationEvent.
+   * @param {string} id - Event ID.
+   * @param {string} newData - New data string.
+   * @returns {Promise<GamificationEvent | undefined>} The updated event.
+   */
+  static async updateGamificationEventData(
+    id: string,
+    newData: string,
+  ): Promise<GamificationEvent | undefined> {
+    try {
+      const original = await DataStore.query(GamificationEvent, id);
+      if (!original) {
+        return undefined;
+      }
+      const updated = await DataStore.save(
+        GamificationEvent.copyOf(original, (updated) => {
+          updated.data = newData;
+        }),
+      );
+      return updated;
+    } catch (error) {
+      console.error('Error updating GamificationEvent:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Marks all GamificationEvents for the current user as clean (isUnclean = false).
+   * @returns {Promise<void>}
+   */
+  static async markAllAsClean(): Promise<void> {
+    try {
+      const userID = (await this.session.getInfo()).userID ?? '';
+      const events = await DataStore.query(GamificationEvent, (c) =>
+        c.userID.eq(userID),
+      );
+      for (const event of events) {
+        await DataStore.save(
+          GamificationEvent.copyOf(event, (updated) => {
+            updated.isUnclean = false;
+          }),
+        );
+      }
+    } catch (error) {
+      console.error('Error marking all as clean:', error);
+      throw error;
+    }
+  }
 }
