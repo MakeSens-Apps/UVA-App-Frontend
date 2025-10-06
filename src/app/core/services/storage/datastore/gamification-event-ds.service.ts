@@ -14,24 +14,28 @@ export class GamificationEventDSService {
   static mockEvents: GamificationEvent[] = [
     new GamificationEvent({
       ts: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 min ago
-      eventType: 'surprise_reward',
-      data: JSON.stringify({ seed: 50, isUnread: true }),
+      eventType: 'bonus',
+      data: JSON.stringify({ subtype: 'streak_recovery', isUnread: true }),
       userID: '123d-adda-1234-5678-abcdef123456',
       racimoID: 'racimo-1234-5678-abcdef',
       isUnclean: true,
     }),
     new GamificationEvent({
       ts: new Date(Date.now() - 1000 * 60 * 60 * 9).toISOString(), // 9 hours ago
-      eventType: 'streak_bonus',
-      data: JSON.stringify({ bonusSeeds: 3, streak: 7, isUnread: true }),
+      eventType: 'streak',
+      data: JSON.stringify({
+        subtype: 'streak_reward',
+        days: 7,
+        isUnread: true,
+      }),
       userID: '123d-adda-1234-5678-abcdef123456',
       racimoID: 'racimo-1234-5678-abcdef',
       isUnclean: true,
     }),
     new GamificationEvent({
       ts: new Date(Date.now() - 1000 * 60 * 60 * 18).toISOString(), // 18 hours ago
-      eventType: 'first_task_completed',
-      data: JSON.stringify({ seed: 10, isUnread: false }),
+      eventType: 'seeds',
+      data: JSON.stringify({ subtype: 'first_task', isUnread: false }),
       userID: '123d-adda-1234-5678-abcdef123456',
       racimoID: 'racimo-1234-5678-abcdef',
       isUnclean: true,
