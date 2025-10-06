@@ -1,10 +1,11 @@
-import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.service';
 import { Component } from '@angular/core';
-import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
+import { AppMinimizeService } from '@app/core/services/minimize/app-minimize.service';
+import { DataStore, syncExpression } from '@aws-amplify/datastore';
+import { IonApp, IonRouterOutlet, Platform } from '@ionic/angular/standalone';
+import { configureAutoTrack } from 'aws-amplify/analytics';
+import { GamificationEvent } from 'src/models';
 import { ConfigurationAppService } from './core/services/storage/configuration-app.service';
 import { SyncMonitorDSService } from './core/services/storage/datastore/sync-monitor-ds.service';
-import { Platform } from '@ionic/angular/standalone';
-import { configureAutoTrack } from 'aws-amplify/analytics';
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
@@ -24,6 +25,15 @@ export class AppComponent {
     private platform: Platform,
     private appMinimizeService: AppMinimizeService,
   ) {
+    // Configure DataStore sync expressions
+    DataStore.configure({
+      syncExpressions: [
+        syncExpression(GamificationEvent, () => {
+          return (ge) => ge.isUnclean.eq(true);
+        }),
+      ],
+    });
+
     void this.configuration.loadBranding();
     platform
       .ready()

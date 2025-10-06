@@ -60,7 +60,6 @@ export class GamificationEventDSService {
   ): Promise<GamificationEvent[]> {
     try {
       const userID = (await this.session.getInfo()).userID ?? '';
-      console.log('Fetching GamificationEvents for userID:', userID);
       const response = await DataStore.query(
         GamificationEvent,
         (c) => c.userID.eq(userID) && c.isUnclean.eq(true),
@@ -69,7 +68,6 @@ export class GamificationEventDSService {
           limit,
         },
       );
-      console.log('Fetched GamificationEvents:', response);
       return response;
     } catch (error) {
       console.error('Error fetching GamificationEvents', error);
