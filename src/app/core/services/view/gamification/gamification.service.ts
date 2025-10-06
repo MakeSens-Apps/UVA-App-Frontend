@@ -3,6 +3,30 @@ import { SortDirection } from '@aws-amplify/datastore';
 import { GamificationEventDSService } from '../../storage/datastore/gamification-event-ds.service';
 import { UserProgressDSService } from '../../storage/datastore/user-progress-ds.service';
 
+export type GamificationEventType =
+  | 'seeds'
+  | 'streak'
+  | 'achievement'
+  | 'surprise'
+  | 'bonus'
+  | 'first_task_completed'
+  | 'all_tasks_completed'
+  | 'streak_bonus'
+  | 'surprise_reward'
+  | 'streak_recovered';
+
+interface GamificationNotification {
+  id: string;
+  data: {
+    title: string;
+    description: string;
+    isUnread: boolean;
+  };
+  isUnclean: boolean;
+  timestamp: string;
+  type?: GamificationEventType;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -214,6 +238,159 @@ export class GamificationService extends UserProgressDSService {
     } catch (error) {
       console.error('Error en streakBonus', error);
       return false;
+    }
+  }
+
+  /**
+   * Retrieves gamification events for notifications (mock data for testing).
+   * @param {number} limit - Maximum number of notifications to retrieve.
+   * @returns {Promise<GamificationNotification[]>} Array of notification objects.
+   */
+  static async getNotifications(
+    limit = 20,
+  ): Promise<GamificationNotification[]> {
+    try {
+      const events = await GamificationEventDSService.getGamificationEvents(
+        limit,
+        SortDirection.DESCENDING,
+      );
+      return events.map((event) => {
+        let parsedData: Record<string, unknown> = {};
+        if (event.data) {
+          if (typeof event.data === 'string') {
+            try {
+              parsedData = JSON.parse(event.data);
+            } catch {
+              parsedData = {};
+            }
+          } else if (typeof event.data === 'object') {
+            parsedData = event.data;
+          }
+        }
+        return {
+          id: event.id,
+          data: {
+            title: this.getEventTitle(event.eventType as GamificationEventType),
+            description: this.getEventDescription(
+              event.eventType as GamificationEventType,
+              typeof event.data === 'string'
+                ? event.data
+                : JSON.stringify(event.data),
+            ),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            isUnread: (parsedData as any).isUnread ?? false,
+          },
+          isUnclean: event.isUnclean ?? false,
+          timestamp: this.formatTimestamp(event.ts),
+          type: event.eventType as GamificationEventType,
+        };
+      });
+    } catch (error) {
+      console.error('Error getting notifications:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Gets the title for an event type.
+   * @param {GamificationEventType} eventType - The event type.
+   * @returns {string} The title.
+   */
+  private static getEventTitle(eventType: GamificationEventType): string {
+    const titles: Record<GamificationEventType, string> = {
+      seeds: 'Semillas',
+      streak: 'Racha',
+      achievement: 'Logro',
+      surprise: 'Sorpresa',
+      bonus: 'Bono',
+      first_task_completed: 'Primera tarea completada',
+      all_tasks_completed: 'Todas las tareas completadas',
+      streak_bonus: 'Bono de racha',
+      surprise_reward: '¡Recompensa sorpresa!',
+      streak_recovered: 'Racha recuperada',
+    };
+    return titles[eventType] || 'Notificación';
+  }
+
+  /**
+   * Gets the description for an event type.
+   * @param {GamificationEventType} eventType - The event type.
+   * @param {string} data - The event data.
+   * @returns {string} The description.
+   */
+  private static getEventDescription(
+    eventType: GamificationEventType,
+    data: string,
+  ): string {
+    try {
+      const parsedData = JSON.parse(data);
+      switch (eventType) {
+        case 'first_task_completed':
+          return `Completaste tu primera tarea del día. Has ganado ${parsedData.seed || 10} semillas.`;
+        case 'all_tasks_completed':
+          return `Completaste todas las tareas del día. ¡Excelente trabajo! +${parsedData.seed || 25} semillas.`;
+        case 'streak_bonus':
+          return `Por mantener tu racha de ${parsedData.streak || 7} días, has recibido ${parsedData.bonusSeeds || 3} semillas de bonificación.`;
+        case 'surprise_reward':
+          return `Has ganado ${parsedData.seed || 50} semillas extras por tu dedicación. ¡Sigue así!`;
+        case 'streak_recovered':
+          return `Has usado ${parsedData.cost || 20} semillas para recuperar tu racha. ¡No pierdas el ritmo!`;
+        case 'seeds':
+          return `Has recibido semillas.`;
+        case 'streak':
+          return `Has mantenido tu racha.`;
+        case 'achievement':
+          return `Has logrado un hito.`;
+        case 'surprise':
+          return `¡Sorpresa!`;
+        case 'bonus':
+          return `Has recibido un bono.`;
+        default:
+          return 'Has recibido una notificación de gamificación.';
+      }
+    } catch {
+      return 'Has recibido una notificación de gamificación.';
+    }
+  }
+
+  /**
+   * Formats a timestamp for display.
+   * @param {string} timestamp - The timestamp.
+   * @returns {string} Formatted timestamp.
+   */
+  private static formatTimestamp(timestamp: string): string {
+    const date = new Date(timestamp);
+    const now = new Date();
+
+    // Normalizamos ambas fechas a medianoche (00:00:00)
+    const dateAtMidnight = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+    );
+    const nowAtMidnight = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+
+    // Calculamos la diferencia en días de calendario
+    const diffDays = Math.round(
+      (nowAtMidnight.getTime() - dateAtMidnight.getTime()) /
+        (1000 * 60 * 60 * 24),
+    );
+
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+
+    if (diffDays === 0) {
+      return `Hoy • ${hours}:${minutes}`;
+    } else if (diffDays === 1) {
+      return `Ayer • ${hours}:${minutes}`;
+    } else if (diffDays < 7) {
+      return `Hace ${diffDays} días • ${hours}:${minutes}`;
+    } else {
+      return date.toLocaleDateString('es-ES');
     }
   }
 }

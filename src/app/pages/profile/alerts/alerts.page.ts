@@ -3,6 +3,10 @@ import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
+import {
+  GamificationEventType,
+  GamificationService,
+} from '../../../core/services/view/gamification/gamification.service';
 import { NotificationService } from '../../../core/services/view/gamification/notification.service';
 
 interface GamificationAlerts {
@@ -14,7 +18,7 @@ interface GamificationAlerts {
   };
   isUnclean: boolean;
   timestamp: string;
-  type?: 'seeds' | 'streak' | 'achievement' | 'surprise' | 'bonus';
+  type?: GamificationEventType;
 }
 
 @Component({
@@ -30,18 +34,21 @@ export class AlertsPage {
   /**
    * @param {Router} router - Angular Router instance used for navigation.
    * @param {NotificationService} notificationService - Service for managing notification state.
+   * @param {GamificationService} gamificationService - Service for gamification operations.
    */
   constructor(
     private router: Router,
     private notificationService: NotificationService,
+    private gamificationService: GamificationService,
   ) {}
 
   /**
    * Lifecycle hook that is called when the view is about to enter.
    */
   async ionViewWillEnter(): Promise<void> {
-    // Load mock notifications for now
-    this.notifications = this.getMockNotifications();
+    // Load notifications from service
+    this.notifications = await GamificationService.getNotifications();
+    console.log('Notifications loaded:', this.notifications);
     this.updateUnreadCount();
   }
 
@@ -88,12 +95,37 @@ export class AlertsPage {
   }
 
   /**
+   * Returns the icon type for the notification type.
+   * @param {GamificationEventType} type - The notification type.
+   * @returns {string} Icon type.
+   */
+  getIconType(type?: GamificationEventType): string {
+    if (!type) {
+      return 'default';
+    }
+    switch (type) {
+      case 'first_task_completed':
+      case 'all_tasks_completed':
+        return 'achievement';
+      case 'streak_bonus':
+        return 'bonus';
+      case 'surprise_reward':
+        return 'surprise';
+      case 'streak_recovered':
+        return 'streak';
+      default:
+        return type; // 'seeds', 'streak', 'achievement', 'surprise', 'bonus'
+    }
+  }
+
+  /**
    * Returns the appropriate icon for the notification type.
    * @param {GamificationAlerts} notification - The notification.
    * @returns {string} Icon name.
    */
   getNotificationIcon(notification: GamificationAlerts): string {
-    switch (notification.type) {
+    const iconType = this.getIconType(notification.type);
+    switch (iconType) {
       case 'seeds':
         return 'sparkles';
       case 'streak':
@@ -115,7 +147,8 @@ export class AlertsPage {
    * @returns {string} CSS class for background color.
    */
   getNotificationIconBg(notification: GamificationAlerts): string {
-    switch (notification.type) {
+    const iconType = this.getIconType(notification.type);
+    switch (iconType) {
       case 'seeds':
         return 'icon-bg-accent';
       case 'streak':
@@ -129,98 +162,5 @@ export class AlertsPage {
       default:
         return 'icon-bg-muted';
     }
-  }
-
-  /**
-   * Returns mock notifications for testing purposes.
-   * @returns {GamificationAlerts[]} Array of mock notifications.
-   */
-  private getMockNotifications(): GamificationAlerts[] {
-    return [
-      {
-        id: '1',
-        data: {
-          title: '¡Recompensa sorpresa!',
-          description:
-            'Has ganado 50 semillas extras por tu dedicación esta semana. ¡Sigue así!',
-          isUnread: true,
-        },
-        isUnclean: false,
-        timestamp: 'Hoy • 14:30',
-        type: 'surprise',
-      },
-      {
-        id: '2',
-        data: {
-          title: 'Racha de 7 días completada',
-          description:
-            'Has completado todas tus tareas durante 7 días consecutivos. ¡Increíble constancia!',
-          isUnread: true,
-        },
-        isUnclean: false,
-        timestamp: 'Hoy • 09:15',
-        type: 'streak',
-      },
-      {
-        id: '3',
-        data: {
-          title: 'Primera tarea completada',
-          description:
-            'Completaste tu primera tarea del día. Has ganado 10 semillas.',
-          isUnread: false,
-        },
-        isUnclean: true,
-        timestamp: 'Ayer • 18:45',
-        type: 'achievement',
-      },
-      {
-        id: '4',
-        data: {
-          title: 'Bono de racha semanal',
-          description:
-            'Por mantener tu racha de 7 días, has recibido 100 semillas de bonificación.',
-          isUnread: false,
-        },
-        isUnclean: true,
-        timestamp: 'Ayer • 16:20',
-        type: 'bonus',
-      },
-      {
-        id: '5',
-        data: {
-          title: 'Semillas ganadas',
-          description:
-            'Has completado 3 tareas hoy y ganado 30 semillas en total.',
-          isUnread: false,
-        },
-        isUnclean: false,
-        timestamp: 'Ayer • 12:00',
-        type: 'seeds',
-      },
-      {
-        id: '6',
-        data: {
-          title: 'Todas las tareas completadas',
-          description:
-            'Completaste todas las tareas del día. ¡Excelente trabajo! +25 semillas.',
-          isUnread: false,
-        },
-        isUnclean: true,
-        timestamp: 'Hace 2 días • 20:30',
-        type: 'achievement',
-      },
-      {
-        id: '7',
-        data: {
-          title: 'Racha recuperada',
-          description:
-            'Has usado 20 semillas para recuperar tu racha. ¡No pierdas el ritmo!',
-          isUnread: false,
-        },
-        isUnclean: false,
-        timestamp: 'Hace 3 días • 15:10',
-        type: 'streak',
-      },
-    ];
   }
 }
