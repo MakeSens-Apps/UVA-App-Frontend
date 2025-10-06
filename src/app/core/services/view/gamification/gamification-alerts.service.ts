@@ -361,4 +361,45 @@ export class GamificationAlertsService {
       return date.toLocaleDateString('es-ES');
     }
   }
+
+  /**
+   * Marks a notification as read by updating its data.
+   * @param {string} notificationId - The ID of the notification.
+   * @returns {Promise<void>}
+   */
+  static async markNotificationAsRead(notificationId: string): Promise<void> {
+    try {
+      const events = await GamificationEventDSService.getGamificationEvents();
+      const event = events.find((e) => e.id === notificationId);
+      if (!event) {
+        return;
+      }
+
+      let parsedData: Record<string, unknown> = {};
+      if (event.data) {
+        if (typeof event.data === 'string') {
+          parsedData = JSON.parse(event.data);
+        } else if (typeof event.data === 'object') {
+          parsedData = event.data;
+        }
+      }
+      const newParsedData = { ...parsedData, isUnread: false };
+      const newData = JSON.stringify(newParsedData);
+      await GamificationEventDSService.updateGamificationEventData(
+        notificationId,
+        newData,
+      );
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Deletes all notifications by marking them as clean.
+   * @returns {Promise<void>}
+   */
+  static async deleteAllNotifications(): Promise<void> {
+    await GamificationEventDSService.markAllAsClean();
+  }
 }

@@ -229,4 +229,21 @@ export class GamificationService extends UserProgressDSService {
   ): Promise<GamificationNotification[]> {
     return GamificationAlertsService.getNotifications(limit);
   }
+
+  /**
+   * Marks a notification as read.
+   * @param {string} notificationId - The ID of the notification.
+   * @returns {Promise<void>}
+   */
+  static async markNotificationAsRead(notificationId: string): Promise<void> {
+    return GamificationAlertsService.markNotificationAsRead(notificationId);
+  }
+
+  /**
+   * Deletes all notifications.
+   * @returns {Promise<void>}
+   */
+  static async deleteAllNotifications(): Promise<void> {
+    return GamificationAlertsService.deleteAllNotifications();
+  }
 }
