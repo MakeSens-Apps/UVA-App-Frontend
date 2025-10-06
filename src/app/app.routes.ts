@@ -123,6 +123,13 @@ export const routes: Routes = [
       import('./pages/profile/alerts/alerts.page').then((m) => m.AlertsPage),
   },
   {
+    path: 'alerts/creation',
+    loadComponent: () =>
+      import('./pages/alerts/creation/creation.page').then(
+        (m) => m.CreationPage,
+      ),
+  },
+  {
     path: 'measurement-detail',
     loadComponent: () =>
       import(
