@@ -2,73 +2,21 @@ import { Injectable } from '@angular/core';
 import { SortDirection } from '@aws-amplify/datastore';
 import { GamificationEvent } from 'src/models';
 import { GamificationEventDSService } from '../../storage/datastore/gamification-event-ds.service';
-
-export type GamificationEventType =
-  | 'seeds'
-  | 'streak'
-  | 'achievement'
-  | 'bonus';
-
-export type GamificationEventSubtype =
-  | 'first_task'
-  | 'all_tasks'
-  | 'streak_reward'
-  | 'germination'
-  | 'failed_germination'
-  | 'streak_recovery'
-  | 'streak_lost'
-  | 'streak_progress';
-
-export type EventData =
-  | { subtype: 'first_task'; isUnread: boolean }
-  | { subtype: 'all_tasks'; isUnread: boolean }
-  | { subtype: 'streak_reward'; days: number; isUnread: boolean }
-  | { subtype: 'germination'; stage: string; isUnread: boolean }
-  | { subtype: 'failed_germination'; isUnread: boolean }
-  | { subtype: 'streak_recovery'; isUnread: boolean }
-  | { subtype: 'streak_lost'; isUnread: boolean }
-  | { subtype: 'streak_progress'; days: number; isUnread: boolean };
+import {
+  EventData,
+  eventMessages,
+  GamificationEventSubtype,
+  GamificationEventType,
+  GamificationNotification,
+  validateEventData,
+} from './gamification-alerts-types.service';
 
 /**
  *
- * @param {unknown} data - The data to validate.
- * @returns {data is EventData} True if the data is valid, false otherwise.
+ * @param subtype
  */
-export function validateEventData(data: unknown): data is EventData {
-  if (!data || typeof data !== 'object') {
-    return false;
-  }
-  const obj = data as Record<string, unknown>;
-  if (!obj['subtype'] || typeof obj['isUnread'] !== 'boolean') {
-    return false;
-  }
-  switch (obj['subtype']) {
-    case 'streak_reward':
-    case 'streak_progress':
-      return typeof obj['days'] === 'number';
-    case 'germination':
-      return typeof obj['stage'] === 'string';
-    case 'first_task':
-    case 'all_tasks':
-    case 'failed_germination':
-    case 'streak_recovery':
-    case 'streak_lost':
-      return true;
-    default:
-      return false;
-  }
-}
-
-export interface GamificationNotification {
-  id: string;
-  data: {
-    title: string;
-    description: string;
-    isUnread: boolean;
-  };
-  isUnclean: boolean;
-  timestamp: string;
-  type?: GamificationEventType;
+function getRandomMessageIndex(subtype: GamificationEventSubtype): number {
+  return Math.floor(Math.random() * eventMessages[subtype].length) + 1;
 }
 
 @Injectable({
@@ -83,7 +31,11 @@ export class GamificationAlertsService {
   static async createFirstTaskAlert(
     ts?: Date,
   ): Promise<GamificationEvent | undefined> {
-    const data: EventData = { subtype: 'first_task', isUnread: true };
+    const data: EventData = {
+      subtype: 'first_task',
+      isUnread: true,
+      messageIndex: getRandomMessageIndex('first_task'),
+    };
     return GamificationEventDSService.createGamificationEvent(
       'seeds',
       JSON.stringify(data),
@@ -100,7 +52,11 @@ export class GamificationAlertsService {
   static async createAllTasksAlert(
     ts?: Date,
   ): Promise<GamificationEvent | undefined> {
-    const data: EventData = { subtype: 'all_tasks', isUnread: true };
+    const data: EventData = {
+      subtype: 'all_tasks',
+      isUnread: true,
+      messageIndex: getRandomMessageIndex('all_tasks'),
+    };
     return GamificationEventDSService.createGamificationEvent(
       'seeds',
       JSON.stringify(data),
@@ -119,7 +75,12 @@ export class GamificationAlertsService {
     days: number,
     ts?: Date,
   ): Promise<GamificationEvent | undefined> {
-    const data: EventData = { subtype: 'streak_reward', days, isUnread: true };
+    const data: EventData = {
+      subtype: 'streak_reward',
+      days,
+      isUnread: true,
+      messageIndex: getRandomMessageIndex('streak_reward'),
+    };
     return GamificationEventDSService.createGamificationEvent(
       'streak',
       JSON.stringify(data),
@@ -129,16 +90,21 @@ export class GamificationAlertsService {
   }
 
   /**
-   * Creates a germination alert.
+   * Creates a germination success alert.
    * @param {string} stage - The germination stage.
    * @param {Date | undefined} ts Date of the event.
    * @returns {Promise<GamificationEvent | undefined>} The created event.
    */
-  static async createGerminationAlert(
+  static async createGerminationSuccessAlert(
     stage: string,
     ts?: Date,
   ): Promise<GamificationEvent | undefined> {
-    const data: EventData = { subtype: 'germination', stage, isUnread: true };
+    const data: EventData = {
+      subtype: 'germination_success',
+      stage,
+      isUnread: true,
+      messageIndex: getRandomMessageIndex('germination_success'),
+    };
     return GamificationEventDSService.createGamificationEvent(
       'achievement',
       JSON.stringify(data),
@@ -148,14 +114,18 @@ export class GamificationAlertsService {
   }
 
   /**
-   * Creates a failed germination alert.
+   * Creates a germination fail alert.
    * @param {Date | undefined} ts Date of the event.
    * @returns {Promise<GamificationEvent | undefined>} The created event.
    */
-  static async createFailedGerminationAlert(
+  static async createGerminationFailAlert(
     ts?: Date,
   ): Promise<GamificationEvent | undefined> {
-    const data: EventData = { subtype: 'failed_germination', isUnread: true };
+    const data: EventData = {
+      subtype: 'germination_fail',
+      isUnread: true,
+      messageIndex: getRandomMessageIndex('germination_fail'),
+    };
     return GamificationEventDSService.createGamificationEvent(
       'seeds',
       JSON.stringify(data),
@@ -172,7 +142,11 @@ export class GamificationAlertsService {
   static async createStreakRecoveryAlert(
     ts?: Date,
   ): Promise<GamificationEvent | undefined> {
-    const data: EventData = { subtype: 'streak_recovery', isUnread: true };
+    const data: EventData = {
+      subtype: 'streak_recovery',
+      isUnread: true,
+      messageIndex: getRandomMessageIndex('streak_recovery'),
+    };
     return GamificationEventDSService.createGamificationEvent(
       'bonus',
       JSON.stringify(data),
@@ -189,7 +163,11 @@ export class GamificationAlertsService {
   static async createStreakLostAlert(
     ts?: Date,
   ): Promise<GamificationEvent | undefined> {
-    const data: EventData = { subtype: 'streak_lost', isUnread: true };
+    const data: EventData = {
+      subtype: 'streak_lost',
+      isUnread: true,
+      messageIndex: getRandomMessageIndex('streak_lost'),
+    };
     return GamificationEventDSService.createGamificationEvent(
       'streak',
       JSON.stringify(data),
@@ -212,6 +190,7 @@ export class GamificationAlertsService {
       subtype: 'streak_progress',
       days,
       isUnread: true,
+      messageIndex: getRandomMessageIndex('streak_progress'),
     };
     return GamificationEventDSService.createGamificationEvent(
       'streak',
@@ -267,6 +246,7 @@ export class GamificationAlertsService {
             isUnclean: event.isUnclean ?? false,
             timestamp: this.formatTimestamp(event.ts),
             type: event.eventType as GamificationEventType,
+            subtype: eventData.subtype,
           };
         } else {
           // Fallback for invalid data
@@ -302,11 +282,11 @@ export class GamificationAlertsService {
     const titles: Record<GamificationEventSubtype, string> = {
       first_task: 'Primera tarea completada',
       all_tasks: 'Todas las tareas completadas',
-      streak_reward: 'Racha mantenida',
-      germination: '¡Tus semillas han germinado!',
-      failed_germination: 'Tus semillas no germinaron',
+      streak_reward: 'Recompensa por racha activa',
+      germination_success: 'Germinación exitosa',
+      germination_fail: 'No hubo germinación',
       streak_recovery: 'Recupera tu racha',
-      streak_lost: 'Racha perdida',
+      streak_lost: 'Has perdido tu racha',
       streak_progress: 'Racha en progreso',
     };
     return titles[subtype] || 'Notificación';
@@ -326,26 +306,16 @@ export class GamificationAlertsService {
   ): string {
     try {
       const parsedData = JSON.parse(data);
-      switch (subtype) {
-        case 'first_task':
-          return 'Acabas de completar tu primera tarea del día y has ganado una semilla 🌱';
-        case 'all_tasks':
-          return 'Has completado todas tus tareas del día y has ganado una semilla extra 🌾';
-        case 'streak_reward':
-          return `¡Llevas ${parsedData.days || 7} días de racha! Acabas de ganar tres semillas como recompensa`;
-        case 'germination':
-          return `Tus semillas han germinado y se han convertido en una ${parsedData.stage || 'brote'}`;
-        case 'failed_germination':
-          return 'Tus semillas eran muy pocas y no lograron germinar 🌧️. ¡Sigue intentando!';
-        case 'streak_recovery':
-          return 'Ayer perdiste tu racha, pero aún puedes recuperarla 🌻. ¡Recupérala aquí!';
-        case 'streak_lost':
-          return 'Has perdido tu racha 💨';
-        case 'streak_progress':
-          return `Llevas ${parsedData.days || 5} días de racha 🌞. ¡Sigue así! En dos días podrías ganar tres semillas más`;
-        default:
-          return 'Has recibido una notificación de gamificación.';
+      const messageIndex = parsedData.messageIndex - 1; // 0-based
+      let message =
+        eventMessages[subtype][messageIndex] || eventMessages[subtype][0];
+      if (parsedData.days !== undefined) {
+        message = message.replace(/{days}/g, parsedData.days.toString());
       }
+      if (parsedData.stage !== undefined) {
+        message = message.replace(/{stage}/g, parsedData.stage);
+      }
+      return message;
     } catch {
       return 'Has recibido una notificación de gamificación.';
     }
