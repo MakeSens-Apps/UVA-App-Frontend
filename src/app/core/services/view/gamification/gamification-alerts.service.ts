@@ -127,7 +127,7 @@ export class GamificationAlertsService {
       messageIndex: getRandomMessageIndex('germination_fail'),
     };
     return GamificationEventDSService.createGamificationEvent(
-      'seeds',
+      'achievement',
       JSON.stringify(data),
       undefined,
       ts?.toISOString(),
@@ -148,7 +148,7 @@ export class GamificationAlertsService {
       messageIndex: getRandomMessageIndex('streak_recovery'),
     };
     return GamificationEventDSService.createGamificationEvent(
-      'bonus',
+      'streak',
       JSON.stringify(data),
       undefined,
       ts?.toISOString(),
