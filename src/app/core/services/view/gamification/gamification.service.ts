@@ -64,7 +64,7 @@ export class GamificationService extends UserProgressDSService {
         await GamificationAlertsService.createAllTasksAlert();
         await this.streakBonus();
         const newStreak = streak + 1;
-        if (newStreak % 7 !== 0) {
+        if (newStreak % 7 !== 0 && newStreak % 3 === 0) {
           await GamificationAlertsService.createStreakProgressAlert(newStreak);
         }
       }
@@ -186,7 +186,7 @@ export class GamificationService extends UserProgressDSService {
         Seed: newSeed,
       });
     }
-    await GamificationAlertsService.createStreakRecoveryAlert();
+    await GamificationAlertsService.createStreakRecoveredAlert();
     return true;
   }
 

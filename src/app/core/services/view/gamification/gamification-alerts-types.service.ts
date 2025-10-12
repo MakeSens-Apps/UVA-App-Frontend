@@ -24,6 +24,7 @@ export type GamificationEventSubtype =
   | 'germination_success'
   | 'germination_fail'
   | 'streak_recovery'
+  | 'streak_recovered'
   | 'streak_lost'
   | 'streak_progress';
 
@@ -44,6 +45,7 @@ export type EventData =
     }
   | { subtype: 'germination_fail'; isUnread: boolean; messageIndex: number }
   | { subtype: 'streak_recovery'; isUnread: boolean; messageIndex: number }
+  | { subtype: 'streak_recovered'; isUnread: boolean; messageIndex: number }
   | { subtype: 'streak_lost'; isUnread: boolean; messageIndex: number }
   | {
       subtype: 'streak_progress';
@@ -148,6 +150,23 @@ export const eventMessages: Record<GamificationEventSubtype, string[]> = {
     '⚠️ Aún puedes salvar tu racha si completas una tarea.',
     '⚠️ No pierdas el impulso, recupera tu racha hoy mismo.',
   ],
+  streak_recovered: [
+    '🎉 ¡Excelente! Has recuperado tu racha exitosamente.',
+    '🎉 ¡Racha salvada! Tu constancia se mantiene intacta.',
+    '🎉 ¡Bien hecho! Tu racha está de vuelta en acción.',
+    '🎉 ¡Recuperación exitosa! Tu esfuerzo valió la pena.',
+    '🎉 ¡Tu racha vive! Has demostrado verdadera dedicación.',
+    '🎉 ¡Fantástico! Has salvado tu progreso de racha.',
+    '🎉 ¡Racha restaurada! Tu disciplina sigue firme.',
+    '🎉 ¡Increíble recuperación! No perdiste tu impulso.',
+    '🎉 ¡Tu racha está a salvo! Continúa con esa energía.',
+    '🎉 ¡Misión cumplida! Tu racha ha sido recuperada.',
+    '🎉 ¡Éxito total! Tu constancia se mantiene viva.',
+    '🎉 ¡Racha rescatada! Sigues en el camino correcto.',
+    '🎉 ¡Perfecto! Has mantenido tu progreso intacto.',
+    '🎉 ¡Recuperación completa! Tu racha continúa fuerte.',
+    '🎉 ¡Logrado! Tu esfuerzo salvó tu racha perfectamente.',
+  ],
   streak_lost: [
     '😔 Has perdido tu racha, pero puedes comenzar una nueva.',
     '😔 Tu racha terminó, ¡empieza de nuevo con energía!',
@@ -211,6 +230,7 @@ export function validateEventData(data: unknown): data is EventData {
     case 'all_tasks':
     case 'germination_fail':
     case 'streak_recovery':
+    case 'streak_recovered':
     case 'streak_lost':
       return true;
     default:

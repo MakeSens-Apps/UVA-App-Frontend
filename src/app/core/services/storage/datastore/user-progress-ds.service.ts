@@ -151,6 +151,12 @@ export class UserProgressDSService {
         Streak:
           lastProgress.completedTasks === 0 ? 0 : (lastProgress.Streak ?? 0),
       });
+
+      // Generar alerta de recuperación si el usuario perdió un día pero tenía racha activa
+      if (lastProgress.completedTasks === 0 && (lastProgress.Streak ?? 0) > 0) {
+        await GamificationAlertsService.createStreakRecoveryAlert();
+      }
+
       return newUserProgress;
     } else {
       // Más de un día de inactividad: Reiniciar racha
