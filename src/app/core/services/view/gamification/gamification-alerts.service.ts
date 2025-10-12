@@ -156,6 +156,27 @@ export class GamificationAlertsService {
   }
 
   /**
+   * Creates a streak recovered alert.
+   * @param {Date | undefined} ts Date of the event.
+   * @returns {Promise<GamificationEvent | undefined>} The created event.
+   */
+  static async createStreakRecoveredAlert(
+    ts?: Date,
+  ): Promise<GamificationEvent | undefined> {
+    const data: EventData = {
+      subtype: 'streak_recovered',
+      isUnread: true,
+      messageIndex: getRandomMessageIndex('streak_recovered'),
+    };
+    return GamificationEventDSService.createGamificationEvent(
+      'streak',
+      JSON.stringify(data),
+      undefined,
+      ts?.toISOString(),
+    );
+  }
+
+  /**
    * Creates a streak lost alert.
    * @param {Date | undefined} ts Date of the event.
    * @returns {Promise<GamificationEvent | undefined>} The created event.
@@ -286,6 +307,7 @@ export class GamificationAlertsService {
       germination_success: 'Germinación exitosa',
       germination_fail: 'No hubo germinación',
       streak_recovery: 'Recupera tu racha',
+      streak_recovered: 'Racha recuperada',
       streak_lost: 'Has perdido tu racha',
       streak_progress: 'Racha en progreso',
     };

@@ -92,6 +92,14 @@ export class AlertsPage {
       case 'seeds':
         return 'sparkles';
       case 'streak':
+        // Different icons for different streak subtypes
+        if (notification.subtype === 'streak_recovered') {
+          return 'checkmark-circle';
+        } else if (notification.subtype === 'streak_recovery') {
+          return 'warning';
+        } else if (notification.subtype === 'streak_lost') {
+          return 'close-circle';
+        }
         return 'flame';
       case 'achievement':
         return 'trophy';
@@ -112,6 +120,14 @@ export class AlertsPage {
       case 'seeds':
         return 'icon-bg-accent';
       case 'streak':
+        // Different colors for different streak subtypes
+        if (notification.subtype === 'streak_recovered') {
+          return 'icon-bg-primary'; // Green/success color
+        } else if (notification.subtype === 'streak_recovery') {
+          return 'icon-bg-yellow'; // Warning color
+        } else if (notification.subtype === 'streak_lost') {
+          return 'icon-bg-muted'; // Gray/lost color
+        }
         return 'icon-bg-orange';
       case 'achievement':
         return 'icon-bg-primary';
