@@ -9,6 +9,12 @@
       <div class="user-info">
         <p class="title">Perfil</p>
       </div>
+      <ion-buttons slot="end">
+        <ion-button (click)="goBack('/alerts')" fill="clear">
+          <ion-icon [name]="notificationIcon"></ion-icon>
+          <ion-badge *ngIf="hasUnreadNotifications" color="danger"></ion-badge>
+        </ion-button>
+      </ion-buttons>
     </div>
   </ion-toolbar>
 </ion-header>

@@ -1,0 +1,76 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="uva_blue-500">
+    <div class="header">
+      <ion-buttons slot="start">
+        <ion-button (click)="goBack('/profile')" fill="clear">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+      <div class="user-info">
+        <p class="title">Notificaciones</p>
+      </div>
+      <ion-buttons slot="end">
+        <ion-button (click)="openSettings()" fill="clear">
+          <ion-icon name="settings-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="notifications-content">
+  <div
+    class="notifications-list"
+    *ngIf="notifications.length > 0; else noNotifications"
+  >
+    <div
+      *ngFor="let notification of notifications"
+      class="notification-item"
+      (click)="markAsRead(notification)"
+    >
+      <!-- Unread Indicator -->
+      <div class="unread-indicator" *ngIf="notification.data.isUnread">
+        <div class="unread-dot"></div>
+      </div>
+
+      <!-- Icon -->
+      <div
+        class="notification-icon"
+        [ngClass]="getNotificationIconBg(notification)"
+      >
+        <ion-icon [name]="getNotificationIcon(notification)"></ion-icon>
+      </div>
+
+      <!-- Content -->
+      <div class="notification-content">
+        <h3 class="notification-title">{{ notification.data.title }}</h3>
+        <p class="notification-description">
+          {{ notification.data.description }}
+        </p>
+        <p class="notification-timestamp">{{ notification.timestamp }}</p>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #noNotifications>
+    <div class="no-notifications">
+      <div class="empty-icon">
+        <ion-icon name="notifications-off-outline"></ion-icon>
+      </div>
+      <h3>No hay notificaciones</h3>
+      <p>Cuando completes tareas y ganes logros, aparecerán aquí</p>
+    </div>
+  </ng-template>
+
+  <!-- Delete All Button -->
+  <div class="delete-all-container" *ngIf="notifications.length > 0">
+    <ion-button
+      (click)="deleteAllNotifications()"
+      fill="clear"
+      shape="round"
+      class="delete-all-button"
+    >
+      <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+    </ion-button>
+  </div>
+</ion-content>

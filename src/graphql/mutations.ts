@@ -22,6 +22,16 @@ export const createRACIMO = /* GraphQL */ `mutation CreateRACIMO(
       startedAt
       __typename
     }
+    GamificationEvents {
+      nextToken
+      startedAt
+      __typename
+    }
+    AppUsageEvents {
+      nextToken
+      startedAt
+      __typename
+    }
     createdAt
     updatedAt
     _version
@@ -48,6 +58,16 @@ export const updateRACIMO = /* GraphQL */ `mutation UpdateRACIMO(
       startedAt
       __typename
     }
+    GamificationEvents {
+      nextToken
+      startedAt
+      __typename
+    }
+    AppUsageEvents {
+      nextToken
+      startedAt
+      __typename
+    }
     createdAt
     updatedAt
     _version
@@ -70,6 +90,16 @@ export const deleteRACIMO = /* GraphQL */ `mutation DeleteRACIMO(
     LinkageCode
     Configuration
     UVAs {
+      nextToken
+      startedAt
+      __typename
+    }
+    GamificationEvents {
+      nextToken
+      startedAt
+      __typename
+    }
+    AppUsageEvents {
       nextToken
       startedAt
       __typename
@@ -239,6 +269,153 @@ export const deleteUserProgress = /* GraphQL */ `mutation DeleteUserProgress(
   APITypes.DeleteUserProgressMutationVariables,
   APITypes.DeleteUserProgressMutation
 >;
+export const createGamificationEvent = /* GraphQL */ `mutation CreateGamificationEvent(
+  $input: CreateGamificationEventInput!
+  $condition: ModelGamificationEventConditionInput
+) {
+  createGamificationEvent(input: $input, condition: $condition) {
+    id
+    userID
+    racimoID
+    eventType
+    ts
+    data
+    isUnclean
+    createdAt
+    updatedAt
+    _version
+    _deleted
+    _lastChangedAt
+    __typename
+  }
+}
+` as GeneratedMutation<
+  APITypes.CreateGamificationEventMutationVariables,
+  APITypes.CreateGamificationEventMutation
+>;
+export const updateGamificationEvent = /* GraphQL */ `mutation UpdateGamificationEvent(
+  $input: UpdateGamificationEventInput!
+  $condition: ModelGamificationEventConditionInput
+) {
+  updateGamificationEvent(input: $input, condition: $condition) {
+    id
+    userID
+    racimoID
+    eventType
+    ts
+    data
+    isUnclean
+    createdAt
+    updatedAt
+    _version
+    _deleted
+    _lastChangedAt
+    __typename
+  }
+}
+` as GeneratedMutation<
+  APITypes.UpdateGamificationEventMutationVariables,
+  APITypes.UpdateGamificationEventMutation
+>;
+export const deleteGamificationEvent = /* GraphQL */ `mutation DeleteGamificationEvent(
+  $input: DeleteGamificationEventInput!
+  $condition: ModelGamificationEventConditionInput
+) {
+  deleteGamificationEvent(input: $input, condition: $condition) {
+    id
+    userID
+    racimoID
+    eventType
+    ts
+    data
+    isUnclean
+    createdAt
+    updatedAt
+    _version
+    _deleted
+    _lastChangedAt
+    __typename
+  }
+}
+` as GeneratedMutation<
+  APITypes.DeleteGamificationEventMutationVariables,
+  APITypes.DeleteGamificationEventMutation
+>;
+export const createAppUsageEvent = /* GraphQL */ `mutation CreateAppUsageEvent(
+  $input: CreateAppUsageEventInput!
+  $condition: ModelAppUsageEventConditionInput
+) {
+  createAppUsageEvent(input: $input, condition: $condition) {
+    id
+    userID
+    racimoID
+    sessionID
+    screenName
+    ts
+    action
+    duration
+    createdAt
+    updatedAt
+    _version
+    _deleted
+    _lastChangedAt
+    __typename
+  }
+}
+` as GeneratedMutation<
+  APITypes.CreateAppUsageEventMutationVariables,
+  APITypes.CreateAppUsageEventMutation
+>;
+export const updateAppUsageEvent = /* GraphQL */ `mutation UpdateAppUsageEvent(
+  $input: UpdateAppUsageEventInput!
+  $condition: ModelAppUsageEventConditionInput
+) {
+  updateAppUsageEvent(input: $input, condition: $condition) {
+    id
+    userID
+    racimoID
+    sessionID
+    screenName
+    ts
+    action
+    duration
+    createdAt
+    updatedAt
+    _version
+    _deleted
+    _lastChangedAt
+    __typename
+  }
+}
+` as GeneratedMutation<
+  APITypes.UpdateAppUsageEventMutationVariables,
+  APITypes.UpdateAppUsageEventMutation
+>;
+export const deleteAppUsageEvent = /* GraphQL */ `mutation DeleteAppUsageEvent(
+  $input: DeleteAppUsageEventInput!
+  $condition: ModelAppUsageEventConditionInput
+) {
+  deleteAppUsageEvent(input: $input, condition: $condition) {
+    id
+    userID
+    racimoID
+    sessionID
+    screenName
+    ts
+    action
+    duration
+    createdAt
+    updatedAt
+    _version
+    _deleted
+    _lastChangedAt
+    __typename
+  }
+}
+` as GeneratedMutation<
+  APITypes.DeleteAppUsageEventMutationVariables,
+  APITypes.DeleteAppUsageEventMutation
+>;
 export const createUser = /* GraphQL */ `mutation CreateUser(
   $input: CreateUserInput!
   $condition: ModelUserConditionInput
@@ -251,6 +428,16 @@ export const createUser = /* GraphQL */ `mutation CreateUser(
     Email
     Rank
     UserProgresses {
+      nextToken
+      startedAt
+      __typename
+    }
+    GamificationEvents {
+      nextToken
+      startedAt
+      __typename
+    }
+    AppUsageEvents {
       nextToken
       startedAt
       __typename
@@ -300,6 +487,16 @@ export const updateUser = /* GraphQL */ `mutation UpdateUser(
       startedAt
       __typename
     }
+    GamificationEvents {
+      nextToken
+      startedAt
+      __typename
+    }
+    AppUsageEvents {
+      nextToken
+      startedAt
+      __typename
+    }
     uvaID
     UVA {
       id
@@ -341,6 +538,16 @@ export const deleteUser = /* GraphQL */ `mutation DeleteUser(
     Email
     Rank
     UserProgresses {
+      nextToken
+      startedAt
+      __typename
+    }
+    GamificationEvents {
+      nextToken
+      startedAt
+      __typename
+    }
+    AppUsageEvents {
       nextToken
       startedAt
       __typename

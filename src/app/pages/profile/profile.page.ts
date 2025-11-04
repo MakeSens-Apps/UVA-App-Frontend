@@ -1,36 +1,38 @@
-import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { SessionService } from '@app/core/services/session/session.service';
+import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
+import { UserDSService } from '@app/core/services/storage/datastore/user-ds.service';
+import { UserProgressDSService } from '@app/core/services/storage/datastore/user-progress-ds.service';
+import { SetupService } from '@app/core/services/view/setup/setup.service';
+import { DataStore } from '@aws-amplify/datastore';
+import { Clipboard } from '@capacitor/clipboard';
+import { Share } from '@capacitor/share';
 import {
+  IonAvatar,
+  IonBadge,
+  IonButton,
+  IonButtons,
+  IonCard,
+  IonChip,
+  IonCol,
   IonContent,
+  IonGrid,
   IonHeader,
+  IonIcon,
+  IonItem,
+  IonItemDivider,
+  IonLabel,
+  IonList,
+  IonModal,
+  IonRow,
   IonTitle,
   IonToolbar,
-  IonLabel,
-  IonChip,
-  IonIcon,
-  IonAvatar,
-  IonButtons,
-  IonButton,
-  IonCard,
-  IonList,
-  IonItem,
-  IonModal,
-  IonGrid,
-  IonRow,
-  IonCol,
-  IonItemDivider,
 } from '@ionic/angular/standalone';
-import { Router } from '@angular/router';
-import { Share } from '@capacitor/share';
-import { Clipboard } from '@capacitor/clipboard';
-import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
-import { SetupService } from '@app/core/services/view/setup/setup.service';
-import { SessionService } from '@app/core/services/session/session.service';
-import { ChangeDetectorRef } from '@angular/core';
-import { DataStore } from '@aws-amplify/datastore';
-import { UserProgressDSService } from '@app/core/services/storage/datastore/user-progress-ds.service';
-import { UserDSService } from '@app/core/services/storage/datastore/user-ds.service';
+import { GamificationService } from '../../core/services/view/gamification/gamification.service';
+import { NotificationService } from '../../core/services/view/gamification/notification.service';
 /* eslint-disable @typescript-eslint/type-annotation-spacing */
 interface ShareOption {
   label: string;
@@ -61,6 +63,7 @@ interface ShareOption {
     IonButton,
     IonButtons,
     IonAvatar,
+    IonBadge,
     IonIcon,
     IonChip,
     IonLabel,
@@ -79,6 +82,8 @@ export class ProfilePage implements OnInit {
   seed: number | undefined | null;
   seedIcon = '';
   logo = '';
+  hasUnreadNotifications = false;
+  notificationIcon = 'notifications-outline';
   shareOptions: ShareOption[] = [
     {
       label: 'WhatsApp',
@@ -118,6 +123,7 @@ export class ProfilePage implements OnInit {
    * @param {SessionService} session -Manage Sesionids .
    * @param {SetupService} service -Manage Sesion setup/login/logout .
    * @param {ConfigurationAppService} configuration -Get configuration app .
+   * @param {NotificationService} notificationService - Service for managing notification state.
    * @param {ChangeDetectorRef} cdr Angular detecte change in app.
    */
   constructor(
@@ -125,6 +131,7 @@ export class ProfilePage implements OnInit {
     private session: SessionService,
     private service: SetupService,
     private configuration: ConfigurationAppService,
+    private notificationService: NotificationService,
     private cdr: ChangeDetectorRef,
   ) {}
 
@@ -152,6 +159,34 @@ export class ProfilePage implements OnInit {
     const userprogress = await UserProgressDSService.getLastUserProgress();
     if (userprogress) {
       this.seed = userprogress.Seed;
+    }
+
+    // Subscribe to unread notification count changes
+    this.notificationService.unreadCount$.subscribe((count) => {
+      this.hasUnreadNotifications = count > 0;
+      this.notificationIcon = this.hasUnreadNotifications
+        ? 'notifications'
+        : 'notifications-outline';
+      this.cdr.detectChanges();
+    });
+
+    // Initialize unread count
+    void this.loadUnreadCount();
+  }
+
+  /**
+   * Loads and updates the unread notification count.
+   */
+  private async loadUnreadCount(): Promise<void> {
+    try {
+      const notifications = await GamificationService.getNotifications();
+      const unreadCount = notifications.filter(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (n: any) => n.data.isUnread,
+      ).length;
+      this.notificationService.updateUnreadCount(unreadCount);
+    } catch (error) {
+      console.error('Error loading unread count:', error);
     }
   }
 

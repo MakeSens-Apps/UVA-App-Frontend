@@ -1,6 +1,17 @@
 import { Injectable } from '@angular/core';
-import { UserProgressDSService } from '../../storage/datastore/user-progress-ds.service';
 import { SortDirection } from '@aws-amplify/datastore';
+import { UserProgressDSService } from '../../storage/datastore/user-progress-ds.service';
+import {
+  GamificationEventSubtype,
+  GamificationEventType,
+  GamificationNotification,
+} from './gamification-alerts-types.service';
+import { GamificationAlertsService } from './gamification-alerts.service';
+export {
+  GamificationEventSubtype,
+  GamificationEventType,
+  GamificationNotification,
+};
 
 @Injectable({
   providedIn: 'root',
@@ -43,13 +54,19 @@ export class GamificationService extends UserProgressDSService {
         await this.updateUserProgress(userProgress.id, {
           Seed: seed + 1,
         });
+        await GamificationAlertsService.createFirstTaskAlert();
       } else if (updatedProgress && newCompletedTasks >= totalTask) {
         // Si se alcanza el número total de tareas, incrementar Seed y Streak
         await this.updateUserProgress(userProgress.id, {
           Seed: seed + 1,
           Streak: streak + 1,
         });
+        await GamificationAlertsService.createAllTasksAlert();
         await this.streakBonus();
+        const newStreak = streak + 1;
+        if (newStreak % 7 !== 0 && newStreak % 3 === 0) {
+          await GamificationAlertsService.createStreakProgressAlert(newStreak);
+        }
       }
 
       return true; // Proceso completado exitosamente
@@ -169,6 +186,7 @@ export class GamificationService extends UserProgressDSService {
         Seed: newSeed,
       });
     }
+    await GamificationAlertsService.createStreakRecoveredAlert();
     return true;
   }
 
@@ -192,11 +210,40 @@ export class GamificationService extends UserProgressDSService {
         await this.updateUserProgress(userProgress.id, {
           Seed: seed + bonusSeedForStreak,
         });
+        await GamificationAlertsService.createStreakRewardAlert(streak);
       }
       return true;
     } catch (error) {
       console.error('Error en streakBonus', error);
       return false;
     }
+  }
+
+  /**
+   * Retrieves gamification events for notifications.
+   * @param {number} limit - Maximum number of notifications to retrieve.
+   * @returns {Promise<GamificationNotification[]>} Array of notification objects.
+   */
+  static async getNotifications(
+    limit = 20,
+  ): Promise<GamificationNotification[]> {
+    return GamificationAlertsService.getNotifications(limit);
+  }
+
+  /**
+   * Marks a notification as read.
+   * @param {string} notificationId - The ID of the notification.
+   * @returns {Promise<void>}
+   */
+  static async markNotificationAsRead(notificationId: string): Promise<void> {
+    return GamificationAlertsService.markNotificationAsRead(notificationId);
+  }
+
+  /**
+   * Deletes all notifications.
+   * @returns {Promise<void>}
+   */
+  static async deleteAllNotifications(): Promise<void> {
+    return GamificationAlertsService.deleteAllNotifications();
   }
 }

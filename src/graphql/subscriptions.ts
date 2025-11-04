@@ -19,6 +19,16 @@ export const onCreateRACIMO = /* GraphQL */ `subscription OnCreateRACIMO($filter
       startedAt
       __typename
     }
+    GamificationEvents {
+      nextToken
+      startedAt
+      __typename
+    }
+    AppUsageEvents {
+      nextToken
+      startedAt
+      __typename
+    }
     createdAt
     updatedAt
     _version
@@ -42,6 +52,16 @@ export const onUpdateRACIMO = /* GraphQL */ `subscription OnUpdateRACIMO($filter
       startedAt
       __typename
     }
+    GamificationEvents {
+      nextToken
+      startedAt
+      __typename
+    }
+    AppUsageEvents {
+      nextToken
+      startedAt
+      __typename
+    }
     createdAt
     updatedAt
     _version
@@ -61,6 +81,16 @@ export const onDeleteRACIMO = /* GraphQL */ `subscription OnDeleteRACIMO($filter
     LinkageCode
     Configuration
     UVAs {
+      nextToken
+      startedAt
+      __typename
+    }
+    GamificationEvents {
+      nextToken
+      startedAt
+      __typename
+    }
+    AppUsageEvents {
       nextToken
       startedAt
       __typename
@@ -230,6 +260,153 @@ export const onDeleteUserProgress = /* GraphQL */ `subscription OnDeleteUserProg
   APITypes.OnDeleteUserProgressSubscriptionVariables,
   APITypes.OnDeleteUserProgressSubscription
 >;
+export const onCreateGamificationEvent = /* GraphQL */ `subscription OnCreateGamificationEvent(
+  $filter: ModelSubscriptionGamificationEventFilterInput
+  $userID: String
+) {
+  onCreateGamificationEvent(filter: $filter, userID: $userID) {
+    id
+    userID
+    racimoID
+    eventType
+    ts
+    data
+    isUnclean
+    createdAt
+    updatedAt
+    _version
+    _deleted
+    _lastChangedAt
+    __typename
+  }
+}
+` as GeneratedSubscription<
+  APITypes.OnCreateGamificationEventSubscriptionVariables,
+  APITypes.OnCreateGamificationEventSubscription
+>;
+export const onUpdateGamificationEvent = /* GraphQL */ `subscription OnUpdateGamificationEvent(
+  $filter: ModelSubscriptionGamificationEventFilterInput
+  $userID: String
+) {
+  onUpdateGamificationEvent(filter: $filter, userID: $userID) {
+    id
+    userID
+    racimoID
+    eventType
+    ts
+    data
+    isUnclean
+    createdAt
+    updatedAt
+    _version
+    _deleted
+    _lastChangedAt
+    __typename
+  }
+}
+` as GeneratedSubscription<
+  APITypes.OnUpdateGamificationEventSubscriptionVariables,
+  APITypes.OnUpdateGamificationEventSubscription
+>;
+export const onDeleteGamificationEvent = /* GraphQL */ `subscription OnDeleteGamificationEvent(
+  $filter: ModelSubscriptionGamificationEventFilterInput
+  $userID: String
+) {
+  onDeleteGamificationEvent(filter: $filter, userID: $userID) {
+    id
+    userID
+    racimoID
+    eventType
+    ts
+    data
+    isUnclean
+    createdAt
+    updatedAt
+    _version
+    _deleted
+    _lastChangedAt
+    __typename
+  }
+}
+` as GeneratedSubscription<
+  APITypes.OnDeleteGamificationEventSubscriptionVariables,
+  APITypes.OnDeleteGamificationEventSubscription
+>;
+export const onCreateAppUsageEvent = /* GraphQL */ `subscription OnCreateAppUsageEvent(
+  $filter: ModelSubscriptionAppUsageEventFilterInput
+  $userID: String
+) {
+  onCreateAppUsageEvent(filter: $filter, userID: $userID) {
+    id
+    userID
+    racimoID
+    sessionID
+    screenName
+    ts
+    action
+    duration
+    createdAt
+    updatedAt
+    _version
+    _deleted
+    _lastChangedAt
+    __typename
+  }
+}
+` as GeneratedSubscription<
+  APITypes.OnCreateAppUsageEventSubscriptionVariables,
+  APITypes.OnCreateAppUsageEventSubscription
+>;
+export const onUpdateAppUsageEvent = /* GraphQL */ `subscription OnUpdateAppUsageEvent(
+  $filter: ModelSubscriptionAppUsageEventFilterInput
+  $userID: String
+) {
+  onUpdateAppUsageEvent(filter: $filter, userID: $userID) {
+    id
+    userID
+    racimoID
+    sessionID
+    screenName
+    ts
+    action
+    duration
+    createdAt
+    updatedAt
+    _version
+    _deleted
+    _lastChangedAt
+    __typename
+  }
+}
+` as GeneratedSubscription<
+  APITypes.OnUpdateAppUsageEventSubscriptionVariables,
+  APITypes.OnUpdateAppUsageEventSubscription
+>;
+export const onDeleteAppUsageEvent = /* GraphQL */ `subscription OnDeleteAppUsageEvent(
+  $filter: ModelSubscriptionAppUsageEventFilterInput
+  $userID: String
+) {
+  onDeleteAppUsageEvent(filter: $filter, userID: $userID) {
+    id
+    userID
+    racimoID
+    sessionID
+    screenName
+    ts
+    action
+    duration
+    createdAt
+    updatedAt
+    _version
+    _deleted
+    _lastChangedAt
+    __typename
+  }
+}
+` as GeneratedSubscription<
+  APITypes.OnDeleteAppUsageEventSubscriptionVariables,
+  APITypes.OnDeleteAppUsageEventSubscription
+>;
 export const onCreateUser = /* GraphQL */ `subscription OnCreateUser(
   $filter: ModelSubscriptionUserFilterInput
   $id: String
@@ -242,6 +419,16 @@ export const onCreateUser = /* GraphQL */ `subscription OnCreateUser(
     Email
     Rank
     UserProgresses {
+      nextToken
+      startedAt
+      __typename
+    }
+    GamificationEvents {
+      nextToken
+      startedAt
+      __typename
+    }
+    AppUsageEvents {
       nextToken
       startedAt
       __typename
@@ -291,6 +478,16 @@ export const onUpdateUser = /* GraphQL */ `subscription OnUpdateUser(
       startedAt
       __typename
     }
+    GamificationEvents {
+      nextToken
+      startedAt
+      __typename
+    }
+    AppUsageEvents {
+      nextToken
+      startedAt
+      __typename
+    }
     uvaID
     UVA {
       id
@@ -332,6 +529,16 @@ export const onDeleteUser = /* GraphQL */ `subscription OnDeleteUser(
     Email
     Rank
     UserProgresses {
+      nextToken
+      startedAt
+      __typename
+    }
+    GamificationEvents {
+      nextToken
+      startedAt
+      __typename
+    }
+    AppUsageEvents {
       nextToken
       startedAt
       __typename

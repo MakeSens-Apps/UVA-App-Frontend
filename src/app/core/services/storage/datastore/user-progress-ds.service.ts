@@ -1,8 +1,7 @@
-import { DataStore } from '@aws-amplify/datastore';
+import { DataStore, Predicates, SortDirection } from '@aws-amplify/datastore';
 import { UserProgress } from 'src/models';
-import { SortDirection, Predicates } from '@aws-amplify/datastore';
 import { SessionService } from '../../session/session.service';
-
+import { GamificationAlertsService } from '../../view/gamification/gamification-alerts.service';
 export interface CompletedTask {
   daysComplete: number[];
   daysIncomplete: number[];
@@ -152,14 +151,22 @@ export class UserProgressDSService {
         Streak:
           lastProgress.completedTasks === 0 ? 0 : (lastProgress.Streak ?? 0),
       });
+
+      // Generar alerta de recuperación si el usuario perdió un día pero tenía racha activa
+      if (lastProgress.completedTasks === 0 && (lastProgress.Streak ?? 0) > 0) {
+        await GamificationAlertsService.createStreakRecoveryAlert();
+      }
+
       return newUserProgress;
     } else {
       // Más de un día de inactividad: Reiniciar racha
-      return await this.createUserProgress({
+      const resetProgress = await this.createUserProgress({
         completedTasks: 0,
         Seed: newSeed,
         Streak: 0,
       });
+      await GamificationAlertsService.createStreakLostAlert();
+      return resetProgress;
     }
   }
 
@@ -397,23 +404,36 @@ export class UserProgressDSService {
       (currentDate.getMonth() - lastProgressDate.getMonth());
     if (monthsDifference > 0) {
       const { seed, milestone } = this.seedToMilestone(lastProgress.Seed ?? 0);
+      let milestoneTs: string;
 
       if (isLastDayOfMonth(lastProgressDate)) {
         await this.updateUserProgress(lastProgress.id, {
           Milestones: milestone,
         });
+        milestoneTs = lastProgress.ts;
       } else {
+        milestoneTs = new Date(
+          lastProgressDate.getFullYear(),
+          lastProgressDate.getMonth(),
+          0,
+        ).toISOString();
         await this.createUserProgress(
           {
             Milestones: milestone,
             Seed: lastProgress.Seed,
             completedTasks: 0,
           },
-          new Date(
-            lastProgressDate.getFullYear(),
-            lastProgressDate.getMonth(),
-            0,
-          ).toISOString(),
+          milestoneTs,
+        );
+      }
+      if (milestone) {
+        await GamificationAlertsService.createGerminationSuccessAlert(
+          milestone,
+          new Date(milestoneTs),
+        );
+      } else {
+        await GamificationAlertsService.createGerminationFailAlert(
+          new Date(milestoneTs),
         );
       }
       return seed;
