@@ -1,4 +1,4 @@
-<div class="report-container" *ngIf="reportData">
+<div class="report-container" [class.force-print-layout]="forcePrintLayout" *ngIf="reportData">
   <!-- Header -->
   <div class="report-header">
     <h1 class="report-title">Reporte de Datos Ambientales - App UVA</h1>

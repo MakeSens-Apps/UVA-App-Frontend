@@ -31,14 +31,38 @@ export class ShareService {
    */
   async shareReportImage(imageDataUrl: string, month: string): Promise<void> {
     try {
+      console.log('Platform detection:', {
+        isCapacitor: this.platform.is('capacitor'),
+        isAndroid: this.platform.is('android'),
+        isIOS: this.platform.is('ios'),
+        isMobile: this.platform.is('mobile')
+      });
+
+      console.log('Image data URL length:', imageDataUrl.length);
+      console.log('Image data URL prefix:', imageDataUrl.substring(0, 50));
+
       if (this.platform.is('capacitor')) {
+        console.log('Using Capacitor share for mobile...');
+
+        // Validate data URL
+        if (!imageDataUrl || !imageDataUrl.startsWith('data:image/')) {
+          throw new Error('Invalid image data URL provided');
+        }
+
         // Convertir data URL a blob y luego a base64 puro
         const base64Data = imageDataUrl.split(',')[1];
+        if (!base64Data) {
+          throw new Error('Could not extract base64 data from image URL');
+        }
+
+        console.log('Base64 data length:', base64Data.length);
 
         // Crear nombre de archivo
         const fileName = `reporte_ambiental_${month.replace(/\s+/g, '_').toLowerCase()}.png`;
+        console.log('File name:', fileName);
 
         // Guardar imagen temporalmente
+        console.log('Saving file to cache...');
         const savedFile = await Filesystem.writeFile({
           path: fileName,
           data: base64Data,
@@ -46,16 +70,31 @@ export class ShareService {
           recursive: true
         });
 
+        console.log('File saved successfully:', savedFile);
+
         // Obtener URI del archivo
         const fileUri = savedFile.uri;
+        console.log('File URI:', fileUri);
+
+        // Verificar que el archivo existe
+        const fileInfo = await Filesystem.stat({
+          path: fileName,
+          directory: Directory.Cache
+        });
+        console.log('File verification:', fileInfo);
 
         // Compartir usando Capacitor Share
-        await Share.share({
+        console.log('Starting share...');
+        const shareOptions = {
           title: `Reporte de Datos Ambientales - ${month}`,
           text: `Reporte de datos ambientales generado por App UVA para el mes de ${month}`,
           url: fileUri,
           dialogTitle: 'Compartir reporte ambiental'
-        });
+        };
+        console.log('Share options:', shareOptions);
+
+        await Share.share(shareOptions);
+        console.log('Share completed successfully');
 
         // Limpiar archivo temporal después de un tiempo
         setTimeout(() => {
@@ -65,13 +104,15 @@ export class ShareService {
                 path: fileName,
                 directory: Directory.Cache
               });
+              console.log('Temporary file cleaned up');
             } catch (error) {
-              // Ignorar errores de limpieza temporal
+              console.warn('Error cleaning up temporary file:', error);
             }
           })();
-        }, 10000); // 10 segundos
+        }, 30000); // 30 segundos - más tiempo para que se complete el share
 
       } else {
+        console.log('Using web fallback...');
         // Fallback para web - abrir imagen en nueva ventana
         const newWindow = window.open();
         if (newWindow) {
@@ -82,14 +123,22 @@ export class ShareService {
                 <h2>Reporte de Datos Ambientales - ${month}</h2>
                 <p>Haz clic derecho en la imagen y selecciona "Guardar imagen como..." para descargarla</p>
                 <img src="${imageDataUrl}" style="max-width: 100%; height: auto;" alt="Reporte de Datos Ambientales">
+                <br><br>
+                <a href="${imageDataUrl}" download="reporte_ambiental_${month.replace(/\s+/g, '_').toLowerCase()}.png">
+                  <button style="padding: 10px 20px; font-size: 16px; background: #14788a; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                    Descargar Imagen
+                  </button>
+                </a>
               </body>
             </html>
           `);
+        } else {
+          throw new Error('No se pudo abrir una nueva ventana. Verifica que los pop-ups estén habilitados.');
         }
       }
     } catch (error) {
       console.error('Error al compartir reporte:', error);
-      throw new Error('No se pudo compartir el reporte. Por favor, intenta de nuevo.');
+      throw new Error(`No se pudo compartir el reporte: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

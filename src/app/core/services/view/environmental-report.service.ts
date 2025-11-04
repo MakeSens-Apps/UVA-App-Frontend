@@ -60,6 +60,17 @@ export class EnvironmentalReportService {
   }
 
   /**
+   * Debug method to test component rendering in browser
+   * @param {number} year - The year
+   * @param {number} month - The month (0-based)
+   * @returns {Promise<string>} Base64 data URL of the generated image
+   */
+  async debugReportImage(year: number, month: number): Promise<string> {
+    const reportData = await this.generateReportData(year, month);
+    return this.createImageFromReportComponent(reportData, true);
+  }
+
+  /**
    * Processes measurement data into daily statistics
    * @param {Measurement[]} measurements - Array of measurements
    * @param {number} year - The year
@@ -281,12 +292,15 @@ export class EnvironmentalReportService {
   /**
    * Creates an image from report data using html-to-image
    * @param {ReportData} reportData - The report data to render
+   * @param {boolean} debugMode - Optional debug mode to make component visible
    * @returns {Promise<string>} Base64 data URL of the generated image
    */
-  private async createImageFromReportComponent(reportData: ReportData): Promise<string> {
+  private async createImageFromReportComponent(reportData: ReportData, debugMode = false): Promise<string> {
     let componentRef: ComponentRef<EnvironmentalReportComponent> | null = null;
 
     try {
+      console.log('Creating report component with data:', reportData);
+
       // Create component dynamically
       componentRef = createComponent(EnvironmentalReportComponent, {
         environmentInjector: this.injector
@@ -294,41 +308,118 @@ export class EnvironmentalReportService {
 
       // Set the input data
       componentRef.instance.reportData = reportData;
+      componentRef.instance.forcePrintLayout = true; // Always force print layout for image generation
 
       // Attach to application and trigger change detection
       this.appRef.attachView(componentRef.hostView);
       componentRef.changeDetectorRef.detectChanges();
 
-      // Add to DOM temporarily (hidden)
+      // Add to DOM temporarily but make it visible for rendering
       const hostElement = componentRef.location.nativeElement;
-      hostElement.style.position = 'fixed';
-      hostElement.style.top = '-9999px';
-      hostElement.style.left = '-9999px';
-      hostElement.style.zIndex = '-9999';
+      if (debugMode) {
+        // Debug mode - component visible with border for debugging
+        hostElement.style.position = 'fixed';
+        hostElement.style.top = '50px';
+        hostElement.style.left = '50px';
+        hostElement.style.zIndex = '9999';
+        hostElement.style.backgroundColor = 'white';
+        hostElement.style.border = '2px solid red';
+      } else {
+        // Production mode - component visible in viewport but behind a backdrop
+        hostElement.style.position = 'fixed';
+        hostElement.style.top = '0px'; // Position at exact top
+        hostElement.style.left = '0px'; // Position at exact left
+        hostElement.style.zIndex = '-1000';
+        hostElement.style.backgroundColor = 'white';
+
+        // Create a temporary backdrop to cover the component from user view
+        const backdrop = document.createElement('div');
+        backdrop.id = 'report-generation-backdrop';
+        backdrop.style.position = 'fixed';
+        backdrop.style.top = '0';
+        backdrop.style.left = '0';
+        backdrop.style.width = '100vw';
+        backdrop.style.height = '100vh';
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+        backdrop.style.zIndex = '9998';
+        backdrop.style.display = 'flex';
+        backdrop.style.alignItems = 'center';
+        backdrop.style.justifyContent = 'center';
+        backdrop.style.color = 'white';
+        backdrop.style.fontSize = '18px';
+        backdrop.innerHTML = '<div>Generando reporte...</div>';
+        document.body.appendChild(backdrop);
+
+        // Store backdrop reference for cleanup
+        (hostElement as any).__backdrop = backdrop;
+      }
+
+      // Ensure proper rendering properties
+      hostElement.style.opacity = '1';
+      hostElement.style.pointerEvents = 'none';
+      hostElement.style.overflow = 'visible';
+
       document.body.appendChild(hostElement);
 
-      // Wait for rendering
-      await new Promise(resolve => setTimeout(resolve, 100));
+      console.log('Component added to DOM, waiting for rendering...');
 
-      // Generate image
-      const dataUrl = await htmlToImage.toPng(hostElement, {
-        quality: 1.0,
-        pixelRatio: 2,
-        width: 816, // 8.5 inches * 96 DPI
-        height: 1056, // 11 inches * 96 DPI
-        backgroundColor: '#ffffff'
-      });
+      // Wait longer for rendering and fonts
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
+      // Wait for fonts to load
+      await document.fonts.ready;
+
+      console.log('Starting image generation...');
+
+      let dataUrl: string;
+
+      try {
+        // First attempt with precise dimensions and positioning
+        dataUrl = await htmlToImage.toPng(hostElement, {
+          quality: 1.0,
+          pixelRatio: 1, // Reduce to avoid memory issues
+          backgroundColor: '#ffffff',
+          width: 816, // Exact component width
+          height: 1200, // Increased height to prevent bottom cutoff
+          style: {
+            fontFamily: 'Arial, sans-serif',
+            transform: 'none', // Reset any transforms
+            margin: '0',
+            padding: '0'
+          },
+          cacheBust: true
+        });
+      } catch (htmlToImageError) {
+        console.warn('First attempt failed, trying with different options:', htmlToImageError);
+
+        // Fallback attempt with minimal options
+        dataUrl = await htmlToImage.toPng(hostElement, {
+          backgroundColor: '#ffffff',
+          cacheBust: true
+        });
+      }
+
+      console.log('Image generated successfully, data URL length:', dataUrl.length);
       return dataUrl;
 
     } catch (error) {
       console.error('Error generating report image:', error);
-      throw new Error('Failed to generate report image');
+      throw new Error(`Failed to generate report image: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       // Clean up
       if (componentRef) {
         const hostElement = componentRef.location.nativeElement;
-        if (hostElement.parentNode) {
+
+        // Remove backdrop if it exists
+        if ((hostElement as any).__backdrop) {
+          const backdrop = (hostElement as any).__backdrop;
+          if (backdrop.parentNode) {
+            backdrop.parentNode.removeChild(backdrop);
+          }
+        }
+
+        // Remove component
+        if (hostElement && hostElement.parentNode) {
           hostElement.parentNode.removeChild(hostElement);
         }
         this.appRef.detachView(componentRef.hostView);

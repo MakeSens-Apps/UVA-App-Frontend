@@ -47,6 +47,7 @@ export interface ReportData {
 })
 export class EnvironmentalReportComponent {
   @Input() reportData!: ReportData;
+  @Input() forcePrintLayout: boolean = false;
 
   /**
    * Gets the first 15 days of the month

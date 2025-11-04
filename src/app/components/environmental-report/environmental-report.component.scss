@@ -8,6 +8,29 @@
   font-family: Arial, sans-serif;
   color: #000000;
   page-break-inside: avoid;
+
+  /* Force fixed layout during image generation */
+  &.force-print-layout {
+    width: 816px !important;
+    min-height: 1200px !important;
+    max-width: none !important;
+    padding: 48px !important;
+
+    .data-tables {
+      grid-template-columns: 1fr 1fr !important;
+      gap: 24px !important;
+    }
+
+    .summary-content {
+      grid-template-columns: 300px 1fr !important;
+      gap: 24px !important;
+    }
+
+    .report-info {
+      grid-template-columns: 1fr 1fr 1fr !important;
+      gap: 24px !important;
+    }
+  }
 }
 
 /* Header */

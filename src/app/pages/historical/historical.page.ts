@@ -1,46 +1,46 @@
-import { ChangeDetectorRef, Component, OnInit, ViewChild } from '@angular/core';
-import { HeaderComponent } from '@app/components/header/header.component';
 import { CommonModule } from '@angular/common';
+import { ChangeDetectorRef, Component, OnInit, ViewChild } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { AreachartComponent } from '@app/components/areachart/areachart.component';
 import {
   calendar,
   CalendarComponent,
 } from '@app/components/calendar/calendar.component';
+import { HeaderComponent } from '@app/components/header/header.component';
+import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
+import { MeasurementDSService } from '@app/core/services/storage/datastore/measurement-ds.service';
+import { UserProgressDSService } from '@app/core/services/storage/datastore/user-progress-ds.service';
 import {
+  IonButton,
   IonCol,
   IonContent,
   IonGrid,
+  IonIcon,
   IonLabel,
   IonRow,
-  IonButton,
-  IonIcon,
 } from '@ionic/angular/standalone';
-import { FormsModule } from '@angular/forms';
-import { AreachartComponent } from '@app/components/areachart/areachart.component';
-import { Router } from '@angular/router';
 import {
   Graph,
   Historical,
   MeasurementModel,
 } from 'src/models/configuration/measurements.model';
-import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
-import { MeasurementDSService } from '@app/core/services/storage/datastore/measurement-ds.service';
-import { UserProgressDSService } from '@app/core/services/storage/datastore/user-progress-ds.service';
 
-import { Measurement } from 'src/models';
-import {
-  TimeFrame,
-  CompleteTaskHistorical,
-  HistoricalMeasurement,
-  MeasurementEntry,
-  DetailedMeasurementEntry,
-  DailyStats,
-  monthsNames,
-  TypeView,
-} from './historical.model';
-import { TimeFrameComponent } from './time-frame/time-frame.component';
 import { EnvironmentalReportService } from '@app/core/services/view/environmental-report.service';
 import { ShareService } from '@app/core/services/view/share.service';
 import { LoadingController, ToastController } from '@ionic/angular';
+import { Measurement } from 'src/models';
+import {
+  CompleteTaskHistorical,
+  DailyStats,
+  DetailedMeasurementEntry,
+  HistoricalMeasurement,
+  MeasurementEntry,
+  monthsNames,
+  TimeFrame,
+  TypeView,
+} from './historical.model';
+import { TimeFrameComponent } from './time-frame/time-frame.component';
 
 @Component({
   selector: 'app-historical',
@@ -268,7 +268,6 @@ export class HistoricalPage implements OnInit {
           await this.updateChart(measurement.graph);
         }
       }, 100);
-
     } else if (this.typeView === 'chart') {
       if (measurement.selected) {
         return;
@@ -364,7 +363,10 @@ export class HistoricalPage implements OnInit {
       999,
     ).toLocaleDateString('en-CA');
 
-    if (configGraph.type === 'line' && configGraph.aggregationFunction === 'mean') {
+    if (
+      configGraph.type === 'line' &&
+      configGraph.aggregationFunction === 'mean'
+    ) {
       // Modo detallado para gráficas de línea con promedio
       const detailedMeasures = this.calculateDetailedMeasurement(
         transformedData,
@@ -373,9 +375,9 @@ export class HistoricalPage implements OnInit {
 
       if (detailedMeasures && Object.keys(detailedMeasures).length > 0) {
         const labels = Object.keys(detailedMeasures).sort();
-        const avgData = labels.map(date => detailedMeasures[date]?.avg || 0);
-        const minData = labels.map(date => detailedMeasures[date]?.min || 0);
-        const maxData = labels.map(date => detailedMeasures[date]?.max || 0);
+        const avgData = labels.map((date) => detailedMeasures[date]?.avg || 0);
+        const minData = labels.map((date) => detailedMeasures[date]?.min || 0);
+        const maxData = labels.map((date) => detailedMeasures[date]?.max || 0);
 
         this.areaChartComponent.UpdateChart(
           labels,
@@ -509,7 +511,10 @@ export class HistoricalPage implements OnInit {
       // Para vista de año, obtener datos de todo el año
       const startDate = new Date(this.currentYearIndex, 0, 1); // 1 de enero
       const endDate = new Date(this.currentYearIndex, 11, 31, 23, 59, 59); // 31 de diciembre
-      measurementValues = await MeasurementDSService.getMeasurementsByDateRange(startDate, endDate);
+      measurementValues = await MeasurementDSService.getMeasurementsByDateRange(
+        startDate,
+        endDate,
+      );
     } else {
       // Para vista de mes, obtener datos del mes específico
       measurementValues = await MeasurementDSService.getMeasurementsByMont(
@@ -781,7 +786,8 @@ export class HistoricalPage implements OnInit {
         for (const date in dailyValues) {
           const values = dailyValues[date];
           if (values.length > 0) {
-            const avg = values.reduce((acc, val) => acc + val, 0) / values.length;
+            const avg =
+              values.reduce((acc, val) => acc + val, 0) / values.length;
             const min = Math.min(...values);
             const max = Math.max(...values);
 
@@ -804,8 +810,15 @@ export class HistoricalPage implements OnInit {
   private calculateOverallStats(
     measurement: Historical,
     transformedData: HistoricalMeasurement,
-  ): { min: number | undefined; max: number | undefined; avg: number | undefined } {
-    if (measurement.aggregationFunction === 'mean' && measurement.graph.type === 'line') {
+  ): {
+    min: number | undefined;
+    max: number | undefined;
+    avg: number | undefined;
+  } {
+    if (
+      measurement.aggregationFunction === 'mean' &&
+      measurement.graph.type === 'line'
+    ) {
       // Para gráficas de línea con promedio, usar estadísticas detalladas
       const detailedMeasures = this.calculateDetailedMeasurement(
         transformedData,
@@ -814,14 +827,17 @@ export class HistoricalPage implements OnInit {
 
       if (detailedMeasures && Object.keys(detailedMeasures).length > 0) {
         const dailyStats = Object.values(detailedMeasures);
-        const mins = dailyStats.map(stats => stats.min);
-        const maxs = dailyStats.map(stats => stats.max);
-        const avgs = dailyStats.map(stats => stats.avg);
+        const mins = dailyStats.map((stats) => stats.min);
+        const maxs = dailyStats.map((stats) => stats.max);
+        const avgs = dailyStats.map((stats) => stats.avg);
 
         return {
           min: mins.length > 0 ? Math.min(...mins) : undefined,
           max: maxs.length > 0 ? Math.max(...maxs) : undefined,
-          avg: avgs.length > 0 ? avgs.reduce((sum, avg) => sum + avg, 0) / avgs.length : undefined,
+          avg:
+            avgs.length > 0
+              ? avgs.reduce((sum, avg) => sum + avg, 0) / avgs.length
+              : undefined,
         };
       }
     } else {
@@ -834,11 +850,17 @@ export class HistoricalPage implements OnInit {
 
       if (measures) {
         const values = Object.values(measures);
-        const total = values.length > 0 ? values.reduce((sum, val) => sum + val, 0) : 0;
+        const total =
+          values.length > 0 ? values.reduce((sum, val) => sum + val, 0) : 0;
         return {
           min: values.length > 0 ? Math.min(...values) : undefined,
           max: values.length > 0 ? Math.max(...values) : undefined,
-          avg: measurement.aggregationFunction === 'sum' ? total : (values.length > 0 ? total / values.length : undefined),
+          avg:
+            measurement.aggregationFunction === 'sum'
+              ? total
+              : values.length > 0
+                ? total / values.length
+                : undefined,
         };
       }
     }
@@ -853,17 +875,18 @@ export class HistoricalPage implements OnInit {
   async shareMonthlyReport(): Promise<void> {
     const loading = await this.loadingController.create({
       message: 'Generando reporte...',
-      duration: 30000 // 30 seconds timeout
+      duration: 30000, // 30 seconds timeout
     });
 
     try {
       await loading.present();
 
       // Generate the report image
-      const imageDataUrl = await this.environmentalReportService.generateReportImage(
-        this.currentYearIndex,
-        this.currentMonthIndex
-      );
+      const imageDataUrl =
+        await this.environmentalReportService.generateReportImage(
+          this.currentYearIndex,
+          this.currentMonthIndex,
+        );
 
       await loading.dismiss();
 
@@ -878,10 +901,9 @@ export class HistoricalPage implements OnInit {
         message: 'Reporte compartido exitosamente',
         duration: 2000,
         position: 'bottom',
-        color: 'success'
+        color: 'success',
       });
       await toast.present();
-
     } catch (error) {
       await loading.dismiss();
       console.error('Error sharing report:', error);
@@ -891,7 +913,7 @@ export class HistoricalPage implements OnInit {
         message: 'Error al compartir el reporte. Intenta de nuevo.',
         duration: 3000,
         position: 'bottom',
-        color: 'danger'
+        color: 'danger',
       });
       await toast.present();
     }
