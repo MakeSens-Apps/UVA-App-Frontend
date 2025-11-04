@@ -97,21 +97,6 @@
       }
     </div>
 
-    <!-- Share Button Section -->
-    <section class="share-section" *ngIf="completedTaskMonth">
-      <ion-button
-        expand="block"
-        fill="solid"
-        shape="round"
-        color="success"
-        (click)="shareMonthlyReport()"
-        class="text-transform_none share-button"
-      >
-        <ion-icon slot="start" name="share-outline"></ion-icon>
-        Compartir datos
-      </ion-button>
-    </section>
-
     <section *ngIf="completedTaskMonth">
       <div class="footer">
         <ion-button
@@ -137,6 +122,18 @@
       </div>
     </section>
   </section>
+  <!-- Share Button Section -->
+  <section class="share-section" *ngIf="completedTaskMonth">
+    <ion-button
+      fill="clear"
+      class="text-transform_none share-button"
+      (click)="shareMonthlyReport()"
+    >
+      <ion-icon slot="start" name="share-outline"></ion-icon>
+      Compartir datos
+    </ion-button>
+  </section>
+
   } @else if(timeFrame === 'year') {
   <section class="cards calendar">
     <div class="calendar_years">
