@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
+import { Directory, Filesystem } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
-import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Platform } from '@ionic/angular';
 
 interface WebShareAPI {
@@ -14,7 +14,7 @@ interface NavigatorWithClipboard {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ShareService {
   /**
@@ -31,19 +31,7 @@ export class ShareService {
    */
   async shareReportImage(imageDataUrl: string, month: string): Promise<void> {
     try {
-      console.log('Platform detection:', {
-        isCapacitor: this.platform.is('capacitor'),
-        isAndroid: this.platform.is('android'),
-        isIOS: this.platform.is('ios'),
-        isMobile: this.platform.is('mobile')
-      });
-
-      console.log('Image data URL length:', imageDataUrl.length);
-      console.log('Image data URL prefix:', imageDataUrl.substring(0, 50));
-
       if (this.platform.is('capacitor')) {
-        console.log('Using Capacitor share for mobile...');
-
         // Validate data URL
         if (!imageDataUrl || !imageDataUrl.startsWith('data:image/')) {
           throw new Error('Invalid image data URL provided');
@@ -55,64 +43,127 @@ export class ShareService {
           throw new Error('Could not extract base64 data from image URL');
         }
 
-        console.log('Base64 data length:', base64Data.length);
+        // Verificar tamaño de datos para Android (límite aproximado: 1MB)
+        if (this.platform.is('android') && base64Data.length > 1400000) {
+          console.warn(
+            '[ShareService] Image too large for Android, may cause issues',
+          );
+        }
 
-        // Crear nombre de archivo
-        const fileName = `reporte_ambiental_${month.replace(/\s+/g, '_').toLowerCase()}.png`;
-        console.log('File name:', fileName);
+        // Crear nombre de archivo con timestamp para evitar conflictos
+        const timestamp = Date.now();
+        const fileName = `reporte_ambiental_${month.replace(/\s+/g, '_').toLowerCase()}_${timestamp}.png`;
 
-        // Guardar imagen temporalmente
-        console.log('Saving file to cache...');
-        const savedFile = await Filesystem.writeFile({
-          path: fileName,
-          data: base64Data,
-          directory: Directory.Cache,
-          recursive: true
-        });
+        let savedFile;
+        let retryCount = 0;
+        const maxRetries = 3;
 
-        console.log('File saved successfully:', savedFile);
+        while (retryCount < maxRetries) {
+          try {
+            savedFile = await Filesystem.writeFile({
+              path: fileName,
+              data: base64Data,
+              directory: Directory.Cache,
+              recursive: true,
+            });
+            break;
+          } catch (writeError) {
+            retryCount++;
+            console.warn(
+              `[ShareService] File write attempt ${retryCount} failed:`,
+              writeError,
+            );
+
+            if (retryCount >= maxRetries) {
+              throw new Error(
+                `Failed to save file after ${maxRetries} attempts: ${writeError instanceof Error ? writeError.message : 'Unknown error'}`,
+              );
+            }
+
+            // Wait before retry (exponential backoff)
+            await new Promise((resolve) =>
+              setTimeout(resolve, 1000 * retryCount),
+            );
+          }
+        }
+
+        if (!savedFile) {
+          throw new Error('Could not save file after retries');
+        }
 
         // Obtener URI del archivo
         const fileUri = savedFile.uri;
-        console.log('File URI:', fileUri);
 
         // Verificar que el archivo existe
-        const fileInfo = await Filesystem.stat({
-          path: fileName,
-          directory: Directory.Cache
-        });
-        console.log('File verification:', fileInfo);
+        try {
+          const fileInfo = await Filesystem.stat({
+            path: fileName,
+            directory: Directory.Cache,
+          });
+        } catch (statError) {
+          console.warn(
+            '[ShareService] File verification failed, but proceeding:',
+            statError,
+          );
+        }
 
-        // Compartir usando Capacitor Share
-        console.log('Starting share...');
+        // Compartir usando Capacitor Share con configuración optimizada para Android
         const shareOptions = {
           title: `Reporte de Datos Ambientales - ${month}`,
           text: `Reporte de datos ambientales generado por App UVA para el mes de ${month}`,
           url: fileUri,
-          dialogTitle: 'Compartir reporte ambiental'
+          dialogTitle: 'Compartir reporte ambiental',
         };
-        console.log('Share options:', shareOptions);
 
-        await Share.share(shareOptions);
-        console.log('Share completed successfully');
+        // Agregar files array específicamente para Android
+        if (this.platform.is('android')) {
+          (shareOptions as typeof shareOptions & { files?: string[] }).files = [
+            fileUri,
+          ];
+        }
 
-        // Limpiar archivo temporal después de un tiempo
+        try {
+          await Share.share(shareOptions);
+        } catch (shareError) {
+          console.error('[ShareService] Share failed:', shareError);
+
+          // Intentar compartir solo con URL si falló el share completo
+          if (this.platform.is('android')) {
+            try {
+              await Share.share({
+                url: fileUri,
+                dialogTitle: 'Compartir reporte',
+              });
+            } catch (fallbackShareError) {
+              console.error(
+                '[ShareService] Fallback share also failed:',
+                fallbackShareError,
+              );
+              throw shareError; // Throw original error
+            }
+          } else {
+            throw shareError;
+          }
+        }
+
+        // Limpiar archivo temporal después de un tiempo (más largo para Android)
+        const cleanupDelay = this.platform.is('android') ? 60000 : 30000; // 60s for Android, 30s for others
         setTimeout(() => {
           void (async () => {
             try {
               await Filesystem.deleteFile({
                 path: fileName,
-                directory: Directory.Cache
+                directory: Directory.Cache,
               });
-              console.log('Temporary file cleaned up');
             } catch (error) {
-              console.warn('Error cleaning up temporary file:', error);
+              console.warn(
+                '[ShareService] Error cleaning up temporary file:',
+                error,
+              );
             }
           })();
-        }, 30000); // 30 segundos - más tiempo para que se complete el share
-
+        }, cleanupDelay);
       } else {
-        console.log('Using web fallback...');
         // Fallback para web - abrir imagen en nueva ventana
         const newWindow = window.open();
         if (newWindow) {
@@ -133,12 +184,16 @@ export class ShareService {
             </html>
           `);
         } else {
-          throw new Error('No se pudo abrir una nueva ventana. Verifica que los pop-ups estén habilitados.');
+          throw new Error(
+            'No se pudo abrir una nueva ventana. Verifica que los pop-ups estén habilitados.',
+          );
         }
       }
     } catch (error) {
-      console.error('Error al compartir reporte:', error);
-      throw new Error(`No se pudo compartir el reporte: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('[ShareService] Error al compartir reporte:', error);
+      throw new Error(
+        `No se pudo compartir el reporte: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
@@ -149,13 +204,18 @@ export class ShareService {
   async canShare(): Promise<boolean> {
     try {
       if (this.platform.is('capacitor')) {
-        // En dispositivos móviles, Share está disponible
+        // Verificar que el plugin Share esté disponible
+        if (typeof Share === 'undefined') {
+          console.error('[ShareService] canShare - Share plugin not available');
+          return false;
+        }
         return true;
       } else {
-        // En web, verificar si el navegador soporta Web Share API
-        return 'share' in navigator;
+        const hasWebShare = 'share' in navigator;
+        return hasWebShare;
       }
     } catch (error) {
+      console.error('[ShareService] canShare - Error during check:', error);
       return false;
     }
   }
@@ -174,20 +234,22 @@ export class ShareService {
           title,
           text,
           url,
-          dialogTitle: 'Compartir'
+          dialogTitle: 'Compartir',
         });
       } else if ('share' in navigator) {
         // Web Share API
         await (navigator as unknown as WebShareAPI).share({
           title,
           text,
-          url
+          url,
         });
       } else {
         // Fallback - copiar al portapapeles o mostrar modal
         const fullText = url ? `${text}\n${url}` : text;
         if ('clipboard' in navigator) {
-          await (navigator as NavigatorWithClipboard).clipboard.writeText(fullText);
+          await (navigator as NavigatorWithClipboard).clipboard.writeText(
+            fullText,
+          );
         }
       }
     } catch (error) {

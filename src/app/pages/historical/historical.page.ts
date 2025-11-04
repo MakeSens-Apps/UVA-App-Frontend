@@ -263,10 +263,12 @@ export class HistoricalPage implements OnInit {
       this.measureSelected = measurement;
 
       // Esperar a que se renderice el componente antes de actualizar el gráfico
-      setTimeout(async () => {
-        if (this.areaChartComponent) {
-          await this.updateChart(measurement.graph);
-        }
+      setTimeout(() => {
+        void (async () => {
+          if (this.areaChartComponent) {
+            await this.updateChart(measurement.graph);
+          }
+        })();
       }, 100);
     } else if (this.typeView === 'chart') {
       if (measurement.selected) {
@@ -869,53 +871,443 @@ export class HistoricalPage implements OnInit {
   }
 
   /**
+   * Button click handler with early logging
+   * @returns {void}
+   */
+  onShareButtonClick(): void {
+    try {
+      void this.shareMonthlyReport();
+    } catch (syncError) {
+      console.error(
+        '[ShareReport] Button Click - Synchronous error:',
+        syncError,
+      );
+    }
+  }
+
+  /**
    * Shares the current month's environmental data as an image report
    * @returns {Promise<void>}
    */
   async shareMonthlyReport(): Promise<void> {
-    const loading = await this.loadingController.create({
-      message: 'Generando reporte...',
-      duration: 30000, // 30 seconds timeout
-    });
+    // Create alternative loading feedback for Android compatibility
+    let loading: any = null;
+    let showingAlternativeLoader = false;
 
     try {
-      await loading.present();
+      // Try LoadingController with very short timeout
+      const loadingPromise = this.loadingController.create({
+        message: 'Generando reporte...',
+        duration: 45000,
+      });
 
-      // Generate the report image
-      const imageDataUrl =
-        await this.environmentalReportService.generateReportImage(
-          this.currentYearIndex,
-          this.currentMonthIndex,
+      const timeoutPromise = new Promise(
+        (_, reject) =>
+          setTimeout(
+            () => reject(new Error('LoadingController timeout')),
+            2000,
+          ), // Shorter timeout
+      );
+
+      loading = await Promise.race([loadingPromise, timeoutPromise]);
+    } catch (loadingError) {
+      console.warn(
+        '[ShareReport] Pre-Step 0.3: LoadingController failed, using alternative feedback:',
+        loadingError,
+      );
+
+      // Show alternative loading feedback
+      this.showAlternativeLoader('Generando imagen del reporte...');
+      showingAlternativeLoader = true;
+    }
+
+    try {
+      if (loading) {
+        await loading.present();
+      } else {
+        console.error(
+          '[ShareReport] Step 1: Using alternative loader, skipping present',
         );
+      }
 
-      await loading.dismiss();
+      // Check if sharing is available first with timeout
+      const canSharePromise = this.shareService.canShare();
+      const timeoutPromise = new Promise<boolean>((_, reject) =>
+        setTimeout(() => reject(new Error('canShare timeout')), 5000),
+      );
+
+      let canShare: boolean;
+      try {
+        canShare = await Promise.race([canSharePromise, timeoutPromise]);
+      } catch (error) {
+        console.error(
+          '[ShareReport] Step 4: Share capability check failed/timeout:',
+          error,
+        );
+        // Assume sharing is available and continue
+        canShare = true;
+      }
+
+      if (!canShare) {
+        await loading.dismiss();
+        console.warn('[ShareReport] Share not available on this platform');
+
+        const toast = await this.toastController.create({
+          message:
+            'La función de compartir no está disponible en este dispositivo',
+          duration: 3000,
+          position: 'bottom',
+          color: 'warning',
+        });
+        await toast.present();
+        return;
+      }
 
       // Create month string for filename
       const monthStr = `${this.monthsNames[this.currentMonthIndex]} ${this.currentYearIndex}`;
 
-      // Share the image
-      await this.shareService.shareReportImage(imageDataUrl, monthStr);
+      // Generate the report image with error handling
+      let imageDataUrl: string;
 
-      // Show success toast
+      try {
+        // Update loader message
+        if (showingAlternativeLoader) {
+          this.updateAlternativeLoader('Procesando datos...');
+        }
+
+        // Add timeout for image generation
+        const imagePromise =
+          this.environmentalReportService.generateReportImage(
+            this.currentYearIndex,
+            this.currentMonthIndex,
+          );
+        const imageTimeoutPromise = new Promise<string>((_, reject) =>
+          setTimeout(
+            () => reject(new Error('Image generation timeout')),
+            30000,
+          ),
+        );
+
+        imageDataUrl = await Promise.race([imagePromise, imageTimeoutPromise]);
+      } catch (imageError) {
+        console.error(
+          '[ShareReport] Step 9: Image generation failed/timeout:',
+          imageError,
+        );
+
+        // Dismiss loader
+        if (loading) {
+          await loading.dismiss();
+        } else if (showingAlternativeLoader) {
+          this.hideAlternativeLoader();
+        }
+
+        // Fallback: Try to share text data instead
+        await this.shareReportAsText(monthStr);
+        return;
+      }
+
+      // Update loader message
+      if (showingAlternativeLoader) {
+        this.updateAlternativeLoader('Preparando imagen...');
+      }
+
+      // Dismiss loading
+      if (loading) {
+        await loading.dismiss();
+      } else if (showingAlternativeLoader) {
+        this.hideAlternativeLoader();
+      }
+
+      // Share the image with retry logic
+      try {
+        await this.shareService.shareReportImage(imageDataUrl, monthStr);
+
+        // Show success toast
+        const toast = await this.toastController.create({
+          message: 'Reporte compartido exitosamente',
+          duration: 2000,
+          position: 'bottom',
+          color: 'success',
+        });
+        await toast.present();
+      } catch (shareError) {
+        console.error(
+          '[ShareReport] Share failed, trying text fallback:',
+          shareError,
+        );
+
+        // Fallback: Share as text if image sharing fails
+        await this.shareReportAsText(monthStr);
+      }
+    } catch (error) {
+      // Cleanup any loaders
+      if (loading) {
+        await loading.dismiss();
+      } else if (showingAlternativeLoader) {
+        this.hideAlternativeLoader();
+      }
+
+      console.error(
+        '[ShareReport] Unexpected error in shareMonthlyReport:',
+        error,
+      );
+
+      // Create month string for fallback
+      const monthStr = `${this.monthsNames[this.currentMonthIndex]} ${this.currentYearIndex}`;
+
+      // Try text fallback as last resort
+      try {
+        await this.shareReportAsText(monthStr);
+      } catch (fallbackError) {
+        console.error(
+          '[ShareReport] Even text fallback failed:',
+          fallbackError,
+        );
+
+        // Show error toast
+        const toast = await this.toastController.create({
+          message: 'Error al compartir el reporte. Intenta de nuevo.',
+          duration: 3000,
+          position: 'bottom',
+          color: 'danger',
+        });
+        await toast.present();
+      }
+    }
+  }
+
+  /**
+   * Fallback method to share report data as text when image generation fails
+   * @param {string} monthStr - The month string for the report
+   * @returns {Promise<void>}
+   */
+  private async shareReportAsText(monthStr: string): Promise<void> {
+    try {
+      // Generate summary text from current variables data
+      let reportText = `📊 Reporte de Datos Ambientales - ${monthStr}\n\n`;
+
+      if (this.variables && this.variables.length > 0) {
+        reportText += '📈 Resumen del mes:\n';
+
+        this.variables.forEach((variable, index) => {
+          if (variable.avg !== undefined) {
+            reportText += `• ${variable.name}: ${variable.avg.toFixed(1)}${variable.unit}`;
+            if (variable.min !== undefined && variable.max !== undefined) {
+              reportText += ` (Min: ${variable.min.toFixed(1)}, Max: ${variable.max.toFixed(1)})`;
+            }
+            reportText += '\n';
+          }
+        });
+      } else {
+        reportText += '📈 No hay datos disponibles para este mes\n';
+      }
+
+      if (this.nRegisters) {
+        reportText += `\n📝 Total de registros: ${this.nRegisters}`;
+      }
+
+      reportText += '\n\n🌱 Generado con App UVA';
+
+      await this.shareService.shareText(
+        `Reporte de Datos Ambientales - ${monthStr}`,
+        reportText,
+      );
+
+      // Show success toast with note about text format
       const toast = await this.toastController.create({
-        message: 'Reporte compartido exitosamente',
-        duration: 2000,
+        message: 'Reporte compartido como texto (imagen no disponible)',
+        duration: 3000,
         position: 'bottom',
-        color: 'success',
+        color: 'warning',
       });
       await toast.present();
     } catch (error) {
-      await loading.dismiss();
-      console.error('Error sharing report:', error);
+      console.error('[ShareReport] Text Fallback - Error occurred:', error);
+      throw error;
+    }
+  }
 
-      // Show error toast
-      const toast = await this.toastController.create({
-        message: 'Error al compartir el reporte. Intenta de nuevo.',
-        duration: 3000,
-        position: 'bottom',
-        color: 'danger',
-      });
-      await toast.present();
+  /**
+   * Simplified direct text sharing without complex dependencies
+   * @returns {Promise<void>}
+   */
+  private async shareReportAsTextDirect(): Promise<void> {
+    try {
+      const monthStr = `${this.monthsNames[this.currentMonthIndex]} ${this.currentYearIndex}`;
+
+      let reportText = `📊 Reporte de Datos Ambientales - ${monthStr}\n\n`;
+
+      // Add basic info without complex data processing
+      reportText += '📈 Datos del mes recopilados\n';
+      reportText += `📅 Período: ${monthStr}\n`;
+
+      // Try to add variables data if available
+      if (this.variables && this.variables.length > 0) {
+        reportText += '\n📊 Mediciones:\n';
+        this.variables.forEach((variable, index) => {
+          if (variable.avg !== undefined) {
+            reportText += `• ${variable.name}: ${variable.avg.toFixed(1)}${variable.unit}\n`;
+          }
+        });
+      }
+
+      if (this.nRegisters) {
+        reportText += `\n📝 Total de registros: ${this.nRegisters}`;
+      }
+
+      reportText += '\n\n🌱 Generado con App UVA';
+
+      // Use platform-specific sharing
+
+      if ((window as any).Capacitor) {
+        try {
+          const { Share } = await import('@capacitor/share');
+
+          await Share.share({
+            title: `Reporte de Datos Ambientales - ${monthStr}`,
+            text: reportText,
+          });
+        } catch (shareError) {
+          console.error(
+            '[ShareReport] Direct Text Share - Capacitor share failed:',
+            shareError,
+          );
+          // Fallback to clipboard
+          throw shareError;
+        }
+      } else {
+        if (navigator.share) {
+          await navigator.share({
+            title: `Reporte de Datos Ambientales - ${monthStr}`,
+            text: reportText,
+          });
+        } else {
+          // Copy to clipboard as fallback
+          await navigator.clipboard.writeText(reportText);
+          alert('Reporte copiado al portapapeles');
+        }
+      }
+
+      // Show success message with toast timeout
+      try {
+        const toast = await this.toastController.create({
+          message: 'Reporte compartido exitosamente',
+          duration: 2000,
+          position: 'bottom',
+          color: 'success',
+        });
+        await toast.present();
+      } catch (toastError) {
+        console.warn(
+          '[ShareReport] Direct Text Share - Toast failed, but share was successful:',
+          toastError,
+        );
+      }
+    } catch (error) {
+      console.error('[ShareReport] Direct Text Share - Error occurred:', error);
+
+      // Show error message
+      try {
+        const toast = await this.toastController.create({
+          message: 'Error al compartir reporte',
+          duration: 3000,
+          position: 'bottom',
+          color: 'danger',
+        });
+        await toast.present();
+      } catch (toastError) {
+        console.error(
+          '[ShareReport] Direct Text Share - Even error toast failed:',
+          toastError,
+        );
+        // Last resort: alert
+        alert('Error al compartir reporte. Intenta de nuevo.');
+      }
+    }
+  }
+
+  /**
+   * Shows alternative loading feedback when LoadingController fails
+   * @param {string} message - The message to display
+   */
+  private showAlternativeLoader(message: string): void {
+    // Create overlay element
+    const overlay = document.createElement('div');
+    overlay.id = 'alternative-loader-overlay';
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      color: white;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    `;
+
+    // Create spinner
+    const spinner = document.createElement('div');
+    spinner.style.cssText = `
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top: 4px solid white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    `;
+
+    // Create message element
+    const messageElement = document.createElement('div');
+    messageElement.id = 'alternative-loader-message';
+    messageElement.textContent = message;
+    messageElement.style.cssText = `
+      font-size: 16px;
+      text-align: center;
+      max-width: 80%;
+    `;
+
+    // Add CSS animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+
+    overlay.appendChild(spinner);
+    overlay.appendChild(messageElement);
+    document.body.appendChild(overlay);
+  }
+
+  /**
+   * Updates the message of the alternative loader
+   * @param {string} message - The new message to display
+   */
+  private updateAlternativeLoader(message: string): void {
+    const messageElement = document.getElementById(
+      'alternative-loader-message',
+    );
+    if (messageElement) {
+      messageElement.textContent = message;
+    }
+  }
+
+  /**
+   * Hides the alternative loader
+   */
+  private hideAlternativeLoader(): void {
+    const overlay = document.getElementById('alternative-loader-overlay');
+    if (overlay) {
+      overlay.remove();
     }
   }
 

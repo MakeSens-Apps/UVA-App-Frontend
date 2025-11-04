@@ -1,22 +1,47 @@
-import { Injectable, ComponentRef, ApplicationRef, createComponent, EnvironmentInjector } from '@angular/core';
+import {
+  ApplicationRef,
+  ComponentRef,
+  createComponent,
+  EnvironmentInjector,
+  Injectable,
+} from '@angular/core';
+import {
+  DayData,
+  EnvironmentalReportComponent,
+  ReportData,
+} from '@app/components/environmental-report/environmental-report.component';
+import * as htmlToImage from 'html-to-image';
+import { Measurement } from 'src/models';
 import { MeasurementDSService } from '../storage/datastore/measurement-ds.service';
 import { UserDSService } from '../storage/datastore/user-ds.service';
-import { Measurement } from 'src/models';
-import { EnvironmentalReportComponent, ReportData, DayData } from '@app/components/environmental-report/environmental-report.component';
-import * as htmlToImage from 'html-to-image';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class EnvironmentalReportService {
   private monthNames = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    'Enero',
+    'Febrero',
+    'Marzo',
+    'Abril',
+    'Mayo',
+    'Junio',
+    'Julio',
+    'Agosto',
+    'Septiembre',
+    'Octubre',
+    'Noviembre',
+    'Diciembre',
   ];
 
+  /**
+   * Constructor for EnvironmentalReportService
+   * @param {ApplicationRef} appRef - Angular application reference
+   * @param {EnvironmentInjector} injector - Angular environment injector
+   */
   constructor(
     private appRef: ApplicationRef,
-    private injector: EnvironmentInjector
+    private injector: EnvironmentInjector,
   ) {}
 
   /**
@@ -26,26 +51,34 @@ export class EnvironmentalReportService {
    * @returns {Promise<ReportData>} The generated report data
    */
   async generateReportData(year: number, month: number): Promise<ReportData> {
-    // Obtener datos de usuario
-    const user = await UserDSService.getUser();
-    const userName = user ? `${user.Name} ${user.LastName}` : 'Usuario';
+    try {
+      // Obtener datos de usuario
+      const user = await UserDSService.getUser();
+      const userName = user ? `${user.Name} ${user.LastName}` : 'Usuario';
+      const measurements = await MeasurementDSService.getMeasurementsByMont(
+        year,
+        month,
+      );
+      const days = this.processDailyData(measurements, year, month);
 
-    // Obtener mediciones del mes
-    const measurements = await MeasurementDSService.getMeasurementsByMont(year, month);
+      const summary = this.calculateSummary(days);
 
-    // Procesar datos por día
-    const days = this.processDailyData(measurements, year, month);
+      const result = {
+        month: `${this.monthNames[month]} ${year}`,
+        farmName: 'Finca Registrada', // Placeholder - se puede obtener de UVA model si está disponible
+        monitorName: userName,
+        days,
+        summary,
+      };
 
-    // Calcular estadísticas
-    const summary = this.calculateSummary(days);
-
-    return {
-      month: `${this.monthNames[month]} ${year}`,
-      farmName: 'Finca Registrada', // Placeholder - se puede obtener de UVA model si está disponible
-      monitorName: userName,
-      days,
-      summary
-    };
+      return result;
+    } catch (error) {
+      console.error(
+        '[EnvReportService] generateReportData - Error during data generation:',
+        error,
+      );
+      throw error;
+    }
   }
 
   /**
@@ -55,8 +88,19 @@ export class EnvironmentalReportService {
    * @returns {Promise<string>} Base64 data URL of the generated image
    */
   async generateReportImage(year: number, month: number): Promise<string> {
-    const reportData = await this.generateReportData(year, month);
-    return this.createImageFromReportComponent(reportData);
+    try {
+      const reportData = await this.generateReportData(year, month);
+
+      const imageResult = await this.createImageFromReportComponent(reportData);
+
+      return imageResult;
+    } catch (error) {
+      console.error(
+        '[EnvReportService] generateReportImage - Error occurred:',
+        error,
+      );
+      throw error;
+    }
   }
 
   /**
@@ -77,7 +121,11 @@ export class EnvironmentalReportService {
    * @param {number} month - The month (0-based)
    * @returns {DayData[]} Array of processed daily data
    */
-  private processDailyData(measurements: Measurement[], year: number, month: number): DayData[] {
+  private processDailyData(
+    measurements: Measurement[],
+    year: number,
+    month: number,
+  ): DayData[] {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const days: DayData[] = [];
 
@@ -100,10 +148,12 @@ export class EnvironmentalReportService {
    * @param {Measurement[]} measurements - Array of measurements to group
    * @returns {Record<string, Measurement[]>} Measurements grouped by date key
    */
-  private groupMeasurementsByDay(measurements: Measurement[]): Record<string, Measurement[]> {
+  private groupMeasurementsByDay(
+    measurements: Measurement[],
+  ): Record<string, Measurement[]> {
     const grouped: Record<string, Measurement[]> = {};
 
-    measurements.forEach(measurement => {
+    measurements.forEach((measurement) => {
       const date = new Date(measurement.ts);
       const dayKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
 
@@ -122,12 +172,12 @@ export class EnvironmentalReportService {
    * @returns {DayData} Processed day data
    */
   private processDayMeasurements(measurements: Measurement[]): DayData {
-    const dayMeasurements = measurements.filter(m => {
+    const dayMeasurements = measurements.filter((m) => {
       const hour = new Date(m.ts).getHours();
       return hour >= 6 && hour < 18; // 6 AM a 6 PM
     });
 
-    const nightMeasurements = measurements.filter(m => {
+    const nightMeasurements = measurements.filter((m) => {
       const hour = new Date(m.ts).getHours();
       return hour < 6 || hour >= 18; // 6 PM a 6 AM
     });
@@ -139,7 +189,7 @@ export class EnvironmentalReportService {
     return {
       day: dayStats,
       night: nightStats,
-      rainfall
+      rainfall,
     };
   }
 
@@ -148,7 +198,12 @@ export class EnvironmentalReportService {
    * @param {Measurement[]} measurements - Measurements for the period
    * @returns {object} Temperature and humidity statistics
    */
-  private calculatePeriodStats(measurements: Measurement[]): { tempMax: number; tempMin: number; humMax: number; humMin: number } {
+  private calculatePeriodStats(measurements: Measurement[]): {
+    tempMax: number;
+    tempMin: number;
+    humMax: number;
+    humMin: number;
+  } {
     if (measurements.length === 0) {
       return { tempMax: 0, tempMin: 0, humMax: 0, humMin: 0 };
     }
@@ -156,9 +211,12 @@ export class EnvironmentalReportService {
     const temperatures: number[] = [];
     const humidities: number[] = [];
 
-    measurements.forEach(measurement => {
+    measurements.forEach((measurement) => {
       try {
-        const data = typeof measurement.data === 'string' ? JSON.parse(measurement.data) : measurement.data;
+        const data =
+          typeof measurement.data === 'string'
+            ? JSON.parse(measurement.data)
+            : measurement.data;
         if (data) {
           // Buscar campos de temperatura
           if (data.temperature !== undefined) {
@@ -191,7 +249,7 @@ export class EnvironmentalReportService {
       tempMax: temperatures.length > 0 ? Math.max(...temperatures) : 0,
       tempMin: temperatures.length > 0 ? Math.min(...temperatures) : 0,
       humMax: humidities.length > 0 ? Math.max(...humidities) : 0,
-      humMin: humidities.length > 0 ? Math.min(...humidities) : 0
+      humMin: humidities.length > 0 ? Math.min(...humidities) : 0,
     };
   }
 
@@ -203,9 +261,12 @@ export class EnvironmentalReportService {
   private calculateTotalRainfall(measurements: Measurement[]): number {
     let totalRainfall = 0;
 
-    measurements.forEach(measurement => {
+    measurements.forEach((measurement) => {
       try {
-        const data = typeof measurement.data === 'string' ? JSON.parse(measurement.data) : measurement.data;
+        const data =
+          typeof measurement.data === 'string'
+            ? JSON.parse(measurement.data)
+            : measurement.data;
         if (data) {
           // Buscar campos de lluvia
           if (data.rain !== undefined) {
@@ -237,7 +298,7 @@ export class EnvironmentalReportService {
     let totalRainfall = 0;
     let rainyDays = 0;
 
-    days.forEach(day => {
+    days.forEach((day) => {
       // Recopilar todas las temperaturas
       if (day.day.tempMax > 0) {
         allTemperatures.push(day.day.tempMax);
@@ -279,13 +340,27 @@ export class EnvironmentalReportService {
       temperature: {
         max: allTemperatures.length > 0 ? Math.max(...allTemperatures) : 0,
         min: allTemperatures.length > 0 ? Math.min(...allTemperatures) : 0,
-        avg: allTemperatures.length > 0 ? Math.round((allTemperatures.reduce((a, b) => a + b, 0) / allTemperatures.length) * 10) / 10 : 0
+        avg:
+          allTemperatures.length > 0
+            ? Math.round(
+                (allTemperatures.reduce((a, b) => a + b, 0) /
+                  allTemperatures.length) *
+                  10,
+              ) / 10
+            : 0,
       },
       humidity: {
         max: allHumidities.length > 0 ? Math.max(...allHumidities) : 0,
         min: allHumidities.length > 0 ? Math.min(...allHumidities) : 0,
-        avg: allHumidities.length > 0 ? Math.round((allHumidities.reduce((a, b) => a + b, 0) / allHumidities.length) * 10) / 10 : 0
-      }
+        avg:
+          allHumidities.length > 0
+            ? Math.round(
+                (allHumidities.reduce((a, b) => a + b, 0) /
+                  allHumidities.length) *
+                  10,
+              ) / 10
+            : 0,
+      },
     };
   }
 
@@ -295,15 +370,16 @@ export class EnvironmentalReportService {
    * @param {boolean} debugMode - Optional debug mode to make component visible
    * @returns {Promise<string>} Base64 data URL of the generated image
    */
-  private async createImageFromReportComponent(reportData: ReportData, debugMode = false): Promise<string> {
+  private async createImageFromReportComponent(
+    reportData: ReportData,
+    debugMode = false,
+  ): Promise<string> {
     let componentRef: ComponentRef<EnvironmentalReportComponent> | null = null;
 
     try {
-      console.log('Creating report component with data:', reportData);
-
       // Create component dynamically
       componentRef = createComponent(EnvironmentalReportComponent, {
-        environmentInjector: this.injector
+        environmentInjector: this.injector,
       });
 
       // Set the input data
@@ -316,6 +392,7 @@ export class EnvironmentalReportService {
 
       // Add to DOM temporarily but make it visible for rendering
       const hostElement = componentRef.location.nativeElement;
+
       if (debugMode) {
         // Debug mode - component visible with border for debugging
         hostElement.style.position = 'fixed';
@@ -351,75 +428,200 @@ export class EnvironmentalReportService {
         document.body.appendChild(backdrop);
 
         // Store backdrop reference for cleanup
-        (hostElement as any).__backdrop = backdrop;
+        (hostElement as HTMLElement & { __backdrop?: HTMLElement }).__backdrop =
+          backdrop;
       }
 
       // Ensure proper rendering properties
       hostElement.style.opacity = '1';
       hostElement.style.pointerEvents = 'none';
       hostElement.style.overflow = 'visible';
+      hostElement.style.width = '816px'; // Fixed width for consistency
+      hostElement.style.height = 'auto';
 
       document.body.appendChild(hostElement);
 
-      console.log('Component added to DOM, waiting for rendering...');
+      // Trigger another change detection to ensure everything is rendered
+      componentRef.changeDetectorRef.detectChanges();
 
-      // Wait longer for rendering and fonts
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait for rendering with progressive delays for Android
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Wait for fonts to load
-      await document.fonts.ready;
+      // Wait for fonts to load (with timeout for Android)
+      try {
+        const fontTimeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Font loading timeout')), 3000),
+        );
+        await Promise.race([document.fonts.ready, fontTimeout]);
+      } catch (fontError) {
+        console.warn(
+          '[ImageGen] Font loading timed out, proceeding anyway:',
+          fontError,
+        );
+      }
 
-      console.log('Starting image generation...');
+      // Additional wait for Android WebView
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       let dataUrl: string;
 
-      try {
-        // First attempt with precise dimensions and positioning
-        dataUrl = await htmlToImage.toPng(hostElement, {
-          quality: 1.0,
-          pixelRatio: 1, // Reduce to avoid memory issues
-          backgroundColor: '#ffffff',
-          width: 816, // Exact component width
-          height: 1200, // Increased height to prevent bottom cutoff
-          style: {
-            fontFamily: 'Arial, sans-serif',
-            transform: 'none', // Reset any transforms
-            margin: '0',
-            padding: '0'
-          },
-          cacheBust: true
-        });
-      } catch (htmlToImageError) {
-        console.warn('First attempt failed, trying with different options:', htmlToImageError);
+      // Get actual element dimensions for better rendering
+      const rect = hostElement.getBoundingClientRect();
 
-        // Fallback attempt with minimal options
-        dataUrl = await htmlToImage.toPng(hostElement, {
-          backgroundColor: '#ffffff',
-          cacheBust: true
-        });
+      // Detect platform for optimal settings
+      const isWeb = !(window as any).Capacitor;
+      const isMobile = (window as any).Capacitor;
+
+      try {
+        // Platform-optimized settings
+        let qualitySettings;
+
+        if (isWeb) {
+          // PC/Web: Ultra-high quality settings
+          qualitySettings = {
+            quality: 1.0, // Maximum quality
+            pixelRatio: 5.0, // Ultra-high resolution for PC
+            backgroundColor: '#ffffff',
+            width: Math.min(rect.width || 816, 816),
+            height: Math.max(rect.height || 1200, 1200),
+            style: {
+              fontFamily: '"Arial", "Helvetica", sans-serif',
+              transform: 'none',
+              margin: '0',
+              padding: '0',
+              boxSizing: 'border-box',
+            },
+            cacheBust: true,
+            skipAutoScale: false, // PC can handle auto-scaling
+            fetchRequestInit: {
+              mode: 'cors' as RequestMode,
+            },
+          };
+        } else {
+          qualitySettings = {
+            quality: 1.0, // Maximum quality
+            pixelRatio: 4.0, // Double the previous resolution (was 2.0)
+            backgroundColor: '#ffffff',
+            width: Math.min(rect.width || 816, 816),
+            height: Math.max(rect.height || 1200, 1200),
+            style: {
+              fontFamily: '"Arial", "Helvetica", sans-serif',
+              transform: 'none',
+              margin: '0',
+              padding: '0',
+              boxSizing: 'border-box',
+            },
+            cacheBust: true,
+            skipAutoScale: true, // Mobile needs this
+            fetchRequestInit: {
+              mode: 'cors' as RequestMode,
+            },
+          };
+        }
+
+        dataUrl = await htmlToImage.toPng(hostElement, qualitySettings);
+      } catch (htmlToImageError) {
+        console.warn(
+          '[ImageGen] High-quality attempt failed, trying medium quality:',
+          htmlToImageError,
+        );
+
+        try {
+          // High-quality fallback (still better than original)
+          const fallbackSettings = isWeb
+            ? { pixelRatio: 3.0, width: 816, height: 1200 } // PC fallback
+            : { pixelRatio: 3.0, width: 816, height: 1200 }; // Mobile fallback
+
+          dataUrl = await htmlToImage.toPng(hostElement, {
+            quality: 1.0, // Keep maximum quality
+            pixelRatio: fallbackSettings.pixelRatio,
+            backgroundColor: '#ffffff',
+            width: Math.min(rect.width || 816, 816),
+            height: Math.max(rect.height || 1200, 1200),
+            style: {
+              fontFamily: '"Arial", "Helvetica", sans-serif',
+              transform: 'none',
+              margin: '0',
+              padding: '0',
+              boxSizing: 'border-box',
+            },
+            cacheBust: true,
+            skipAutoScale: true,
+          });
+        } catch (fallbackError) {
+          console.warn(
+            '[ImageGen] Medium-quality failed, trying conservative settings:',
+            fallbackError,
+          );
+
+          try {
+            dataUrl = await htmlToImage.toPng(hostElement, {
+              quality: 1.0, // Keep maximum quality
+              pixelRatio: 2.0, // Still double resolution
+              backgroundColor: '#ffffff',
+              width: 816, // Keep larger dimensions
+              height: 1200,
+              cacheBust: true,
+              skipAutoScale: true,
+            });
+          } catch (conservativeError) {
+            console.error(
+              '[ImageGen] Even conservative settings failed, trying JPEG:',
+              conservativeError,
+            );
+
+            // Last resort: JPEG with high quality and resolution
+            try {
+              dataUrl = await htmlToImage.toJpeg(hostElement, {
+                quality: 0.98, // Very high JPEG quality
+                pixelRatio: 3.0, // High resolution even for JPEG
+                backgroundColor: '#ffffff',
+                width: 816,
+                height: 1200,
+                cacheBust: true,
+              });
+            } catch (jpegError) {
+              console.error(
+                '[ImageGen] All image generation attempts failed:',
+                jpegError,
+              );
+              throw new Error(
+                `Image generation failed: ${jpegError instanceof Error ? jpegError.message : 'Unknown error'}`,
+              );
+            }
+          }
+        }
       }
 
-      console.log('Image generated successfully, data URL length:', dataUrl.length);
-      return dataUrl;
+      // Validate the generated image
+      if (!dataUrl || dataUrl.length < 100) {
+        throw new Error('Generated image appears to be invalid or empty');
+      }
 
+      return dataUrl;
     } catch (error) {
-      console.error('Error generating report image:', error);
-      throw new Error(`Failed to generate report image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('[ImageGen] Error generating report image:', error);
+      throw new Error(
+        `Failed to generate report image: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     } finally {
       // Clean up
       if (componentRef) {
         const hostElement = componentRef.location.nativeElement;
 
         // Remove backdrop if it exists
-        if ((hostElement as any).__backdrop) {
-          const backdrop = (hostElement as any).__backdrop;
+        const elementWithBackdrop = hostElement as HTMLElement & {
+          __backdrop?: HTMLElement;
+        };
+        if (elementWithBackdrop.__backdrop) {
+          const backdrop = elementWithBackdrop.__backdrop;
           if (backdrop.parentNode) {
             backdrop.parentNode.removeChild(backdrop);
           }
         }
 
         // Remove component
-        if (hostElement && hostElement.parentNode) {
+        if (hostElement?.parentNode) {
           hostElement.parentNode.removeChild(hostElement);
         }
         this.appRef.detachView(componentRef.hostView);
@@ -427,5 +629,4 @@ export class EnvironmentalReportService {
       }
     }
   }
-
 }
