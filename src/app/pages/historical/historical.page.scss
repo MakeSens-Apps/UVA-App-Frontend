@@ -189,3 +189,23 @@ ion-col {
   padding-bottom: 0;
   padding-inline: 0.66px;
 }
+
+// Share section styles
+.share-section {
+  padding: 16px 20px;
+  margin-top: 16px;
+
+  .share-button {
+    --padding-top: 12px;
+    --padding-bottom: 12px;
+    --padding-start: 20px;
+    --padding-end: 20px;
+    font-weight: 600;
+    font-size: 16px;
+
+    ion-icon {
+      font-size: 20px;
+      margin-right: 8px;
+    }
+  }
+}

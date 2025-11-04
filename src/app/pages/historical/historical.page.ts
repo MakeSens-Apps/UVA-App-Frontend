@@ -38,6 +38,9 @@ import {
   TypeView,
 } from './historical.model';
 import { TimeFrameComponent } from './time-frame/time-frame.component';
+import { EnvironmentalReportService } from '@app/core/services/view/environmental-report.service';
+import { ShareService } from '@app/core/services/view/share.service';
+import { LoadingController, ToastController } from '@ionic/angular';
 
 @Component({
   selector: 'app-historical',
@@ -90,11 +93,19 @@ export class HistoricalPage implements OnInit {
    * @param {Router} router - Provides navigation between pages.
    * @param {ChangeDetectorRef} ref - Detects changes in component data.
    * @param {ConfigurationAppService} configuration Manage configuration app
+   * @param {EnvironmentalReportService} environmentalReportService - Service for generating environmental reports
+   * @param {ShareService} shareService - Service for sharing content
+   * @param {LoadingController} loadingController - Ionic loading controller
+   * @param {ToastController} toastController - Ionic toast controller
    */
   constructor(
     private router: Router,
     private ref: ChangeDetectorRef,
     private configuration: ConfigurationAppService,
+    private environmentalReportService: EnvironmentalReportService,
+    private shareService: ShareService,
+    private loadingController: LoadingController,
+    private toastController: ToastController,
   ) {}
 
   /**
@@ -221,7 +232,7 @@ export class HistoricalPage implements OnInit {
           this.measureSelected.selected = true;
           await this.updateChart(this.measureSelected.graph);
         } else {
-          await this.changeColorChart(this.variables[0]);
+          void this.changeColorChart(this.variables[0]);
         }
       }
     }
@@ -833,5 +844,64 @@ export class HistoricalPage implements OnInit {
     }
 
     return { min: undefined, max: undefined, avg: undefined };
+  }
+
+  /**
+   * Shares the current month's environmental data as an image report
+   * @returns {Promise<void>}
+   */
+  async shareMonthlyReport(): Promise<void> {
+    const loading = await this.loadingController.create({
+      message: 'Generando reporte...',
+      duration: 30000 // 30 seconds timeout
+    });
+
+    try {
+      await loading.present();
+
+      // Generate the report image
+      const imageDataUrl = await this.environmentalReportService.generateReportImage(
+        this.currentYearIndex,
+        this.currentMonthIndex
+      );
+
+      await loading.dismiss();
+
+      // Create month string for filename
+      const monthStr = `${this.monthsNames[this.currentMonthIndex]} ${this.currentYearIndex}`;
+
+      // Share the image
+      await this.shareService.shareReportImage(imageDataUrl, monthStr);
+
+      // Show success toast
+      const toast = await this.toastController.create({
+        message: 'Reporte compartido exitosamente',
+        duration: 2000,
+        position: 'bottom',
+        color: 'success'
+      });
+      await toast.present();
+
+    } catch (error) {
+      await loading.dismiss();
+      console.error('Error sharing report:', error);
+
+      // Show error toast
+      const toast = await this.toastController.create({
+        message: 'Error al compartir el reporte. Intenta de nuevo.',
+        duration: 3000,
+        position: 'bottom',
+        color: 'danger'
+      });
+      await toast.present();
+    }
+  }
+
+  /**
+   * Checks if sharing is available on the current platform
+   * @returns {Promise<boolean>} True if sharing is supported
+   */
+  async canShareReport(): Promise<boolean> {
+    return await this.shareService.canShare();
   }
 }

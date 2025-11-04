@@ -1,0 +1,304 @@
+/* Report Container - 8.5x11 inches at 96 DPI */
+.report-container {
+  width: 816px; /* 8.5 * 96 */
+  min-height: 1056px; /* 11 * 96 */
+  background: white;
+  padding: 48px;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+  color: #000000;
+  page-break-inside: avoid;
+}
+
+/* Header */
+.report-header {
+  border-bottom: 2px solid #000000;
+  padding-bottom: 24px;
+  margin-bottom: 32px;
+}
+
+.report-title {
+  text-align: center;
+  font-size: 24px;
+  font-weight: bold;
+  margin: 0 0 24px 0;
+  line-height: 1.2;
+}
+
+.report-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 24px;
+}
+
+.info-item {
+  .info-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #666666;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .info-value {
+    font-size: 16px;
+    font-weight: bold;
+    color: #000000;
+    margin: 0;
+    line-height: 1.2;
+  }
+}
+
+/* Data Tables */
+.data-tables-container {
+  margin-bottom: 32px;
+}
+
+.data-tables {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.data-table-wrapper {
+  border: 1px solid #cccccc;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.data-table {
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10px;
+  }
+
+  th, td {
+    border: 1px solid #cccccc;
+    text-align: center;
+    padding: 6px 4px;
+    line-height: 1.2;
+  }
+
+  thead {
+    .main-header {
+      background-color: #f5f5f5;
+      font-weight: bold;
+      font-size: 10px;
+
+      th {
+        border-right: 1px solid #cccccc;
+        padding: 8px 4px;
+      }
+    }
+
+    .sub-header {
+      background-color: #f9f9f9;
+      font-size: 8px;
+      color: #666666;
+
+      .sub-header-cell {
+        padding: 4px 2px;
+      }
+    }
+  }
+
+  tbody {
+    .day-row {
+      background-color: white;
+
+      &.even {
+        background-color: #fafafa;
+      }
+
+      .day-number {
+        font-weight: bold;
+        background-color: inherit;
+      }
+    }
+
+    .night-row {
+      background-color: #f9f9f9;
+
+      .data-cell {
+        background-color: inherit;
+      }
+    }
+
+    .data-cell {
+      font-size: 9px;
+      padding: 4px 2px;
+    }
+
+    .rainfall-cell {
+      font-weight: 600;
+      background-color: inherit;
+    }
+  }
+
+  .day-header,
+  .rain-header {
+    width: 12%;
+  }
+
+  .temp-header,
+  .humidity-header {
+    width: 30%;
+  }
+}
+
+/* Summary Section */
+.summary-section {
+  border-top: 2px solid #000000;
+  padding-top: 24px;
+  margin-top: 32px;
+}
+
+.summary-title {
+  font-size: 18px;
+  font-weight: bold;
+  margin: 0 0 24px 0;
+  color: #000000;
+}
+
+.summary-content {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 24px;
+}
+
+/* Rainfall Summary */
+.rainfall-summary {
+  .summary-card {
+    border: 1px solid #cccccc;
+    border-radius: 8px;
+    overflow: hidden;
+
+    .card-header {
+      background-color: #f5f5f5;
+      padding: 12px 16px;
+      border-bottom: 1px solid #cccccc;
+
+      .card-title {
+        font-size: 14px;
+        font-weight: bold;
+        margin: 0;
+        color: #000000;
+      }
+    }
+
+    .card-content {
+      padding: 16px;
+
+      .summary-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        .summary-label {
+          font-size: 12px;
+          color: #666666;
+        }
+
+        .summary-value {
+          font-size: 12px;
+          font-weight: 600;
+          color: #000000;
+        }
+      }
+    }
+  }
+}
+
+/* Temperature & Humidity Summary */
+.temp-humidity-summary {
+  .summary-table-card {
+    border: 1px solid #cccccc;
+    border-radius: 8px;
+    overflow: hidden;
+
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+
+      .summary-table-header {
+        background-color: #f5f5f5;
+
+        th {
+          border: 1px solid #cccccc;
+          padding: 8px 12px;
+          text-align: center;
+          font-weight: bold;
+          color: #000000;
+
+          &.summary-table-label {
+            text-align: left;
+            width: 25%;
+          }
+
+          &.summary-table-column {
+            width: 37.5%;
+          }
+        }
+      }
+
+      .summary-table-row {
+        &:nth-child(even) {
+          background-color: #f9f9f9;
+        }
+
+        .summary-table-label {
+          border: 1px solid #cccccc;
+          padding: 8px 12px;
+          text-align: left;
+          font-weight: 600;
+          color: #666666;
+        }
+
+        .summary-table-value {
+          border: 1px solid #cccccc;
+          padding: 8px 12px;
+          text-align: center;
+          color: #000000;
+        }
+      }
+    }
+  }
+}
+
+/* Print styles */
+@media print {
+  .report-container {
+    box-shadow: none;
+    page-break-inside: avoid;
+  }
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 900px) {
+  .report-container {
+    width: 100%;
+    min-height: auto;
+    padding: 24px;
+  }
+
+  .data-tables {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .summary-content {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .report-info {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
