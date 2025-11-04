@@ -300,46 +300,48 @@ export class EnvironmentalReportService {
 
     days.forEach((day) => {
       // Recopilar todas las temperaturas
-      if (day.day.tempMax > 0) {
+      if (day.day.tempMax !== null && day.day.tempMax !== undefined && day.day.tempMax > 0) {
         allTemperatures.push(day.day.tempMax);
       }
-      if (day.day.tempMin > 0) {
+      if (day.day.tempMin !== null && day.day.tempMin !== undefined && day.day.tempMin > 0) {
         allTemperatures.push(day.day.tempMin);
       }
-      if (day.night.tempMax > 0) {
+      if (day.night.tempMax !== null && day.night.tempMax !== undefined && day.night.tempMax > 0) {
         allTemperatures.push(day.night.tempMax);
       }
-      if (day.night.tempMin > 0) {
+      if (day.night.tempMin !== null && day.night.tempMin !== undefined && day.night.tempMin > 0) {
         allTemperatures.push(day.night.tempMin);
       }
 
       // Recopilar todas las humedades
-      if (day.day.humMax > 0) {
+      if (day.day.humMax !== null && day.day.humMax !== undefined && day.day.humMax > 0) {
         allHumidities.push(day.day.humMax);
       }
-      if (day.day.humMin > 0) {
+      if (day.day.humMin !== null && day.day.humMin !== undefined && day.day.humMin > 0) {
         allHumidities.push(day.day.humMin);
       }
-      if (day.night.humMax > 0) {
+      if (day.night.humMax !== null && day.night.humMax !== undefined && day.night.humMax > 0) {
         allHumidities.push(day.night.humMax);
       }
-      if (day.night.humMin > 0) {
+      if (day.night.humMin !== null && day.night.humMin !== undefined && day.night.humMin > 0) {
         allHumidities.push(day.night.humMin);
       }
 
       // Sumar lluvia
-      totalRainfall += day.rainfall;
-      if (day.rainfall > 0) {
-        rainyDays++;
+      if (day.rainfall !== null && day.rainfall !== undefined) {
+        totalRainfall += day.rainfall;
+        if (day.rainfall > 0) {
+          rainyDays++;
+        }
       }
     });
 
     return {
-      totalRainfall: Math.round(totalRainfall * 10) / 10,
+      totalRainfall: totalRainfall > 0 ? Math.round(totalRainfall * 10) / 10 : null,
       rainyDays,
       temperature: {
-        max: allTemperatures.length > 0 ? Math.max(...allTemperatures) : 0,
-        min: allTemperatures.length > 0 ? Math.min(...allTemperatures) : 0,
+        max: allTemperatures.length > 0 ? Math.max(...allTemperatures) : null,
+        min: allTemperatures.length > 0 ? Math.min(...allTemperatures) : null,
         avg:
           allTemperatures.length > 0
             ? Math.round(
@@ -347,11 +349,11 @@ export class EnvironmentalReportService {
                   allTemperatures.length) *
                   10,
               ) / 10
-            : 0,
+            : null,
       },
       humidity: {
-        max: allHumidities.length > 0 ? Math.max(...allHumidities) : 0,
-        min: allHumidities.length > 0 ? Math.min(...allHumidities) : 0,
+        max: allHumidities.length > 0 ? Math.max(...allHumidities) : null,
+        min: allHumidities.length > 0 ? Math.min(...allHumidities) : null,
         avg:
           allHumidities.length > 0
             ? Math.round(
@@ -359,7 +361,7 @@ export class EnvironmentalReportService {
                   allHumidities.length) *
                   10,
               ) / 10
-            : 0,
+            : null,
       },
     };
   }
@@ -444,8 +446,8 @@ export class EnvironmentalReportService {
       // Trigger another change detection to ensure everything is rendered
       componentRef.changeDetectorRef.detectChanges();
 
-      // Wait for rendering with progressive delays for Android
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Wait for rendering with progressive delays for Android and image loading
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
       // Wait for fonts to load (with timeout for Android)
       try {
@@ -460,8 +462,11 @@ export class EnvironmentalReportService {
         );
       }
 
-      // Additional wait for Android WebView
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Wait for all images to load
+      await this.waitForImagesToLoad(hostElement);
+
+      // Additional wait for Android WebView and image loading
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       let dataUrl: string;
 
@@ -496,6 +501,8 @@ export class EnvironmentalReportService {
             fetchRequestInit: {
               mode: 'cors' as RequestMode,
             },
+            skipFonts: false,
+            includeQueryParams: false,
           };
         } else {
           qualitySettings = {
@@ -627,6 +634,44 @@ export class EnvironmentalReportService {
         this.appRef.detachView(componentRef.hostView);
         componentRef.destroy();
       }
+    }
+  }
+
+  /**
+   * Waits for all images in the element to load
+   * @param {HTMLElement} element - The element containing images
+   * @returns {Promise<void>}
+   */
+  private async waitForImagesToLoad(element: HTMLElement): Promise<void> {
+    const images = element.querySelectorAll('img');
+    const imagePromises: Promise<void>[] = [];
+
+    images.forEach((img) => {
+      if (!img.complete) {
+        imagePromises.push(
+          new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              console.warn('Image load timeout:', img.src);
+              resolve(); // Resolve anyway to not block the process
+            }, 5000);
+
+            img.onload = () => {
+              clearTimeout(timeout);
+              resolve();
+            };
+            img.onerror = () => {
+              clearTimeout(timeout);
+              console.warn('Image load error:', img.src);
+              resolve(); // Resolve anyway to not block the process
+            };
+          })
+        );
+      }
+    });
+
+    if (imagePromises.length > 0) {
+      await Promise.all(imagePromises);
+      console.log(`Waited for ${imagePromises.length} images to load`);
     }
   }
 }

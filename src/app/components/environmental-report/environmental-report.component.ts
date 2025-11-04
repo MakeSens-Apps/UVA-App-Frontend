@@ -1,20 +1,20 @@
-import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, Input } from '@angular/core';
 
 export interface DayData {
   day: {
-    tempMax: number;
-    tempMin: number;
-    humMax: number;
-    humMin: number;
+    tempMax: number | null;
+    tempMin: number | null;
+    humMax: number | null;
+    humMin: number | null;
   };
   night: {
-    tempMax: number;
-    tempMin: number;
-    humMax: number;
-    humMin: number;
+    tempMax: number | null;
+    tempMin: number | null;
+    humMax: number | null;
+    humMin: number | null;
   };
-  rainfall: number;
+  rainfall: number | null;
 }
 
 export interface ReportData {
@@ -23,17 +23,17 @@ export interface ReportData {
   monitorName: string;
   days: DayData[];
   summary: {
-    totalRainfall: number;
+    totalRainfall: number | null;
     rainyDays: number;
     temperature: {
-      max: number;
-      min: number;
-      avg: number;
+      max: number | null;
+      min: number | null;
+      avg: number | null;
     };
     humidity: {
-      max: number;
-      min: number;
-      avg: number;
+      max: number | null;
+      min: number | null;
+      avg: number | null;
     };
   };
 }
@@ -43,11 +43,11 @@ export interface ReportData {
   templateUrl: './environmental-report.component.html',
   styleUrls: ['./environmental-report.component.scss'],
   standalone: true,
-  imports: [CommonModule]
+  imports: [CommonModule],
 })
 export class EnvironmentalReportComponent {
   @Input() reportData!: ReportData;
-  @Input() forcePrintLayout: boolean = false;
+  @Input() forcePrintLayout = false;
 
   /**
    * Gets the first 15 days of the month
@@ -77,19 +77,25 @@ export class EnvironmentalReportComponent {
 
   /**
    * Formats rainfall value for display
-   * @param {number} rainfall - Rainfall amount
+   * @param {number | null} rainfall - Rainfall amount
    * @returns {string} Formatted rainfall string
    */
-  formatRainfall(rainfall: number): string {
+  formatRainfall(rainfall: number | null): string {
+    if (rainfall === null || rainfall === undefined) {
+      return '-';
+    }
     return rainfall > 0 ? rainfall.toString() : '-';
   }
 
   /**
    * Formats numeric value to one decimal place
-   * @param {number} value - Value to format
+   * @param {number | null} value - Value to format
    * @returns {string} Formatted value
    */
-  formatValue(value: number): string {
+  formatValue(value: number | null): string {
+    if (value === null || value === undefined || value === 0) {
+      return '-';
+    }
     return value.toFixed(1);
   }
 }
