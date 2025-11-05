@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { DataStore } from '@aws-amplify/datastore';
+import { Hub } from 'aws-amplify/utils';
 import { AppUsageEvent } from 'src/models';
 import { AuthService } from '../auth/auth.service';
 import { SessionService } from '../session/session.service';
@@ -11,9 +12,9 @@ export class AppUsageService {
   private currentSessionId: string | null = null;
 
   /**
-   *
-   * @param authService
-   * @param sessionService
+   * Constructor for AppUsageService
+   * @param {AuthService} authService - Authentication service
+   * @param {SessionService} sessionService - Session management service
    */
   constructor(
     private authService: AuthService,
@@ -30,9 +31,29 @@ export class AppUsageService {
     this.currentSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
+
+  /**
+   * Clean up a single synchronized AppUsage record from local storage
+   * @param {string} recordId - ID of the record to cleanup
+   */
+  async cleanupSyncedRecord(recordId: string): Promise<void> {
+    try {
+      const record = await DataStore.query(AppUsageEvent, recordId);
+      if (record) {
+        await DataStore.delete(record);
+        // Console log removed to comply with linting rules
+      }
+    } catch (error) {
+      console.warn(
+        `Failed to delete synced AppUsage record ${recordId}:`,
+        error,
+      );
+    }
+  }
+
   /**
    * Track navigation event
-   * @param screenName The name of the screen/page being navigated to
+   * @param {string} screenName The name of the screen/page being navigated to
    */
   async trackNavigation(screenName: string): Promise<void> {
     try {
@@ -61,9 +82,9 @@ export class AppUsageService {
 
   /**
    * Track custom action event
-   * @param screenName Current screen name
-   * @param action Action performed
-   * @param duration Optional duration in milliseconds
+   * @param {string} screenName Current screen name
+   * @param {string} action Action performed
+   * @param {number} duration Optional duration in milliseconds
    */
   async trackAction(
     screenName: string,
@@ -96,6 +117,7 @@ export class AppUsageService {
 
   /**
    * Get current session ID
+   * @returns {string | null} Current session ID or null if not set
    */
   getCurrentSessionId(): string | null {
     return this.currentSessionId;
@@ -107,4 +129,41 @@ export class AppUsageService {
   async resetSession(): Promise<void> {
     await this.initializeSessionId();
   }
+
+  /**
+   * Manually trigger cleanup of all local AppUsage records
+   * (Useful for testing or manual maintenance)
+   */
+  async manualCleanupAll(): Promise<void> {
+    try {
+      const allRecords = await DataStore.query(AppUsageEvent);
+      for (const record of allRecords) {
+        await DataStore.delete(record);
+      }
+      // Console log removed to comply with linting rules
+    } catch (error) {
+      console.error('Error during manual AppUsage cleanup:', error);
+    }
+  }
+
+  /**
+   * Get statistics about local AppUsage records
+   * @returns {Promise<{totalRecords: number}>} Statistics about local records
+   */
+  async getLocalUsageStats(): Promise<{
+    totalRecords: number;
+  }> {
+    try {
+      const allRecords = await DataStore.query(AppUsageEvent);
+      return {
+        totalRecords: allRecords.length,
+      };
+    } catch (error) {
+      console.error('Error getting AppUsage stats:', error);
+      return {
+        totalRecords: 0,
+      };
+    }
+  }
+
 }

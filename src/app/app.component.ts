@@ -31,6 +31,7 @@ export class AppComponent {
     private appMinimizeService: AppMinimizeService,
     private router: Router,
     private appUsageService: AppUsageService,
+    private syncMonitorService: SyncMonitorDSService,
   ) {
     // Configure DataStore sync expressions
     DataStore.configure({
