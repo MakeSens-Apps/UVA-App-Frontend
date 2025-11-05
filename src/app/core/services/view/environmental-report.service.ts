@@ -14,6 +14,7 @@ import * as htmlToImage from 'html-to-image';
 import { Measurement } from 'src/models';
 import { MeasurementDSService } from '../storage/datastore/measurement-ds.service';
 import { UserDSService } from '../storage/datastore/user-ds.service';
+import { UvaDSService } from '../storage/datastore/uva-ds.service';
 
 @Injectable({
   providedIn: 'root',
@@ -45,6 +46,18 @@ export class EnvironmentalReportService {
   ) {}
 
   /**
+   * Truncates text to a maximum of 20 characters with ellipsis
+   * @param {string} text - The text to truncate
+   * @returns {string} The truncated text with ellipsis if necessary
+   */
+  private truncateText(text: string): string {
+    if (!text || text.length <= 20) {
+      return text;
+    }
+    return text.substring(0, 18) + '...';
+  }
+
+  /**
    * Generates report data for a specific month and year
    * @param {number} year - The year
    * @param {number} month - The month (0-based)
@@ -55,6 +68,30 @@ export class EnvironmentalReportService {
       // Obtener datos de usuario
       const user = await UserDSService.getUser();
       const userName = user ? `${user.Name} ${user.LastName}` : 'Usuario';
+
+      // Obtener datos de UVA para el nombre de la finca
+      const uva = await UvaDSService.getUVAByID();
+      let farmName = 'Finca Registrada'; // Valor por defecto
+
+      // Procesar el campo fields de UVA para obtener farmName
+      try {
+        if (uva?.fields) {
+          const fields =
+            typeof uva.fields === 'string'
+              ? JSON.parse(uva.fields)
+              : uva.fields;
+
+          if (fields && typeof fields === 'object' && fields['farmName']) {
+            farmName = fields['farmName'];
+          }
+        }
+      } catch (fieldsError) {
+        console.warn(
+          '[EnvReportService] Error parsing UVA fields, using default farm name:',
+          fieldsError,
+        );
+      }
+
       const measurements = await MeasurementDSService.getMeasurementsByMont(
         year,
         month,
@@ -65,8 +102,8 @@ export class EnvironmentalReportService {
 
       const result = {
         month: `${this.monthNames[month]} ${year}`,
-        farmName: 'Finca Registrada', // Placeholder - se puede obtener de UVA model si está disponible
-        monitorName: userName,
+        farmName: this.truncateText(farmName),
+        monitorName: this.truncateText(userName),
         days,
         summary,
       };
@@ -300,30 +337,62 @@ export class EnvironmentalReportService {
 
     days.forEach((day) => {
       // Recopilar todas las temperaturas
-      if (day.day.tempMax !== null && day.day.tempMax !== undefined && day.day.tempMax > 0) {
+      if (
+        day.day.tempMax !== null &&
+        day.day.tempMax !== undefined &&
+        day.day.tempMax > 0
+      ) {
         allTemperatures.push(day.day.tempMax);
       }
-      if (day.day.tempMin !== null && day.day.tempMin !== undefined && day.day.tempMin > 0) {
+      if (
+        day.day.tempMin !== null &&
+        day.day.tempMin !== undefined &&
+        day.day.tempMin > 0
+      ) {
         allTemperatures.push(day.day.tempMin);
       }
-      if (day.night.tempMax !== null && day.night.tempMax !== undefined && day.night.tempMax > 0) {
+      if (
+        day.night.tempMax !== null &&
+        day.night.tempMax !== undefined &&
+        day.night.tempMax > 0
+      ) {
         allTemperatures.push(day.night.tempMax);
       }
-      if (day.night.tempMin !== null && day.night.tempMin !== undefined && day.night.tempMin > 0) {
+      if (
+        day.night.tempMin !== null &&
+        day.night.tempMin !== undefined &&
+        day.night.tempMin > 0
+      ) {
         allTemperatures.push(day.night.tempMin);
       }
 
       // Recopilar todas las humedades
-      if (day.day.humMax !== null && day.day.humMax !== undefined && day.day.humMax > 0) {
+      if (
+        day.day.humMax !== null &&
+        day.day.humMax !== undefined &&
+        day.day.humMax > 0
+      ) {
         allHumidities.push(day.day.humMax);
       }
-      if (day.day.humMin !== null && day.day.humMin !== undefined && day.day.humMin > 0) {
+      if (
+        day.day.humMin !== null &&
+        day.day.humMin !== undefined &&
+        day.day.humMin > 0
+      ) {
         allHumidities.push(day.day.humMin);
       }
-      if (day.night.humMax !== null && day.night.humMax !== undefined && day.night.humMax > 0) {
+      if (
+        day.night.humMax !== null &&
+        day.night.humMax !== undefined &&
+        day.night.humMax > 0
+      ) {
         allHumidities.push(day.night.humMax);
       }
-      if (day.night.humMin !== null && day.night.humMin !== undefined && day.night.humMin > 0) {
+      if (
+        day.night.humMin !== null &&
+        day.night.humMin !== undefined &&
+        day.night.humMin > 0
+      ) {
         allHumidities.push(day.night.humMin);
       }
 
@@ -337,7 +406,8 @@ export class EnvironmentalReportService {
     });
 
     return {
-      totalRainfall: totalRainfall > 0 ? Math.round(totalRainfall * 10) / 10 : null,
+      totalRainfall:
+        totalRainfall > 0 ? Math.round(totalRainfall * 10) / 10 : null,
       rainyDays,
       temperature: {
         max: allTemperatures.length > 0 ? Math.max(...allTemperatures) : null,
@@ -664,7 +734,7 @@ export class EnvironmentalReportService {
               console.warn('Image load error:', img.src);
               resolve(); // Resolve anyway to not block the process
             };
-          })
+          }),
         );
       }
     });
