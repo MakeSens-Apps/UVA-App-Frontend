@@ -9,6 +9,8 @@ import { filter } from 'rxjs/operators';
 import { AppUsageEvent, GamificationEvent } from 'src/models';
 import { ConfigurationAppService } from './core/services/storage/configuration-app.service';
 import { SyncMonitorDSService } from './core/services/storage/datastore/sync-monitor-ds.service';
+import { GamificationService } from './core/services/view/gamification/gamification.service';
+import { environment } from 'src/environments/environment';
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
@@ -52,6 +54,7 @@ export class AppComponent {
         SyncMonitorDSService.subscribeToSync();
         appMinimizeService.initializeBackButtonHandler();
         this.initializeNavigationTracking();
+        this.initializeDebugUtilities();
       })
       .catch((err) => {
         console.error(err);
@@ -124,5 +127,33 @@ export class AppComponent {
       .split('/')
       .filter((segment) => segment && segment !== 'tabs');
     return segments.length > 0 ? segments[segments.length - 1] : 'unknown';
+  }
+
+  /**
+   * Initialize debug utilities for development (DEVELOPMENT ONLY)
+   * @private
+   */
+  private initializeDebugUtilities(): void {
+    // Only expose debug utilities in development mode
+    if (!environment.production) {
+      (window as any).debugGamification = {
+        reset: () => GamificationService.debugResetDailyProgress(),
+        simulate: (tasks: number = 1, total: number = 3) =>
+          GamificationService.debugSimulateTaskCompletion(tasks, total),
+        addSeeds: (amount: number) => GamificationService.debugAddSeeds(amount),
+        show: () => GamificationService.debugShowCurrentProgress(),
+        runTests: () => GamificationService.debugRunAllTests(),
+        cleanup: () => GamificationService.debugCleanup(),
+      };
+
+      console.log('🧪 DEBUG: Gamification debug utilities loaded!');
+      console.log('Available commands:');
+      console.log('  debugGamification.reset() - Reset daily progress to 0');
+      console.log('  debugGamification.simulate(tasks, total) - Simulate task completion');
+      console.log('  debugGamification.addSeeds(amount) - Add seeds directly');
+      console.log('  debugGamification.show() - Show current progress');
+      console.log('  debugGamification.runTests() - Run automated test suite');
+      console.log('  debugGamification.cleanup() - Cleanup test data');
+    }
   }
 }
