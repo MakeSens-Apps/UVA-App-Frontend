@@ -51,14 +51,8 @@ export class SyncMonitorDSService {
           break;
         case 'outboxMutationProcessed':
           // Handle successful sync and cleanup AppUsage records
-          console.log('DataStore outbox mutation processed:', data);
-          console.log('Data is  AppUsage', this.isAppUsageEvent(data));
           if (this.isAppUsageEvent(data) && this.appUsageServiceInstance) {
             const recordId = data.element?.id;
-            console.log(
-              'Cleaning up synced AppUsage record with ID:',
-              recordId,
-            );
             if (recordId) {
               void this.appUsageServiceInstance.cleanupSyncedRecord(recordId);
             }
