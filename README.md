@@ -1,114 +1,216 @@
-# UVA-App-Frontend
+# UVA-App Frontend
 
-En este repositorio se alojará todo el software relacionado con la aplicación UVA-App desarrollada en Ionic.
+> Mobile application for agricultural monitoring and vineyard management
 
-## Guía Definitiva para Iniciar en el Proyecto 🚀
+## 📋 Project Description
 
-### Requisitos Previos
+UVA-App is a mobile application designed to solve agricultural monitoring challenges for grape vineyard management. The app enables farmers and agricultural professionals to track measurements, monitor progress, and make data-driven decisions based on agricultural best practices including lunar cycle integration.
 
-1. **Node.js**:
+## 🎯 Purpose
 
-   - Instala Node.js (versión 20 o superior) desde [nodejs.org](https://nodejs.org/).
-   - Verifica la instalación ejecutando:
-     ```sh
-     node -v
-     npm -v
-     ```
+This repository contains the frontend mobile application built to:
+- Enable offline-first data collection in agricultural environments
+- Track time-series measurements with cloud synchronization
+- Gamify agricultural monitoring to improve user engagement
+- Provide visual analytics and historical data insights
+- Support multi-project collaboration through RACIMO (cluster) organization
 
-2. **Ionic CLI**:
+## ✨ Main Functionalities
 
-   - Instala Ionic CLI globalmente usando npm:
-     ```sh
-     npm install -g @ionic/cli
-     ```
+- **Authentication & Security**: Phone-based authentication with SMS OTP and MFA
+- **Measurement Tracking**: Daily task-based measurement system with time restrictions
+- **Offline Support**: Local data storage with automatic cloud synchronization
+- **Gamification**: Progress tracking with seeds, streaks, milestones, and achievements
+- **Project Management**: Multi-tenant structure with project linking via codes
+- **Moon Phase Integration**: Agricultural calendar based on lunar cycles
+- **Data Visualization**: Historical charts and progress analytics
+- **Real-time Sync**: GraphQL subscriptions for instant data updates
 
-3. **Capacitor CLI**:
+## 🚀 Basic Commands
 
-   - Instala Capacitor CLI globalmente usando npm:
-     ```sh
-     npm install -g @capacitor/cli
-     ```
+### Prerequisites
 
-4. **AWS Amplify**:
+- Node.js 20 or higher
+- npm or yarn
+- Ionic CLI (`npm install -g @ionic/cli`)
+- Capacitor CLI (`npm install -g @capacitor/cli`)
+- AWS Amplify CLI (`npm install -g @aws-amplify/cli`)
+- Android Studio (for Android builds)
+- JDK 11+ (for Android builds)
 
-   - Instala las librerías de AWS Amplify:
-     ```sh
-     npm install aws-amplify @aws-amplify/ui-react
-     ```
-   - Configura Amplify en tu proyecto:
-     ```sh
-     amplify init
-     amplify configure
-     ```
-   - Baja las variables de entorno de Amplify desde la rama correspondiente:
-     ```sh
-     git checkout <nombre-de-la-rama>
-     amplify pull
-     ```
+### Installation & Setup
 
-5. **Android Studio**:
+```bash
+# Clone the repository
+git clone <repository-url>
+cd UVA-App-Frontend
 
-   - Descarga e instala Android Studio desde [developer.android.com/studio](https://developer.android.com/studio).
-   - Asegúrate de instalar el SDK de Android y las herramientas de línea de comandos.
+# Install dependencies
+npm install
 
-6. **Java Development Kit (JDK)**:
-   - Instala JDK (versión 11 o superior):
-     ```sh
-     sudo apt update
-     sudo apt install openjdk-11-jdk
-     ```
-   - Configura la variable de entorno `JAVA_HOME`:
-     ```sh
-     export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
-     export PATH=$PATH:$JAVA_HOME/bin
-     ```
+# Pull Amplify backend configuration
+amplify pull
 
-### Configuración del Proyecto
+# Sync Capacitor with native projects
+npx cap sync
+```
 
-1. **Instalar dependencias del proyecto**:
+### Run Locally
 
-   - Navega al directorio raíz del proyecto y ejecuta:
-     ```sh
-     npm install
-     ```
+```bash
+# Development server (web browser)
+npm start
+# or
+ionic serve
 
-2. **Sincronizar Capacitor**:
-   - Sincroniza tu proyecto con Capacitor:
-     ```sh
-     npx cap sync
-     ```
+# Run on Android emulator/device
+ionic capacitor run android
 
-### Comandos Básicos de Uso Común 📋
+# Open in Android Studio
+ionic capacitor open android
+```
 
-- **Iniciar la aplicación en modo desarrollo**:
-  ```sh
-  ionic serve
-  ```
+### Build for Production
 
-### Arquitectura y Estructura de Carpetas 🗂️
+```bash
+# Build web application
+npm run build
 
-#### Arquitectura del Proyecto
+# Build Android APK (debug)
+npm run build-android-debug
 
-Este proyecto está desarrollado utilizando Ionic y Angular, con Capacitor para la integración nativa. La arquitectura sigue una estructura modular, donde cada funcionalidad principal se organiza en módulos y componentes reutilizables. Además, se utiliza AWS Amplify para la gestión de la autenticación y otros servicios en la nube.
+# Build for production Android
+ionic capacitor build android --prod
+```
 
-#### Estructura de Carpetas
+### Testing
 
-- **.angular/**: Archivos de caché generados por Angular.
-- **.vscode/**: Configuraciones específicas de Visual Studio Code.
-- **amplify/**: Configuraciones y archivos generados por AWS Amplify.
-- **android/**: Proyecto Android generado por Capacitor.
-- **src/**: Código fuente principal de la aplicación.
-  - **app/**: Contiene los módulos, componentes, servicios y páginas de la aplicación.
-    - **core/**: Servicios y utilidades centrales de la aplicación.
-    - **pages/**: Páginas principales de la aplicación.
-    - **components/**: Componentes reutilizables.
-  - **assets/**: Recursos estáticos como imágenes y fuentes.
-  - **environments/**: Configuraciones de entorno para diferentes ambientes (desarrollo, producción).
-- **www/**: Archivos generados para la versión web de la aplicación.
-- **angular.json**: Configuración del proyecto Angular.
-- **capacitor.config.ts**: Configuración de Capacitor.
-- **ionic.config.json**: Configuración de Ionic.
-- **package.json**: Dependencias y scripts del proyecto.
-- **tsconfig.json**: Configuración del compilador TypeScript.
+```bash
+# Run tests in watch mode
+npm test
 
-Esta estructura permite una organización clara y modular del código, facilitando el mantenimiento y la escalabilidad del proyecto.
+# Run tests in CI mode
+npm run test:ci
+
+# Run tests with coverage
+npm run test:dev
+```
+
+### Deployment
+
+The app is configured for Android deployment with:
+- **App ID**: `com.makesens.uvaapp`
+- **Current Version**: 2.1.6 (Version Code: 7)
+
+Build outputs are generated in:
+- Web: `www/` directory
+- Android: `android/app/build/outputs/`
+
+## 🏗️ General Architecture
+
+### High-Level Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   Mobile Application                     │
+│              (Angular 18 + Ionic 8 + Capacitor)         │
+├─────────────────────────────────────────────────────────┤
+│                                                           │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │    Pages     │  │  Components  │  │   Services   │  │
+│  │              │  │              │  │              │  │
+│  │ - Auth       │  │ - Charts     │  │ - API Layer  │  │
+│  │ - Measurement│  │ - Calendar   │  │ - Auth       │  │
+│  │ - Historical │  │ - Alerts     │  │ - DataStore  │  │
+│  │ - Profile    │  │ - Moon Card  │  │ - Storage    │  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  │
+│                                                           │
+├─────────────────────────────────────────────────────────┤
+│              AWS Amplify DataStore (Offline)            │
+├─────────────────────────────────────────────────────────┤
+│                                                           │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │          AWS Cloud Services (Backend)             │  │
+│  │                                                    │  │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐       │  │
+│  │  │ AppSync  │  │ Cognito  │  │    S3    │       │  │
+│  │  │ GraphQL  │  │   Auth   │  │  Storage │       │  │
+│  │  └──────────┘  └──────────┘  └──────────┘       │  │
+│  │                                                    │  │
+│  └──────────────────────────────────────────────────┘  │
+│                                                           │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Component Architecture
+
+- **Presentation Layer**: Ionic UI components with Angular standalone architecture
+- **Service Layer**: Business logic organized by domain (API, Auth, Storage, View)
+- **Data Layer**: AWS Amplify DataStore with offline-first strategy
+- **Backend Layer**: AWS managed services (AppSync, Cognito, S3, DynamoDB)
+
+### Key Architectural Patterns
+
+- **Offline-First**: Local data persistence with background sync
+- **Service-Oriented**: Clear separation of concerns across service layers
+- **Reactive Programming**: RxJS observables for async operations
+- **Standalone Components**: Modern Angular architecture without NgModules
+- **Path Aliases**: Clean imports using `@app/*`, `@components/*`, etc.
+
+## 🛠️ Main Technologies
+
+### Frontend Framework
+- **Angular 18** - Web application framework
+- **Ionic 8** - Mobile UI components
+- **Capacitor 6** - Native runtime bridge
+- **TypeScript 5.5** - Type-safe language
+- **RxJS 7.8** - Reactive extensions
+
+### Backend & Cloud
+- **AWS Amplify 6.8** - Backend integration platform
+- **AWS AppSync** - Managed GraphQL API
+- **AWS Cognito** - Authentication & user management
+- **AWS S3** - Object storage
+- **AWS DynamoDB** - NoSQL database (via DataStore)
+
+### UI & Visualization
+- **Chart.js 4.4** - Data visualization
+- **SweetAlert2** - Custom alerts
+- **Ionicons** - Icon library
+- **SCSS** - Styling with CSS variables
+
+### Development Tools
+- **Karma + Jasmine** - Testing framework
+- **ESLint** - Code linting (strict mode)
+- **Prettier** - Code formatting
+- **Husky** - Git hooks
+
+### Build & Deployment
+- **Angular CLI** - Build tooling
+- **Ionic CLI** - Mobile app development
+- **Capacitor CLI** - Native builds
+- **Android Gradle** - Android build system
+
+## 📚 Documentation
+
+Detailed technical documentation is available in the `/docs` folder:
+
+- [Architecture Documentation](./docs/architecture.md) - System design and component details
+- [Features Documentation](./docs/features.md) - Detailed feature descriptions and workflows
+- [API Documentation](./docs/api.md) - GraphQL API endpoints and operations
+- [Database Documentation](./docs/database.md) - Data models and relationships
+- [Infrastructure Documentation](./docs/infrastructure.md) - AWS resources and configuration
+
+## 📄 License
+
+Copyright © MakeSens Apps
+
+## 🤝 Contributing
+
+This is a private repository. Contact the development team for contribution guidelines.
+
+---
+
+**Development Team**: MakeSens Apps
+**Latest Version**: 2.1.6 (Build 7)
+**Minimum Requirements**: Node.js 20+, Android SDK for mobile builds
