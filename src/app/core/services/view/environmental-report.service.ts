@@ -199,7 +199,6 @@ export class EnvironmentalReportService {
       }
       grouped[dayKey].push(measurement);
     });
-
     return grouped;
   }
 
@@ -209,23 +208,23 @@ export class EnvironmentalReportService {
    * @returns {DayData} Processed day data
    */
   private processDayMeasurements(measurements: Measurement[]): DayData {
-    const dayMeasurements = measurements.filter((m) => {
+    const morningMeasurements = measurements.filter((m) => {
       const hour = new Date(m.ts).getHours();
-      return hour >= 6 && hour < 18; // 6 AM a 6 PM
+      return hour >= 0 && hour < 12; // 12:00 AM a 11:59 AM (mañana)
     });
 
-    const nightMeasurements = measurements.filter((m) => {
+    const afternoonMeasurements = measurements.filter((m) => {
       const hour = new Date(m.ts).getHours();
-      return hour < 6 || hour >= 18; // 6 PM a 6 AM
+      return hour >= 12 && hour <= 23; // 12:00 PM a 11:59 PM (tarde)
     });
 
-    const dayStats = this.calculatePeriodStats(dayMeasurements);
-    const nightStats = this.calculatePeriodStats(nightMeasurements);
+    const morningStats = this.calculatePeriodStats(morningMeasurements);
+    const afternoonStats = this.calculatePeriodStats(afternoonMeasurements);
     const rainfall = this.calculateTotalRainfall(measurements);
 
     return {
-      day: dayStats,
-      night: nightStats,
+      day: morningStats, // "day" representa mañana en el modelo existente
+      night: afternoonStats, // "night" representa tarde en el modelo existente
       rainfall,
     };
   }
@@ -248,14 +247,20 @@ export class EnvironmentalReportService {
     const temperatures: number[] = [];
     const humidities: number[] = [];
 
-    measurements.forEach((measurement) => {
+    measurements.forEach((measurement, index) => {
       try {
         const data =
           typeof measurement.data === 'string'
             ? JSON.parse(measurement.data)
             : measurement.data;
         if (data) {
-          // Buscar campos de temperatura
+          // Buscar campos de temperatura (nombres reales + variaciones)
+          if (data.TEMPERATURA_MAX !== undefined) {
+            temperatures.push(data.TEMPERATURA_MAX);
+          }
+          if (data.TEMPERATURA_MIN !== undefined) {
+            temperatures.push(data.TEMPERATURA_MIN);
+          }
           if (data.temperature !== undefined) {
             temperatures.push(data.temperature);
           }
@@ -266,7 +271,13 @@ export class EnvironmentalReportService {
             temperatures.push(data.Temperature);
           }
 
-          // Buscar campos de humedad
+          // Buscar campos de humedad (nombres reales + variaciones)
+          if (data.HUMEDAD_MAX !== undefined) {
+            humidities.push(data.HUMEDAD_MAX);
+          }
+          if (data.HUMEDAD_MIN !== undefined) {
+            humidities.push(data.HUMEDAD_MIN);
+          }
           if (data.humidity !== undefined) {
             humidities.push(data.humidity);
           }
@@ -305,7 +316,10 @@ export class EnvironmentalReportService {
             ? JSON.parse(measurement.data)
             : measurement.data;
         if (data) {
-          // Buscar campos de lluvia
+          // Buscar campos de lluvia (nombres reales + variaciones)
+          if (data.PRECIPITACION !== undefined) {
+            totalRainfall += data.PRECIPITACION;
+          }
           if (data.rain !== undefined) {
             totalRainfall += data.rain;
           }
@@ -336,62 +350,58 @@ export class EnvironmentalReportService {
     let rainyDays = 0;
 
     days.forEach((day) => {
-      // Recopilar todas las temperaturas
+      // Recopilar todas las temperaturas (incluir 0 y negativos, son válidos)
       if (
         day.day.tempMax !== null &&
-        day.day.tempMax !== undefined &&
-        day.day.tempMax > 0
+        day.day.tempMax !== undefined
       ) {
         allTemperatures.push(day.day.tempMax);
       }
       if (
         day.day.tempMin !== null &&
-        day.day.tempMin !== undefined &&
-        day.day.tempMin > 0
+        day.day.tempMin !== undefined
       ) {
         allTemperatures.push(day.day.tempMin);
       }
       if (
         day.night.tempMax !== null &&
-        day.night.tempMax !== undefined &&
-        day.night.tempMax > 0
+        day.night.tempMax !== undefined
       ) {
         allTemperatures.push(day.night.tempMax);
       }
       if (
         day.night.tempMin !== null &&
-        day.night.tempMin !== undefined &&
-        day.night.tempMin > 0
+        day.night.tempMin !== undefined
       ) {
         allTemperatures.push(day.night.tempMin);
       }
 
-      // Recopilar todas las humedades
+      // Recopilar todas las humedades (incluir 0, puede ser válido)
       if (
         day.day.humMax !== null &&
         day.day.humMax !== undefined &&
-        day.day.humMax > 0
+        day.day.humMax >= 0
       ) {
         allHumidities.push(day.day.humMax);
       }
       if (
         day.day.humMin !== null &&
         day.day.humMin !== undefined &&
-        day.day.humMin > 0
+        day.day.humMin >= 0
       ) {
         allHumidities.push(day.day.humMin);
       }
       if (
         day.night.humMax !== null &&
         day.night.humMax !== undefined &&
-        day.night.humMax > 0
+        day.night.humMax >= 0
       ) {
         allHumidities.push(day.night.humMax);
       }
       if (
         day.night.humMin !== null &&
         day.night.humMin !== undefined &&
-        day.night.humMin > 0
+        day.night.humMin >= 0
       ) {
         allHumidities.push(day.night.humMin);
       }
