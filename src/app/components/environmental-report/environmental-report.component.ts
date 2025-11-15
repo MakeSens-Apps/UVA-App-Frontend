@@ -93,7 +93,7 @@ export class EnvironmentalReportComponent {
    * @returns {string} Formatted value
    */
   formatValue(value: number | null): string {
-    if (value === null || value === undefined || value === 0) {
+    if (value === null || value === undefined) {
       return '-';
     }
     return value.toFixed(1);

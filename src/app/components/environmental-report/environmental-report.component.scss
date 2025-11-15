@@ -162,7 +162,7 @@
   table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 10px;
+    font-size: 13px;
   }
 
   th,
@@ -182,7 +182,7 @@
       );
       color: white;
       font-weight: bold;
-      font-size: 10px;
+      font-size: 13px;
 
       th {
         border-right: 1px solid var(--Colors-Blue-400, #2cd9e4);
@@ -192,7 +192,7 @@
 
     .sub-header {
       background: var(--Colors-Blue-100, #d1fbfc);
-      font-size: 8px;
+      font-size: 11px;
       color: var(--Colors-Blue-700, #14788a);
       font-weight: 600;
 
@@ -226,7 +226,7 @@
     }
 
     .data-cell {
-      font-size: 9px;
+      font-size: 12px;
       padding: 4px 2px;
       color: var(--Colors-Gray-700, #404040);
       font-weight: 500;
@@ -295,7 +295,7 @@
       border-bottom: 1px solid var(--Colors-Blue-400, #2cd9e4);
 
       .card-title {
-        font-size: 14px;
+        font-size: 16px;
         font-weight: 700;
         margin: 0;
         color: white;
@@ -316,13 +316,13 @@
         }
 
         .summary-label {
-          font-size: 12px;
+          font-size: 14px;
           color: var(--Colors-Gray-600, #525252);
           font-weight: 500;
         }
 
         .summary-value {
-          font-size: 12px;
+          font-size: 16px;
           font-weight: 700;
           color: var(--Colors-Blue-700, #14788a);
         }
@@ -342,7 +342,7 @@
     .summary-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 11px;
+      font-size: 14px;
 
       .summary-table-header {
         background: linear-gradient(

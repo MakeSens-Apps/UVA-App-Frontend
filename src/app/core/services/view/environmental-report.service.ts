@@ -235,13 +235,13 @@ export class EnvironmentalReportService {
    * @returns {object} Temperature and humidity statistics
    */
   private calculatePeriodStats(measurements: Measurement[]): {
-    tempMax: number;
-    tempMin: number;
-    humMax: number;
-    humMin: number;
+    tempMax: number | null;
+    tempMin: number | null;
+    humMax: number | null;
+    humMin: number | null;
   } {
     if (measurements.length === 0) {
-      return { tempMax: 0, tempMin: 0, humMax: 0, humMin: 0 };
+      return { tempMax: null, tempMin: null, humMax: null, humMin: null };
     }
 
     const temperatures: number[] = [];
@@ -294,10 +294,10 @@ export class EnvironmentalReportService {
     });
 
     return {
-      tempMax: temperatures.length > 0 ? Math.max(...temperatures) : 0,
-      tempMin: temperatures.length > 0 ? Math.min(...temperatures) : 0,
-      humMax: humidities.length > 0 ? Math.max(...humidities) : 0,
-      humMin: humidities.length > 0 ? Math.min(...humidities) : 0,
+      tempMax: temperatures.length > 0 ? Math.max(...temperatures) : null,
+      tempMin: temperatures.length > 0 ? Math.min(...temperatures) : null,
+      humMax: humidities.length > 0 ? Math.max(...humidities) : null,
+      humMin: humidities.length > 0 ? Math.min(...humidities) : null,
     };
   }
 
