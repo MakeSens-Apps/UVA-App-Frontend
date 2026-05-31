@@ -1,650 +1,650 @@
-# Features Documentation
+# Documentación de Funcionalidades
 
-## Feature Overview
+## Descripción General de Funcionalidades
 
-UVA-App provides comprehensive agricultural monitoring capabilities with gamification elements to encourage consistent data collection and user engagement.
+UVA-App proporciona capacidades completas de monitoreo agrícola con elementos de gamificación para fomentar la recolección de datos consistente y el compromiso del usuario.
 
 ---
 
-## 1. Authentication & User Management
+## 1. Autenticación y Gestión de Usuarios
 
-### Description
-Secure phone-based authentication system with SMS verification, designed for users who may not have email addresses or prefer phone-based access.
+### Descripción
+Sistema de autenticación seguro basado en teléfono con verificación por SMS, diseñado para usuarios que pueden no tener dirección de email o que prefieren el acceso basado en teléfono.
 
-### Use Cases
-- **UC-01**: First-time user registration
-- **UC-02**: Returning user login
-- **UC-03**: OTP verification for security
-- **UC-04**: Account recovery
-- **UC-05**: Multi-factor authentication
+### Casos de Uso
+- **CU-01**: Registro de usuario por primera vez
+- **CU-02**: Inicio de sesión de usuario recurrente
+- **CU-03**: Verificación OTP para seguridad
+- **CU-04**: Recuperación de cuenta
+- **CU-05**: Autenticación multifactor
 
-### Workflow
+### Flujo de Trabajo
 
-#### Registration Flow
+#### Flujo de Registro
 ```
-1. User opens app → Splash screen
+1. El usuario abre la app → Pantalla de inicio
    ↓
-2. Click "Register" → Pre-registration page
+2. Hace clic en "Registrarse" → Página de pre-registro
    ↓
-3. Enter phone number (format validation)
+3. Ingresa número de teléfono (validación de formato)
    ↓
-4. Cognito sends SMS OTP
+4. Cognito envía SMS OTP
    ↓
-5. Enter 6-digit OTP code
+5. Ingresa código OTP de 6 dígitos
    ↓
-6. OTP verification
+6. Verificación de OTP
    ↓
-7. Choose: Join existing RACIMO (via code) OR Create new RACIMO
+7. Elegir: Unirse a RACIMO existente (vía código) O Crear nuevo RACIMO
    ↓
-8. Complete profile information
+8. Completar información del perfil
    ↓
-9. Account created → Navigate to home
-```
-
-#### Login Flow
-```
-1. Enter phone number
-   ↓
-2. Cognito sends OTP
-   ↓
-3. Enter OTP code
-   ↓
-4. Verification success
-   ↓
-5. Session established
-   ↓
-6. DataStore syncs user data
-   ↓
-7. Navigate to home/tabs
+9. Cuenta creada → Navegar al inicio
 ```
 
-### Key Features
-- Phone number format validation
-- SMS OTP delivery via AWS Cognito
-- 6-digit verification code
-- Automatic session management
-- Secure token storage
-- MFA enforcement for security
+#### Flujo de Inicio de Sesión
+```
+1. Ingresar número de teléfono
+   ↓
+2. Cognito envía OTP
+   ↓
+3. Ingresar código OTP
+   ↓
+4. Verificación exitosa
+   ↓
+5. Sesión establecida
+   ↓
+6. DataStore sincroniza datos del usuario
+   ↓
+7. Navegar a inicio/pestañas
+```
 
-### Implementation Details
-- **Services**: `auth-api.service.ts`, `session.service.ts`
-- **Pages**: `src/app/pages/auth/`
+### Características Clave
+- Validación de formato de número de teléfono
+- Entrega de SMS OTP vía AWS Cognito
+- Código de verificación de 6 dígitos
+- Gestión automática de sesiones
+- Almacenamiento seguro de tokens
+- Cumplimiento de MFA para seguridad
+
+### Detalles de Implementación
+- **Servicios**: `auth-api.service.ts`, `session.service.ts`
+- **Páginas**: `src/app/pages/auth/`
 - **Backend**: AWS Cognito User Pool
 
 ---
 
-## 2. Measurement Tracking
+## 2. Registro de Mediciones
 
-### Description
-Core feature for collecting time-series agricultural data. Users complete daily tasks with time restrictions and field-specific validation.
+### Descripción
+Funcionalidad central para la recolección de datos agrícolas en series temporales. Los usuarios completan tareas diarias con restricciones horarias y validación específica por campo.
 
-### Use Cases
-- **UC-06**: Record daily measurements
-- **UC-07**: View pending tasks
-- **UC-08**: Complete time-restricted tasks
-- **UC-09**: Submit measurements with validation
-- **UC-10**: View measurement history
+### Casos de Uso
+- **CU-06**: Registrar mediciones diarias
+- **CU-07**: Ver tareas pendientes
+- **CU-08**: Completar tareas con restricción horaria
+- **CU-09**: Enviar mediciones con validación
+- **CU-10**: Ver historial de mediciones
 
-### Workflow
+### Flujo de Trabajo
 
-#### Daily Measurement Flow
+#### Flujo de Medición Diaria
 ```
-1. User navigates to Measurement tab
+1. El usuario navega a la pestaña de Medición
    ↓
-2. System displays available tasks for today
+2. El sistema muestra las tareas disponibles para hoy
    ↓
-3. User selects a task
+3. El usuario selecciona una tarea
    ↓
-4. System validates:
-   - Is task available today? (day-of-week check)
-   - Is current time within allowed hours?
-   - Has task been completed today?
+4. El sistema valida:
+   - ¿Está disponible la tarea hoy? (verificación del día de la semana)
+   - ¿Está la hora actual dentro del horario permitido?
+   - ¿Se ha completado la tarea hoy?
    ↓
-5. If valid → Show measurement form
+5. Si es válido → Mostrar formulario de medición
    ↓
-6. User enters data (with field validation)
+6. El usuario ingresa datos (con validación de campos)
    ↓
-7. Submit measurement
+7. Enviar medición
    ↓
-8. Save to DataStore (local-first)
+8. Guardar en DataStore (local-first)
    ↓
-9. Update UI immediately (optimistic)
+9. Actualizar UI inmediatamente (optimista)
    ↓
-10. Background sync to cloud
+10. Sincronización en segundo plano con la nube
    ↓
-11. Update gamification progress
+11. Actualizar progreso de gamificación
    ↓
-12. Show success message
+12. Mostrar mensaje de éxito
 ```
 
-### Key Features
+### Características Clave
 
-#### Time Restrictions
-- Tasks can be restricted to specific hours (e.g., 6 AM - 8 PM)
-- Day-of-week scheduling (e.g., only Monday, Wednesday, Friday)
-- Week-of-month patterns (e.g., 1st and 3rd week only)
-- Monthly recurrence patterns
+#### Restricciones Horarias
+- Las tareas pueden restringirse a horas específicas (ej., 6 AM - 8 PM)
+- Programación por día de la semana (ej., solo lunes, miércoles, viernes)
+- Patrones por semana del mes (ej., solo 1.ª y 3.ª semana)
+- Patrones de recurrencia mensual
 
-#### Task Types
-- Numeric measurements (with min/max validation)
-- Text observations
-- Single/multiple choice selections
-- Date/time stamps
-- Photo attachments
+#### Tipos de Tareas
+- Mediciones numéricas (con validación de mínimo/máximo)
+- Observaciones de texto
+- Selecciones únicas/múltiples
+- Marcas de fecha/hora
+- Adjuntos de fotos
 
-#### Validation
-- Required field checks
-- Data type validation
-- Range validation (min/max values)
-- Time window enforcement
-- Duplicate prevention (one task per day)
+#### Validación
+- Verificación de campos obligatorios
+- Validación de tipo de dato
+- Validación de rango (valores mínimo/máximo)
+- Cumplimiento de ventana horaria
+- Prevención de duplicados (una tarea por día)
 
-### Implementation Details
-- **Services**: `uva-api.service.ts`, `measurement.service.ts`
-- **Pages**: `src/app/pages/measurement/`
-- **Components**: Form inputs, validation directives
-- **Models**: `Measurement` DataStore model
+### Detalles de Implementación
+- **Servicios**: `uva-api.service.ts`, `measurement.service.ts`
+- **Páginas**: `src/app/pages/measurement/`
+- **Componentes**: Entradas de formulario, directivas de validación
+- **Modelos**: Modelo DataStore `Measurement`
 
 ---
 
-## 3. Gamification System
+## 3. Sistema de Gamificación
 
-### Description
-Progress tracking and achievement system to encourage consistent data collection and app engagement.
+### Descripción
+Sistema de seguimiento de progreso y logros para fomentar la recolección de datos consistente y el compromiso con la app.
 
-### Use Cases
-- **UC-11**: Track user progress (seeds, streaks)
-- **UC-12**: Earn achievements
-- **UC-13**: Complete bonus tasks
-- **UC-14**: View leaderboard rankings
-- **UC-15**: Unlock milestones
+### Casos de Uso
+- **CU-11**: Seguir el progreso del usuario (semillas, rachas)
+- **CU-12**: Ganar logros
+- **CU-13**: Completar tareas bonus
+- **CU-14**: Ver clasificaciones del marcador
+- **CU-15**: Desbloquear hitos
 
-### Workflow
+### Flujo de Trabajo
 
-#### Progress Calculation
+#### Cálculo de Progreso
 ```
-User completes measurement
+El usuario completa una medición
    ↓
-System calculates:
-- Seeds earned (points for completion)
-- Current streak (consecutive days)
-- Milestone progress
-- Bonus task eligibility
+El sistema calcula:
+- Semillas ganadas (puntos por completar)
+- Racha actual (días consecutivos)
+- Progreso de hitos
+- Elegibilidad para tareas bonus
    ↓
-Update UserProgress model
+Actualizar modelo ProgresoUsuario
    ↓
-Check for new achievements
+Verificar nuevos logros
    ↓
-Display celebration UI (if applicable)
+Mostrar UI de celebración (si aplica)
    ↓
-Sync progress to cloud
+Sincronizar progreso con la nube
 ```
 
-### Key Features
+### Características Clave
 
-#### Seeds (Points System)
-- Earn seeds for each completed measurement
-- Bonus seeds for:
-  - Consecutive day streaks
-  - Perfect weeks (all tasks completed)
-  - First completion of new task types
-  - Early morning completions
+#### Semillas (Sistema de Puntos)
+- Ganar semillas por cada medición completada
+- Semillas bonus por:
+  - Rachas de días consecutivos
+  - Semanas perfectas (todas las tareas completadas)
+  - Primera vez que se completa un nuevo tipo de tarea
+  - Completar en la mañana temprano
 
-#### Streaks
-- Daily streak counter
-- Weekly streak tracking
-- Longest streak record
-- Streak recovery grace period (1 day)
+#### Rachas
+- Contador de racha diaria
+- Seguimiento de racha semanal
+- Récord de racha más larga
+- Período de gracia para recuperar racha (1 día)
 
-#### Milestones
-- Bronze, Silver, Gold, Platinum tiers
-- Based on total measurements completed
-- Special achievements for:
-  - 7-day streak
-  - 30-day streak
-  - 100 total measurements
-  - Perfect month
+#### Hitos
+- Niveles Bronce, Plata, Oro, Platino
+- Basados en el total de mediciones completadas
+- Logros especiales por:
+  - Racha de 7 días
+  - Racha de 30 días
+  - 100 mediciones totales
+  - Mes perfecto
 
-#### Bonus Tasks
-- Weekly recurring challenges
-- Monthly special events
-- Seasonal agricultural activities
-- Community challenges (RACIMO-wide)
+#### Tareas Bonus
+- Desafíos semanales recurrentes
+- Eventos especiales mensuales
+- Actividades agrícolas estacionales
+- Desafíos comunitarios (a nivel de RACIMO)
 
-### Implementation Details
-- **Services**: `gamification.service.ts`
-- **Models**: `UserProgress` DataStore model
-- **Components**: `progress-bar`, achievement badges
-- **Pages**: Profile page displays achievements
+### Detalles de Implementación
+- **Servicios**: `gamification.service.ts`
+- **Modelos**: Modelo DataStore `UserProgress`
+- **Componentes**: `progress-bar`, insignias de logros
+- **Páginas**: La página de perfil muestra los logros
 
 ---
 
-## 4. Project Management (RACIMO)
+## 4. Gestión de Proyectos (RACIMO)
 
-### Description
-Multi-tenant organization system where users belong to a RACIMO (cluster/project) and manage their UVA (vineyard unit).
+### Descripción
+Sistema de organización multi-inquilino donde los usuarios pertenecen a un RACIMO (clúster/proyecto) y gestionan su UVA (unidad de viñedo).
 
-### Use Cases
-- **UC-16**: Join existing RACIMO via linkage code
-- **UC-17**: Create new RACIMO
-- **UC-18**: Configure UVA details
-- **UC-19**: View RACIMO member list
-- **UC-20**: Share linkage code with team members
+### Casos de Uso
+- **CU-16**: Unirse a un RACIMO existente vía código de vinculación
+- **CU-17**: Crear un nuevo RACIMO
+- **CU-18**: Configurar detalles de la UVA
+- **CU-19**: Ver la lista de miembros del RACIMO
+- **CU-20**: Compartir código de vinculación con miembros del equipo
 
-### Workflow
+### Flujo de Trabajo
 
-#### Joining a RACIMO
+#### Unirse a un RACIMO
 ```
-During registration:
-1. User receives linkage code from admin
+Durante el registro:
+1. El usuario recibe el código de vinculación del administrador
    ↓
-2. Select "Join existing RACIMO"
+2. Seleccionar "Unirse a RACIMO existente"
    ↓
-3. Enter 8-character linkage code
+3. Ingresar código de vinculación de 8 caracteres
    ↓
-4. System validates code
+4. El sistema valida el código
    ↓
-5. Link user to RACIMO
+5. Vincular usuario al RACIMO
    ↓
-6. Create UVA record for user
+6. Crear registro de UVA para el usuario
    ↓
-7. Sync RACIMO configuration
+7. Sincronizar configuración del RACIMO
    ↓
-8. User can start measurements
-```
-
-#### Creating a RACIMO
-```
-During registration:
-1. Select "Create new RACIMO"
-   ↓
-2. Enter RACIMO details:
-   - Name
-   - Location
-   - Field configuration
-   ↓
-3. System generates unique linkage code
-   ↓
-4. Create RACIMO record
-   ↓
-5. Create UVA for creator
-   ↓
-6. Set creator as admin
-   ↓
-7. Display linkage code for sharing
+8. El usuario puede comenzar a registrar mediciones
 ```
 
-### Key Features
+#### Crear un RACIMO
+```
+Durante el registro:
+1. Seleccionar "Crear nuevo RACIMO"
+   ↓
+2. Ingresar detalles del RACIMO:
+   - Nombre
+   - Ubicación
+   - Configuración de campos
+   ↓
+3. El sistema genera un código de vinculación único
+   ↓
+4. Crear registro de RACIMO
+   ↓
+5. Crear UVA para el creador
+   ↓
+6. Establecer al creador como administrador
+   ↓
+7. Mostrar código de vinculación para compartir
+```
 
-#### RACIMO (Project/Cluster)
-- Unique 8-character linkage code
-- Name and description
-- Geographic location
-- Member management
-- Shared task configurations
+### Características Clave
 
-#### UVA (Agricultural Unit)
-- Associated with one RACIMO
-- One UVA per user
-- Location data (latitude, longitude, altitude)
-- Field-specific configuration
-- Measurement history
+#### RACIMO (Proyecto/Clúster)
+- Código de vinculación único de 8 caracteres
+- Nombre y descripción
+- Ubicación geográfica
+- Gestión de miembros
+- Configuraciones de tareas compartidas
 
-#### Linkage Code
-- 8-character alphanumeric code
-- Case-insensitive
-- Unique per RACIMO
-- Shareable for team invitations
+#### UVA (Unidad Agrícola)
+- Asociada a un RACIMO
+- Una UVA por usuario
+- Datos de ubicación (latitud, longitud, altitud)
+- Configuración específica por campo
+- Historial de mediciones
 
-### Implementation Details
-- **Services**: `racimo-api.service.ts`, `uva-api.service.ts`
-- **Models**: `RACIMO`, `UVA` DataStore models
-- **Pages**: Registration wizard, profile settings
+#### Código de Vinculación
+- Código alfanumérico de 8 caracteres
+- Sin distinción entre mayúsculas y minúsculas
+- Único por RACIMO
+- Compartible para invitaciones de equipo
+
+### Detalles de Implementación
+- **Servicios**: `racimo-api.service.ts`, `uva-api.service.ts`
+- **Modelos**: Modelos DataStore `RACIMO`, `UVA`
+- **Páginas**: Asistente de registro, configuración del perfil
 
 ---
 
-## 5. Historical Data & Analytics
+## 5. Datos Históricos y Analíticas
 
-### Description
-Visualization and analysis of historical measurement data with charts, trends, and export capabilities.
+### Descripción
+Visualización y análisis de datos de medición históricos con gráficos, tendencias y capacidades de exportación.
 
-### Use Cases
-- **UC-21**: View measurement history
-- **UC-22**: Analyze trends over time
-- **UC-23**: Compare different time periods
-- **UC-24**: Export data for reporting
-- **UC-25**: Filter by date range and task type
+### Casos de Uso
+- **CU-21**: Ver historial de mediciones
+- **CU-22**: Analizar tendencias a lo largo del tiempo
+- **CU-23**: Comparar diferentes períodos de tiempo
+- **CU-24**: Exportar datos para informes
+- **CU-25**: Filtrar por rango de fechas y tipo de tarea
 
-### Workflow
+### Flujo de Trabajo
 
-#### Viewing Historical Data
+#### Ver Datos Históricos
 ```
-1. User navigates to Historical tab
+1. El usuario navega a la pestaña Histórico
    ↓
-2. Select date range (default: last 30 days)
+2. Seleccionar rango de fechas (predeterminado: últimos 30 días)
    ↓
-3. Optionally filter by:
-   - Task type
-   - Measurement type
-   - Specific UVA field
+3. Opcionalmente filtrar por:
+   - Tipo de tarea
+   - Tipo de medición
+   - Campo específico de UVA
    ↓
-4. System queries DataStore
+4. El sistema consulta DataStore
    ↓
-5. Aggregate and process data
+5. Agregar y procesar datos
    ↓
-6. Render Chart.js visualizations
+6. Renderizar visualizaciones de Chart.js
    ↓
-7. Display summary statistics
+7. Mostrar estadísticas resumidas
 ```
 
-### Key Features
+### Características Clave
 
-#### Visualizations
-- Area charts for time-series data
-- Line charts for trends
-- Bar charts for comparisons
-- Summary cards with key metrics
+#### Visualizaciones
+- Gráficos de área para datos en series temporales
+- Gráficos de línea para tendencias
+- Gráficos de barras para comparaciones
+- Tarjetas de resumen con métricas clave
 
-#### Time Ranges
-- Last 7 days
-- Last 30 days
-- Last 90 days
-- Custom date range picker
-- Year-to-date view
+#### Rangos de Tiempo
+- Últimos 7 días
+- Últimos 30 días
+- Últimos 90 días
+- Selector de rango de fechas personalizado
+- Vista del año en curso
 
-#### Analytics
-- Average values
-- Min/max detection
-- Trend direction (up/down/stable)
-- Completion rate percentage
-- Streak visualization
+#### Analíticas
+- Valores promedio
+- Detección de mínimos/máximos
+- Dirección de tendencia (subida/bajada/estable)
+- Porcentaje de tasa de completado
+- Visualización de rachas
 
-### Implementation Details
-- **Services**: `historical.service.ts`
-- **Pages**: `src/app/pages/historical/`
-- **Components**: `areachart` (Chart.js wrapper)
-- **Libraries**: Chart.js 4.4, date-fns
+### Detalles de Implementación
+- **Servicios**: `historical.service.ts`
+- **Páginas**: `src/app/pages/historical/`
+- **Componentes**: `areachart` (envoltorio de Chart.js)
+- **Bibliotecas**: Chart.js 4.4, date-fns
 
 ---
 
-## 6. Moon Phase Integration
+## 6. Integración con Fases Lunares
 
-### Description
-Agricultural calendar based on lunar cycles, providing recommendations for planting, harvesting, and other farm activities.
+### Descripción
+Calendario agrícola basado en ciclos lunares, que proporciona recomendaciones para la siembra, cosecha y otras actividades agrícolas.
 
-### Use Cases
-- **UC-26**: View current moon phase
-- **UC-27**: See monthly moon calendar
-- **UC-28**: Get agricultural recommendations
-- **UC-29**: Plan activities based on lunar cycle
-- **UC-30**: Receive moon phase notifications
+### Casos de Uso
+- **CU-26**: Ver la fase lunar actual
+- **CU-27**: Ver el calendario lunar mensual
+- **CU-28**: Obtener recomendaciones agrícolas
+- **CU-29**: Planificar actividades basadas en el ciclo lunar
+- **CU-30**: Recibir notificaciones de fases lunares
 
-### Workflow
+### Flujo de Trabajo
 
-#### Moon Phase View
+#### Vista de Fase Lunar
 ```
-1. User navigates to Moon Phase tab
+1. El usuario navega a la pestaña de Fase Lunar
    ↓
-2. System fetches current moon data
+2. El sistema obtiene los datos lunares actuales
    ↓
-3. Display:
-   - Current phase (with icon)
-   - Phase name (New, Waxing, Full, Waning)
-   - Illumination percentage
-   - Next phase date
+3. Mostrar:
+   - Fase actual (con ícono)
+   - Nombre de la fase (Nueva, Creciente, Llena, Menguante)
+   - Porcentaje de iluminación
+   - Fecha de próxima fase
    ↓
-4. Show agricultural recommendations
+4. Mostrar recomendaciones agrícolas
    ↓
-5. Display monthly calendar
+5. Mostrar calendario mensual
 ```
 
-### Key Features
+### Características Clave
 
-#### Moon Phases
-- 8 distinct phases tracked
-- Visual moon phase icons
-- Illumination percentage
-- Phase transition dates
+#### Fases Lunares
+- 8 fases distintas rastreadas
+- Íconos visuales de fases lunares
+- Porcentaje de iluminación
+- Fechas de transición de fase
 
-#### Agricultural Recommendations
-- Best days for planting
-- Optimal harvest times
-- Irrigation guidance
-- Pest control timing
+#### Recomendaciones Agrícolas
+- Mejores días para siembra
+- Tiempos óptimos de cosecha
+- Orientación sobre riego
+- Momentos para control de plagas
 
-#### Calendar Integration
-- Monthly moon phase calendar
-- Phase indicators on dates
-- Agricultural activity planning
-- Reminder system
+#### Integración de Calendario
+- Calendario mensual de fases lunares
+- Indicadores de fase en las fechas
+- Planificación de actividades agrícolas
+- Sistema de recordatorios
 
-### Implementation Details
-- **Services**: `moon-phase-api.service.ts`, `moon.service.ts`
-- **Pages**: `src/app/pages/moon-phase/`
-- **Components**: `moon-card`, `calendar`
-- **Data**: Cached locally for offline access
+### Detalles de Implementación
+- **Servicios**: `moon-phase-api.service.ts`, `moon.service.ts`
+- **Páginas**: `src/app/pages/moon-phase/`
+- **Componentes**: `moon-card`, `calendar`
+- **Datos**: Almacenados en caché localmente para acceso offline
 
 ---
 
-## 7. Offline-First Capabilities
+## 7. Capacidades Offline-First
 
-### Description
-Full app functionality even without internet connection, with automatic background synchronization when online.
+### Descripción
+Funcionalidad completa de la app incluso sin conexión a internet, con sincronización automática en segundo plano cuando hay conexión.
 
-### Use Cases
-- **UC-31**: Use app in remote areas without connectivity
-- **UC-32**: Record measurements offline
-- **UC-33**: View historical data offline
-- **UC-34**: Auto-sync when connection restored
-- **UC-35**: Resolve sync conflicts
+### Casos de Uso
+- **CU-31**: Usar la app en zonas remotas sin conectividad
+- **CU-32**: Registrar mediciones sin conexión
+- **CU-33**: Ver datos históricos sin conexión
+- **CU-34**: Sincronización automática al restablecer conexión
+- **CU-35**: Resolver conflictos de sincronización
 
-### Workflow
+### Flujo de Trabajo
 
-#### Offline Operation
+#### Operación Offline
 ```
-User opens app (no internet)
+El usuario abre la app (sin internet)
    ↓
-DataStore loads from local IndexedDB
+DataStore carga desde IndexedDB local
    ↓
-All data available for viewing
+Todos los datos disponibles para su visualización
    ↓
-User records new measurement
+El usuario registra una nueva medición
    ↓
-Saved to local DataStore
+Guardada en DataStore local
    ↓
-UI updated immediately
+UI actualizada inmediatamente
    ↓
-DataStore queues for sync
+DataStore pone en cola para sincronización
    ↓
-[Later, when online]
+[Más tarde, cuando hay conexión]
    ↓
-Background sync starts
+Sincronización en segundo plano comienza
    ↓
-Upload pending changes
+Cargar cambios pendientes
    ↓
-Download server updates
+Descargar actualizaciones del servidor
    ↓
-Resolve conflicts (if any)
+Resolver conflictos (si los hay)
    ↓
-Notify user of sync status
+Notificar al usuario del estado de sincronización
 ```
 
-### Key Features
+### Características Clave
 
-#### Offline Storage
-- All synced data cached locally
-- IndexedDB for structured data
-- Capacitor Filesystem for files
-- Unlimited storage capacity
+#### Almacenamiento Offline
+- Todos los datos sincronizados almacenados en caché localmente
+- IndexedDB para datos estructurados
+- Sistema de archivos de Capacitor para archivos
+- Capacidad de almacenamiento ilimitada
 
-#### Sync Strategy
-- Optimistic UI updates
-- Background sync when online
-- Incremental sync (only changes)
-- Conflict resolution with versioning
+#### Estrategia de Sincronización
+- Actualizaciones optimistas de la UI
+- Sincronización en segundo plano cuando hay conexión
+- Sincronización incremental (solo cambios)
+- Resolución de conflictos con versionado
 
-#### Conflict Resolution
-- Last-write-wins strategy
-- Version-based conflict detection
-- User notification for conflicts
-- Manual resolution option
+#### Resolución de Conflictos
+- Estrategia del último en escribir gana
+- Detección de conflictos basada en versiones
+- Notificación al usuario sobre conflictos
+- Opción de resolución manual
 
-### Implementation Details
-- **Services**: AWS Amplify DataStore
-- **Storage**: IndexedDB, Capacitor Filesystem
-- **Sync**: Automatic background process
+### Detalles de Implementación
+- **Servicios**: AWS Amplify DataStore
+- **Almacenamiento**: IndexedDB, Sistema de archivos de Capacitor
+- **Sincronización**: Proceso automático en segundo plano
 
 ---
 
-## 8. Profile & Settings
+## 8. Perfil y Configuración
 
-### Description
-User profile management, app settings, and account preferences.
+### Descripción
+Gestión del perfil de usuario, configuración de la app y preferencias de cuenta.
 
-### Use Cases
-- **UC-36**: Update profile information
-- **UC-37**: View achievements and stats
-- **UC-38**: Configure app settings
-- **UC-39**: Manage account security
-- **UC-40**: Logout and session management
+### Casos de Uso
+- **CU-36**: Actualizar información del perfil
+- **CU-37**: Ver logros y estadísticas
+- **CU-38**: Configurar ajustes de la app
+- **CU-39**: Gestionar seguridad de la cuenta
+- **CU-40**: Cerrar sesión y gestión de la sesión
 
-### Workflow
+### Flujo de Trabajo
 
-#### Profile Update
+#### Actualización de Perfil
 ```
-1. User navigates to Profile tab
+1. El usuario navega a la pestaña de Perfil
    ↓
-2. View current profile data
+2. Ver datos actuales del perfil
    ↓
-3. Click "Edit Profile"
+3. Hacer clic en "Editar Perfil"
    ↓
-4. Modify fields (name, UVA details, etc.)
+4. Modificar campos (nombre, detalles de UVA, etc.)
    ↓
-5. Optional: Upload profile picture to S3
+5. Opcional: Subir foto de perfil a S3
    ↓
-6. Save changes to DataStore
+6. Guardar cambios en DataStore
    ↓
-7. Sync to backend
+7. Sincronizar con el backend
    ↓
-8. Show success confirmation
+8. Mostrar confirmación de éxito
 ```
 
-### Key Features
+### Características Clave
 
-#### Profile Information
-- Name and contact details
-- Associated UVA information
-- RACIMO membership details
-- Profile picture (S3 storage)
-- Account creation date
+#### Información del Perfil
+- Nombre y datos de contacto
+- Información de UVA asociada
+- Detalles de membresía al RACIMO
+- Foto de perfil (almacenamiento S3)
+- Fecha de creación de la cuenta
 
-#### Achievements Display
-- Total seeds earned
-- Current streak
-- Milestones reached
-- Badge collection
-- Leaderboard ranking
+#### Visualización de Logros
+- Total de semillas ganadas
+- Racha actual
+- Hitos alcanzados
+- Colección de insignias
+- Posición en el marcador
 
-#### Settings
-- Language preferences
-- Notification settings
-- Data sync preferences
-- Theme options (future)
-- Privacy settings
+#### Configuración
+- Preferencias de idioma
+- Configuración de notificaciones
+- Preferencias de sincronización de datos
+- Opciones de tema (futuro)
+- Configuración de privacidad
 
-#### Account Management
-- Change phone number
-- Enable/disable MFA
-- Logout functionality
-- Account deletion request
+#### Gestión de Cuenta
+- Cambiar número de teléfono
+- Activar/desactivar MFA
+- Funcionalidad de cierre de sesión
+- Solicitud de eliminación de cuenta
 
-### Implementation Details
-- **Services**: `user-api.service.ts`, `s3.service.ts`
-- **Pages**: `src/app/pages/profile/`
-- **Storage**: S3 for profile pictures
-
----
-
-## 9. Notifications & Reminders
-
-### Description
-Push notifications and in-app reminders to encourage daily task completion.
-
-### Use Cases
-- **UC-41**: Receive daily task reminders
-- **UC-42**: Get streak warning notifications
-- **UC-43**: Achievement unlock celebrations
-- **UC-44**: RACIMO updates and announcements
-
-### Key Features
-
-#### Notification Types
-- Daily task reminders (configurable time)
-- Streak warning (if tasks not completed)
-- Achievement unlocked
-- RACIMO admin announcements
-- Sync status updates
-
-#### Scheduling
-- User-defined reminder times
-- Smart timing (based on task restrictions)
-- Snooze functionality
-- Do-not-disturb hours
-
-### Implementation Details
-- **Platform**: Capacitor Local Notifications
-- **Backend**: AWS Pinpoint (future)
-- **Scheduling**: Local notification scheduler
+### Detalles de Implementación
+- **Servicios**: `user-api.service.ts`, `s3.service.ts`
+- **Páginas**: `src/app/pages/profile/`
+- **Almacenamiento**: S3 para fotos de perfil
 
 ---
 
-## 10. Data Export & Reporting
+## 9. Notificaciones y Recordatorios
 
-### Description
-Export measurement data for external analysis, reporting, and record-keeping.
+### Descripción
+Notificaciones push y recordatorios dentro de la app para fomentar el completado de tareas diarias.
 
-### Use Cases
-- **UC-45**: Export data to CSV
-- **UC-46**: Generate PDF reports
-- **UC-47**: Share data with team members
-- **UC-48**: Backup personal data
+### Casos de Uso
+- **CU-41**: Recibir recordatorios de tareas diarias
+- **CU-42**: Obtener notificaciones de advertencia de racha
+- **CU-43**: Celebraciones por desbloqueo de logros
+- **CU-44**: Actualizaciones y anuncios del RACIMO
 
-### Key Features
+### Características Clave
 
-#### Export Formats
-- CSV for spreadsheet analysis
-- JSON for programmatic access
-- PDF reports with charts (future)
+#### Tipos de Notificaciones
+- Recordatorios de tareas diarias (hora configurable)
+- Advertencia de racha (si las tareas no se completaron)
+- Logro desbloqueado
+- Anuncios del administrador del RACIMO
+- Actualizaciones del estado de sincronización
 
-#### Export Options
-- Date range selection
-- Task type filtering
-- Include/exclude metadata
-- Aggregate vs. raw data
+#### Programación
+- Horarios de recordatorio definidos por el usuario
+- Tiempo inteligente (basado en restricciones de tareas)
+- Funcionalidad de posponer
+- Horas de no molestar
 
-### Implementation Details
-- **Services**: Export utilities
-- **Libraries**: CSV parser, PDF generator
-- **Storage**: Capacitor Filesystem, Share API
+### Detalles de Implementación
+- **Plataforma**: Notificaciones Locales de Capacitor
+- **Backend**: AWS Pinpoint (futuro)
+- **Programación**: Programador de notificaciones locales
 
 ---
 
-## Feature Roadmap
+## 10. Exportación de Datos e Informes
 
-### Planned Features
-- **iOS Support**: Build and deploy iOS version
-- **Photo Attachments**: Attach photos to measurements
-- **Weather Integration**: Correlate measurements with weather data
-- **Team Collaboration**: Comments and shared notes
-- **Advanced Analytics**: ML-based insights and predictions
-- **Multi-language Support**: Spanish, Portuguese localization
-- **Dark Mode**: Theme customization
-- **Voice Input**: Hands-free data entry for fieldwork
-- **Barcode Scanning**: Quick product/field identification
+### Descripción
+Exportar datos de medición para análisis externo, informes y mantenimiento de registros.
 
-### Under Consideration
-- Web dashboard for RACIMO admins
-- Integration with IoT sensors
-- Automated measurement suggestions
-- Expert system recommendations
-- Social features and community
+### Casos de Uso
+- **CU-45**: Exportar datos a CSV
+- **CU-46**: Generar informes PDF
+- **CU-47**: Compartir datos con miembros del equipo
+- **CU-48**: Hacer copia de seguridad de datos personales
+
+### Características Clave
+
+#### Formatos de Exportación
+- CSV para análisis en hojas de cálculo
+- JSON para acceso programático
+- Informes PDF con gráficos (futuro)
+
+#### Opciones de Exportación
+- Selección de rango de fechas
+- Filtrado por tipo de tarea
+- Incluir/excluir metadatos
+- Datos agregados vs. datos en bruto
+
+### Detalles de Implementación
+- **Servicios**: Utilidades de exportación
+- **Bibliotecas**: Parser CSV, generador PDF
+- **Almacenamiento**: Sistema de archivos de Capacitor, API de compartir
+
+---
+
+## Hoja de Ruta de Funcionalidades
+
+### Funcionalidades Planificadas
+- **Soporte para iOS**: Compilar y desplegar versión iOS
+- **Adjuntos de Fotos**: Adjuntar fotos a las mediciones
+- **Integración con Clima**: Correlacionar mediciones con datos meteorológicos
+- **Colaboración en Equipo**: Comentarios y notas compartidas
+- **Analíticas Avanzadas**: Perspectivas y predicciones basadas en ML
+- **Soporte Multiidioma**: Localización en español y portugués
+- **Modo Oscuro**: Personalización del tema
+- **Entrada de Voz**: Ingreso de datos manos libres para trabajo de campo
+- **Lectura de Códigos de Barras**: Identificación rápida de productos/campos
+
+### En Consideración
+- Panel web para administradores de RACIMO
+- Integración con sensores IoT
+- Sugerencias automatizadas de medición
+- Recomendaciones de sistema experto
+- Funcionalidades sociales y comunidad

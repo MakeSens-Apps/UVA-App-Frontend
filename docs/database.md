@@ -1,77 +1,77 @@
-# Database Documentation
+# Documentación de Base de Datos
 
-## Database Overview
+## Descripción General de la Base de Datos
 
-### Database Type
-**Amazon DynamoDB** - NoSQL database accessed via AWS AppSync GraphQL API and managed by AWS Amplify DataStore.
+### Tipo de Base de Datos
+**Amazon DynamoDB** - Base de datos NoSQL accedida a través de la API GraphQL de AWS AppSync y administrada por AWS Amplify DataStore.
 
-### Key Characteristics
-- **Fully managed**: No server maintenance
-- **Scalable**: Auto-scaling based on demand
-- **High availability**: Multi-AZ replication
-- **Consistent**: Eventual consistency with conflict resolution
-- **Serverless**: Pay per request pricing model
+### Características Clave
+- **Completamente administrada**: Sin mantenimiento de servidor
+- **Escalable**: Escalado automático basado en demanda
+- **Alta disponibilidad**: Replicación multi-AZ
+- **Consistente**: Consistencia eventual con resolución de conflictos
+- **Serverless**: Modelo de precios de pago por solicitud
 
 ---
 
-## Data Models
+## Modelos de Datos
 
-### Entity Relationship Diagram
+### Diagrama de Entidad-Relación
 
 ```
 ┌─────────────┐
 │   RACIMO    │
-│ (Project)   │
+│ (Proyecto)  │
 └──────┬──────┘
        │ 1
        │
        │ N
        ▼
 ┌─────────────┐         ┌──────────────┐
-│     UVA     │ 1 ───► 1│     User     │
-│ (Unit/Farm) │         │              │
+│     UVA     │ 1 ───► 1│   Usuario    │
+│(Unid./Finca)│         │              │
 └──────┬──────┘         └──────┬───────┘
        │ 1                     │ 1
        │                        │
        │ N                      │ N
        ▼                        ▼
 ┌─────────────┐         ┌──────────────┐
-│ Measurement │         │UserProgress  │
+│  Medición   │         │ProgresoUsuar.│
 │             │         │              │
 └─────────────┘         └──────────────┘
 ```
 
 ---
 
-## Table Schemas
+## Esquemas de Tablas
 
-### 1. RACIMO Table
+### 1. Tabla RACIMO
 
-**Purpose**: Stores project/cluster information for multi-tenant organization
+**Propósito**: Almacena información de proyectos/clústeres para la organización multi-inquilino
 
-**Table Name**: `RACIMO-<env>-<api-id>`
+**Nombre de la Tabla**: `RACIMO-<env>-<api-id>`
 
-#### Schema
+#### Esquema
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | String (ID) | ✅ | Unique identifier (UUID) |
-| `Name` | String | ✅ | Project name |
-| `LinkageCode` | String | ✅ | 8-character unique code for joining |
-| `Configuration` | String (JSON) | ❌ | JSON configuration (timezone, fields, etc.) |
-| `createdAt` | AWSDateTime | ✅ | Record creation timestamp |
-| `updatedAt` | AWSDateTime | ✅ | Last update timestamp |
-| `_version` | Int | ✅ | Version for optimistic locking |
-| `_deleted` | Boolean | ❌ | Soft delete flag |
-| `_lastChangedAt` | AWSTimestamp | ✅ | Last sync timestamp |
+| Campo | Tipo | Requerido | Descripción |
+|-------|------|-----------|-------------|
+| `id` | String (ID) | ✅ | Identificador único (UUID) |
+| `Name` | String | ✅ | Nombre del proyecto |
+| `LinkageCode` | String | ✅ | Código único de 8 caracteres para unirse |
+| `Configuration` | String (JSON) | ❌ | Configuración JSON (zona horaria, campos, etc.) |
+| `createdAt` | AWSDateTime | ✅ | Timestamp de creación del registro |
+| `updatedAt` | AWSDateTime | ✅ | Timestamp de la última actualización |
+| `_version` | Int | ✅ | Versión para bloqueo optimista |
+| `_deleted` | Boolean | ❌ | Indicador de eliminación suave |
+| `_lastChangedAt` | AWSTimestamp | ✅ | Timestamp de la última sincronización |
 
-#### Partition Key
-- `id` (Primary Key)
+#### Clave de Partición
+- `id` (Clave Primaria)
 
-#### Global Secondary Indexes
-- **LinkageCodeIndex**: `LinkageCode` (for quick lookups by code)
+#### Índices Secundarios Globales
+- **LinkageCodeIndex**: `LinkageCode` (para búsquedas rápidas por código)
 
-#### Sample Record
+#### Registro de Ejemplo
 ```json
 {
   "id": "racimo-550e8400-e29b",
@@ -88,42 +88,42 @@
 
 ---
 
-### 2. UVA Table
+### 2. Tabla UVA
 
-**Purpose**: Stores agricultural units (vineyard sections) with location data
+**Propósito**: Almacena unidades agrícolas (secciones de viñedo) con datos de ubicación
 
-**Table Name**: `UVA-<env>-<api-id>`
+**Nombre de la Tabla**: `UVA-<env>-<api-id>`
 
-#### Schema
+#### Esquema
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | String (ID) | ✅ | Unique identifier (UUID) |
-| `latitude` | String | ❌ | Geographic latitude |
-| `longitude` | String | ❌ | Geographic longitude |
-| `altitude` | String | ❌ | Altitude in meters |
-| `fields` | String (JSON) | ❌ | Field configuration as JSON |
-| `enabled` | Boolean | ❌ | Active status (default: true) |
-| `createdAt` | AWSDateTime | ❌ | Record creation timestamp |
-| `userID` | String (ID) | ✅ | Foreign key to User |
-| `racimoID` | String (ID) | ✅ | Foreign key to RACIMO |
-| `updatedAt` | AWSDateTime | ✅ | Last update timestamp |
-| `_version` | Int | ✅ | Version for optimistic locking |
-| `_deleted` | Boolean | ❌ | Soft delete flag |
-| `_lastChangedAt` | AWSTimestamp | ✅ | Last sync timestamp |
+| Campo | Tipo | Requerido | Descripción |
+|-------|------|-----------|-------------|
+| `id` | String (ID) | ✅ | Identificador único (UUID) |
+| `latitude` | String | ❌ | Latitud geográfica |
+| `longitude` | String | ❌ | Longitud geográfica |
+| `altitude` | String | ❌ | Altitud en metros |
+| `fields` | String (JSON) | ❌ | Configuración de campos como JSON |
+| `enabled` | Boolean | ❌ | Estado activo (predeterminado: true) |
+| `createdAt` | AWSDateTime | ❌ | Timestamp de creación del registro |
+| `userID` | String (ID) | ✅ | Clave foránea al Usuario |
+| `racimoID` | String (ID) | ✅ | Clave foránea al RACIMO |
+| `updatedAt` | AWSDateTime | ✅ | Timestamp de la última actualización |
+| `_version` | Int | ✅ | Versión para bloqueo optimista |
+| `_deleted` | Boolean | ❌ | Indicador de eliminación suave |
+| `_lastChangedAt` | AWSTimestamp | ✅ | Timestamp de la última sincronización |
 
-#### Partition Key
-- `id` (Primary Key)
+#### Clave de Partición
+- `id` (Clave Primaria)
 
-#### Global Secondary Indexes
-- **byUser**: `userID` (for user's UVA lookup)
-- **byRACIMO**: `racimoID` (for listing all UVAs in a project)
+#### Índices Secundarios Globales
+- **byUser**: `userID` (para búsqueda de UVA del usuario)
+- **byRACIMO**: `racimoID` (para listar todas las UVAs de un proyecto)
 
-#### Relationships
-- **User**: One-to-one (each UVA belongs to one User)
-- **RACIMO**: Many-to-one (many UVAs belong to one RACIMO)
+#### Relaciones
+- **Usuario**: Uno a uno (cada UVA pertenece a un Usuario)
+- **RACIMO**: Muchos a uno (muchas UVAs pertenecen a un RACIMO)
 
-#### Sample Record
+#### Registro de Ejemplo
 ```json
 {
   "id": "uva-123abc456def",
@@ -144,40 +144,40 @@
 
 ---
 
-### 3. User Table
+### 3. Tabla de Usuario
 
-**Purpose**: Stores user profile and authentication information
+**Propósito**: Almacena el perfil y la información de autenticación del usuario
 
-**Table Name**: `User-<env>-<api-id>`
+**Nombre de la Tabla**: `User-<env>-<api-id>`
 
-#### Schema
+#### Esquema
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | String (ID) | ✅ | Unique identifier (Cognito sub) |
-| `Name` | String | ✅ | First name |
-| `LastName` | String | ✅ | Last name |
-| `PhoneNumber` | String | ✅ | Phone (authentication username) |
-| `Email` | String | ❌ | Email address (optional) |
-| `Rank` | String | ❌ | Gamification rank (Bronze/Silver/Gold) |
-| `uvaID` | String (ID) | ❌ | Foreign key to UVA |
-| `createdAt` | AWSDateTime | ✅ | Account creation timestamp |
-| `updatedAt` | AWSDateTime | ✅ | Last update timestamp |
-| `_version` | Int | ✅ | Version for optimistic locking |
-| `_deleted` | Boolean | ❌ | Soft delete flag |
-| `_lastChangedAt` | AWSTimestamp | ✅ | Last sync timestamp |
+| Campo | Tipo | Requerido | Descripción |
+|-------|------|-----------|-------------|
+| `id` | String (ID) | ✅ | Identificador único (sub de Cognito) |
+| `Name` | String | ✅ | Nombre de pila |
+| `LastName` | String | ✅ | Apellido |
+| `PhoneNumber` | String | ✅ | Teléfono (nombre de usuario de autenticación) |
+| `Email` | String | ❌ | Dirección de email (opcional) |
+| `Rank` | String | ❌ | Rango de gamificación (Bronce/Plata/Oro) |
+| `uvaID` | String (ID) | ❌ | Clave foránea a UVA |
+| `createdAt` | AWSDateTime | ✅ | Timestamp de creación de la cuenta |
+| `updatedAt` | AWSDateTime | ✅ | Timestamp de la última actualización |
+| `_version` | Int | ✅ | Versión para bloqueo optimista |
+| `_deleted` | Boolean | ❌ | Indicador de eliminación suave |
+| `_lastChangedAt` | AWSTimestamp | ✅ | Timestamp de la última sincronización |
 
-#### Partition Key
-- `id` (Primary Key)
+#### Clave de Partición
+- `id` (Clave Primaria)
 
-#### Global Secondary Indexes
-- **byPhoneNumber**: `PhoneNumber` (for login lookup)
-- **byUVA**: `uvaID` (for UVA owner lookup)
+#### Índices Secundarios Globales
+- **byPhoneNumber**: `PhoneNumber` (para búsqueda en inicio de sesión)
+- **byUVA**: `uvaID` (para búsqueda del propietario de UVA)
 
-#### Relationships
-- **UVA**: One-to-one (each user has one UVA)
+#### Relaciones
+- **UVA**: Uno a uno (cada usuario tiene una UVA)
 
-#### Sample Record
+#### Registro de Ejemplo
 ```json
 {
   "id": "user-789xyz",
@@ -197,42 +197,42 @@
 
 ---
 
-### 4. Measurement Table
+### 4. Tabla de Medición
 
-**Purpose**: Stores time-series measurement data collected by users
+**Propósito**: Almacena datos de medición en series temporales recopilados por los usuarios
 
-**Table Name**: `Measurement-<env>-<api-id>`
+**Nombre de la Tabla**: `Measurement-<env>-<api-id>`
 
-#### Schema
+#### Esquema
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | String (ID) | ✅ | Unique identifier (UUID) |
-| `type` | String | ✅ | Measurement type (e.g., "temperature", "humidity") |
-| `data` | String (JSON) | ❌ | Measurement data as JSON |
-| `logs` | String (JSON) | ❌ | Metadata/logs as JSON |
-| `ts` | AWSDateTime | ✅ | Timestamp of measurement |
-| `task` | String | ❌ | Associated task identifier |
-| `uvaID` | String (ID) | ✅ | Foreign key to UVA |
-| `owner` | String | ❌ | Cognito username (for auth) |
-| `createdAt` | AWSDateTime | ✅ | Record creation timestamp |
-| `updatedAt` | AWSDateTime | ✅ | Last update timestamp |
-| `_version` | Int | ✅ | Version for optimistic locking |
-| `_deleted` | Boolean | ❌ | Soft delete flag |
-| `_lastChangedAt` | AWSTimestamp | ✅ | Last sync timestamp |
+| Campo | Tipo | Requerido | Descripción |
+|-------|------|-----------|-------------|
+| `id` | String (ID) | ✅ | Identificador único (UUID) |
+| `type` | String | ✅ | Tipo de medición (ej., "temperatura", "humedad") |
+| `data` | String (JSON) | ❌ | Datos de medición como JSON |
+| `logs` | String (JSON) | ❌ | Metadatos/registros como JSON |
+| `ts` | AWSDateTime | ✅ | Timestamp de la medición |
+| `task` | String | ❌ | Identificador de tarea asociada |
+| `uvaID` | String (ID) | ✅ | Clave foránea a UVA |
+| `owner` | String | ❌ | Nombre de usuario de Cognito (para auth) |
+| `createdAt` | AWSDateTime | ✅ | Timestamp de creación del registro |
+| `updatedAt` | AWSDateTime | ✅ | Timestamp de la última actualización |
+| `_version` | Int | ✅ | Versión para bloqueo optimista |
+| `_deleted` | Boolean | ❌ | Indicador de eliminación suave |
+| `_lastChangedAt` | AWSTimestamp | ✅ | Timestamp de la última sincronización |
 
-#### Partition Key
-- `id` (Primary Key)
+#### Clave de Partición
+- `id` (Clave Primaria)
 
-#### Global Secondary Indexes
-- **byUVAandTs**: `uvaID` (Partition Key) + `ts` (Sort Key)
-  - **Purpose**: Query measurements by UVA and date range
-  - **Use case**: Historical data queries, charts, analytics
+#### Índices Secundarios Globales
+- **byUVAandTs**: `uvaID` (Clave de Partición) + `ts` (Clave de Ordenamiento)
+  - **Propósito**: Consultar mediciones por UVA y rango de fechas
+  - **Caso de uso**: Consultas de datos históricos, gráficos, analíticas
 
-#### Relationships
-- **UVA**: Many-to-one (many measurements belong to one UVA)
+#### Relaciones
+- **UVA**: Muchos a uno (muchas mediciones pertenecen a una UVA)
 
-#### Sample Record
+#### Registro de Ejemplo
 ```json
 {
   "id": "measurement-abc123xyz",
@@ -253,43 +253,43 @@
 
 ---
 
-### 5. UserProgress Table
+### 5. Tabla de Progreso de Usuario
 
-**Purpose**: Tracks gamification progress (seeds, streaks, milestones)
+**Propósito**: Registra el progreso de gamificación (semillas, rachas, hitos)
 
-**Table Name**: `UserProgress-<env>-<api-id>`
+**Nombre de la Tabla**: `UserProgress-<env>-<api-id>`
 
-#### Schema
+#### Esquema
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | String (ID) | ✅ | Unique identifier (UUID) |
-| `ts` | String | ✅ | Date of progress (YYYY-MM-DD) |
-| `Seed` | Int | ❌ | Seeds earned on this date |
-| `Streak` | Int | ❌ | Current streak count |
-| `Milestones` | String (JSON) | ❌ | Achieved milestones as JSON |
-| `SaveStreak` | Boolean | ❌ | Streak saver used flag |
-| `completedTasks` | Int | ❌ | Number of tasks completed |
-| `additionalInfo` | String (JSON) | ❌ | Extra metadata as JSON |
-| `userID` | String (ID) | ✅ | Foreign key to User |
-| `createdAt` | AWSDateTime | ✅ | Record creation timestamp |
-| `updatedAt` | AWSDateTime | ✅ | Last update timestamp |
-| `_version` | Int | ✅ | Version for optimistic locking |
-| `_deleted` | Boolean | ❌ | Soft delete flag |
-| `_lastChangedAt` | AWSTimestamp | ✅ | Last sync timestamp |
+| Campo | Tipo | Requerido | Descripción |
+|-------|------|-----------|-------------|
+| `id` | String (ID) | ✅ | Identificador único (UUID) |
+| `ts` | String | ✅ | Fecha del progreso (AAAA-MM-DD) |
+| `Seed` | Int | ❌ | Semillas ganadas en esta fecha |
+| `Streak` | Int | ❌ | Contador de racha actual |
+| `Milestones` | String (JSON) | ❌ | Hitos alcanzados como JSON |
+| `SaveStreak` | Boolean | ❌ | Indicador de uso del salvavidas de racha |
+| `completedTasks` | Int | ❌ | Número de tareas completadas |
+| `additionalInfo` | String (JSON) | ❌ | Metadatos adicionales como JSON |
+| `userID` | String (ID) | ✅ | Clave foránea al Usuario |
+| `createdAt` | AWSDateTime | ✅ | Timestamp de creación del registro |
+| `updatedAt` | AWSDateTime | ✅ | Timestamp de la última actualización |
+| `_version` | Int | ✅ | Versión para bloqueo optimista |
+| `_deleted` | Boolean | ❌ | Indicador de eliminación suave |
+| `_lastChangedAt` | AWSTimestamp | ✅ | Timestamp de la última sincronización |
 
-#### Partition Key
-- `id` (Primary Key)
+#### Clave de Partición
+- `id` (Clave Primaria)
 
-#### Global Secondary Indexes
-- **byUserAndDate**: `userID` (Partition Key) + `ts` (Sort Key)
-  - **Purpose**: Query progress history by user and date range
-  - **Use case**: Progress charts, streak calculations
+#### Índices Secundarios Globales
+- **byUserAndDate**: `userID` (Clave de Partición) + `ts` (Clave de Ordenamiento)
+  - **Propósito**: Consultar el historial de progreso por usuario y rango de fechas
+  - **Caso de uso**: Gráficos de progreso, cálculos de rachas
 
-#### Relationships
-- **User**: Many-to-one (many progress records belong to one user)
+#### Relaciones
+- **Usuario**: Muchos a uno (muchos registros de progreso pertenecen a un usuario)
 
-#### Sample Record
+#### Registro de Ejemplo
 ```json
 {
   "id": "progress-def456ghi",
@@ -311,139 +311,139 @@
 
 ---
 
-## Indexes Summary
+## Resumen de Índices
 
-### Primary Indexes (Partition Keys)
+### Índices Primarios (Claves de Partición)
 
-| Table | Partition Key | Sort Key | Purpose |
-|-------|---------------|----------|---------|
-| RACIMO | `id` | - | Unique project lookup |
-| UVA | `id` | - | Unique UVA lookup |
-| User | `id` | - | Unique user lookup |
-| Measurement | `id` | - | Unique measurement lookup |
-| UserProgress | `id` | - | Unique progress record lookup |
+| Tabla | Clave de Partición | Clave de Ordenamiento | Propósito |
+|-------|-------------------|----------------------|-----------|
+| RACIMO | `id` | - | Búsqueda única de proyecto |
+| UVA | `id` | - | Búsqueda única de UVA |
+| Usuario | `id` | - | Búsqueda única de usuario |
+| Medición | `id` | - | Búsqueda única de medición |
+| ProgresoUsuario | `id` | - | Búsqueda única de registro de progreso |
 
-### Global Secondary Indexes (GSI)
+### Índices Secundarios Globales (GSI)
 
-| Table | Index Name | Partition Key | Sort Key | Purpose |
-|-------|-----------|---------------|----------|---------|
-| RACIMO | LinkageCodeIndex | `LinkageCode` | - | Find RACIMO by linkage code |
-| UVA | byUser | `userID` | - | Find user's UVA |
-| UVA | byRACIMO | `racimoID` | - | List all UVAs in a project |
-| User | byPhoneNumber | `PhoneNumber` | - | Login lookup |
-| User | byUVA | `uvaID` | - | Find UVA owner |
-| Measurement | byUVAandTs | `uvaID` | `ts` | Query measurements by date range |
-| UserProgress | byUserAndDate | `userID` | `ts` | Query progress history |
+| Tabla | Nombre del Índice | Clave de Partición | Clave de Ordenamiento | Propósito |
+|-------|------------------|-------------------|----------------------|-----------|
+| RACIMO | LinkageCodeIndex | `LinkageCode` | - | Encontrar RACIMO por código de vinculación |
+| UVA | byUser | `userID` | - | Encontrar UVA del usuario |
+| UVA | byRACIMO | `racimoID` | - | Listar todas las UVAs de un proyecto |
+| Usuario | byPhoneNumber | `PhoneNumber` | - | Búsqueda de inicio de sesión |
+| Usuario | byUVA | `uvaID` | - | Encontrar propietario de UVA |
+| Medición | byUVAandTs | `uvaID` | `ts` | Consultar mediciones por rango de fechas |
+| ProgresoUsuario | byUserAndDate | `userID` | `ts` | Consultar historial de progreso |
 
 ---
 
-## Data Relationships
+## Relaciones entre Datos
 
-### One-to-Many Relationships
+### Relaciones de Uno a Muchos
 
 ```
 RACIMO (1) ───────► UVA (N)
-  └─ Each RACIMO has many UVAs
+  └─ Cada RACIMO tiene muchas UVAs
 
-UVA (1) ───────────► Measurement (N)
-  └─ Each UVA has many measurements
+UVA (1) ───────────► Medición (N)
+  └─ Cada UVA tiene muchas mediciones
 
-User (1) ──────────► UserProgress (N)
-  └─ Each user has many progress records
+Usuario (1) ────────► ProgresoUsuario (N)
+  └─ Cada usuario tiene muchos registros de progreso
 ```
 
-### One-to-One Relationships
+### Relaciones de Uno a Uno
 
 ```
-User (1) ◄────────► UVA (1)
-  └─ Each user has exactly one UVA
-  └─ Each UVA belongs to exactly one user
-```
-
----
-
-## Data Consistency & Conflict Resolution
-
-### Optimistic Locking
-All tables use `_version` field for optimistic locking:
-- Every update increments `_version`
-- Mutations must include current `_version`
-- Conflicts occur when versions don't match
-
-### Conflict Resolution Strategy
-AWS Amplify DataStore uses **Auto-Merge** strategy:
-1. Server data takes precedence for conflicts
-2. Client receives conflict notification
-3. App can implement custom resolution logic
-
-### Soft Deletes
-All tables support soft deletes via `_deleted` flag:
-- Records are marked `_deleted: true` instead of physical deletion
-- Allows sync across devices
-- Can be purged after sync window
-
----
-
-## Data Access Patterns
-
-### 1. User Login Flow
-```
-Query: byPhoneNumber GSI
-Input: PhoneNumber
-Output: User record
-```
-
-### 2. Load User Dashboard
-```
-1. Get User by id (from auth)
-2. Get UVA by userID (byUser GSI)
-3. Get RACIMO by racimoID
-4. Get recent Measurements (byUVAandTs GSI, last 30 days)
-5. Get UserProgress (byUserAndDate GSI, last 7 days)
-```
-
-### 3. Record Measurement
-```
-1. Create Measurement record with uvaID
-2. Query latest UserProgress for today
-3. Update or Create UserProgress (increment seeds, streak)
-```
-
-### 4. Join RACIMO via Code
-```
-1. Query RACIMO by LinkageCode (LinkageCodeIndex GSI)
-2. Validate code exists
-3. Create UVA with racimoID
-4. Update User with uvaID
-```
-
-### 5. View Historical Data
-```
-Query: byUVAandTs GSI
-Filter: uvaID + ts (date range)
-Sort: ts DESC
-Limit: 100 (paginated)
+Usuario (1) ◄────────► UVA (1)
+  └─ Cada usuario tiene exactamente una UVA
+  └─ Cada UVA pertenece exactamente a un usuario
 ```
 
 ---
 
-## Storage Estimates
+## Consistencia de Datos y Resolución de Conflictos
 
-### Record Size Estimates
+### Bloqueo Optimista
+Todas las tablas usan el campo `_version` para bloqueo optimista:
+- Cada actualización incrementa `_version`
+- Las mutaciones deben incluir la `_version` actual
+- Los conflictos ocurren cuando las versiones no coinciden
 
-| Table | Avg Size per Record | Records per User/Year | Total Size/User/Year |
-|-------|---------------------|----------------------|---------------------|
-| User | 0.5 KB | 1 | 0.5 KB |
+### Estrategia de Resolución de Conflictos
+AWS Amplify DataStore usa la estrategia de **fusión automática (Auto-Merge)**:
+1. Los datos del servidor tienen prioridad en caso de conflictos
+2. El cliente recibe notificación del conflicto
+3. La app puede implementar lógica de resolución personalizada
+
+### Eliminaciones Suaves
+Todas las tablas soportan eliminaciones suaves mediante el indicador `_deleted`:
+- Los registros se marcan como `_deleted: true` en lugar de eliminarse físicamente
+- Permite sincronización entre dispositivos
+- Pueden purgarse después de la ventana de sincronización
+
+---
+
+## Patrones de Acceso a Datos
+
+### 1. Flujo de Inicio de Sesión
+```
+Consulta: GSI byPhoneNumber
+Entrada: PhoneNumber
+Salida: Registro de usuario
+```
+
+### 2. Cargar Dashboard del Usuario
+```
+1. Obtener Usuario por id (de la autenticación)
+2. Obtener UVA por userID (GSI byUser)
+3. Obtener RACIMO por racimoID
+4. Obtener Mediciones recientes (GSI byUVAandTs, últimos 30 días)
+5. Obtener ProgresoUsuario (GSI byUserAndDate, últimos 7 días)
+```
+
+### 3. Registrar Medición
+```
+1. Crear registro de Medición con uvaID
+2. Consultar el ProgresoUsuario más reciente del día
+3. Actualizar o Crear ProgresoUsuario (incrementar semillas, racha)
+```
+
+### 4. Unirse a RACIMO por Código
+```
+1. Consultar RACIMO por LinkageCode (GSI LinkageCodeIndex)
+2. Validar que el código existe
+3. Crear UVA con racimoID
+4. Actualizar Usuario con uvaID
+```
+
+### 5. Ver Datos Históricos
+```
+Consulta: GSI byUVAandTs
+Filtro: uvaID + ts (rango de fechas)
+Ordenamiento: ts DESC
+Límite: 100 (paginado)
+```
+
+---
+
+## Estimaciones de Almacenamiento
+
+### Estimaciones de Tamaño por Registro
+
+| Tabla | Tamaño Promedio por Registro | Registros por Usuario/Año | Tamaño Total/Usuario/Año |
+|-------|------------------------------|--------------------------|--------------------------|
+| Usuario | 0.5 KB | 1 | 0.5 KB |
 | UVA | 1 KB | 1 | 1 KB |
-| RACIMO | 1 KB | 0.1 (shared) | 0.1 KB |
-| Measurement | 2 KB | 365 * 5 tasks = 1,825 | 3.65 MB |
-| UserProgress | 1 KB | 365 | 365 KB |
-| **Total** | - | - | **~4 MB per user/year** |
+| RACIMO | 1 KB | 0.1 (compartido) | 0.1 KB |
+| Medición | 2 KB | 365 * 5 tareas = 1,825 | 3.65 MB |
+| ProgresoUsuario | 1 KB | 365 | 365 KB |
+| **Total** | - | - | **~4 MB por usuario/año** |
 
-### Scaling Projections
+### Proyecciones de Escalado
 
-| Users | Storage/Year | Read Units/Sec | Write Units/Sec |
-|-------|-------------|----------------|-----------------|
+| Usuarios | Almacenamiento/Año | Unidades de Lectura/Seg | Unidades de Escritura/Seg |
+|----------|--------------------|------------------------|--------------------------|
 | 100 | 400 MB | 50 | 20 |
 | 1,000 | 4 GB | 500 | 200 |
 | 10,000 | 40 GB | 5,000 | 2,000 |
@@ -451,78 +451,78 @@ Limit: 100 (paginated)
 
 ---
 
-## Backup & Recovery
+## Respaldo y Recuperación
 
-### Automated Backups
-- **Point-in-Time Recovery (PITR)**: Enabled for all tables
-- **Retention**: 35 days
-- **Recovery**: Can restore to any point within retention window
+### Respaldos Automáticos
+- **Recuperación a Punto en el Tiempo (PITR)**: Habilitado para todas las tablas
+- **Retención**: 35 días
+- **Recuperación**: Se puede restaurar a cualquier punto dentro de la ventana de retención
 
-### On-Demand Backups
-- Manual backups created before major schema changes
-- Retained indefinitely until manually deleted
-
----
-
-## Data Migration
-
-### Schema Updates
-1. Update GraphQL schema in `amplify/backend/api/schema.graphql`
-2. Run `amplify push` to deploy changes
-3. DynamoDB tables updated automatically
-4. Client models regenerated (`src/models/`)
-
-### Data Transformations
-- Use AWS AppSync resolvers for data transformation
-- AWS Lambda functions for complex migrations
-- DataStore handles schema versioning automatically
+### Respaldos Bajo Demanda
+- Respaldos manuales creados antes de cambios mayores en el esquema
+- Se retienen indefinidamente hasta eliminación manual
 
 ---
 
-## Performance Optimization
+## Migración de Datos
 
-### Query Optimization
-1. **Use GSIs**: Always query using indexed fields
-2. **Limit results**: Use pagination with `limit` parameter
-3. **Project fields**: Only request needed fields in GraphQL
-4. **Batch reads**: Use DataStore batch queries when possible
+### Actualizaciones de Esquema
+1. Actualizar el esquema GraphQL en `amplify/backend/api/schema.graphql`
+2. Ejecutar `amplify push` para desplegar los cambios
+3. Las tablas DynamoDB se actualizan automáticamente
+4. Los modelos del cliente se regeneran (`src/models/`)
 
-### Write Optimization
-1. **Batch writes**: Group related mutations
-2. **Conditional writes**: Use conditions to prevent overwrites
-3. **Avoid hot partitions**: Distribute writes across multiple UVAs
-
----
-
-## Data Retention & Archival
-
-### Active Data
-- **Measurements**: Last 2 years kept in main table
-- **UserProgress**: All historical data retained
-- **Soft-deleted records**: Purged after 30 days
-
-### Archival Strategy (Future)
-- Move measurements older than 2 years to S3
-- Use DynamoDB TTL for automatic cleanup
-- Export to data lake for long-term analytics
+### Transformaciones de Datos
+- Usar resolvers de AWS AppSync para transformación de datos
+- Funciones AWS Lambda para migraciones complejas
+- DataStore maneja el versionado de esquemas automáticamente
 
 ---
 
-## Security & Access Control
+## Optimización de Rendimiento
 
-### Table-Level Security
-- All tables encrypted at rest (AWS managed keys)
-- Encrypted in transit (TLS 1.2+)
+### Optimización de Consultas
+1. **Usar GSIs**: Siempre consultar usando campos indexados
+2. **Limitar resultados**: Usar paginación con el parámetro `limit`
+3. **Proyectar campos**: Solo solicitar los campos necesarios en GraphQL
+4. **Lecturas por lotes**: Usar consultas por lotes de DataStore cuando sea posible
 
-### Row-Level Security (RLS)
-Implemented via AppSync resolvers:
-- **User**: Only access own record
-- **UVA**: Owner and RACIMO members
-- **Measurement**: Owner and RACIMO members
-- **UserProgress**: Owner only
-- **RACIMO**: Members only
+### Optimización de Escrituras
+1. **Escrituras por lotes**: Agrupar mutaciones relacionadas
+2. **Escrituras condicionales**: Usar condiciones para evitar sobreescrituras
+3. **Evitar particiones calientes**: Distribuir escrituras entre múltiples UVAs
 
-### Authorization Rules (GraphQL Schema)
+---
+
+## Retención y Archivado de Datos
+
+### Datos Activos
+- **Mediciones**: Los últimos 2 años se mantienen en la tabla principal
+- **ProgresoUsuario**: Se conservan todos los datos históricos
+- **Registros eliminados suavemente**: Se purgan después de 30 días
+
+### Estrategia de Archivado (Futuro)
+- Mover mediciones de más de 2 años a S3
+- Usar TTL de DynamoDB para limpieza automática
+- Exportar a data lake para analíticas a largo plazo
+
+---
+
+## Seguridad y Control de Acceso
+
+### Seguridad a Nivel de Tabla
+- Todas las tablas cifradas en reposo (claves administradas por AWS)
+- Cifradas en tránsito (TLS 1.2+)
+
+### Seguridad a Nivel de Fila (RLS)
+Implementada mediante resolvers de AppSync:
+- **Usuario**: Solo acceso a su propio registro
+- **UVA**: Propietario y miembros del RACIMO
+- **Medición**: Propietario y miembros del RACIMO
+- **ProgresoUsuario**: Solo propietario
+- **RACIMO**: Solo miembros
+
+### Reglas de Autorización (Esquema GraphQL)
 ```graphql
 @auth(rules: [
   { allow: owner, ownerField: "owner" },
@@ -532,25 +532,25 @@ Implemented via AppSync resolvers:
 
 ---
 
-## Monitoring & Metrics
+## Monitoreo y Métricas
 
-### Key Metrics to Monitor
-- Read/Write capacity units consumed
-- Throttled requests
-- User errors vs. system errors
-- Average item size
-- GSI consumption
+### Métricas Clave a Monitorear
+- Unidades de capacidad de lectura/escritura consumidas
+- Solicitudes con limitación de velocidad
+- Errores de usuario vs. errores del sistema
+- Tamaño promedio de ítems
+- Consumo de GSI
 
-### CloudWatch Alarms
-- High throttle rate (> 5%)
-- Error rate spike (> 1%)
-- Latency increase (> 100ms p99)
+### Alarmas de CloudWatch
+- Tasa alta de limitación (> 5%)
+- Pico en tasa de errores (> 1%)
+- Aumento en latencia (> 100ms p99)
 
 ---
 
-## Database Schema File
+## Archivo de Esquema de Base de Datos
 
-The authoritative schema is defined in:
-- **File**: `amplify/backend/api/<api-name>/schema.graphql`
-- **Generated models**: `src/models/`
-- **TypeScript types**: `src/API.ts`
+El esquema autoritativo está definido en:
+- **Archivo**: `amplify/backend/api/<api-name>/schema.graphql`
+- **Modelos generados**: `src/models/`
+- **Tipos TypeScript**: `src/API.ts`

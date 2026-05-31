@@ -1,288 +1,288 @@
-# Architecture Documentation
+# Documentación de Arquitectura
 
-## System Architecture
+## Arquitectura del Sistema
 
-### Overview
+### Descripción General
 
-UVA-App follows a **hybrid mobile architecture** with an **offline-first** strategy. The application is built using Angular and Ionic for cross-platform mobile development, with AWS Amplify providing backend services and data synchronization.
+UVA-App sigue una **arquitectura móvil híbrida** con una estrategia **offline-first**. La aplicación está construida con Angular e Ionic para el desarrollo móvil multiplataforma, con AWS Amplify que proporciona los servicios de backend y sincronización de datos.
 
-### Architecture Diagram
+### Diagrama de Arquitectura
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        Mobile Device                             │
+│                        Dispositivo Móvil                         │
 │                                                                   │
 │  ┌────────────────────────────────────────────────────────────┐ │
-│  │              Presentation Layer (Ionic UI)                  │ │
-│  │  - Authentication Pages  - Measurement Pages                │ │
-│  │  - Historical Views      - Profile Management               │ │
-│  │  - Moon Phase Calendar   - Gamification UI                  │ │
+│  │           Capa de Presentación (Ionic UI)                   │ │
+│  │  - Páginas de Autenticación  - Páginas de Medición          │ │
+│  │  - Vistas Históricas         - Gestión de Perfil            │ │
+│  │  - Calendario de Fases Lun.  - UI de Gamificación           │ │
 │  └────────────────────────────────────────────────────────────┘ │
 │                              ↕                                    │
 │  ┌────────────────────────────────────────────────────────────┐ │
-│  │               Angular Service Layer                         │ │
+│  │               Capa de Servicios Angular                     │ │
 │  │                                                              │ │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │ │
 │  │  │   API    │  │   Auth   │  │ Storage  │  │   View   │  │ │
-│  │  │ Services │  │ Services │  │ Services │  │ Services │  │ │
+│  │  │ Servicios│  │ Servicios│  │ Servicios│  │ Servicios│  │ │
 │  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  │ │
 │  └────────────────────────────────────────────────────────────┘ │
 │                              ↕                                    │
 │  ┌────────────────────────────────────────────────────────────┐ │
-│  │            AWS Amplify DataStore (Local DB)                 │ │
-│  │  - Offline data persistence    - Conflict resolution        │ │
-│  │  - Background sync             - Optimistic updates         │ │
+│  │        AWS Amplify DataStore (Base de Datos Local)         │ │
+│  │  - Persistencia offline de datos  - Resolución de conflictos│ │
+│  │  - Sincronización en 2do plano    - Actualizaciones optimist.│ │
 │  └────────────────────────────────────────────────────────────┘ │
 │                              ↕                                    │
 └──────────────────────────────┼──────────────────────────────────┘
                                │ HTTPS/WebSocket
                                ↕
 ┌─────────────────────────────────────────────────────────────────┐
-│                      AWS Cloud Backend                           │
+│                      Backend Cloud AWS                           │
 │                                                                   │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
 │  │   AppSync    │  │   Cognito    │  │      S3      │          │
-│  │  (GraphQL)   │  │   (Auth)     │  │  (Storage)   │          │
+│  │  (GraphQL)   │  │   (Auth)     │  │ (Almacen.)   │          │
 │  └──────┬───────┘  └──────────────┘  └──────────────┘          │
 │         │                                                         │
 │         ↓                                                         │
 │  ┌──────────────┐                                                │
 │  │  DynamoDB    │                                                │
-│  │  (Database)  │                                                │
+│  │  (Base datos)│                                                │
 │  └──────────────┘                                                │
 │                                                                   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## Component Architecture
+## Arquitectura de Componentes
 
-### 1. Presentation Layer
+### 1. Capa de Presentación
 
-#### Pages
-Located in `src/app/pages/`, organized by feature:
+#### Páginas
+Ubicadas en `src/app/pages/`, organizadas por funcionalidad:
 
-- **Authentication** (`auth/`):
-  - Login page with phone number input
-  - Registration wizard (multi-step)
-  - OTP verification page
+- **Autenticación** (`auth/`):
+  - Página de inicio de sesión con entrada de número de teléfono
+  - Asistente de registro (multi-paso)
+  - Página de verificación OTP
 
-- **Measurement** (`measurement/`):
-  - Main measurement tracking interface
-  - Task completion forms
-  - Real-time validation
+- **Medición** (`measurement/`):
+  - Interfaz principal de seguimiento de mediciones
+  - Formularios de completado de tareas
+  - Validación en tiempo real
 
-- **Historical** (`historical/`):
-  - Data visualization with Chart.js
-  - Time-series analysis
-  - Filter and export capabilities
+- **Histórico** (`historical/`):
+  - Visualización de datos con Chart.js
+  - Análisis de series temporales
+  - Capacidades de filtrado y exportación
 
-- **Profile** (`profile/`):
-  - User settings and preferences
-  - Achievement display
-  - Account management
+- **Perfil** (`profile/`):
+  - Configuración y preferencias del usuario
+  - Visualización de logros
+  - Gestión de cuenta
 
-- **Moon Phase** (`moon-phase/`):
-  - Lunar calendar view
-  - Agricultural recommendations
+- **Fase Lunar** (`moon-phase/`):
+  - Vista del calendario lunar
+  - Recomendaciones agrícolas
 
-#### Reusable Components
-Located in `src/app/components/`:
+#### Componentes Reutilizables
+Ubicados en `src/app/components/`:
 
-- **alert**: Custom alert wrapper using SweetAlert2
-- **areachart**: Chart.js area chart component for time-series data
-- **calendar**: Custom calendar with task highlighting
-- **header**: Shared header with navigation and branding
-- **moon-card**: Moon phase display card
-- **progress-bar**: Gamification progress visualization
+- **alert**: Envoltorio de alerta personalizada usando SweetAlert2
+- **areachart**: Componente de gráfico de área Chart.js para datos de series temporales
+- **calendar**: Calendario personalizado con resaltado de tareas
+- **header**: Cabecera compartida con navegación y marca
+- **moon-card**: Tarjeta de visualización de fase lunar
+- **progress-bar**: Visualización del progreso de gamificación
 
-### 2. Service Layer
+### 2. Capa de Servicios
 
-Organized by domain in `src/app/core/services/`:
+Organizada por dominio en `src/app/core/services/`:
 
-#### API Services (`api/`)
-- **uva-api.service.ts**: UVA (vineyard) CRUD operations
-- **user-api.service.ts**: User profile management
-- **racimo-api.service.ts**: Project/cluster operations
-- **moon-phase-api.service.ts**: Lunar data fetching
+#### Servicios de API (`api/`)
+- **uva-api.service.ts**: Operaciones CRUD de UVA (viñedo)
+- **user-api.service.ts**: Gestión de perfil de usuario
+- **racimo-api.service.ts**: Operaciones de proyecto/clúster
+- **moon-phase-api.service.ts**: Obtención de datos lunares
 
-#### Authentication Services (`auth/`)
-- Phone number validation
-- OTP verification
-- Session token management
-- MFA handling
+#### Servicios de Autenticación (`auth/`)
+- Validación de número de teléfono
+- Verificación OTP
+- Gestión de tokens de sesión
+- Manejo de MFA
 
-#### Storage Services (`storage/`)
-- **datastore/**: AWS DataStore wrapper services
-- **s3/**: File upload/download to S3
-- **file-system/**: Capacitor filesystem integration
+#### Servicios de Almacenamiento (`storage/`)
+- **datastore/**: Servicios envolventes de AWS DataStore
+- **s3/**: Carga/descarga de archivos en S3
+- **file-system/**: Integración del sistema de archivos de Capacitor
 
-#### View Services (`view/`)
-- **gamification/**: Progress calculation and achievement logic
-- **moon/**: Moon phase calculations
-- **setup/**: App initialization and configuration
+#### Servicios de Vista (`view/`)
+- **gamification/**: Cálculo de progreso y lógica de logros
+- **moon/**: Cálculos de fases lunares
+- **setup/**: Inicialización y configuración de la app
 
-### 3. Data Layer
+### 3. Capa de Datos
 
 #### AWS Amplify DataStore
-- Automatic offline sync
-- Optimistic UI updates
-- Conflict resolution with versioning
-- Real-time subscriptions via WebSocket
+- Sincronización offline automática
+- Actualizaciones optimistas de la UI
+- Resolución de conflictos con versionado
+- Suscripciones en tiempo real vía WebSocket
 
-#### Models
-Located in `src/models/`:
-- Auto-generated from GraphQL schema
-- Type-safe TypeScript interfaces
-- Built-in CRUD operations
+#### Modelos
+Ubicados en `src/models/`:
+- Autogenerados desde el esquema GraphQL
+- Interfaces TypeScript con tipado fuerte
+- Operaciones CRUD incorporadas
 
-## Data Flow
+## Flujo de Datos
 
-### Offline-First Flow
+### Flujo Offline-First
 
 ```
-User Action
+Acción del Usuario
     ↓
-Angular Component
+Componente Angular
     ↓
-Service Layer (Business Logic)
+Capa de Servicios (Lógica de Negocio)
     ↓
-DataStore API (Save locally)
+API de DataStore (Guardar localmente)
     ↓
-Local IndexedDB ─────────→ UI Update (Optimistic)
+IndexedDB Local ────────→ Actualización de UI (Optimista)
     ↓
-Background Sync (when online)
+Sincronización en 2do plano (cuando hay conexión)
     ↓
 AWS AppSync (GraphQL)
     ↓
 DynamoDB
     ↓
-Sync Response ───────────→ Conflict Resolution (if needed)
+Respuesta de Sincronización ──→ Resolución de Conflictos (si es necesario)
     ↓
-UI Update (Final)
+Actualización Final de UI
 ```
 
-### Authentication Flow
+### Flujo de Autenticación
 
 ```
-1. User enters phone number
+1. El usuario ingresa el número de teléfono
    ↓
-2. Cognito sends SMS OTP
+2. Cognito envía SMS OTP
    ↓
-3. User enters OTP code
+3. El usuario ingresa el código OTP
    ↓
-4. Cognito validates and issues tokens
+4. Cognito valida y emite tokens
    ↓
-5. App stores session (secure storage)
+5. La app almacena la sesión (almacenamiento seguro)
    ↓
-6. Amplify configures with user credentials
+6. Amplify se configura con las credenciales del usuario
    ↓
-7. DataStore syncs user data
+7. DataStore sincroniza los datos del usuario
    ↓
-8. User redirected to home/tabs
+8. El usuario es redirigido a inicio/pestañas
 ```
 
-### Measurement Submission Flow
+### Flujo de Envío de Medición
 
 ```
-User selects task
+El usuario selecciona una tarea
    ↓
-Form validation (time restrictions, field validation)
+Validación del formulario (restricciones horarias, validación de campos)
    ↓
-Save to DataStore (local-first)
+Guardar en DataStore (local-first)
    ↓
-UI updated immediately (optimistic)
+UI actualizada inmediatamente (optimista)
    ↓
-Background sync to AppSync
+Sincronización en 2do plano con AppSync
    ↓
-GraphQL mutation to DynamoDB
+Mutación GraphQL a DynamoDB
    ↓
-Update user progress (gamification)
+Actualizar progreso del usuario (gamificación)
    ↓
-Sync back to device
+Sincronizar de vuelta al dispositivo
 ```
 
-## External Integrations
+## Integraciones Externas
 
-### AWS Services
+### Servicios AWS
 
 1. **AWS AppSync**
-   - GraphQL API endpoint
-   - Real-time subscriptions
-   - Managed API with authorization
-   - Region: us-east-1
+   - Endpoint de API GraphQL
+   - Suscripciones en tiempo real
+   - API administrada con autorización
+   - Región: us-east-1
 
 2. **AWS Cognito**
-   - User pool for authentication
-   - Phone number as username
-   - SMS OTP delivery
-   - MFA enforcement
-   - Session management
+   - Pool de usuarios para autenticación
+   - Número de teléfono como nombre de usuario
+   - Entrega de SMS OTP
+   - Cumplimiento de MFA
+   - Gestión de sesiones
 
 3. **AWS S3**
-   - Profile picture storage
-   - Measurement attachments
-   - Public and private buckets
+   - Almacenamiento de fotos de perfil
+   - Adjuntos de mediciones
+   - Buckets públicos y privados
 
 4. **AWS DynamoDB**
-   - Primary data store (via AppSync)
-   - Automatic scaling
-   - Global secondary indexes
+   - Almacén de datos principal (vía AppSync)
+   - Escalado automático
+   - Índices secundarios globales
 
 5. **AWS Analytics (Pinpoint)**
-   - Session tracking
-   - Page view analytics
-   - Custom event tracking
+   - Seguimiento de sesiones
+   - Analíticas de vistas de página
+   - Seguimiento de eventos personalizados
 
-### Third-Party Services
+### Servicios de Terceros
 
-1. **Moon Phase API**
-   - External API for lunar calculations
-   - Cached locally for offline access
-   - Service: `moon-phase-api.service.ts`
+1. **API de Fases Lunares**
+   - API externa para cálculos lunares
+   - Almacenada en caché localmente para acceso offline
+   - Servicio: `moon-phase-api.service.ts`
 
-2. **SMS Provider**
-   - SMS delivery via Cognito
-   - OTP verification codes
+2. **Proveedor de SMS**
+   - Entrega de SMS vía Cognito
+   - Códigos de verificación OTP
 
-## Design Patterns
+## Patrones de Diseño
 
-### 1. Service-Oriented Architecture
-All business logic is encapsulated in injectable services, promoting:
-- Separation of concerns
-- Testability
-- Reusability
-- Maintainability
+### 1. Arquitectura Orientada a Servicios
+Toda la lógica de negocio está encapsulada en servicios inyectables, promoviendo:
+- Separación de responsabilidades
+- Facilidad de pruebas
+- Reutilización
+- Mantenibilidad
 
-### 2. Reactive Programming
-Using RxJS observables for:
-- Async operations
-- Event streams
-- Data transformation
-- Error handling
+### 2. Programación Reactiva
+Uso de observables RxJS para:
+- Operaciones asíncronas
+- Flujos de eventos
+- Transformación de datos
+- Manejo de errores
 
-### 3. Standalone Components
-Modern Angular architecture:
-- No NgModules required
-- Direct dependency injection
-- Tree-shakable bundles
-- Improved performance
+### 3. Componentes Standalone
+Arquitectura Angular moderna:
+- No se requieren NgModules
+- Inyección de dependencias directa
+- Bundles con tree-shaking
+- Rendimiento mejorado
 
-### 4. Repository Pattern
-DataStore services act as repositories:
-- Abstract data source details
-- Consistent API across models
-- Centralized caching logic
+### 4. Patrón Repositorio
+Los servicios de DataStore actúan como repositorios:
+- Abstracción de los detalles de la fuente de datos
+- API consistente entre modelos
+- Lógica de caché centralizada
 
-### 5. Optimistic UI
-Update UI immediately, sync in background:
-- Better user experience
-- Offline functionality
-- Background conflict resolution
+### 5. UI Optimista
+Actualizar la UI inmediatamente, sincronizar en segundo plano:
+- Mejor experiencia de usuario
+- Funcionalidad offline
+- Resolución de conflictos en segundo plano
 
-## Code Organization
+## Organización del Código
 
-### Path Aliases
-Configured in `tsconfig.json`:
+### Alias de Rutas
+Configurados en `tsconfig.json`:
 ```typescript
 @app/*          → src/app/*
 @components/*   → src/app/components/*
@@ -292,146 +292,146 @@ Configured in `tsconfig.json`:
 @interfaces/*   → src/app/Interfaces/*
 ```
 
-### Module Structure
+### Estructura de Módulos
 ```
 src/app/
-├── components/       # Shared UI components
-├── pages/           # Route-level pages
+├── components/       # Componentes de UI compartidos
+├── pages/           # Páginas a nivel de ruta
 ├── core/
-│   ├── services/    # Business logic services
-│   └── pipes/       # Custom Angular pipes
-├── Interfaces/      # TypeScript interfaces
-└── app.routes.ts    # Route configuration
+│   ├── services/    # Servicios de lógica de negocio
+│   └── pipes/       # Pipes personalizados de Angular
+├── Interfaces/      # Interfaces TypeScript
+└── app.routes.ts    # Configuración de rutas
 ```
 
-## Security Architecture
+## Arquitectura de Seguridad
 
-### Authentication
-- Phone-based authentication (no passwords)
-- SMS OTP verification
-- MFA enforcement
-- Secure token storage via Capacitor SecureStorage
+### Autenticación
+- Autenticación basada en teléfono (sin contraseñas)
+- Verificación por SMS OTP
+- Cumplimiento de MFA
+- Almacenamiento seguro de tokens vía Capacitor SecureStorage
 
-### Authorization
-- User-scoped data access
-- Owner-based authorization in GraphQL
-- Private file storage in S3
+### Autorización
+- Acceso a datos con alcance por usuario
+- Autorización basada en propietario en GraphQL
+- Almacenamiento privado de archivos en S3
 
-### Data Protection
-- HTTPS for all API calls
-- Encrypted local storage
-- DOMPurify for HTML sanitization
-- Strict Content Security Policy
+### Protección de Datos
+- HTTPS para todas las llamadas a la API
+- Almacenamiento local cifrado
+- DOMPurify para saneamiento de HTML
+- Política de Seguridad de Contenido estricta
 
-### Code Security
-- ESLint strict rules (no `any` types)
-- TypeScript strict mode
-- Input validation on forms
-- Output sanitization
+### Seguridad del Código
+- Reglas estrictas de ESLint (sin tipos `any`)
+- Modo estricto de TypeScript
+- Validación de entrada en formularios
+- Saneamiento de salida
 
-## Performance Optimizations
+## Optimizaciones de Rendimiento
 
-### 1. Lazy Loading
-- Routes lazy-loaded per page
-- Components loaded on-demand
-- Reduced initial bundle size
+### 1. Carga Diferida (Lazy Loading)
+- Rutas cargadas de forma diferida por página
+- Componentes cargados bajo demanda
+- Reducción del tamaño del bundle inicial
 
-### 2. Caching Strategy
-- DataStore caches all synced data
-- S3 files cached in local filesystem
-- Moon phase data cached for offline use
+### 2. Estrategia de Caché
+- DataStore almacena en caché todos los datos sincronizados
+- Archivos de S3 en caché en el sistema de archivos local
+- Datos de fases lunares en caché para uso offline
 
-### 3. Bundle Optimization
-- Tree-shaking via standalone components
-- Production build minification
-- AOT (Ahead-of-Time) compilation
-- 7MB max bundle size limit
+### 3. Optimización del Bundle
+- Tree-shaking mediante componentes standalone
+- Minificación en compilación de producción
+- Compilación AOT (Ahead-of-Time)
+- Límite de tamaño de bundle de 7MB
 
-### 4. Image Optimization
-- Lazy loading for images
-- Responsive images
-- WebP format support (via Capacitor)
+### 4. Optimización de Imágenes
+- Carga diferida de imágenes
+- Imágenes responsivas
+- Soporte de formato WebP (vía Capacitor)
 
-## Scalability Considerations
+## Consideraciones de Escalabilidad
 
-### Frontend Scalability
-- Standalone components for better tree-shaking
-- Service workers for offline capabilities
-- Efficient change detection strategies
+### Escalabilidad Frontend
+- Componentes standalone para mejor tree-shaking
+- Service workers para capacidades offline
+- Estrategias eficientes de detección de cambios
 
-### Backend Scalability
-- AWS managed services auto-scale
-- AppSync handles concurrent connections
-- DynamoDB on-demand capacity mode
-- S3 unlimited storage
+### Escalabilidad Backend
+- Los servicios administrados de AWS escalan automáticamente
+- AppSync maneja conexiones concurrentes
+- Modo de capacidad bajo demanda de DynamoDB
+- Almacenamiento ilimitado en S3
 
-### Data Synchronization
-- Incremental sync (only changed records)
-- Pagination for large datasets
-- Selective sync (user-scoped data only)
+### Sincronización de Datos
+- Sincronización incremental (solo registros modificados)
+- Paginación para grandes conjuntos de datos
+- Sincronización selectiva (solo datos del usuario)
 
-## Testing Architecture
+## Arquitectura de Pruebas
 
-### Unit Tests
-- Karma + Jasmine test runner
-- 56+ test files (`.spec.ts`)
-- Service layer fully testable
-- Mock data for offline testing
+### Pruebas Unitarias
+- Framework de pruebas Karma + Jasmine
+- Más de 56 archivos de prueba (`.spec.ts`)
+- Capa de servicios completamente comprobable
+- Datos simulados para pruebas offline
 
-### Test Configuration
-- Chrome Headless for CI/CD
-- Firefox Headless as fallback
-- Coverage reporting (Istanbul)
-- Automated test runs on commit
+### Configuración de Pruebas
+- Chrome Headless para CI/CD
+- Firefox Headless como alternativa
+- Reportes de cobertura (Istanbul)
+- Ejecución automática de pruebas en cada commit
 
-## Build & Deployment Architecture
+## Arquitectura de Compilación y Despliegue
 
-### Build Process
+### Proceso de Compilación
 ```
-Source Code (TypeScript/SCSS)
+Código Fuente (TypeScript/SCSS)
     ↓
-Angular Compiler (AOT)
+Compilador Angular (AOT)
     ↓
-Webpack Bundling
+Empaquetado con Webpack
     ↓
-Minification & Optimization
+Minificación y Optimización
     ↓
-Web Build (www/)
+Build Web (www/)
     ↓
-Capacitor Copy
+Copia a Capacitor
     ↓
-Native Project (android/)
+Proyecto Nativo (android/)
     ↓
-Gradle Build
+Compilación con Gradle
     ↓
-APK/AAB Output
+Salida APK/AAB
 ```
 
-### Environment Configuration
-- `environment.ts`: Development config
-- `environment.prod.ts`: Production config
-- Runtime Amplify configuration
-- Build-time feature flags
+### Configuración de Entornos
+- `environment.ts`: Configuración de desarrollo
+- `environment.prod.ts`: Configuración de producción
+- Configuración de Amplify en tiempo de ejecución
+- Indicadores de características en tiempo de compilación
 
-### Deployment Targets
-- Web: Static hosting (www/ directory)
+### Objetivos de Despliegue
+- Web: Alojamiento estático (directorio `www/`)
 - Android: Google Play Store (APK/AAB)
-- Potential iOS: Apple App Store (future)
+- iOS potencial: Apple App Store (futuro)
 
-## Monitoring & Analytics
+## Monitoreo y Analíticas
 
-### Application Monitoring
-- AWS Analytics (Pinpoint) integration
-- Session tracking
-- Page view tracking
-- Custom event tracking
+### Monitoreo de la Aplicación
+- Integración de AWS Analytics (Pinpoint)
+- Seguimiento de sesiones
+- Seguimiento de vistas de página
+- Seguimiento de eventos personalizados
 
-### Error Tracking
-- Console error logging
-- DataStore sync error handling
-- Network failure recovery
+### Seguimiento de Errores
+- Registro de errores en consola
+- Manejo de errores de sincronización en DataStore
+- Recuperación ante fallos de red
 
-### Performance Monitoring
-- Angular performance profiling
-- DataStore sync metrics
-- API response time tracking
+### Monitoreo de Rendimiento
+- Perfilado de rendimiento de Angular
+- Métricas de sincronización de DataStore
+- Seguimiento del tiempo de respuesta de la API

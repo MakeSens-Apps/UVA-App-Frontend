@@ -1,34 +1,34 @@
-# API Documentation
+# Documentación de API
 
-## Overview
+## Descripción General
 
-The application uses **AWS AppSync** as the GraphQL API layer, providing real-time data synchronization, offline support, and conflict resolution. All API operations are auto-generated from the GraphQL schema and consumed via AWS Amplify DataStore.
+La aplicación utiliza **AWS AppSync** como capa de API GraphQL, proporcionando sincronización de datos en tiempo real, soporte offline y resolución de conflictos. Todas las operaciones de la API se generan automáticamente a partir del esquema GraphQL y se consumen mediante AWS Amplify DataStore.
 
-### API Configuration
-- **Type**: GraphQL (AWS AppSync)
-- **Region**: us-east-1
+### Configuración de la API
+- **Tipo**: GraphQL (AWS AppSync)
+- **Región**: us-east-1
 - **API ID**: uqr6xntysfa3lbguhirvcj3pa4
-- **Protocol**: HTTPS + WebSocket (for subscriptions)
-- **Schema Version**: GraphQL Transformer V2
+- **Protocolo**: HTTPS + WebSocket (para suscripciones)
+- **Versión del Esquema**: GraphQL Transformer V2
 
 ---
 
-## Authentication & Authorization
+## Autenticación y Autorización
 
-### Authentication Methods
+### Métodos de Autenticación
 
 1. **AWS Cognito User Pools**
-   - Phone-based authentication
-   - SMS OTP verification
-   - JWT tokens (Access, ID, Refresh)
-   - Session management
+   - Autenticación basada en número de teléfono
+   - Verificación por SMS OTP
+   - Tokens JWT (Acceso, ID, Actualización)
+   - Gestión de sesiones
 
-2. **Authorization Rules**
-   - **Owner-based**: Users can only access their own data
-   - **Private**: Authenticated users only
-   - **Public**: Limited public read access (moon phase data)
+2. **Reglas de Autorización**
+   - **Basada en propietario**: Los usuarios solo pueden acceder a sus propios datos
+   - **Privada**: Solo usuarios autenticados
+   - **Pública**: Acceso de lectura público limitado (datos de fases lunares)
 
-### Request Headers
+### Cabeceras de Solicitud
 
 ```
 Authorization: Bearer <JWT_ACCESS_TOKEN>
@@ -37,17 +37,17 @@ Content-Type: application/json
 
 ---
 
-## GraphQL Operations
+## Operaciones GraphQL
 
-### 1. RACIMO (Project/Cluster) Operations
+### 1. Operaciones de RACIMO (Proyecto/Clúster)
 
-#### Create RACIMO
+#### Crear RACIMO
 
-**Operation**: `createRACIMO`
-**Type**: Mutation
-**Access**: Authenticated users
+**Operación**: `createRACIMO`
+**Tipo**: Mutación
+**Acceso**: Usuarios autenticados
 
-**Request**:
+**Solicitud**:
 ```graphql
 mutation CreateRACIMO($input: CreateRACIMOInput!) {
   createRACIMO(input: $input) {
@@ -62,7 +62,7 @@ mutation CreateRACIMO($input: CreateRACIMOInput!) {
 }
 ```
 
-**Input Variables**:
+**Variables de Entrada**:
 ```json
 {
   "input": {
@@ -73,7 +73,7 @@ mutation CreateRACIMO($input: CreateRACIMOInput!) {
 }
 ```
 
-**Response**:
+**Respuesta**:
 ```json
 {
   "data": {
@@ -92,13 +92,13 @@ mutation CreateRACIMO($input: CreateRACIMOInput!) {
 
 ---
 
-#### Get RACIMO by ID
+#### Obtener RACIMO por ID
 
-**Operation**: `getRACIMO`
-**Type**: Query
-**Access**: Authenticated users (members only)
+**Operación**: `getRACIMO`
+**Tipo**: Consulta
+**Acceso**: Usuarios autenticados (solo miembros)
 
-**Request**:
+**Solicitud**:
 ```graphql
 query GetRACIMO($id: ID!) {
   getRACIMO(id: $id) {
@@ -122,7 +122,7 @@ query GetRACIMO($id: ID!) {
 }
 ```
 
-**Input Variables**:
+**Variables de Entrada**:
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000"
@@ -131,13 +131,13 @@ query GetRACIMO($id: ID!) {
 
 ---
 
-#### List RACIMOs
+#### Listar RACIMOs
 
-**Operation**: `listRACIMOS`
-**Type**: Query
-**Access**: Authenticated users
+**Operación**: `listRACIMOS`
+**Tipo**: Consulta
+**Acceso**: Usuarios autenticados
 
-**Request**:
+**Solicitud**:
 ```graphql
 query ListRACIMOS($filter: ModelRACIMOFilterInput, $limit: Int, $nextToken: String) {
   listRACIMOS(filter: $filter, limit: $limit, nextToken: $nextToken) {
@@ -153,7 +153,7 @@ query ListRACIMOS($filter: ModelRACIMOFilterInput, $limit: Int, $nextToken: Stri
 }
 ```
 
-**Filter Options**:
+**Opciones de Filtro**:
 ```json
 {
   "filter": {
@@ -167,13 +167,13 @@ query ListRACIMOS($filter: ModelRACIMOFilterInput, $limit: Int, $nextToken: Stri
 
 ---
 
-#### Update RACIMO
+#### Actualizar RACIMO
 
-**Operation**: `updateRACIMO`
-**Type**: Mutation
-**Access**: RACIMO admin only
+**Operación**: `updateRACIMO`
+**Tipo**: Mutación
+**Acceso**: Solo administrador del RACIMO
 
-**Request**:
+**Solicitud**:
 ```graphql
 mutation UpdateRACIMO($input: UpdateRACIMOInput!) {
   updateRACIMO(input: $input) {
@@ -186,7 +186,7 @@ mutation UpdateRACIMO($input: UpdateRACIMOInput!) {
 }
 ```
 
-**Input Variables**:
+**Variables de Entrada**:
 ```json
 {
   "input": {
@@ -199,15 +199,15 @@ mutation UpdateRACIMO($input: UpdateRACIMOInput!) {
 
 ---
 
-### 2. UVA (Agricultural Unit) Operations
+### 2. Operaciones de UVA (Unidad Agrícola)
 
-#### Create UVA
+#### Crear UVA
 
-**Operation**: `createUVA`
-**Type**: Mutation
-**Access**: Authenticated users
+**Operación**: `createUVA`
+**Tipo**: Mutación
+**Acceso**: Usuarios autenticados
 
-**Request**:
+**Solicitud**:
 ```graphql
 mutation CreateUVA($input: CreateUVAInput!) {
   createUVA(input: $input) {
@@ -224,7 +224,7 @@ mutation CreateUVA($input: CreateUVAInput!) {
 }
 ```
 
-**Input Variables**:
+**Variables de Entrada**:
 ```json
 {
   "input": {
@@ -241,13 +241,13 @@ mutation CreateUVA($input: CreateUVAInput!) {
 
 ---
 
-#### Get UVA by ID
+#### Obtener UVA por ID
 
-**Operation**: `getUVA`
-**Type**: Query
-**Access**: Owner or RACIMO members
+**Operación**: `getUVA`
+**Tipo**: Consulta
+**Acceso**: Propietario o miembros del RACIMO
 
-**Request**:
+**Solicitud**:
 ```graphql
 query GetUVA($id: ID!) {
   getUVA(id: $id) {
@@ -280,13 +280,13 @@ query GetUVA($id: ID!) {
 
 ---
 
-#### List UVAs
+#### Listar UVAs
 
-**Operation**: `listUVAS`
-**Type**: Query
-**Access**: Authenticated users
+**Operación**: `listUVAS`
+**Tipo**: Consulta
+**Acceso**: Usuarios autenticados
 
-**Request**:
+**Solicitud**:
 ```graphql
 query ListUVAS($filter: ModelUVAFilterInput) {
   listUVAS(filter: $filter) {
@@ -302,7 +302,7 @@ query ListUVAS($filter: ModelUVAFilterInput) {
 }
 ```
 
-**Filter by RACIMO**:
+**Filtrar por RACIMO**:
 ```json
 {
   "filter": {
@@ -315,15 +315,15 @@ query ListUVAS($filter: ModelUVAFilterInput) {
 
 ---
 
-### 3. User Operations
+### 3. Operaciones de Usuario
 
-#### Create User
+#### Crear Usuario
 
-**Operation**: `createUser`
-**Type**: Mutation
-**Access**: Authenticated (self-registration)
+**Operación**: `createUser`
+**Tipo**: Mutación
+**Acceso**: Autenticado (autorregistro)
 
-**Request**:
+**Solicitud**:
 ```graphql
 mutation CreateUser($input: CreateUserInput!) {
   createUser(input: $input) {
@@ -339,7 +339,7 @@ mutation CreateUser($input: CreateUserInput!) {
 }
 ```
 
-**Input Variables**:
+**Variables de Entrada**:
 ```json
 {
   "input": {
@@ -355,13 +355,13 @@ mutation CreateUser($input: CreateUserInput!) {
 
 ---
 
-#### Get User
+#### Obtener Usuario
 
-**Operation**: `getUser`
-**Type**: Query
-**Access**: Owner only
+**Operación**: `getUser`
+**Tipo**: Consulta
+**Acceso**: Solo propietario
 
-**Request**:
+**Solicitud**:
 ```graphql
 query GetUser($id: ID!) {
   getUser(id: $id) {
@@ -393,13 +393,13 @@ query GetUser($id: ID!) {
 
 ---
 
-#### Update User
+#### Actualizar Usuario
 
-**Operation**: `updateUser`
-**Type**: Mutation
-**Access**: Owner only
+**Operación**: `updateUser`
+**Tipo**: Mutación
+**Acceso**: Solo propietario
 
-**Request**:
+**Solicitud**:
 ```graphql
 mutation UpdateUser($input: UpdateUserInput!) {
   updateUser(input: $input) {
@@ -415,15 +415,15 @@ mutation UpdateUser($input: UpdateUserInput!) {
 
 ---
 
-### 4. Measurement Operations
+### 4. Operaciones de Medición
 
-#### Create Measurement
+#### Crear Medición
 
-**Operation**: `createMeasurement`
-**Type**: Mutation
-**Access**: Authenticated users (owner)
+**Operación**: `createMeasurement`
+**Tipo**: Mutación
+**Acceso**: Usuarios autenticados (propietario)
 
-**Request**:
+**Solicitud**:
 ```graphql
 mutation CreateMeasurement($input: CreateMeasurementInput!) {
   createMeasurement(input: $input) {
@@ -440,7 +440,7 @@ mutation CreateMeasurement($input: CreateMeasurementInput!) {
 }
 ```
 
-**Input Variables**:
+**Variables de Entrada**:
 ```json
 {
   "input": {
@@ -454,7 +454,7 @@ mutation CreateMeasurement($input: CreateMeasurementInput!) {
 }
 ```
 
-**Response**:
+**Respuesta**:
 ```json
 {
   "data": {
@@ -475,13 +475,13 @@ mutation CreateMeasurement($input: CreateMeasurementInput!) {
 
 ---
 
-#### Get Measurement
+#### Obtener Medición
 
-**Operation**: `getMeasurement`
-**Type**: Query
-**Access**: Owner or RACIMO members
+**Operación**: `getMeasurement`
+**Tipo**: Consulta
+**Acceso**: Propietario o miembros del RACIMO
 
-**Request**:
+**Solicitud**:
 ```graphql
 query GetMeasurement($id: ID!) {
   getMeasurement(id: $id) {
@@ -500,13 +500,13 @@ query GetMeasurement($id: ID!) {
 
 ---
 
-#### List Measurements
+#### Listar Mediciones
 
-**Operation**: `listMeasurements`
-**Type**: Query
-**Access**: Owner or RACIMO members
+**Operación**: `listMeasurements`
+**Tipo**: Consulta
+**Acceso**: Propietario o miembros del RACIMO
 
-**Request**:
+**Solicitud**:
 ```graphql
 query ListMeasurements($filter: ModelMeasurementFilterInput, $limit: Int) {
   listMeasurements(filter: $filter, limit: $limit) {
@@ -523,7 +523,7 @@ query ListMeasurements($filter: ModelMeasurementFilterInput, $limit: Int) {
 }
 ```
 
-**Filter by UVA and Date Range**:
+**Filtrar por UVA y Rango de Fechas**:
 ```json
 {
   "filter": {
@@ -540,13 +540,13 @@ query ListMeasurements($filter: ModelMeasurementFilterInput, $limit: Int) {
 
 ---
 
-#### Query Measurements by UVA and Timestamp
+#### Consultar Mediciones por UVA y Timestamp
 
-**Operation**: `measurementsByUvaIDAndTs`
-**Type**: Query (using index)
-**Access**: Owner or RACIMO members
+**Operación**: `measurementsByUvaIDAndTs`
+**Tipo**: Consulta (usando índice)
+**Acceso**: Propietario o miembros del RACIMO
 
-**Request**:
+**Solicitud**:
 ```graphql
 query MeasurementsByUvaIDAndTs(
   $uvaID: ID!
@@ -583,15 +583,15 @@ query MeasurementsByUvaIDAndTs(
 
 ---
 
-### 5. User Progress Operations
+### 5. Operaciones de Progreso de Usuario
 
-#### Create User Progress
+#### Crear Progreso de Usuario
 
-**Operation**: `createUserProgress`
-**Type**: Mutation
-**Access**: Owner only
+**Operación**: `createUserProgress`
+**Tipo**: Mutación
+**Acceso**: Solo propietario
 
-**Request**:
+**Solicitud**:
 ```graphql
 mutation CreateUserProgress($input: CreateUserProgressInput!) {
   createUserProgress(input: $input) {
@@ -608,7 +608,7 @@ mutation CreateUserProgress($input: CreateUserProgressInput!) {
 }
 ```
 
-**Input Variables**:
+**Variables de Entrada**:
 ```json
 {
   "input": {
@@ -626,13 +626,13 @@ mutation CreateUserProgress($input: CreateUserProgressInput!) {
 
 ---
 
-#### Query Progress by User and Date
+#### Consultar Progreso por Usuario y Fecha
 
-**Operation**: `userProgressesByUserIDAndTs`
-**Type**: Query (using index)
-**Access**: Owner only
+**Operación**: `userProgressesByUserIDAndTs`
+**Tipo**: Consulta (usando índice)
+**Acceso**: Solo propietario
 
-**Request**:
+**Solicitud**:
 ```graphql
 query UserProgressesByUserIDAndTs(
   $userID: ID!
@@ -659,22 +659,22 @@ query UserProgressesByUserIDAndTs(
 
 ---
 
-### 6. Moon Phase Operations
+### 6. Operaciones de Fase Lunar
 
-#### Get Moon Phase
+#### Obtener Fase Lunar
 
-**Operation**: `getMoonPhase`
-**Type**: Query
-**Access**: Public (no authentication required)
+**Operación**: `getMoonPhase`
+**Tipo**: Consulta
+**Acceso**: Público (no requiere autenticación)
 
-**Request**:
+**Solicitud**:
 ```graphql
 query GetMoonPhase($year: Int!, $month: Int!) {
   getMoonPhase(year: $year, month: $month)
 }
 ```
 
-**Input Variables**:
+**Variables de Entrada**:
 ```json
 {
   "year": 2025,
@@ -682,7 +682,7 @@ query GetMoonPhase($year: Int!, $month: Int!) {
 }
 ```
 
-**Response**:
+**Respuesta**:
 ```json
 {
   "data": {
@@ -693,15 +693,15 @@ query GetMoonPhase($year: Int!, $month: Int!) {
 
 ---
 
-## Subscriptions (Real-time Updates)
+## Suscripciones (Actualizaciones en Tiempo Real)
 
-### Subscribe to Measurement Creation
+### Suscribirse a la Creación de Mediciones
 
-**Operation**: `onCreateMeasurement`
-**Type**: Subscription
-**Access**: Owner only
+**Operación**: `onCreateMeasurement`
+**Tipo**: Suscripción
+**Acceso**: Solo propietario
 
-**Request**:
+**Solicitud**:
 ```graphql
 subscription OnCreateMeasurement($filter: ModelSubscriptionMeasurementFilterInput, $owner: String) {
   onCreateMeasurement(filter: $filter, owner: $owner) {
@@ -718,13 +718,13 @@ subscription OnCreateMeasurement($filter: ModelSubscriptionMeasurementFilterInpu
 
 ---
 
-### Subscribe to User Updates
+### Suscribirse a Actualizaciones de Usuario
 
-**Operation**: `onUpdateUser`
-**Type**: Subscription
-**Access**: Owner only
+**Operación**: `onUpdateUser`
+**Tipo**: Suscripción
+**Acceso**: Solo propietario
 
-**Request**:
+**Solicitud**:
 ```graphql
 subscription OnUpdateUser($filter: ModelSubscriptionUserFilterInput) {
   onUpdateUser(filter: $filter) {
@@ -739,13 +739,13 @@ subscription OnUpdateUser($filter: ModelSubscriptionUserFilterInput) {
 
 ---
 
-### Subscribe to User Progress Updates
+### Suscribirse a Actualizaciones de Progreso de Usuario
 
-**Operation**: `onCreateUserProgress`
-**Type**: Subscription
-**Access**: Owner only
+**Operación**: `onCreateUserProgress`
+**Tipo**: Suscripción
+**Acceso**: Solo propietario
 
-**Request**:
+**Solicitud**:
 ```graphql
 subscription OnCreateUserProgress($filter: ModelSubscriptionUserProgressFilterInput, $userID: String) {
   onCreateUserProgress(filter: $filter, userID: $userID) {
@@ -761,15 +761,15 @@ subscription OnCreateUserProgress($filter: ModelSubscriptionUserProgressFilterIn
 
 ---
 
-## DataStore Sync Operations
+## Operaciones de Sincronización DataStore
 
-### Sync RACIMOs
+### Sincronizar RACIMOs
 
-**Operation**: `syncRACIMOS`
-**Type**: Query
-**Access**: Authenticated users
+**Operación**: `syncRACIMOS`
+**Tipo**: Consulta
+**Acceso**: Usuarios autenticados
 
-**Request**:
+**Solicitud**:
 ```graphql
 query SyncRACIMOS($filter: ModelRACIMOFilterInput, $limit: Int, $lastSync: AWSTimestamp) {
   syncRACIMOS(filter: $filter, limit: $limit, lastSync: $lastSync) {
@@ -787,15 +787,15 @@ query SyncRACIMOS($filter: ModelRACIMOFilterInput, $limit: Int, $lastSync: AWSTi
 }
 ```
 
-**Usage**: Called automatically by AWS Amplify DataStore for offline sync
+**Uso**: Llamado automáticamente por AWS Amplify DataStore para sincronización offline
 
 ---
 
-## Error Handling
+## Manejo de Errores
 
-### Common Error Responses
+### Respuestas de Error Comunes
 
-#### Authentication Error
+#### Error de Autenticación
 ```json
 {
   "errors": [
@@ -807,7 +807,7 @@ query SyncRACIMOS($filter: ModelRACIMOFilterInput, $limit: Int, $lastSync: AWSTi
 }
 ```
 
-#### Validation Error
+#### Error de Validación
 ```json
 {
   "errors": [
@@ -819,7 +819,7 @@ query SyncRACIMOS($filter: ModelRACIMOFilterInput, $limit: Int, $lastSync: AWSTi
 }
 ```
 
-#### Conflict Error (Optimistic Locking)
+#### Error de Conflicto (Bloqueo Optimista)
 ```json
 {
   "errors": [
@@ -831,7 +831,7 @@ query SyncRACIMOS($filter: ModelRACIMOFilterInput, $limit: Int, $lastSync: AWSTi
 }
 ```
 
-#### Not Found Error
+#### Error de Recurso No Encontrado
 ```json
 {
   "errors": [
@@ -845,9 +845,9 @@ query SyncRACIMOS($filter: ModelRACIMOFilterInput, $limit: Int, $lastSync: AWSTi
 
 ---
 
-## Pagination
+## Paginación
 
-All list operations support pagination:
+Todas las operaciones de listado soportan paginación:
 
 ```graphql
 query ListMeasurements($nextToken: String, $limit: Int) {
@@ -857,19 +857,19 @@ query ListMeasurements($nextToken: String, $limit: Int) {
       type
       ts
     }
-    nextToken  # Use this for next page
+    nextToken  # Usar este valor para la siguiente página
   }
 }
 ```
 
-**First Page**:
+**Primera Página**:
 ```json
 {
   "limit": 50
 }
 ```
 
-**Subsequent Pages**:
+**Páginas Siguientes**:
 ```json
 {
   "limit": 50,
@@ -879,51 +879,51 @@ query ListMeasurements($nextToken: String, $limit: Int) {
 
 ---
 
-## Rate Limits
+## Límites de Velocidad
 
-- **Queries**: 1000 requests per second
-- **Mutations**: 500 requests per second
-- **Subscriptions**: 1000 concurrent connections
-- **Burst capacity**: 2000 requests
+- **Consultas**: 1000 solicitudes por segundo
+- **Mutaciones**: 500 solicitudes por segundo
+- **Suscripciones**: 1000 conexiones simultáneas
+- **Capacidad de ráfaga**: 2000 solicitudes
 
 ---
 
-## Best Practices
+## Buenas Prácticas
 
-### 1. Use DataStore Instead of Direct API Calls
+### 1. Usar DataStore en Lugar de Llamadas Directas a la API
 ```typescript
-// ✅ Preferred: Use DataStore
+// ✅ Preferido: Usar DataStore
 const measurements = await DataStore.query(Measurement, m =>
   m.uvaID.eq('uva-123')
 );
 
-// ❌ Avoid: Direct GraphQL calls
-// (unless you need specific optimizations)
+// ❌ Evitar: Llamadas directas a GraphQL
+// (a menos que se necesiten optimizaciones específicas)
 ```
 
-### 2. Leverage Optimistic Updates
-DataStore handles optimistic UI updates automatically - UI updates immediately while sync happens in background.
+### 2. Aprovechar las Actualizaciones Optimistas
+DataStore maneja las actualizaciones optimistas de la UI automáticamente: la UI se actualiza inmediatamente mientras la sincronización ocurre en segundo plano.
 
-### 3. Use Pagination for Large Datasets
-Always use `limit` and `nextToken` when querying large collections.
+### 3. Usar Paginación para Grandes Conjuntos de Datos
+Siempre usar `limit` y `nextToken` al consultar colecciones grandes.
 
-### 4. Filter on Indexed Fields
-Use `uvaID`, `userID`, and `ts` for efficient filtering (they have GSIs).
+### 4. Filtrar por Campos Indexados
+Usar `uvaID`, `userID` y `ts` para filtrado eficiente (tienen GSIs).
 
-### 5. Batch Mutations
-When creating multiple records, use batch operations if available or throttle requests.
+### 5. Agrupar Mutaciones
+Al crear múltiples registros, usar operaciones por lotes si están disponibles o limitar la velocidad de las solicitudes.
 
 ---
 
-## SDK Usage Examples
+## Ejemplos de Uso con SDK
 
-### TypeScript/Angular Example
+### Ejemplo TypeScript/Angular
 
 ```typescript
 import { DataStore } from 'aws-amplify/datastore';
 import { Measurement } from '@/models';
 
-// Create measurement
+// Crear medición
 const newMeasurement = await DataStore.save(
   new Measurement({
     type: 'temperature',
@@ -934,7 +934,7 @@ const newMeasurement = await DataStore.save(
   })
 );
 
-// Query measurements
+// Consultar mediciones
 const measurements = await DataStore.query(
   Measurement,
   m => m.and(m => [
@@ -947,7 +947,7 @@ const measurements = await DataStore.query(
   }
 );
 
-// Subscribe to changes
+// Suscribirse a cambios
 const subscription = DataStore.observe(Measurement).subscribe(msg => {
   console.log('Measurement changed:', msg.model, msg.opType);
 });
@@ -955,10 +955,10 @@ const subscription = DataStore.observe(Measurement).subscribe(msg => {
 
 ---
 
-## GraphQL Schema Location
+## Ubicación del Esquema GraphQL
 
-The full GraphQL schema is defined in:
-- **File**: `amplify/backend/api/<api-name>/schema.graphql`
-- **Auto-generated types**: `src/API.ts`
-- **Models**: `src/models/`
-- **Operations**: `src/graphql/queries.ts`, `mutations.ts`, `subscriptions.ts`
+El esquema GraphQL completo está definido en:
+- **Archivo**: `amplify/backend/api/<api-name>/schema.graphql`
+- **Tipos autogenerados**: `src/API.ts`
+- **Modelos**: `src/models/`
+- **Operaciones**: `src/graphql/queries.ts`, `mutations.ts`, `subscriptions.ts`

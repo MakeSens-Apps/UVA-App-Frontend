@@ -1,35 +1,35 @@
-# Infrastructure Documentation
+# Documentación de Infraestructura
 
-## Overview
+## Descripción General
 
-UVA-App leverages a **serverless, cloud-native architecture** built entirely on AWS managed services. The infrastructure is provisioned and managed through **AWS Amplify CLI**, following infrastructure-as-code principles.
+UVA-App aprovecha una **arquitectura serverless nativa en la nube** construida enteramente sobre servicios administrados de AWS. La infraestructura se aprovisiona y gestiona mediante la **AWS Amplify CLI**, siguiendo los principios de infraestructura como código.
 
 ---
 
-## Cloud Provider
+## Proveedor de Nube
 
 **Amazon Web Services (AWS)**
-- **Primary Region**: `us-east-1` (N. Virginia)
-- **Management Tool**: AWS Amplify CLI
-- **Deployment Model**: Serverless (no server management)
+- **Región Principal**: `us-east-1` (Virginia del Norte)
+- **Herramienta de Gestión**: AWS Amplify CLI
+- **Modelo de Despliegue**: Serverless (sin gestión de servidores)
 
 ---
 
-## AWS Services Architecture
+## Arquitectura de Servicios AWS
 
-### High-Level Infrastructure Diagram
+### Diagrama de Infraestructura de Alto Nivel
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     Mobile Application                       │
-│                  (Angular + Ionic + Capacitor)              │
+│                     Aplicación Móvil                         │
+│                  (Angular + Ionic + Capacitor)               │
 └───────────────────────┬─────────────────────────────────────┘
                         │
                         │ HTTPS/WebSocket
                         ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                      AWS Amplify                             │
-│              (Configuration & Orchestration)                 │
+│              (Configuración y Orquestación)                  │
 └───────────────────────┬─────────────────────────────────────┘
                         │
         ┌───────────────┼───────────────┐
@@ -37,43 +37,43 @@ UVA-App leverages a **serverless, cloud-native architecture** built entirely on 
         ▼               ▼               ▼
 ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
 │  AWS Cognito │ │ AWS AppSync  │ │   AWS S3     │
-│    (Auth)    │ │  (GraphQL)   │ │  (Storage)   │
+│    (Auth)    │ │  (GraphQL)   │ │ (Almacen.)   │
 └──────────────┘ └──────┬───────┘ └──────────────┘
                         │
                         ▼
                 ┌──────────────┐
                 │  DynamoDB    │
-                │  (Database)  │
+                │ (Base datos) │
                 └──────────────┘
                         │
                         ▼
                 ┌──────────────┐
                 │ CloudWatch   │
-                │ (Monitoring) │
+                │ (Monitoreo)  │
                 └──────────────┘
 ```
 
 ---
 
-## AWS Services Breakdown
+## Desglose de Servicios AWS
 
 ### 1. AWS Amplify
 
-**Purpose**: Backend infrastructure orchestration and frontend hosting
+**Propósito**: Orquestación de infraestructura backend y alojamiento frontend
 
-#### Features Used
-- **Amplify CLI**: Infrastructure provisioning and management
-- **Amplify DataStore**: Offline-first data synchronization
-- **Amplify Auth**: Authentication integration with Cognito
-- **Amplify Storage**: S3 integration for file uploads
-- **Amplify Analytics**: User behavior tracking
+#### Funcionalidades Utilizadas
+- **Amplify CLI**: Aprovisionamiento y gestión de infraestructura
+- **Amplify DataStore**: Sincronización de datos offline-first
+- **Amplify Auth**: Integración de autenticación con Cognito
+- **Amplify Storage**: Integración con S3 para subida de archivos
+- **Amplify Analytics**: Seguimiento del comportamiento del usuario
 
-#### Configuration
-- **Config File**: `amplify/cli.json`
-- **Team Config**: `amplify/team-provider-info.json`
-- **Feature Flags**: GraphQL Transformer V2 enabled
+#### Configuración
+- **Archivo de Configuración**: `amplify/cli.json`
+- **Configuración del Equipo**: `amplify/team-provider-info.json`
+- **Indicadores de Características**: GraphQL Transformer V2 habilitado
 
-#### Key Configurations
+#### Configuraciones Clave
 ```json
 {
   "features": {
@@ -89,251 +89,251 @@ UVA-App leverages a **serverless, cloud-native architecture** built entirely on 
 
 ### 2. AWS Cognito
 
-**Purpose**: User authentication and authorization
+**Propósito**: Autenticación y autorización de usuarios
 
-#### Service Type
+#### Tipo de Servicio
 **Amazon Cognito User Pools**
 
-#### Authentication Flow
-- **Primary Method**: Phone number authentication
-- **Verification**: SMS OTP (One-Time Password)
-- **MFA**: Enabled for enhanced security
-- **Token Management**: JWT tokens (Access, ID, Refresh)
+#### Flujo de Autenticación
+- **Método Principal**: Autenticación por número de teléfono
+- **Verificación**: SMS OTP (Contraseña de Un Solo Uso)
+- **MFA**: Habilitado para mayor seguridad
+- **Gestión de Tokens**: Tokens JWT (Acceso, ID, Actualización)
 
-#### User Pool Configuration
+#### Configuración del Pool de Usuarios
 
-| Setting | Value |
-|---------|-------|
-| Username Attribute | Phone Number |
-| Phone Verification | Required (SMS) |
-| MFA | Optional/Required |
-| Password Policy | N/A (phone-only auth) |
-| Token Validity | Access: 1 hour, Refresh: 30 days |
-| User Attributes | phone_number, name, email (optional) |
+| Configuración | Valor |
+|---------------|-------|
+| Atributo de Nombre de Usuario | Número de Teléfono |
+| Verificación de Teléfono | Requerida (SMS) |
+| MFA | Opcional/Requerido |
+| Política de Contraseñas | N/A (auth solo por teléfono) |
+| Validez del Token | Acceso: 1 hora, Actualización: 30 días |
+| Atributos de Usuario | phone_number, name, email (opcional) |
 
-#### Required Permissions
+#### Permisos Requeridos
 - `cognito-idp:InitiateAuth`
 - `cognito-idp:RespondToAuthChallenge`
 - `cognito-idp:GetUser`
 - `cognito-idp:SignUp`
 - `cognito-idp:ConfirmSignUp`
 
-#### Security Features
-- SMS rate limiting
-- Account takeover protection
-- Advanced security (risk-based adaptive auth)
-- Compromised credentials detection
+#### Características de Seguridad
+- Limitación de velocidad de SMS
+- Protección contra toma de cuenta
+- Seguridad avanzada (auth adaptativa basada en riesgo)
+- Detección de credenciales comprometidas
 
 ---
 
 ### 3. AWS AppSync
 
-**Purpose**: Managed GraphQL API with real-time capabilities
+**Propósito**: API GraphQL administrada con capacidades en tiempo real
 
-#### Service Type
+#### Tipo de Servicio
 **AWS AppSync GraphQL API**
 
-#### Configuration
+#### Configuración
 
-| Setting | Value |
-|---------|-------|
-| API Type | GraphQL |
-| Region | us-east-1 |
+| Configuración | Valor |
+|---------------|-------|
+| Tipo de API | GraphQL |
+| Región | us-east-1 |
 | API ID | uqr6xntysfa3lbguhirvcj3pa4 |
-| Schema Version | GraphQL Transformer V2 |
-| Real-time | WebSocket subscriptions enabled |
-| Caching | API-level caching (configurable) |
+| Versión del Esquema | GraphQL Transformer V2 |
+| Tiempo Real | Suscripciones WebSocket habilitadas |
+| Caché | Caché a nivel de API (configurable) |
 
-#### Authorization Modes
-1. **Amazon Cognito User Pools** (Primary)
-   - For authenticated user operations
-   - Owner-based access control
+#### Modos de Autorización
+1. **Amazon Cognito User Pools** (Principal)
+   - Para operaciones de usuario autenticado
+   - Control de acceso basado en propietario
 
-2. **API Key** (Secondary - for public queries)
-   - For moon phase data
-   - Public read-only access
+2. **API Key** (Secundario - para consultas públicas)
+   - Para datos de fases lunares
+   - Acceso de solo lectura público
 
-#### Conflict Resolution
-- **Strategy**: Auto-merge with optimistic locking
-- **Version Field**: `_version` on all models
-- **Detection**: Server-side conflict detection
-- **Resolution**: Last-write-wins with version checks
+#### Resolución de Conflictos
+- **Estrategia**: Fusión automática con bloqueo optimista
+- **Campo de Versión**: `_version` en todos los modelos
+- **Detección**: Detección de conflictos del lado del servidor
+- **Resolución**: El último en escribir gana con verificaciones de versión
 
-#### DataStore Sync
-- **Base Latency**: ~20ms
-- **Sync Interval**: Real-time (WebSocket) + periodic (60s)
-- **Sync Models**: All (RACIMO, UVA, User, Measurement, UserProgress)
+#### Sincronización DataStore
+- **Latencia Base**: ~20ms
+- **Intervalo de Sincronización**: Tiempo real (WebSocket) + periódico (60s)
+- **Modelos Sincronizados**: Todos (RACIMO, UVA, Usuario, Medición, ProgresoUsuario)
 
 ---
 
 ### 4. Amazon DynamoDB
 
-**Purpose**: Primary NoSQL database for application data
+**Propósito**: Base de datos NoSQL principal para los datos de la aplicación
 
-#### Tables
+#### Tablas
 
-| Table | Purpose | Partition Key | GSIs |
-|-------|---------|---------------|------|
-| RACIMO | Project/cluster data | id | LinkageCode |
-| UVA | Agricultural unit data | id | userID, racimoID |
-| User | User profiles | id | PhoneNumber, uvaID |
-| Measurement | Time-series data | id | uvaID+ts |
-| UserProgress | Gamification data | id | userID+ts |
+| Tabla | Propósito | Clave de Partición | GSIs |
+|-------|-----------|-------------------|------|
+| RACIMO | Datos de proyecto/clúster | id | LinkageCode |
+| UVA | Datos de unidad agrícola | id | userID, racimoID |
+| Usuario | Perfiles de usuario | id | PhoneNumber, uvaID |
+| Medición | Datos en series temporales | id | uvaID+ts |
+| ProgresoUsuario | Datos de gamificación | id | userID+ts |
 
-#### Capacity Configuration
-- **Billing Mode**: On-Demand (pay-per-request)
-- **Auto Scaling**: Automatic (managed by AWS)
-- **Read Capacity**: Unlimited (throttled at account limits)
-- **Write Capacity**: Unlimited (throttled at account limits)
+#### Configuración de Capacidad
+- **Modo de Facturación**: Bajo Demanda (pago por solicitud)
+- **Escalado Automático**: Automático (administrado por AWS)
+- **Capacidad de Lectura**: Ilimitada (limitada por cuotas de cuenta)
+- **Capacidad de Escritura**: Ilimitada (limitada por cuotas de cuenta)
 
-#### Features Enabled
-- **Point-in-Time Recovery (PITR)**: Enabled (35-day retention)
-- **Encryption**: AWS-managed keys (SSE)
-- **Streams**: Enabled (for AppSync sync)
-- **TTL**: Not configured (future use)
-- **Global Tables**: Not configured (single-region)
+#### Características Habilitadas
+- **Recuperación a Punto en el Tiempo (PITR)**: Habilitado (retención de 35 días)
+- **Cifrado**: Claves administradas por AWS (SSE)
+- **Streams**: Habilitados (para sincronización de AppSync)
+- **TTL**: No configurado (uso futuro)
+- **Tablas Globales**: No configurado (región única)
 
-#### Performance
-- **Average Latency**: <10ms (p50), <20ms (p99)
-- **Throughput**: Scales automatically
-- **Hot Partitions**: Avoided via user/UVA scoping
+#### Rendimiento
+- **Latencia Promedio**: <10ms (p50), <20ms (p99)
+- **Rendimiento**: Escala automáticamente
+- **Particiones Calientes**: Evitadas mediante alcance por usuario/UVA
 
 ---
 
 ### 5. Amazon S3
 
-**Purpose**: Object storage for user-uploaded files
+**Propósito**: Almacenamiento de objetos para archivos subidos por usuarios
 
 #### Buckets
 
-| Bucket | Purpose | Access Level | Lifecycle |
-|--------|---------|--------------|-----------|
-| `uva-app-storage-{env}` | User profile pictures | Private | No expiration |
-| `uva-app-public-{env}` | Public assets (future) | Public read | No expiration |
+| Bucket | Propósito | Nivel de Acceso | Ciclo de Vida |
+|--------|-----------|-----------------|---------------|
+| `uva-app-storage-{env}` | Fotos de perfil de usuario | Privado | Sin expiración |
+| `uva-app-public-{env}` | Activos públicos (futuro) | Lectura pública | Sin expiración |
 
-#### S3 Configuration
+#### Configuración de S3
 
-| Setting | Value |
-|---------|-------|
-| Versioning | Enabled |
-| Encryption | AES-256 (SSE-S3) |
-| Public Access | Blocked (default) |
-| CORS | Enabled for app domain |
-| Access Control | IAM + Cognito |
+| Configuración | Valor |
+|---------------|-------|
+| Versionado | Habilitado |
+| Cifrado | AES-256 (SSE-S3) |
+| Acceso Público | Bloqueado (predeterminado) |
+| CORS | Habilitado para el dominio de la app |
+| Control de Acceso | IAM + Cognito |
 
-#### File Organization
+#### Organización de Archivos
 ```
 s3://uva-app-storage-{env}/
-├── public/              # Public read access
+├── public/              # Acceso de lectura pública
 │   └── assets/
-├── protected/           # Protected (any auth user)
+├── protected/           # Protegido (cualquier usuario autenticado)
 │   └── shared/
-└── private/             # Private (owner only)
+└── private/             # Privado (solo propietario)
     └── {cognito-id}/
         ├── profile-pictures/
         └── measurement-attachments/
 ```
 
-#### Access Patterns
-- **Upload**: Client → Amplify → S3 (pre-signed URL)
-- **Download**: Client → Amplify → S3 (pre-signed URL)
-- **Authorization**: Cognito identity pool credentials
+#### Patrones de Acceso
+- **Subida**: Cliente → Amplify → S3 (URL prefirmada)
+- **Descarga**: Cliente → Amplify → S3 (URL prefirmada)
+- **Autorización**: Credenciales del pool de identidades de Cognito
 
 ---
 
 ### 6. Amazon CloudWatch
 
-**Purpose**: Monitoring, logging, and alerting
+**Propósito**: Monitoreo, registro y alertas
 
-#### Logs
+#### Registros
 
-| Log Group | Source | Retention |
-|-----------|--------|-----------|
-| `/aws/appsync/{api-id}` | AppSync GraphQL logs | 7 days |
-| `/aws/lambda/{function-name}` | Lambda resolvers (if any) | 7 days |
-| `/aws/amplify/{app-id}` | Amplify backend logs | 7 days |
+| Grupo de Logs | Fuente | Retención |
+|---------------|--------|-----------|
+| `/aws/appsync/{api-id}` | Logs GraphQL de AppSync | 7 días |
+| `/aws/lambda/{function-name}` | Resolvers Lambda (si aplica) | 7 días |
+| `/aws/amplify/{app-id}` | Logs del backend de Amplify | 7 días |
 
-#### Metrics Tracked
-- **AppSync**: Request count, latency, errors, resolver performance
-- **DynamoDB**: Read/write units, throttles, latency
-- **Cognito**: Sign-ups, sign-ins, failed authentications
-- **S3**: Requests, data transfer, errors
+#### Métricas Rastreadas
+- **AppSync**: Recuento de solicitudes, latencia, errores, rendimiento de resolvers
+- **DynamoDB**: Unidades de lectura/escritura, limitaciones, latencia
+- **Cognito**: Registros, inicios de sesión, autenticaciones fallidas
+- **S3**: Solicitudes, transferencia de datos, errores
 
-#### Alarms (Recommended Setup)
-- High API error rate (> 5%)
-- DynamoDB throttling
-- Cognito authentication failures spike
-- S3 4xx/5xx error rate increase
-
----
-
-### 7. AWS Pinpoint (Analytics)
-
-**Purpose**: User analytics and engagement tracking
-
-#### Analytics Events
-- **Session Start**: User opens app
-- **Session Stop**: User closes app
-- **Page Views**: Navigation tracking
-- **Custom Events**: Measurement submissions, achievements unlocked
-
-#### Data Collected
-- Device information (model, OS version)
-- App version
-- User demographics (if provided)
-- Engagement metrics (DAU, MAU, session duration)
+#### Alarmas (Configuración Recomendada)
+- Tasa alta de errores en API (> 5%)
+- Limitación de DynamoDB
+- Pico en fallos de autenticación de Cognito
+- Aumento en tasa de errores 4xx/5xx de S3
 
 ---
 
-## Infrastructure as Code (IaC)
+### 7. AWS Pinpoint (Analíticas)
 
-### Amplify Configuration Files
+**Propósito**: Analíticas de usuario y seguimiento de compromiso
 
-| File | Purpose |
-|------|---------|
-| `amplify/cli.json` | Amplify CLI feature flags and settings |
-| `amplify/team-provider-info.json` | Environment-specific configurations |
-| `amplify/backend/api/{api-name}/schema.graphql` | GraphQL schema definition |
-| `amplify/backend/auth/{auth-name}/parameters.json` | Cognito configuration |
-| `amplify/backend/storage/{storage-name}/parameters.json` | S3 configuration |
+#### Eventos de Analíticas
+- **Inicio de Sesión**: El usuario abre la app
+- **Fin de Sesión**: El usuario cierra la app
+- **Vistas de Página**: Seguimiento de navegación
+- **Eventos Personalizados**: Envíos de mediciones, logros desbloqueados
 
-### Deployment Commands
+#### Datos Recolectados
+- Información del dispositivo (modelo, versión del SO)
+- Versión de la app
+- Datos demográficos del usuario (si se proporcionan)
+- Métricas de compromiso (DAU, MAU, duración de sesión)
+
+---
+
+## Infraestructura como Código (IaC)
+
+### Archivos de Configuración de Amplify
+
+| Archivo | Propósito |
+|---------|-----------|
+| `amplify/cli.json` | Indicadores de características y configuración de la CLI de Amplify |
+| `amplify/team-provider-info.json` | Configuraciones específicas por entorno |
+| `amplify/backend/api/{api-name}/schema.graphql` | Definición del esquema GraphQL |
+| `amplify/backend/auth/{auth-name}/parameters.json` | Configuración de Cognito |
+| `amplify/backend/storage/{storage-name}/parameters.json` | Configuración de S3 |
+
+### Comandos de Despliegue
 
 ```bash
-# Pull backend config from cloud
+# Obtener configuración del backend desde la nube
 amplify pull
 
-# Push local changes to cloud
+# Enviar cambios locales a la nube
 amplify push
 
-# Add new resource
+# Agregar nuevo recurso
 amplify add <category>
 
-# Update existing resource
+# Actualizar recurso existente
 amplify update <category>
 
-# Check status
+# Verificar estado
 amplify status
 
-# View environment info
+# Ver información del entorno
 amplify env list
 ```
 
 ---
 
-## Environments
+## Entornos
 
-### Environment Strategy
+### Estrategia de Entornos
 
-| Environment | Purpose | Branch | Auto-Deploy |
-|-------------|---------|--------|-------------|
-| Development | Dev/testing | develop | No |
-| Staging | Pre-production | staging | Yes (optional) |
-| Production | Live app | main | Yes (manual approval) |
+| Entorno | Propósito | Rama | Despliegue Automático |
+|---------|-----------|------|----------------------|
+| Development | Desarrollo/pruebas | develop | No |
+| Staging | Pre-producción | staging | Sí (opcional) |
+| Production | App en producción | main | Sí (aprobación manual) |
 
-### Environment Variables
+### Variables de Entorno
 
-**Managed by Amplify** (no manual config needed):
+**Administradas por Amplify** (sin configuración manual requerida):
 - `AWS_REGION`
 - `API_ENDPOINT`
 - `AUTH_REGION`
@@ -344,28 +344,28 @@ amplify env list
 
 ---
 
-## Networking & Security
+## Redes y Seguridad
 
-### Network Configuration
-- **VPC**: Not required (serverless)
-- **Subnets**: Managed by AWS
-- **NAT Gateway**: Not required
-- **Internet Gateway**: Managed by AWS
+### Configuración de Red
+- **VPC**: No requerida (serverless)
+- **Subredes**: Administradas por AWS
+- **NAT Gateway**: No requerido
+- **Internet Gateway**: Administrado por AWS
 
-### Security Groups
-Not applicable (serverless services)
+### Grupos de Seguridad
+No aplicable (servicios serverless)
 
-### IAM Roles & Policies
+### Roles y Políticas IAM
 
-#### Amplify Backend Role
-- **DynamoDB**: Read/Write on all tables
-- **S3**: Read/Write/Delete on storage buckets
-- **AppSync**: Execute API operations
-- **CloudWatch**: Write logs
+#### Rol del Backend de Amplify
+- **DynamoDB**: Lectura/Escritura en todas las tablas
+- **S3**: Lectura/Escritura/Eliminación en buckets de almacenamiento
+- **AppSync**: Ejecutar operaciones de API
+- **CloudWatch**: Escribir logs
 
-#### Cognito Identity Pool Roles
+#### Roles del Pool de Identidades de Cognito
 
-**Authenticated Users**:
+**Usuarios Autenticados**:
 ```json
 {
   "Effect": "Allow",
@@ -380,115 +380,115 @@ Not applicable (serverless services)
 }
 ```
 
-**Unauthenticated Users**:
-- No permissions (no unauthenticated access)
+**Usuarios No Autenticados**:
+- Sin permisos (sin acceso no autenticado)
 
 ---
 
-## CI/CD Pipeline
+## Pipeline de CI/CD
 
-### Build Process
+### Proceso de Compilación
 
 ```
-Code Commit (GitHub)
+Commit de Código (GitHub)
     ↓
 GitHub Actions / Amplify Console
     ↓
-Install Dependencies (npm install)
+Instalar Dependencias (npm install)
     ↓
-Run Tests (npm test)
+Ejecutar Pruebas (npm test)
     ↓
-Build Frontend (ng build --prod)
+Compilar Frontend (ng build --prod)
     ↓
 Amplify Push (amplify push --yes)
     ↓
 Capacitor Copy (cap copy)
     ↓
-Android Build (gradlew assembleRelease)
+Compilación Android (gradlew assembleRelease)
     ↓
-Deployment Complete
+Despliegue Completado
 ```
 
-### Deployment Targets
+### Objetivos de Despliegue
 
-#### Web (Future)
-- **Service**: AWS Amplify Hosting
+#### Web (Futuro)
+- **Servicio**: AWS Amplify Hosting
 - **URL**: `https://{branch}.{app-id}.amplifyapp.com`
-- **SSL**: Managed by Amplify (free)
+- **SSL**: Administrado por Amplify (gratuito)
 
-#### Mobile (Current)
-- **Android**: Manual APK/AAB upload to Google Play
-- **iOS**: Future - App Store deployment
-
----
-
-## Costs & Pricing
-
-### Estimated Monthly Costs (100 users)
-
-| Service | Usage | Cost |
-|---------|-------|------|
-| **Cognito** | 100 users, 3000 auth/month | $0 (free tier) |
-| **AppSync** | 300K requests/month | $1.20 |
-| **DynamoDB** | 1M reads, 500K writes | $0.50 |
-| **S3** | 10GB storage, 1K requests | $0.25 |
-| **CloudWatch** | 5GB logs, 10 alarms | $0.50 |
-| **Data Transfer** | 5GB/month | $0.45 |
-| **Total** | | **~$3/month** |
-
-### Scaling Costs (10,000 users)
-
-| Service | Usage | Cost |
-|---------|-------|------|
-| **Cognito** | 10K users, 300K auth/month | $275 |
-| **AppSync** | 30M requests/month | $120 |
-| **DynamoDB** | 100M reads, 50M writes | $50 |
-| **S3** | 1TB storage, 100K requests | $24 |
-| **CloudWatch** | 50GB logs, 50 alarms | $2.50 |
-| **Data Transfer** | 500GB/month | $45 |
-| **Total** | | **~$517/month** |
+#### Móvil (Actual)
+- **Android**: Subida manual de APK/AAB a Google Play
+- **iOS**: Futuro - Despliegue en App Store
 
 ---
 
-## Disaster Recovery
+## Costos y Precios
 
-### Backup Strategy
+### Costos Mensuales Estimados (100 usuarios)
+
+| Servicio | Uso | Costo |
+|---------|-----|-------|
+| **Cognito** | 100 usuarios, 3000 auth/mes | $0 (capa gratuita) |
+| **AppSync** | 300K solicitudes/mes | $1.20 |
+| **DynamoDB** | 1M lecturas, 500K escrituras | $0.50 |
+| **S3** | 10GB almacenamiento, 1K solicitudes | $0.25 |
+| **CloudWatch** | 5GB logs, 10 alarmas | $0.50 |
+| **Transferencia de Datos** | 5GB/mes | $0.45 |
+| **Total** | | **~$3/mes** |
+
+### Costos con Escalado (10,000 usuarios)
+
+| Servicio | Uso | Costo |
+|---------|-----|-------|
+| **Cognito** | 10K usuarios, 300K auth/mes | $275 |
+| **AppSync** | 30M solicitudes/mes | $120 |
+| **DynamoDB** | 100M lecturas, 50M escrituras | $50 |
+| **S3** | 1TB almacenamiento, 100K solicitudes | $24 |
+| **CloudWatch** | 50GB logs, 50 alarmas | $2.50 |
+| **Transferencia de Datos** | 500GB/mes | $45 |
+| **Total** | | **~$517/mes** |
+
+---
+
+## Recuperación ante Desastres
+
+### Estrategia de Respaldo
 
 #### DynamoDB
-- **PITR**: 35-day point-in-time recovery
-- **On-demand backups**: Manual before major changes
-- **Cross-region replication**: Not configured (future)
+- **PITR**: Recuperación a punto en el tiempo de 35 días
+- **Respaldos bajo demanda**: Manuales antes de cambios mayores
+- **Replicación entre regiones**: No configurada (futuro)
 
 #### S3
-- **Versioning**: Enabled
-- **Lifecycle policies**: None (all data retained)
-- **Cross-region replication**: Not configured
+- **Versionado**: Habilitado
+- **Políticas de ciclo de vida**: Ninguna (todos los datos retenidos)
+- **Replicación entre regiones**: No configurada
 
 #### Cognito
-- **User pool export**: Manual export to S3 (periodic)
-- **User attributes**: Backed up with DynamoDB
+- **Exportación del pool de usuarios**: Exportación manual a S3 (periódica)
+- **Atributos de usuario**: Respaldados con DynamoDB
 
-### Recovery Time Objective (RTO)
-- **Target RTO**: < 4 hours
-- **Target RPO**: < 1 hour (via PITR)
+### Objetivo de Tiempo de Recuperación (RTO)
+- **RTO Objetivo**: < 4 horas
+- **RPO Objetivo**: < 1 hora (vía PITR)
 
-### Disaster Scenarios
+### Escenarios de Desastre
 
-| Scenario | Recovery Plan | RTO |
-|----------|--------------|-----|
-| DynamoDB table corruption | Restore from PITR | 1-2 hours |
-| S3 bucket deleted | Restore from versioning | 30 min |
-| Cognito user pool deleted | Recreate + import backup | 2-4 hours |
-| AppSync API misconfigured | Revert via Amplify CLI | 15 min |
-| Regional outage | Failover to secondary region | N/A (future) |
+| Escenario | Plan de Recuperación | RTO |
+|-----------|---------------------|-----|
+| Corrupción de tabla DynamoDB | Restaurar desde PITR | 1-2 horas |
+| Bucket S3 eliminado | Restaurar desde versionado | 30 min |
+| Pool de usuarios Cognito eliminado | Recrear + importar respaldo | 2-4 horas |
+| API AppSync mal configurada | Revertir vía Amplify CLI | 15 min |
+| Interrupción regional | Conmutación a región secundaria | N/A (futuro) |
 
 ---
 
-## Monitoring & Alerts
+## Monitoreo y Alertas
 
-### Health Check Endpoints
+### Endpoints de Verificación de Salud
 
-**AppSync Health**:
+**Salud de AppSync**:
 ```graphql
 query HealthCheck {
   listRACIMOS(limit: 1) {
@@ -497,87 +497,87 @@ query HealthCheck {
 }
 ```
 
-### Key Performance Indicators (KPIs)
+### Indicadores Clave de Rendimiento (KPIs)
 
-| Metric | Target | Alert Threshold |
-|--------|--------|-----------------|
-| API Latency (p99) | < 500ms | > 1000ms |
-| API Error Rate | < 0.1% | > 1% |
-| DynamoDB Throttles | 0 | > 5/min |
-| Cognito Auth Success | > 99% | < 95% |
-| S3 Upload Success | > 99.9% | < 99% |
-
----
-
-## Security & Compliance
-
-### Data Encryption
-- **At Rest**: All data encrypted (DynamoDB, S3, Cognito)
-- **In Transit**: TLS 1.2+ for all communications
-- **Keys**: AWS-managed keys (KMS)
-
-### Access Control
-- **Multi-factor Authentication (MFA)**: Enabled for admin users
-- **Least Privilege**: IAM roles follow principle of least privilege
-- **Resource Policies**: S3 bucket policies restrict access
-
-### Compliance Considerations
-- **GDPR**: User data export and deletion capabilities
-- **Data Residency**: us-east-1 (consider regional requirements)
-- **Audit Logging**: CloudTrail for infrastructure changes
+| Métrica | Objetivo | Umbral de Alerta |
+|---------|----------|-----------------|
+| Latencia API (p99) | < 500ms | > 1000ms |
+| Tasa de Error API | < 0.1% | > 1% |
+| Limitaciones DynamoDB | 0 | > 5/min |
+| Éxito Auth Cognito | > 99% | < 95% |
+| Éxito Subida S3 | > 99.9% | < 99% |
 
 ---
 
-## Scaling Considerations
+## Seguridad y Cumplimiento
 
-### Horizontal Scaling
-All services auto-scale:
-- **AppSync**: Concurrent connections scale automatically
-- **DynamoDB**: On-demand scaling to millions of requests/sec
-- **S3**: Unlimited storage and throughput
-- **Cognito**: Millions of users supported
+### Cifrado de Datos
+- **En Reposo**: Todos los datos cifrados (DynamoDB, S3, Cognito)
+- **En Tránsito**: TLS 1.2+ para todas las comunicaciones
+- **Claves**: Claves administradas por AWS (KMS)
 
-### Vertical Scaling
-Not applicable (serverless)
+### Control de Acceso
+- **Autenticación Multifactor (MFA)**: Habilitado para usuarios administradores
+- **Privilegio Mínimo**: Los roles IAM siguen el principio de privilegio mínimo
+- **Políticas de Recursos**: Las políticas de bucket S3 restringen el acceso
 
-### Performance Optimization
-- Use GSIs for efficient queries
-- Enable AppSync caching for read-heavy queries
-- Implement CDN for static assets (future)
-- Batch operations where possible
-
----
-
-## Maintenance & Updates
-
-### Regular Maintenance Tasks
-- Review CloudWatch logs weekly
-- Update Amplify dependencies monthly
-- Rotate API keys quarterly (if using)
-- Review IAM permissions quarterly
-- Test disaster recovery plan bi-annually
-
-### Update Process
-1. Update in development environment
-2. Test thoroughly
-3. Deploy to staging
-4. Run smoke tests
-5. Deploy to production (off-peak hours)
-6. Monitor for 24 hours
+### Consideraciones de Cumplimiento
+- **RGPD**: Capacidades de exportación y eliminación de datos de usuario
+- **Residencia de Datos**: us-east-1 (considerar requisitos regionales)
+- **Registro de Auditoría**: CloudTrail para cambios en infraestructura
 
 ---
 
-## Native Platform Configuration
+## Consideraciones de Escalabilidad
+
+### Escalado Horizontal
+Todos los servicios escalan automáticamente:
+- **AppSync**: Las conexiones concurrentes escalan automáticamente
+- **DynamoDB**: Escalado bajo demanda a millones de solicitudes/seg
+- **S3**: Almacenamiento y rendimiento ilimitados
+- **Cognito**: Soporte para millones de usuarios
+
+### Escalado Vertical
+No aplicable (serverless)
+
+### Optimización de Rendimiento
+- Usar GSIs para consultas eficientes
+- Habilitar caché de AppSync para consultas de alta lectura
+- Implementar CDN para activos estáticos (futuro)
+- Operaciones por lotes donde sea posible
+
+---
+
+## Mantenimiento y Actualizaciones
+
+### Tareas de Mantenimiento Regular
+- Revisar logs de CloudWatch semanalmente
+- Actualizar dependencias de Amplify mensualmente
+- Rotar claves de API trimestralmente (si se usan)
+- Revisar permisos IAM trimestralmente
+- Probar el plan de recuperación ante desastres semestralmente
+
+### Proceso de Actualización
+1. Actualizar en el entorno de desarrollo
+2. Probar exhaustivamente
+3. Desplegar en staging
+4. Ejecutar pruebas de humo
+5. Desplegar en producción (en horas de baja actividad)
+6. Monitorear durante 24 horas
+
+---
+
+## Configuración de Plataforma Nativa
 
 ### Android
 
-**Build Configuration**:
-- **Package ID**: `com.makesens.uvaapp`
-- **Min SDK**: 22 (Android 5.1)
-- **Target SDK**: 34 (Android 14)
-- **Build Tool**: Gradle 8.x
+**Configuración de Compilación**:
+- **ID de Paquete**: `com.makesens.uvaapp`
+- **SDK Mínimo**: 22 (Android 5.1)
+- **SDK Objetivo**: 34 (Android 14)
+- **Herramienta de Compilación**: Gradle 8.x
 
-**Required Permissions**:
+**Permisos Requeridos**:
 ```xml
 <uses-permission android:name="android.permission.INTERNET" />
 <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -587,32 +587,32 @@ Not applicable (serverless)
 <uses-permission android:name="android.permission.VIBRATE" />
 ```
 
-**Google Services**:
-- Firebase Cloud Messaging (push notifications)
-- Google Analytics (analytics tracking)
+**Servicios de Google**:
+- Firebase Cloud Messaging (notificaciones push)
+- Google Analytics (seguimiento de analíticas)
 
 ---
 
-## Troubleshooting
+## Resolución de Problemas
 
-### Common Issues
+### Problemas Comunes
 
-| Issue | Cause | Resolution |
-|-------|-------|------------|
-| "Not Authorized" errors | Expired JWT token | Re-authenticate user |
-| Sync conflicts | Concurrent updates | Auto-resolved by DataStore |
-| DynamoDB throttling | High burst traffic | Enable on-demand billing |
-| S3 upload failures | Network timeout | Implement retry logic |
-| AppSync errors | Schema mismatch | Run `amplify codegen` |
+| Problema | Causa | Solución |
+|---------|-------|----------|
+| Errores "Not Authorized" | Token JWT expirado | Re-autenticar al usuario |
+| Conflictos de sincronización | Actualizaciones concurrentes | Resuelto automáticamente por DataStore |
+| Limitación de DynamoDB | Tráfico de ráfaga alto | Habilitar facturación bajo demanda |
+| Fallos en subida a S3 | Tiempo de espera de red agotado | Implementar lógica de reintento |
+| Errores de AppSync | Desajuste de esquema | Ejecutar `amplify codegen` |
 
 ---
 
-## Resource Naming Conventions
+## Convenciones de Nomenclatura de Recursos
 
 ```
-{service}-{app-name}-{env}-{resource-type}
+{servicio}-{nombre-app}-{env}-{tipo-recurso}
 
-Examples:
+Ejemplos:
 - appsync-uvaapp-prod-api
 - dynamodb-uvaapp-prod-racimo
 - s3-uvaapp-prod-storage
@@ -621,28 +621,28 @@ Examples:
 
 ---
 
-## Documentation & Support
+## Documentación y Soporte
 
-### AWS Documentation
-- [AWS Amplify Docs](https://docs.amplify.aws/)
-- [AppSync Developer Guide](https://docs.aws.amazon.com/appsync/)
-- [DynamoDB Developer Guide](https://docs.aws.amazon.com/dynamodb/)
-- [Cognito Developer Guide](https://docs.aws.amazon.com/cognito/)
+### Documentación de AWS
+- [Documentación de AWS Amplify](https://docs.amplify.aws/)
+- [Guía del Desarrollador de AppSync](https://docs.aws.amazon.com/appsync/)
+- [Guía del Desarrollador de DynamoDB](https://docs.aws.amazon.com/dynamodb/)
+- [Guía del Desarrollador de Cognito](https://docs.aws.amazon.com/cognito/)
 
-### Infrastructure Diagram Tools
-- AWS Architecture Icons
+### Herramientas de Diagramas de Infraestructura
+- Íconos de Arquitectura AWS
 - draw.io / Lucidchart
-- Amplify Console (visual resource map)
+- Amplify Console (mapa visual de recursos)
 
 ---
 
-## Migration Path
+## Ruta de Migración
 
-### Future Infrastructure Improvements
-1. **Multi-region deployment** for high availability
-2. **CloudFront CDN** for web assets
-3. **ElastiCache** for caching layer
-4. **Lambda functions** for complex business logic
-5. **Step Functions** for orchestrated workflows
-6. **AWS WAF** for API security
-7. **AWS Backup** for centralized backup management
+### Mejoras Futuras de Infraestructura
+1. **Despliegue multi-región** para alta disponibilidad
+2. **CloudFront CDN** para activos web
+3. **ElastiCache** para capa de caché
+4. **Funciones Lambda** para lógica de negocio compleja
+5. **Step Functions** para flujos de trabajo orquestados
+6. **AWS WAF** para seguridad de API
+7. **AWS Backup** para gestión centralizada de respaldos
