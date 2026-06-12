@@ -17,9 +17,14 @@ export function ValidateProjectScreen({ route }: Props): React.JSX.Element {
       <Text style={styles.title}>ValidateProject</Text>
       <Text style={styles.subtitle}>racimoCode: {route.params.racimoCode}</Text>
       <Text style={styles.subtitle}>[Placeholder — B14 implementa]</Text>
-      <TouchableOpacity style={styles.button} onPress={() => devBypassToApp()}>
-        <Text style={styles.buttonText}>Ir al inicio (test)</Text>
-      </TouchableOpacity>
+      {/* TODO(B14): eliminar bypass temporal al implementar la vinculación real.
+          Solo visible en desarrollo (__DEV__): permite pasar el placeholder B14
+          en pruebas manuales sin la vinculación real al RACIMO. */}
+      {__DEV__ && (
+        <TouchableOpacity style={styles.button} onPress={() => devBypassToApp()}>
+          <Text style={styles.buttonText}>Ir al inicio (test)</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }

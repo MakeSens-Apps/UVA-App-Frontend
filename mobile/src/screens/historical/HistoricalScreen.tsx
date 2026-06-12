@@ -39,24 +39,29 @@
  *   - setTimeout → kept for generateCalendars analog (React handles re-render)
  *
  * Risks: R-32, R-12, R-15
+ *
+ * Round 3 (paridad visual):
+ *   - Tabla de variables (Tem/Hum/Acu — avg/max/min) con los estilos exactos de
+ *     historical.page.scss (.calendar_variables*) y formato Angular number:'1.0-1'
+ *   - Config de medición cargada por la propia pantalla (ngOnInit parity):
+ *     getConfigurationMeasurement() en vez de depender del estado del contexto
+ *   - Sección .cards: fondo Gray-50 + borde Gray-200 (global.scss), sin sombra
+ *   - Calendario envuelto en card blanco (.calendar_content)
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  FlatList,
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
-import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import type { CompositeNavigationProp } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import type { AppTabsParamList, AppStackParamList } from '@/navigation/types';
+import type { AppStackParamList } from '@/navigation/types';
 import { Header } from '@/components/header/Header';
 import { Calendar } from '@/components/calendar/Calendar';
 import { TimeFrame } from '@/components/time-frame/TimeFrame';
@@ -73,11 +78,6 @@ import { MeasurementDSService } from '@/data/datastore/measurement-ds';
 import {
   transformData,
   calculateOverallStats,
-  calculateMeasurement,
-  calculateDetailedMeasurement,
-} from '@/domain/aggregations/historical-aggregations';
-import type {
-  HistoricalMeasurement,
 } from '@/domain/aggregations/historical-aggregations';
 
 import type { Historical, MeasurementModel } from '@/data/models/configuration/measurements.model';
@@ -91,6 +91,27 @@ const monthsNames = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
 
+// ─── Stat formatting (Angular `number:'1.0-1'` pipe equivalent) ───────────────
+
+/**
+ * Replicates Angular's `{{ value | number:'1.0-1' }}` (en-US locale):
+ *   - max 1 decimal, no trailing zeros (24.3 → "24.3", 69 → "69")
+ *   - thousands separators ("1,234")
+ *   - nullish/NaN → '' (the original renders just the unit, e.g. "°C")
+ * Evidence: docs/evidence/historical/screen-03 (Mayo: "24.3°C", "69%", "28°C")
+ * and screen-01 (Junio vacío: "°C", "%", "0mm").
+ */
+function formatStat(value: number | undefined): string {
+  if (value === undefined || value === null || Number.isNaN(value)) {
+    return '';
+  }
+  return value.toLocaleString('en-US', { maximumFractionDigits: 1 });
+}
+
+// Original: historical.page.scss .calendar_variables { color: #545454 } (hardcoded
+// in the SCSS — not a --Colors-* token, so kept as a local constant here).
+const VARIABLES_TEXT_COLOR = '#545454';
+
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
 type TypeView = 'calendar' | 'chart';
@@ -100,11 +121,6 @@ interface CompleteTaskHistorical extends CompletedTask {
   date: Date;
   name: string;
 }
-
-type HistoricalNavigation = CompositeNavigationProp<
-  ReturnType<typeof useNavigation>,
-  NativeStackNavigationProp<AppStackParamList>
->;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -117,7 +133,7 @@ type HistoricalNavigation = CompositeNavigationProp<
 export function HistoricalScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
-  const { configMeasurement } = useConfigContext();
+  const { getConfigurationMeasurement } = useConfigContext();
 
   const realCurrentYear = new Date().getFullYear();
   const realCurrentMonth = new Date().getMonth();
@@ -131,6 +147,7 @@ export function HistoricalScreen(): React.JSX.Element {
   const [completedTaskYear, setCompletedTaskYear] = useState<CompleteTaskHistorical[]>([]);
   const [completedTaskMonth, setCompletedTaskMonth] = useState<CompleteTaskHistorical | undefined>(undefined);
   const [variables, setVariables] = useState<Historical[]>([]);
+  const [measuresConfig, setMeasuresConfig] = useState<MeasurementModel | null>(null);
   const [measureSelected, setMeasureSelected] = useState<Historical | undefined>(undefined);
   const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [loading, setLoading] = useState(true);
@@ -156,8 +173,14 @@ export function HistoricalScreen(): React.JSX.Element {
       try {
         await initializeRegisters(mounted);
         await initializeCompletedTasks(mounted);
-        if (configMeasurement?.historical && mounted) {
-          await initializeVariables(configMeasurement.historical, 'month', mounted);
+        // Preserved (historical.page.ts ngOnInit): the page loads the measurement
+        // config itself via ConfigurationAppService.getConfigurationMeasurement()
+        // (cached by ConfigContext) — it does NOT depend on another screen having
+        // loaded it first.
+        const config = await getConfigurationMeasurement();
+        if (mounted) setMeasuresConfig(config);
+        if (config?.historical && mounted) {
+          await initializeVariables(config.historical, 'month', mounted);
         }
       } finally {
         if (mounted) setLoading(false);
@@ -165,7 +188,7 @@ export function HistoricalScreen(): React.JSX.Element {
     };
     void loadAll();
     return () => { mounted = false; };
-  }, [configMeasurement, currentMonthIndex, currentYearIndex]);
+  }, [getConfigurationMeasurement, currentMonthIndex, currentYearIndex]);
 
   // ─── initializeRegisters ──────────────────────────────────────────────────
 
@@ -278,11 +301,12 @@ export function HistoricalScreen(): React.JSX.Element {
   const changeSegment = useCallback(
     async (type: TimeFrameValue) => {
       setTimeFrame(type);
-      if (configMeasurement?.historical) {
-        await initializeVariables(configMeasurement.historical, type, true);
+      const config = measuresConfig ?? (await getConfigurationMeasurement());
+      if (config?.historical) {
+        await initializeVariables(config.historical, type, true);
       }
     },
-    [configMeasurement, initializeVariables],
+    [measuresConfig, getConfigurationMeasurement, initializeVariables],
   );
 
   // ─── setCurrentMonth ──────────────────────────────────────────────────────
@@ -340,14 +364,14 @@ export function HistoricalScreen(): React.JSX.Element {
 
   if (loading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.gray[100] }]}>
         <ActivityIndicator color={theme.colors.blue[500]} size="large" />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.gray[100] }]}>
       <Header
         title="Historial de registros"
         seed={userProgress?.Seed}
@@ -363,25 +387,28 @@ export function HistoricalScreen(): React.JSX.Element {
 
         {/* Month view */}
         {timeFrame === 'month' && (
-          <View style={[styles.card, { backgroundColor: theme.colors.white }]}>
+          <View style={[styles.card, { backgroundColor: theme.colors.gray[50], borderColor: theme.colors.gray[200] }]}>
             {/* Header: month name, year, register count, toggle button */}
             <View style={styles.calendarHeader}>
               <View>
+                {/* Original: .calendar_header_titles--h2 — 16px/700 Blue-900;
+                    the year <span> keeps the color but drops to weight 500 */}
                 <Text
                   style={[
                     styles.monthTitle,
-                    { fontFamily: fontFamilyForWeight('700'), color: theme.semanticColors.text },
+                    { fontFamily: fontFamilyForWeight('700'), color: theme.colors.blue[900] },
                   ]}
                 >
                   {completedTaskMonth?.name},{' '}
-                  <Text style={{ color: theme.semanticColors.textSecondary }}>
+                  <Text style={{ fontFamily: fontFamilyForWeight('500') }}>
                     {currentYearIndex}
                   </Text>
                 </Text>
+                {/* Original: .calendar_header_titles--p — 14px/500 Gray-500 */}
                 <Text
                   style={[
                     styles.registerCount,
-                    { fontFamily: fontFamilyForWeight('400'), color: theme.semanticColors.textSecondary },
+                    { fontFamily: fontFamilyForWeight('500'), color: theme.colors.gray[500] },
                   ]}
                 >
                   {nRegisters ?? 0} Registros
@@ -403,8 +430,11 @@ export function HistoricalScreen(): React.JSX.Element {
               </TouchableOpacity>
             </View>
 
-            {/* Variables summary row */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.variablesScroll}>
+            {/* Variables summary table (Tem / Hum / Acu — avg, max, min).
+                Original: historical.page.html .calendar_variables_container —
+                3 white cards (radius 10, padding 10, gap 10) on the gray-50
+                section; values formatted with `number:'1.0-1'`. */}
+            <View style={styles.variablesRow}>
               {variables.map((variable) => (
                 <TouchableOpacity
                   key={variable.name}
@@ -412,6 +442,8 @@ export function HistoricalScreen(): React.JSX.Element {
                     styles.variableCard,
                     {
                       backgroundColor: theme.colors.white,
+                      // Original ngStyle: border-color = variable borderColor only
+                      // when typeView==='chart' && selected; white otherwise.
                       borderColor:
                         typeView === 'chart' && variable.selected
                           ? variable.style.borderColor.colorHex
@@ -424,7 +456,7 @@ export function HistoricalScreen(): React.JSX.Element {
                   <Text
                     style={[
                       styles.variableTitle,
-                      { fontFamily: fontFamilyForWeight('600'), color: theme.semanticColors.text },
+                      { fontFamily: fontFamilyForWeight('600') },
                     ]}
                   >
                     {variable.symbol}{variable.name.substring(0, 3)}
@@ -433,10 +465,12 @@ export function HistoricalScreen(): React.JSX.Element {
                     style={[
                       styles.variableAvgBox,
                       {
+                        // Original ngStyle: stat-box background = variable
+                        // backgroundColor when chart+selected; white otherwise.
                         backgroundColor:
                           typeView === 'chart' && variable.selected
                             ? variable.style.backgroundColor.colorHex
-                            : theme.colors.gray[100],
+                            : theme.colors.white,
                       },
                     ]}
                   >
@@ -445,48 +479,51 @@ export function HistoricalScreen(): React.JSX.Element {
                         styles.variableAvg,
                         {
                           fontFamily: fontFamilyForWeight(typeView === 'chart' && variable.selected ? '700' : '600'),
-                          color: theme.semanticColors.text,
                         },
                       ]}
                     >
-                      {variable.avg !== undefined ? variable.avg.toFixed(1) : '--'}
+                      {formatStat(variable.avg)}
                       {variable.unit}
                     </Text>
                   </View>
                   <View style={styles.variableStat}>
-                    <Text style={[styles.statLabel, { color: theme.semanticColors.textSecondary }]}>
+                    <Text style={[styles.statLabel, { fontFamily: fontFamilyForWeight('500') }]}>
                       Max:
                     </Text>
-                    <Text style={[styles.statValue, { color: theme.semanticColors.text }]}>
-                      {variable.max !== undefined ? variable.max.toFixed(1) : '--'}
+                    <Text style={[styles.statValue, { fontFamily: fontFamilyForWeight('500') }]}>
+                      {formatStat(variable.max)}
                       {variable.unit}
                     </Text>
                   </View>
                   <View style={styles.variableStat}>
-                    <Text style={[styles.statLabel, { color: theme.semanticColors.textSecondary }]}>
+                    <Text style={[styles.statLabel, { fontFamily: fontFamilyForWeight('500') }]}>
                       Min:
                     </Text>
-                    <Text style={[styles.statValue, { color: theme.semanticColors.text }]}>
-                      {variable.min !== undefined ? variable.min.toFixed(1) : '--'}
+                    <Text style={[styles.statValue, { fontFamily: fontFamilyForWeight('500') }]}>
+                      {formatStat(variable.min)}
                       {variable.unit}
                     </Text>
                   </View>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
+            </View>
 
             {/* Calendar or Chart */}
             <View style={styles.calendarContainer}>
               {typeView === 'calendar' ? (
                 completedTaskMonth ? (
-                  <Calendar
-                    viewDate={completedTaskMonth.date}
-                    daysComplete={completedTaskMonth.daysComplete}
-                    daysIncomplete={completedTaskMonth.daysIncomplete}
-                    daysSaveStreak={completedTaskMonth.daysSaveStreak}
-                    onDayPress={goToDetail}
-                    hasHeader
-                  />
+                  // Original: calendar.component.scss .calendar_content —
+                  // white card (radius 10, border 1px Gray-200) on the gray-50 section
+                  <View style={[styles.calendarContent, { backgroundColor: theme.colors.white, borderColor: theme.colors.gray[200] }]}>
+                    <Calendar
+                      viewDate={completedTaskMonth.date}
+                      daysComplete={completedTaskMonth.daysComplete}
+                      daysIncomplete={completedTaskMonth.daysIncomplete}
+                      daysSaveStreak={completedTaskMonth.daysSaveStreak}
+                      onDayPress={goToDetail}
+                      hasHeader
+                    />
+                  </View>
                 ) : null
               ) : (
                 // Chart mode: Areachart with selected variable data
@@ -497,7 +534,6 @@ export function HistoricalScreen(): React.JSX.Element {
                     background={measureSelected.style.backgroundColor.colorHex}
                     borderColor={measureSelected.style.borderColor.colorHex}
                     detailedMode={false}
-                    testID="historical-chart"
                   />
                 ) : null
               )}
@@ -559,7 +595,7 @@ export function HistoricalScreen(): React.JSX.Element {
 
         {/* Year view */}
         {timeFrame === 'year' && (
-          <View style={[styles.card, { backgroundColor: theme.colors.white }]}>
+          <View style={[styles.card, { backgroundColor: theme.colors.gray[50], borderColor: theme.colors.gray[200] }]}>
             {/* Year navigation */}
             <View style={styles.yearNav}>
               <TouchableOpacity
@@ -596,17 +632,20 @@ export function HistoricalScreen(): React.JSX.Element {
               </TouchableOpacity>
             </View>
 
-            {/* Year variables row */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.variablesScroll}>
+            {/* Year variables table (same cards; all backgrounds white in year view) */}
+            <View style={styles.variablesRow}>
               {variables.map((variable) => (
                 <View
                   key={variable.name}
-                  style={[styles.variableCard, { backgroundColor: theme.colors.white }]}
+                  style={[
+                    styles.variableCard,
+                    { backgroundColor: theme.colors.white, borderColor: theme.colors.white },
+                  ]}
                 >
                   <Text
                     style={[
                       styles.variableTitle,
-                      { fontFamily: fontFamilyForWeight('600'), color: theme.semanticColors.text },
+                      { fontFamily: fontFamilyForWeight('600') },
                     ]}
                   >
                     {variable.symbol}{variable.name.substring(0, 3)}
@@ -615,30 +654,30 @@ export function HistoricalScreen(): React.JSX.Element {
                     <Text
                       style={[
                         styles.variableAvg,
-                        { fontFamily: fontFamilyForWeight('600'), color: theme.semanticColors.text },
+                        { fontFamily: fontFamilyForWeight('600') },
                       ]}
                     >
-                      {variable.avg !== undefined ? variable.avg.toFixed(1) : '--'}
+                      {formatStat(variable.avg)}
                       {variable.unit}
                     </Text>
                   </View>
                   <View style={styles.variableStat}>
-                    <Text style={[styles.statLabel, { color: theme.semanticColors.textSecondary }]}>Max:</Text>
-                    <Text style={[styles.statValue, { color: theme.semanticColors.text }]}>
-                      {variable.max !== undefined ? variable.max.toFixed(1) : '--'}
+                    <Text style={[styles.statLabel, { fontFamily: fontFamilyForWeight('500') }]}>Max:</Text>
+                    <Text style={[styles.statValue, { fontFamily: fontFamilyForWeight('500') }]}>
+                      {formatStat(variable.max)}
                       {variable.unit}
                     </Text>
                   </View>
                   <View style={styles.variableStat}>
-                    <Text style={[styles.statLabel, { color: theme.semanticColors.textSecondary }]}>Min:</Text>
-                    <Text style={[styles.statValue, { color: theme.semanticColors.text }]}>
-                      {variable.min !== undefined ? variable.min.toFixed(1) : '--'}
+                    <Text style={[styles.statLabel, { fontFamily: fontFamilyForWeight('500') }]}>Min:</Text>
+                    <Text style={[styles.statValue, { fontFamily: fontFamilyForWeight('500') }]}>
+                      {formatStat(variable.min)}
                       {variable.unit}
                     </Text>
                   </View>
                 </View>
               ))}
-            </ScrollView>
+            </View>
 
             {/* Mini calendars grid (3 per row) */}
             <View style={styles.miniCalendarGrid}>
@@ -682,19 +721,21 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   card: {
-    margin: 12,
-    borderRadius: 12,
-    padding: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    // Original: global.scss .cards — radius 10, border 1px Gray-200,
+    // background Gray-50, margin-inline 10, padding 10 (padding-top 0).
+    // No shadow in the original.
+    marginHorizontal: 10,
+    marginBottom: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 10,
+    paddingTop: 0,
   },
   calendarHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    marginTop: 10,
     marginBottom: 12,
   },
   monthTitle: {
@@ -713,42 +754,68 @@ const styles = StyleSheet.create({
   toggleBtnText: {
     fontSize: 13,
   },
-  variablesScroll: {
-    marginBottom: 12,
+  variablesRow: {
+    // Original: .calendar_variables_container — row, gap 10px, margin-bottom 10px
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginBottom: 10,
   },
   variableCard: {
+    // Original: .calendar_variables — padding 10, gap 6, radius 10,
+    // border 2px (white unless chart+selected), flex 1 (3 equal columns)
+    flex: 1,
     borderWidth: 2,
-    borderRadius: 10, // Ionic: border-radius: 10px
-    padding: 8,
-    marginRight: 8,
-    minWidth: 80,
-    alignItems: 'center',
+    borderRadius: 10,
+    padding: 10,
+    gap: 6,
+    alignItems: 'flex-start',
   },
   variableTitle: {
-    fontSize: 12,
-    marginBottom: 4,
+    // Original: .calendar_variables--title — 16px/600, #545454, centered, width 100%
+    fontSize: 16,
+    color: VARIABLES_TEXT_COLOR,
+    textAlign: 'center',
+    width: '100%',
   },
   variableAvgBox: {
+    // Original: .calendar_variables--stat-box — padding 0 4px, radius 4, width 100%
     borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginBottom: 4,
+    paddingHorizontal: 4,
+    width: '100%',
   },
   variableAvg: {
+    // Original: .calendar_variables--stat-text — 14px/600, #545454, centered
     fontSize: 14,
+    color: VARIABLES_TEXT_COLOR,
+    textAlign: 'center',
   },
   variableStat: {
+    // Original: .calendar_variables--stat-line — row, space-between, width 100%
     flexDirection: 'row',
-    gap: 4,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
   },
   statLabel: {
-    fontSize: 11,
+    // Original: .calendar_variables--stat-label — 12px/500, #545454
+    fontSize: 12,
+    color: VARIABLES_TEXT_COLOR,
   },
   statValue: {
-    fontSize: 11,
+    // Original: .calendar_variables--stat-value — 12px/500, #545454
+    fontSize: 12,
+    color: VARIABLES_TEXT_COLOR,
   },
   calendarContainer: {
-    marginBottom: 8,
+    // Original: .meditions_container — margin-bottom 10px
+    marginBottom: 10,
+  },
+  calendarContent: {
+    // Original: calendar.component.scss .calendar_content + .calendar (padding 8px)
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 8,
   },
   monthNav: {
     flexDirection: 'row',

@@ -18,6 +18,15 @@
  *   - text fontFamily: Montserrat-Medium (weight 500, was Regular)
  *   - track backgroundColor: --Colors-Green-200 = #C8E6B0 (was gray[200] = #E5E5E5)
  *
+ * Round 3 (paridad visual, verificado contra el original):
+ *   - Fill color VERIFICADO: progress-bar.component.html línea 8 usa
+ *     color="uva_green-500" y variables.scss define
+ *     --ion-color-uva_green-500: #69AB3C (VERDE, no teal). El token correcto
+ *     es theme.colors.green[500] — sin cambio de color.
+ *   - .progress_container portado: fondo blanco, radius 14 (--3xl), padding 10,
+ *     gap 8, align-items flex-start (texto a la izquierda, no centrado)
+ *   - track height: 7px (ion-progress-bar { height: 7px }), min-width 2px
+ *
  * Risks: R-06
  */
 
@@ -58,7 +67,12 @@ export function ProgressBar({
   const fillPercent = `${(ratio * 100).toFixed(1)}%`;
 
   return (
-    <View style={styles.container} testID="progress-bar-container">
+    // Original: .progress_container { padding:10px; gap:8px; border-radius:14px;
+    // background:#fff; align-items:flex-start }
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.white }]}
+      testID="progress-bar-container"
+    >
       {/* Original: .progress_text { color: --Colors-Gray-500 = #737373; font-size: 14px; font-weight: 500 } */}
       <Text style={[styles.text, { color: theme.colors.gray[500] }]}>
         {`Progreso: ${currentProgress} de ${totalProgress}`}
@@ -90,17 +104,24 @@ export function ProgressBar({
 
 const styles = StyleSheet.create({
   container: {
+    // Original: .progress_container — padding 10, gap 8, radius 14 (--3xl),
+    // align-items flex-start, align-self stretch, background white
     width: '100%',
+    padding: 10,
+    gap: 8,
+    borderRadius: 14,
+    alignItems: 'flex-start',
   },
   text: {
     fontSize: 14, // original: font-size: 14px (progress-bar.component.scss .progress_text)
     fontFamily: 'Montserrat-Medium', // original: font-weight: 500
-    marginBottom: 4,
-    textAlign: 'center',
+    lineHeight: 21, // original: line-height: 150%
   },
   track: {
+    // Original: ion-progress-bar { height: 7px; min-width: 2px; border-radius: 4px }
     width: '100%',
-    height: 8,
+    height: 7,
+    minWidth: 2,
     borderRadius: 4,
     overflow: 'hidden',
   },

@@ -443,9 +443,18 @@ exports[`Day snapshot — today state 1`] = `
 exports[`ProgressBar matches snapshot 1`] = `
 <View
   style={
-    {
-      "width": "100%",
-    }
+    [
+      {
+        "alignItems": "flex-start",
+        "borderRadius": 14,
+        "gap": 8,
+        "padding": 10,
+        "width": "100%",
+      },
+      {
+        "backgroundColor": "#FFFFFF",
+      },
+    ]
   }
   testID="progress-bar-container"
 >
@@ -455,8 +464,7 @@ exports[`ProgressBar matches snapshot 1`] = `
         {
           "fontFamily": "Montserrat-Medium",
           "fontSize": 14,
-          "marginBottom": 4,
-          "textAlign": "center",
+          "lineHeight": 21,
         },
         {
           "color": "#737373",
@@ -471,7 +479,8 @@ exports[`ProgressBar matches snapshot 1`] = `
       [
         {
           "borderRadius": 4,
-          "height": 8,
+          "height": 7,
+          "minWidth": 2,
           "overflow": "hidden",
           "width": "100%",
         },

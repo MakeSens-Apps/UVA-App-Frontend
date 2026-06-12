@@ -200,21 +200,26 @@ const mockMeasurementConfig = {
   ],
 };
 
+// NOTE: the context value must be STABLE across renders (the real provider
+// memoizes its callbacks with useCallback). A fresh object per render makes
+// effect dependencies like getConfigurationMeasurement loop forever.
+const mockConfigContextValue = {
+  configMeasurement: mockMeasurementConfig,
+  countTasks: () => 2,
+  loadImage: jest.fn().mockResolvedValue(null),
+  getConfigurationMeasurement: jest.fn().mockResolvedValue(mockMeasurementConfig),
+  configApp: null,
+  configColors: null,
+  getConfigurationApp: jest.fn(),
+  getConfigurationColors: jest.fn(),
+  downLoadData: jest.fn(),
+  configExists: jest.fn(),
+  clearCache: jest.fn(),
+  loadBranding: jest.fn(),
+};
+
 jest.mock('@/state/ConfigContext', () => ({
-  useConfigContext: () => ({
-    configMeasurement: mockMeasurementConfig,
-    countTasks: () => 2,
-    loadImage: jest.fn().mockResolvedValue(null),
-    getConfigurationMeasurement: jest.fn().mockResolvedValue(mockMeasurementConfig),
-    configApp: null,
-    configColors: null,
-    getConfigurationApp: jest.fn(),
-    getConfigurationColors: jest.fn(),
-    downLoadData: jest.fn(),
-    configExists: jest.fn(),
-    clearCache: jest.fn(),
-    loadBranding: jest.fn(),
-  }),
+  useConfigContext: () => mockConfigContextValue,
 }));
 
 // RichText mock
