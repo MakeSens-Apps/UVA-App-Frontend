@@ -1,0 +1,498 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ConfirmModal — resolves OK/CANCEL matches snapshot 1`] = `
+<Modal
+  animationType="fade"
+  onRequestClose={[Function]}
+  statusBarTranslucent={true}
+  transparent={true}
+  visible={true}
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "rgba(0,0,0,0.5)",
+        "flex": 1,
+        "justifyContent": "center",
+        "padding": 24,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "backgroundColor": "#FFFFFF",
+          "borderRadius": 12,
+          "elevation": 8,
+          "maxWidth": 400,
+          "padding": 20,
+          "shadowColor": "#000",
+          "shadowOffset": {
+            "height": 4,
+            "width": 0,
+          },
+          "shadowOpacity": 0.2,
+          "shadowRadius": 8,
+          "width": "100%",
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "marginBottom": 16,
+          }
+        }
+      >
+        <View
+          style={
+            [
+              {
+                "width": "100%",
+              },
+              undefined,
+            ]
+          }
+        >
+          <View
+            style={
+              [
+                {},
+                undefined,
+                undefined,
+              ]
+            }
+            testID="html"
+          >
+            <View
+              style={
+                [
+                  {},
+                  undefined,
+                  undefined,
+                ]
+              }
+              testID="body"
+            >
+              <View
+                style={
+                  [
+                    {
+                      "marginBottom": 4,
+                      "marginTop": 4,
+                    },
+                    undefined,
+                    undefined,
+                  ]
+                }
+                testID="p"
+              >
+                <Text
+                  allowFontScaling={true}
+                  selectable={false}
+                  style={
+                    [
+                      {
+                        "color": "#171717",
+                        "fontFamily": "Montserrat-Regular",
+                        "fontSize": 14,
+                      },
+                      undefined,
+                      undefined,
+                    ]
+                  }
+                >
+                  Contenido del modal
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      </View>
+      <View
+        style={
+          [
+            {
+              "flexDirection": "row",
+              "gap": 8,
+              "justifyContent": "flex-end",
+            },
+            false,
+          ]
+        }
+      >
+        <View
+          accessibilityRole="button"
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": undefined,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          collapsable={false}
+          focusable={true}
+          onBlur={[Function]}
+          onClick={[Function]}
+          onFocus={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          style={
+            [
+              {
+                "alignItems": "center",
+                "borderRadius": 8,
+                "minWidth": 80,
+                "paddingHorizontal": 16,
+                "paddingVertical": 10,
+              },
+              [
+                {
+                  "backgroundColor": "transparent",
+                  "borderWidth": 1.5,
+                },
+                {
+                  "borderColor": "#10BCCA",
+                },
+              ],
+            ]
+          }
+        >
+          <Text
+            style={
+              [
+                {
+                  "fontFamily": "Montserrat-SemiBold",
+                  "fontSize": 14,
+                },
+                {
+                  "color": "#10BCCA",
+                },
+              ]
+            }
+          >
+            Cancelar
+          </Text>
+        </View>
+        <View
+          accessibilityRole="button"
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": undefined,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          collapsable={false}
+          focusable={true}
+          onBlur={[Function]}
+          onClick={[Function]}
+          onFocus={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          style={
+            [
+              {
+                "alignItems": "center",
+                "borderRadius": 8,
+                "minWidth": 80,
+                "paddingHorizontal": 16,
+                "paddingVertical": 10,
+              },
+              {},
+              {
+                "backgroundColor": "#10BCCA",
+              },
+            ]
+          }
+        >
+          <Text
+            style={
+              [
+                {
+                  "fontFamily": "Montserrat-SemiBold",
+                  "fontSize": 14,
+                },
+                {
+                  "color": "#FFFFFF",
+                },
+              ]
+            }
+          >
+            Aceptar
+          </Text>
+        </View>
+      </View>
+    </View>
+  </View>
+</Modal>
+`;
+
+exports[`Day snapshot — complete state with icon 1`] = `
+<View
+  style={
+    [
+      {
+        "alignItems": "center",
+        "justifyContent": "center",
+        "position": "relative",
+      },
+      {
+        "borderRadius": 20,
+        "height": 40,
+        "width": 40,
+      },
+      {
+        "backgroundColor": "#E3F2D5",
+      },
+      false,
+    ]
+  }
+  testID="day-cell-14"
+>
+  <Text
+    style={
+      [
+        {
+          "fontFamily": "Montserrat-SemiBold",
+          "fontSize": 13,
+          "lineHeight": 18,
+        },
+        {
+          "color": "#171717",
+        },
+        false,
+      ]
+    }
+  >
+    14
+  </Text>
+  <View
+    style={
+      [
+        {
+          "position": "absolute",
+        },
+        {
+          "bottom": -4,
+          "left": -2,
+        },
+      ]
+    }
+  >
+    <svg
+      height={14}
+      width={14}
+    />
+  </View>
+</View>
+`;
+
+exports[`Day snapshot — empty cell 1`] = `
+<View
+  style={
+    {
+      "height": 40,
+      "width": 40,
+    }
+  }
+  testID="day-empty"
+/>
+`;
+
+exports[`Day snapshot — saveStreak state 1`] = `
+<View
+  style={
+    [
+      {
+        "alignItems": "center",
+        "justifyContent": "center",
+        "position": "relative",
+      },
+      {
+        "borderRadius": 20,
+        "height": 40,
+        "width": 40,
+      },
+      {
+        "backgroundColor": "#C8E6B0",
+      },
+      false,
+    ]
+  }
+  testID="day-cell-21"
+>
+  <Text
+    style={
+      [
+        {
+          "fontFamily": "Montserrat-SemiBold",
+          "fontSize": 13,
+          "lineHeight": 18,
+        },
+        {
+          "color": "#171717",
+        },
+        false,
+      ]
+    }
+  >
+    21
+  </Text>
+  <View
+    style={
+      [
+        {
+          "position": "absolute",
+        },
+        {
+          "bottom": -4,
+          "left": -2,
+        },
+      ]
+    }
+  >
+    <svg
+      height={14}
+      width={14}
+    />
+  </View>
+</View>
+`;
+
+exports[`Day snapshot — today state 1`] = `
+<View
+  style={
+    [
+      {
+        "alignItems": "center",
+        "justifyContent": "center",
+        "position": "relative",
+      },
+      {
+        "borderRadius": 20,
+        "height": 40,
+        "width": 40,
+      },
+      {
+        "backgroundColor": "#10BCCA",
+      },
+      {
+        "borderColor": "#10BCCA",
+        "borderWidth": 2,
+      },
+    ]
+  }
+  testID="day-cell-6"
+>
+  <Text
+    style={
+      [
+        {
+          "fontFamily": "Montserrat-SemiBold",
+          "fontSize": 13,
+          "lineHeight": 18,
+        },
+        {
+          "color": "#FFFFFF",
+        },
+        false,
+      ]
+    }
+  >
+    06
+  </Text>
+</View>
+`;
+
+exports[`ProgressBar matches snapshot 1`] = `
+<View
+  style={
+    {
+      "width": "100%",
+    }
+  }
+  testID="progress-bar-container"
+>
+  <Text
+    style={
+      [
+        {
+          "fontFamily": "Montserrat-Regular",
+          "fontSize": 12,
+          "marginBottom": 4,
+          "textAlign": "center",
+        },
+        {
+          "color": "#171717",
+        },
+      ]
+    }
+  >
+    Progreso: 2 de 5
+  </Text>
+  <View
+    style={
+      [
+        {
+          "borderRadius": 4,
+          "height": 8,
+          "overflow": "hidden",
+          "width": "100%",
+        },
+        {
+          "backgroundColor": "#E5E5E5",
+        },
+      ]
+    }
+    testID="progress-bar-track"
+  >
+    <View
+      style={
+        [
+          {
+            "borderRadius": 4,
+            "height": "100%",
+          },
+          {
+            "backgroundColor": "#69AB3C",
+            "width": "40.0%",
+          },
+        ]
+      }
+      testID="progress-bar-fill"
+    />
+  </View>
+</View>
+`;
