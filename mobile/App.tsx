@@ -45,10 +45,16 @@ import React from 'react';
 // eslint-disable-next-line import/first
 import { LogBox } from 'react-native';
 
-// Suppress all warnings in DEV to prevent the Expo Dev Client warning banner
-// from intercepting touches during gate testing.
+// Suppress specific known warnings in DEV (not all logs — targeted suppressions only).
+// LogBox.ignoreAllLogs(true) was a temporary workaround for B08-B12 gate testing
+// where the Expo warning banner was intercepting touches. Removed in B13a.
 if (__DEV__) {
-  LogBox.ignoreAllLogs(true);
+  // Suppress known noisy Amplify DataStore warnings that do not affect behavior:
+  LogBox.ignoreLogs([
+    'Amplify has not been configured',
+    '[WARN]',
+    'No syncPredicate found',
+  ]);
 }
 // eslint-disable-next-line import/first
 import { StatusBar } from 'expo-status-bar';

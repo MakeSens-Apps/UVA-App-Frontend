@@ -22,7 +22,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import * as SplashScreenExpo from 'expo-splash-screen';
 
 import type { RootStackParamList } from './types';
 import { AuthStack } from './AuthStack';
@@ -55,17 +54,8 @@ export function RootNavigator(): React.JSX.Element {
 
   // destination is lifted from SplashScreen's useAuthGate via onAuthResolved callback.
   // null = splash still showing; non-null = navigate to the resolved stack.
-  // DEV_GATE: skip splash+auth, go straight to App stack for B08-B12 gate testing.
-  const [destination, setDestination] = useState<AuthGateDestination | null>(
-    __DEV__ ? 'app' : null,
-  );
-
-  // When DEV_GATE skips SplashScreen, hide the native splash manually.
-  useEffect(() => {
-    if (__DEV__) {
-      void SplashScreenExpo.hideAsync().catch(() => {});
-    }
-  }, []);
+  // B13a: removed DEV_GATE init to 'app' — real auth flow runs in all builds.
+  const [destination, setDestination] = useState<AuthGateDestination | null>(null);
 
   // Register bypass setter (used by DEV button in LoginScreen)
   useEffect(() => {

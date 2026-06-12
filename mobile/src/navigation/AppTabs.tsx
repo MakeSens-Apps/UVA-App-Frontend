@@ -38,8 +38,7 @@ function HomeStackNavigator(): React.JSX.Element {
   return (
     <HomeStack.Navigator
       screenOptions={{ headerShown: false }}
-      // DEV_GATE: start directly on DevGate to verify B08-B12 without needing tap navigation
-      initialRouteName={__DEV__ ? 'DevGate' : 'Home'}
+      initialRouteName="Home"
     >
       <HomeStack.Screen name="Home" component={HomeScreen} />
       {/* MoonPhase is hidden from tabs — accessible via navigation.navigate('MoonPhase') */}
