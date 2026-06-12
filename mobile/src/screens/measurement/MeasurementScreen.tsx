@@ -368,7 +368,7 @@ export function MeasurementScreen(): React.JSX.Element {
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.gray[100] }]}>
       <Header
         title="Registros climáticos"
         seed={userProgress?.Seed}
@@ -378,11 +378,11 @@ export function MeasurementScreen(): React.JSX.Element {
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Progress card */}
-        <View style={[styles.card, { backgroundColor: theme.colors.white }]}>
+        <View style={styles.card}>
           <Text
             style={[
               styles.cardTitle,
-              { fontFamily: fontFamilyForWeight('600'), color: theme.colors.blue[700] },
+              { fontFamily: fontFamilyForWeight('700'), color: theme.colors.blue[800] },
             ]}
           >
             Registra y gana: +2
@@ -421,66 +421,58 @@ export function MeasurementScreen(): React.JSX.Element {
             <Text
               style={[
                 styles.sectionTitle,
-                { fontFamily: fontFamilyForWeight('600'), color: theme.semanticColors.text },
+                { fontFamily: fontFamilyForWeight('700'), color: theme.colors.blue[800] },
               ]}
             >
               Registros sin completar
             </Text>
-            {tasks.map((task) => {
-              const restricted = hasRestrictionTimeTask(task);
-              const phone = session?.phone ?? '';
-              const isTest = isTestUser(phone);
-              const isDisabled = restricted && !isTest;
-              return (
-                <TouchableOpacity
-                  key={task.id}
-                  style={[
-                    styles.taskRow,
-                    { backgroundColor: theme.colors.white },
-                    isDisabled && styles.taskRowDisabled,
-                  ]}
-                  onPress={() => goToRegister(task)}
-                  activeOpacity={isDisabled ? 0.5 : 0.8}
-                  testID={`task-row-${task.id}`}
-                >
-                  {restricted && (
-                    <Text
-                      style={[
-                        styles.restrictionText,
-                        { color: theme.colors.orange[500] ?? '#F59E0B' },
-                      ]}
-                    >
-                      {getTextRestrictionTime(task)}
-                    </Text>
-                  )}
-                  <View style={styles.taskRowInner}>
-                    <View
-                      style={[
-                        styles.checkbox,
-                        {
-                          borderColor: isDisabled
-                            ? theme.colors.gray[300]
-                            : theme.colors.blue[500],
-                        },
-                      ]}
-                    />
-                    <Text
-                      style={[
-                        styles.taskName,
-                        {
-                          fontFamily: fontFamilyForWeight('400'),
-                          color: isDisabled
-                            ? theme.colors.gray[400]
-                            : theme.semanticColors.text,
-                        },
-                      ]}
-                    >
-                      {task.name}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+            {/* measurement_incomplete: white bg, no border, borderRadius 16 */}
+            <View style={styles.groupIncomplete}>
+              {tasks.map((task) => {
+                const restricted = hasRestrictionTimeTask(task);
+                const phone = session?.phone ?? '';
+                const isTest = isTestUser(phone);
+                const isDisabled = restricted && !isTest;
+                return (
+                  <TouchableOpacity
+                    key={task.id}
+                    style={[
+                      styles.taskRow,
+                      isDisabled && styles.taskRowDisabled,
+                    ]}
+                    onPress={() => goToRegister(task)}
+                    activeOpacity={isDisabled ? 0.5 : 0.8}
+                    testID={`task-row-${task.id}`}
+                  >
+                    {restricted && (
+                      <View style={styles.restrictionChip}>
+                        <Text
+                          style={[
+                            styles.restrictionText,
+                            { fontFamily: fontFamilyForWeight('500', true) },
+                          ]}
+                        >
+                          {getTextRestrictionTime(task)}
+                        </Text>
+                      </View>
+                    )}
+                    <View style={styles.taskRowInner}>
+                      <View
+                        style={[
+                          styles.checkbox,
+                          {
+                            borderColor: isDisabled
+                              ? theme.colors.gray[300]
+                              : theme.colors.blue[500],
+                          },
+                        ]}
+                      />
+                      <RichText html={task.name} inline baseFontSize={14} />
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         )}
 
@@ -490,54 +482,50 @@ export function MeasurementScreen(): React.JSX.Element {
             <Text
               style={[
                 styles.sectionTitle,
-                { fontFamily: fontFamilyForWeight('600'), color: theme.semanticColors.text },
+                { fontFamily: fontFamilyForWeight('700'), color: theme.colors.blue[800] },
               ]}
             >
               Registros completados
             </Text>
-            {tasksCompleted.map((task) => (
-              <View
-                key={task.id}
-                style={[styles.taskRow, { backgroundColor: theme.colors.white }]}
-                testID={`task-completed-${task.id}`}
-              >
-                <View style={styles.taskRowInner}>
-                  <View
-                    style={[
-                      styles.checkboxChecked,
-                      { backgroundColor: theme.colors.blue[500] },
-                    ]}
-                  />
-                  <Text
-                    style={[
-                      styles.taskName,
-                      { fontFamily: fontFamilyForWeight('400'), color: theme.semanticColors.text },
-                    ]}
-                  >
-                    {task.name}
-                  </Text>
+            {/* measurement_complete: green-100 bg, green-200 border, borderRadius 16 */}
+            <View style={styles.groupComplete}>
+              {tasksCompleted.map((task) => (
+                <View
+                  key={task.id}
+                  style={styles.taskRow}
+                  testID={`task-completed-${task.id}`}
+                >
+                  <View style={styles.taskRowInner}>
+                    <View
+                      style={[
+                        styles.checkboxChecked,
+                        { backgroundColor: theme.colors.blue[500] },
+                      ]}
+                    />
+                    <RichText html={task.name} inline baseFontSize={14} />
+                  </View>
+                  {/* Measurements list */}
+                  <View style={styles.measurementsContainer}>
+                    {task.measurements.map((m) => (
+                      <View key={m.id} style={styles.measurementRow}>
+                        {m.sortName ? (
+                          <RichText html={m.sortName} inline baseFontSize={13} />
+                        ) : null}
+                        <Text
+                          style={[
+                            styles.measurementValue,
+                            { fontFamily: fontFamilyForWeight('600'), color: theme.semanticColors.text },
+                          ]}
+                        >
+                          {m.value}
+                          {m.unit}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
                 </View>
-                {/* Measurements list */}
-                <View style={styles.measurementsContainer}>
-                  {task.measurements.map((m) => (
-                    <View key={m.id} style={styles.measurementRow}>
-                      {m.sortName ? (
-                        <RichText html={m.sortName} inline baseFontSize={13} />
-                      ) : null}
-                      <Text
-                        style={[
-                          styles.measurementValue,
-                          { fontFamily: fontFamilyForWeight('600'), color: theme.semanticColors.text },
-                        ]}
-                      >
-                        {m.value}
-                        {m.unit}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
         )}
 
@@ -650,14 +638,13 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { flex: 1 },
   card: {
+    // .cards: gray-50 bg, gray-200 border, borderRadius 10, no shadow
     margin: 16,
-    borderRadius: 12,
-    padding: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    borderRadius: 10,
+    padding: 10,
+    backgroundColor: '#FAFAFA',
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
   },
   cardTitle: {
     fontSize: 16,
@@ -672,16 +659,27 @@ const styles = StyleSheet.create({
   },
   bonusText: { fontSize: 18 },
   section: { paddingHorizontal: 16, marginBottom: 8 },
-  sectionTitle: { fontSize: 15, marginBottom: 8 },
+  sectionTitle: { fontSize: 16, marginBottom: 8 },
+  // measurement_incomplete: white bg, no border
+  groupIncomplete: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 10,
+  },
+  // measurement_complete: green-100 bg + green-200 border
+  groupComplete: {
+    backgroundColor: '#E3F2D5',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#C8E6B0',
+    padding: 10,
+  },
   taskRow: {
-    borderRadius: 8,
-    padding: 12,
+    // measurement_result: gray-50 bg, borderRadius 16
+    borderRadius: 16,
+    backgroundColor: '#FAFAFA',
+    padding: 10,
     marginBottom: 8,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 2,
   },
   taskRowDisabled: { opacity: 0.6 },
   taskRowInner: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -696,8 +694,21 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
   },
-  taskName: { fontSize: 15, flex: 1 },
-  restrictionText: { fontSize: 12, marginBottom: 4 },
+  taskName: { fontSize: 14, flex: 1 },
+  // .restrictionTime chip: orange-100 bg, orange-800 text, italic, borderRadius 8
+  restrictionChip: {
+    backgroundColor: '#FBF0D9',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    alignSelf: 'flex-start',
+    marginBottom: 4,
+  },
+  restrictionText: {
+    fontSize: 12,
+    color: '#8E481E',
+    fontStyle: 'italic',
+  },
   measurementsContainer: {
     marginTop: 8,
     paddingLeft: 32,

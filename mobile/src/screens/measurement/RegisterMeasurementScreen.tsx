@@ -59,6 +59,7 @@ import {
   ActivityIndicator,
   type TextInputProps,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { AppStackParamList } from '@/navigation/types';
@@ -400,9 +401,13 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
         });
       }, 2000);
     } else {
-      // There is a next flow → persist current measurement values for restriction check
+      // There is a next flow → persist current measurement values for restriction check.
+      // nextFlow is guaranteed non-null in this branch (original: else of `!this.flow?.nextFlow`).
+      // value is not filtered/defaulted — original maps `value: measurament.value` as-is,
+      // and save() already guards that every measurement has a value.
+      const nextFlow = flow.nextFlow;
       const nextFlowValues: MeasurementValue[] = measurements.map((m) => ({
-        flow: flow.nextFlow,
+        flow: nextFlow,
         id: m.id!,
         value: m.value,
       }));
@@ -471,14 +476,14 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
 
   if (loading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.gray[50] }]}>
         <ActivityIndicator color={theme.colors.blue[500]} size="large" />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.gray[50] }]}>
       <Header
         title={flow?.name ?? taskName ?? ''}
         hasProfileButton={false}
@@ -540,7 +545,6 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
                         style={[
                           styles.digitInput,
                           {
-                            borderColor: theme.colors.blue[500],
                             fontFamily: fontFamilyForWeight('600'),
                             color: theme.semanticColors.text,
                           },
@@ -571,14 +575,17 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
                       style={[styles.alertContainer, { backgroundColor: theme.colors.orange[50] ?? '#FFF7ED' }]}
                       testID={`measurement-alert-${measIdx}`}
                     >
-                      <Text
-                        style={[
-                          styles.alertTitle,
-                          { fontFamily: fontFamilyForWeight('600'), color: theme.colors.orange[700] ?? '#C2410C' },
-                        ]}
-                      >
-                        ¿Estás seguro de este dato?
-                      </Text>
+                      <View style={styles.alertTitleRow}>
+                        <Text style={styles.alertIcon}>⚠️</Text>
+                        <Text
+                          style={[
+                            styles.alertTitle,
+                            { fontFamily: fontFamilyForWeight('600'), color: theme.colors.orange[700] ?? '#C2410C' },
+                          ]}
+                        >
+                          ¿Estás seguro de este dato?
+                        </Text>
+                      </View>
                       <RichText html={errorMsg} baseFontSize={13} />
                     </View>
                   ) : null}
@@ -586,7 +593,7 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
               );
             })}
 
-            {/* Guide help link */}
+            {/* Guide help link — .help: white bg, borderRadius 16, space-between */}
             {hasGuide && (
               <TouchableOpacity
                 style={styles.guideLink}
@@ -596,11 +603,12 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
                 <Text
                   style={[
                     styles.guideLinkText,
-                    { fontFamily: fontFamilyForWeight('400'), color: theme.colors.blue[600] },
+                    { fontFamily: fontFamilyForWeight('700'), color: theme.colors.gray[600] },
                   ]}
                 >
                   ¿Cómo ver este dato?
                 </Text>
+                <Text style={[styles.guideLinkIcon, { color: theme.colors.blue[500] }]}>ℹ️</Text>
               </TouchableOpacity>
             )}
 
@@ -636,7 +644,8 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
         onRequestClose={() => setShowConfirmModal(false)}
         testID="confirm-modal"
       >
-        <View style={styles.modalBackdrop}>
+        {/* BlurView replaces solid overlay — mirrors backdrop-filter:blur(20px) */}
+        <BlurView intensity={80} tint="light" style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { backgroundColor: theme.colors.white }]}>
             <Text
               style={[
@@ -705,21 +714,8 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => setShowConfirmModal(false)}
-            >
-              <Text
-                style={[
-                  styles.cancelButtonText,
-                  { fontFamily: fontFamilyForWeight('400'), color: theme.colors.blue[600] },
-                ]}
-              >
-                Cancelar
-              </Text>
-            </TouchableOpacity>
           </View>
-        </View>
+        </BlurView>
       </Modal>
 
       {/* Saved modal — "flow.name guardados" */}
@@ -730,7 +726,7 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
         statusBarTranslucent
         testID="saved-modal"
       >
-        <View style={styles.modalBackdrop}>
+        <BlurView intensity={80} tint="light" style={styles.modalBackdrop}>
           <View style={[styles.savedCard, { backgroundColor: theme.colors.white }]}>
             <Text
               style={[
@@ -759,7 +755,7 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
               </TouchableOpacity>
             ) : null}
           </View>
-        </View>
+        </BlurView>
       </Modal>
     </View>
   );
@@ -774,8 +770,9 @@ const styles = StyleSheet.create({
   formContainer: { padding: 16 },
   titleSection: { marginBottom: 16 },
   measurementCard: {
-    borderRadius: 12,
-    borderWidth: 2,
+    // Original: borderRadius 16, borderWidth 1 (not 2)
+    borderRadius: 16,
+    borderWidth: 1,
     padding: 16,
     marginBottom: 12,
   },
@@ -796,12 +793,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   digitInput: {
-    width: 44,
-    height: 52,
-    borderWidth: 1.5,
-    borderRadius: 8,
+    // Original .digit-input: border-bottom only (no full border), no borderRadius, width:40, fontSize:26
+    width: 40,
+    height: 44,
+    borderBottomWidth: 2,
+    borderBottomColor: '#525252', // --Colors-Gray-600
+    borderRadius: 0,
     textAlign: 'center',
-    fontSize: 22,
+    fontSize: 26,
   },
   valueDisplay: {
     fontSize: 28,
@@ -815,18 +814,36 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
   },
-  alertTitle: {
-    fontSize: 13,
-    marginBottom: 4,
-  },
-  guideLink: {
+  alertTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  alertIcon: {
+    fontSize: 18,
+  },
+  alertTitle: {
+    fontSize: 13,
+    flex: 1,
+  },
+  guideLink: {
+    // .help: white bg, borderRadius 16, paddingH 12, paddingV 10, space-between
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 12,
-    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   guideLinkText: {
-    fontSize: 15,
+    // .help p: gray-600 #525252, 16px, weight 700
+    fontSize: 16,
+  },
+  guideLinkIcon: {
+    fontSize: 18,
   },
   saveButtonContainer: {
     marginTop: 8,
@@ -839,18 +856,10 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
   },
-  cancelButton: {
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  cancelButtonText: {
-    fontSize: 15,
-  },
   // Modal styles
+  // BlurView replaces solid overlay — backdrop-filter:blur(20px) from original SCSS
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   modalCard: {

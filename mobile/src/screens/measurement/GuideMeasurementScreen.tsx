@@ -31,6 +31,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Switch,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -39,6 +40,7 @@ import { RichText } from '@/components/rich-text/RichText';
 import { useConfigContext } from '@/state/ConfigContext';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';
+import { Preferences } from '@/data/storage/preferences';
 
 import type { Guide } from '@/data/models/configuration/measurements.model';
 
@@ -70,6 +72,7 @@ export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.
   const [iconUri, setIconUri] = useState<string | null>(null);
   const [isArrayText, setIsArrayText] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showAutomatic, setShowAutomatic] = useState(true);
 
   // ─── Load guide data ───────────────────────────────────────────────────────
 
@@ -155,7 +158,7 @@ export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.
 
   if (loading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.white }]}>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.gray[50] }]}>
         <ActivityIndicator color={theme.colors.blue[500]} size="large" />
       </View>
     );
@@ -163,7 +166,7 @@ export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.
 
   if (!guide) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.white }]}>
+      <View style={[styles.container, { backgroundColor: theme.colors.gray[50] }]}>
         <Text
           style={[
             styles.errorText,
@@ -184,14 +187,38 @@ export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.
     );
   }
 
+  // Button label: "Siguiente" if there is a nextGuide, "Entendido" otherwise
+  const buttonLabel = (guide as Guide & { nextGuide?: string }).nextGuide ? 'Siguiente' : 'Entendido';
+
+  const handleShowAutomaticChange = async (value: boolean) => {
+    setShowAutomatic(value);
+    await Preferences.set({ key: `guide_showAutomatic_${guideKey}`, value: String(value) });
+  };
+
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.white }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.gray[50] }]}>
+      {/* Close button X — .btn_close: absolute top-right, teal #10BCCA bg, 38px */}
+      <TouchableOpacity
+        style={[styles.btnClose, { backgroundColor: theme.colors.blue[500] }]}
+        onPress={() => closeModal(false)}
+        testID="guide-btn-close"
+      >
+        <Text
+          style={[
+            styles.btnCloseText,
+            { fontFamily: fontFamilyForWeight('700'), color: theme.colors.white },
+          ]}
+        >
+          ✕
+        </Text>
+      </TouchableOpacity>
+
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Guide image */}
+        {/* Guide image — 70% width, height 260 */}
         {imgUri ? (
           <Image
             source={{ uri: imgUri }}
@@ -209,6 +236,18 @@ export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.
             resizeMode="contain"
             testID="guide-icon"
           />
+        ) : null}
+
+        {/* Guide title — original .html shows guide.name as the title (.title p) */}
+        {guide.name ? (
+          <Text
+            style={[
+              styles.guideTitle,
+              { fontFamily: fontFamilyForWeight('700'), color: theme.colors.blue[700] },
+            ]}
+          >
+            {guide.name}
+          </Text>
         ) : null}
 
         {/* Guide text — array or HTML */}
@@ -229,6 +268,25 @@ export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.
         ) : (
           <RichText html={guide.text as string} baseFontSize={15} />
         )}
+
+        {/* Checkbox "Mostrar automáticamente" */}
+        <View style={styles.checkboxRow}>
+          <Switch
+            value={showAutomatic}
+            onValueChange={(v) => void handleShowAutomaticChange(v)}
+            thumbColor={showAutomatic ? theme.colors.blue[600] : theme.colors.gray[300]}
+            trackColor={{ false: theme.colors.gray[200], true: theme.colors.blue[200] }}
+            testID="guide-show-automatic"
+          />
+          <Text
+            style={[
+              styles.checkboxLabel,
+              { fontFamily: fontFamilyForWeight('500'), color: theme.colors.gray[700] },
+            ]}
+          >
+            Mostrar automáticamente
+          </Text>
+        </View>
       </ScrollView>
 
       {/* Action buttons */}
@@ -244,21 +302,7 @@ export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.
               { fontFamily: fontFamilyForWeight('600'), color: theme.colors.white },
             ]}
           >
-            Continuar
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.btnSecondary}
-          onPress={() => closeModal(false)}
-          testID="guide-btn-close"
-        >
-          <Text
-            style={[
-              styles.btnSecondaryText,
-              { fontFamily: fontFamilyForWeight('400'), color: theme.colors.blue[600] },
-            ]}
-          >
-            Cerrar
+            {buttonLabel}
           </Text>
         </TouchableOpacity>
       </View>
@@ -275,6 +319,7 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: {
     padding: 20,
+    paddingTop: 54, // leave room for the absolute close button
     paddingBottom: 16,
   },
   loadingContainer: {
@@ -282,11 +327,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // .btn_close: absolute top-right, 38×38px, teal bg, borderRadius 4
+  btnClose: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 10,
+    width: 38,
+    height: 38,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnCloseText: {
+    fontSize: 16,
+  },
+  // 70% width, height 260 (60% of screen width, centered)
   guideImage: {
-    width: '100%',
-    height: 200,
+    width: '70%',
+    height: 260,
     marginBottom: 16,
-    borderRadius: 8,
+    alignSelf: 'center',
+  },
+  guideTitle: {
+    fontSize: 16,
+    marginBottom: 8,
   },
   iconImage: {
     width: 64,
@@ -301,6 +366,15 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 16,
+  },
+  checkboxLabel: {
+    fontSize: 14,
+  },
   buttonsContainer: {
     padding: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -314,13 +388,6 @@ const styles = StyleSheet.create({
   btnPrimaryText: {
     fontSize: 16,
     color: '#FFFFFF',
-  },
-  btnSecondary: {
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  btnSecondaryText: {
-    fontSize: 15,
   },
   errorText: {
     fontSize: 16,
