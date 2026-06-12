@@ -161,3 +161,72 @@ Comparación con `historical/screen-01-historical-junio-calendario.png` y `scree
 | f88561c | FIX-home | HomeScreen, Day calendar, token modal |
 | bfaf09f | FIX-measurement | GuideMeasurement, RegisterMeasurement |
 | 3046f59 | FIX-historical | HistoricalScreen, TimeFrame segment |
+
+---
+
+# Ronda 3 — Cierre de pendientes — 2026-06-12
+
+> Capturas en: `docs/evidence/rn-parity/round3/`
+> Verificación en vivo: emulador UVA_API35 (emulator-5554), Metro 8081, usuario de prueba 3000000002.
+
+## Resumen del cierre
+
+| # | Pendiente (ronda 2) | Veredicto | Evidencia |
+|---|---------------------|-----------|-----------|
+| 1 | Tabla EnvironmentalReport en Historical (ALTA) | **CERRADO — PARIDAD OK** | `round3/historical-tabla.png` vs `historical/screen-03-historical-mayo-calendario.png` |
+| 2 | ProgressBar "teal" (MEDIA) | **CERRADO — el original es VERDE, no teal** (ver nota) | `round3/home-progress-mooncard.png` vs `home/screen-11-gamification-progress.png` |
+| 3 | MoonCard estrellas (BAJA) | **CERRADO — PARIDAD OK** | `round3/home-progress-mooncard.png` vs `home/screen-09-moon-card.png` |
+| 4 | Bypass B14 en ValidateProject (LIMPIEZA) | **CERRADO** — gateado a `__DEV__` + TODO(B14) | código |
+
+## Detalle
+
+### 1. Tabla de reporte en Historical — CERRADO
+
+Causa raíz doble:
+- **Código**: la pantalla RN dependía de `configMeasurement` del contexto (que solo se poblaba si Home lo cargaba antes y el archivo existía). El original (`historical.page.ts` ngOnInit) carga la config él mismo con `getConfigurationMeasurement()`. Portado igual.
+- **Entorno**: tras la instalación fresca de la ronda 2, el emulador no tenía la config del RACIMO (`files/public/racimos/ANT025/`) ni `session_racimoLinkCode`. Se inyectaron por adb (quirk documentado en memoria del proyecto).
+
+Estilos portados exactos de `historical.page.scss` (`.calendar_variables*`) y `global.scss` (`.cards`):
+- Sección mes: fondo Gray-50 `#FAFAFA`, borde Gray-200, radius 10, sin sombra
+- 3 cards blancos (radius 10, padding 10, gap 10, flex 1), texto `#545454`
+- Título 16/600 centrado (emoji + 3 letras), promedio 14/600 centrado, Max/Min 12/500 en línea space-between
+- Formato Angular `number:'1.0-1'`: "24.3°C", "69%", "28°C" (sin .0), "1,162mm" (agrupación de miles en vista año), vacío → solo unidad ("°C") como el original en meses sin datos
+- Calendario envuelto en card blanco con borde (`.calendar_content`)
+
+Verificado con datos reales (Mayo 2026, 68 registros): Tem 24.3°C (28/22), Hum 69% (85/56), Acu 81mm (30/0) — **idéntico a la captura Ionic**.
+
+### 2. ProgressBar — nota de verificación (el original NO es teal)
+
+Verificación mandatoria contra el original:
+- `progress-bar.component.html:8` → `color="uva_green-500"`
+- `variables.scss:10` → `--ion-color-uva_green-500: #69AB3C` (**verde**)
+- Track: `--Colors-Green-200 #C8E6B0` (scss del componente)
+- No hay `#10BCCA` en ningún archivo del componente; ninguna captura de evidencia muestra el fill (todas con progreso 0)
+
+El RN ya usaba `theme.colors.green[500] = #69AB3C` (token, no hardcode) → **el color no se cambió**: cambiarlo a teal habría contradicho al original (regla suprema). Lo que SÍ divergía y se corrigió:
+- `.progress_container` portado: fondo blanco, radius 14 (`--3xl`), padding 10, gap 8, texto alineado a la IZQUIERDA (antes centrado)
+- Track height 7px (antes 8px), min-width 2px
+
+### 3. MoonCard estrellas — CERRADO
+
+- Asset existente: `mobile/src/assets/svg/moon/eclipses_card_home.svg` (réplica de `src/assets/images/Moon/eclipses_card_home .svg`, 340×88, puntos blancos con blur)
+- Antes: 120×80 en la esquina inferior derecha con opacity 0.15×0.15 (invisible)
+- Ahora: absoluto cubriendo toda la card (top 0, bottom 0, inset lateral 6 ≈ margin-inline 16px del original), opacidad completa — como `.eclipses` del scss
+- Bonus: flecha de la moon card ahora BLANCA (original `ion-icon { color: white }`); el asset `arrow-right.svg` hardcodea teal `#10BCCA` (correcto para el Header), así que la flecha se dibuja inline con react-native-svg en blanco
+
+### 4. Bypass B14 — CERRADO
+
+`ValidateProjectScreen.tsx`: botón "Ir al inicio (test)" ahora dentro de `{__DEV__ && (...)}` con comentario `TODO(B14): eliminar bypass temporal al implementar la vinculación real`. No se eliminó (necesario para pasar el placeholder B14 en pruebas manuales).
+
+## Gate
+
+- Jest: 543/543 verdes (27 suites). Snapshots de ProgressBar/MoonCard actualizados (cambios intencionales); mock de ConfigContext en b13b estabilizado (objeto estable entre renders, como el provider real)
+- ESLint: 0 errores (91 warnings pre-existentes en todo el repo)
+- tsc: **reparado** — `mobile/tsconfig.json` tenía `baseUrl` (rota con TypeScript 6.0.3: error de config que abortaba el chequeo; tsc nunca había chequeado nada en realidad). Con la config reparada + `src/types/svg.d.ts` + types jest/node: archivos de esta pasada en 0 errores; **quedan 63 errores pre-existentes** (Areachart/Skia, file-system, graphql API, fixtures b07, pantallas measurement con WIP sin commitear) — pendiente para una pasada de tipos (B19)
+
+## Pendientes honestos (fuera del alcance de esta ronda)
+
+- Mini-calendarios de la vista "Año": los círculos de día salen a tamaño completo y se solapan (el original usa días de 13px). Pre-existente de B13b, visible en la verificación en vivo
+- 63 errores de tsc pre-existentes (ver Gate)
+- Toast pre-existente al arrancar: `FileSystemService Error ... lunar-phases-2026-06.json ENOENT` (caché de fases lunares, no relacionado)
+- Las tareas de measurement siguen sin poder verificarse visualmente (limitación de datos del entorno, igual que ronda 2)
