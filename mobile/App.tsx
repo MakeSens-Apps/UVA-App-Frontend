@@ -1,6 +1,7 @@
 /**
  * UVA App — React Native (Expo)
  * Entry point — B03: Amplify + DataStore + NetInfo bootstrap
+ *               B06: SyncContext + SessionContext + ConfigContext
  *
  * Import ORDER is critical (portability matrix §3.2, R-04):
  *  1. react-native-get-random-values  — must be FIRST (UUIDs for DataStore models)
@@ -8,6 +9,7 @@
  *  3. Amplify.configure(amplifyconfiguration) — before any generateClient/DataStore call
  *  4. DataStore.configure({ syncExpressions }) — selective sync identical to original
  *  5. subscribeToSync() — Hub listener for networkStatus + sync state
+ *  6. initAppUsage() — initializes AppUsage session tracking
  *
  * References:
  *  - src/main.ts (Amplify.configure)
@@ -30,6 +32,10 @@ bootstrapAmplify();
 import { subscribeToSync } from '@/data/amplify-bootstrap/sync-monitor';
 subscribeToSync();
 
+// ─── Step 6: AppUsage session tracking ───────────────────────────────────────
+import { initAppUsage } from '@/data/view/app-usage';
+initAppUsage();
+
 /* eslint-enable import/first */
 
 // ─── React / RN ──────────────────────────────────────────────────────────────
@@ -40,13 +46,39 @@ import { StatusBar } from 'expo-status-bar';
 // eslint-disable-next-line import/first
 import { StyleSheet, Text, View } from 'react-native';
 
+// ─── B06 Context providers ───────────────────────────────────────────────────
+// eslint-disable-next-line import/first
+import { SyncProvider, useSyncContext } from '@/state/SyncContext';
+// eslint-disable-next-line import/first
+import { SessionProvider } from '@/state/SessionContext';
+// eslint-disable-next-line import/first
+import { ConfigProvider } from '@/state/ConfigContext';
+
+// ─── Demo component: shows networkStatus from SyncContext (B06 gate) ──────────
+
+function NetworkStatusBadge() {
+  const { networkStatus, state } = useSyncContext();
+  return (
+    <Text style={styles.badge}>
+      {networkStatus ? '🟢 Online' : '🔴 Offline'} · {state}
+    </Text>
+  );
+}
+
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>UVA App</Text>
-      <Text style={styles.subtitle}>React Native — B03 Amplify+DataStore</Text>
-      <StatusBar style="auto" />
-    </View>
+    <SyncProvider>
+      <SessionProvider>
+        <ConfigProvider>
+          <View style={styles.container}>
+            <Text style={styles.title}>UVA App</Text>
+            <Text style={styles.subtitle}>React Native — B06 Contexts</Text>
+            <NetworkStatusBadge />
+            <StatusBar style="auto" />
+          </View>
+        </ConfigProvider>
+      </SessionProvider>
+    </SyncProvider>
   );
 }
 
@@ -56,6 +88,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E6F4FE',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 12,
   },
   title: {
     fontSize: 28,
@@ -66,5 +99,13 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#4a7aaa',
+  },
+  badge: {
+    fontSize: 14,
+    color: '#2a5a8a',
+    backgroundColor: '#C8E8FC',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
 });
