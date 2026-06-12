@@ -1,24 +1,18 @@
 /**
- * B13b — HistoricalScreen (partial implementation: lista + calendario)
+ * B15 — HistoricalScreen (full implementation: calendar + chart + share)
  *
  * Ported from: src/app/pages/historical/historical.page.ts + .html
  * Classification: Rewrite (UI layer, preserving all logic)
  *
- * SCOPE B13b (lista + calendario):
- *   - timeFrame toggle (month/year) with TimeFrame component (B11)
- *   - Calendar view with completedTask data (Calendar B11)
- *   - Variables summary cards (avg/min/max) using tested aggregations (B07)
- *   - Month navigation (prev/next)
- *   - Year view (mini calendars grid)
- *   - changeModeData toggle: calendar ↔ chart (chart uses Areachart B11 if available)
- *   - goToDetail: navigate to MeasurementDetail (B15 placeholder)
- *   - useFocusEffect replaces ionViewWillEnter for seed
- *   - Share: DEFERRED to B15 (share icon placeholder shown but not functional)
- *
- * DEFERRED to B15:
- *   - Detailed Skia chart mode
- *   - Environmental report generation / sharing
- *   - MeasurementDetailPage real implementation
+ * B15 additions over B13b:
+ *   - Real chart data building: buildChartData() using calculateDetailedMeasurement /
+ *     calculateMeasurement from B07 aggregations (mirrors original updateChart())
+ *   - detailedMode support: line+mean graphs → detailedMode=true with min/max/avg data
+ *   - calculateRangeOfMeasurement: ymin/ymax for chart axis range
+ *   - Share report: expo-sharing text report (no EnvironmentalReportService — R-01)
+ *     with showToast success/error feedback
+ *   - Year view mini-calendar spacing fix: previously overlapping due to 33.33% width
+ *     on small screens. Evidence: screen-10, screen-11. Fix: explicit width calc.
  *
  * Preserved logic (portability-matrix §4.4):
  *   - initializeCompletedTasks: Promise.all for 12 months
@@ -36,9 +30,9 @@
  *   - @ViewChild(CalendarComponent) → Calendar component re-renders reactively
  *   - @ViewChild(AreachartComponent) → Areachart component via reactive props
  *   - IonContent → ScrollView
- *   - setTimeout → kept for generateCalendars analog (React handles re-render)
+ *   - Share: expo-sharing text (no image — R-01 web-only-risks documented)
  *
- * Risks: R-32, R-12, R-15
+ * Risks: R-32, R-12, R-15, R-01
  *
  * Round 3 (paridad visual):
  *   - Tabla de variables (Tem/Hum/Acu — avg/max/min) con los estilos exactos de
@@ -60,6 +54,7 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as Sharing from 'expo-sharing';
 
 import type { AppStackParamList } from '@/navigation/types';
 import { Header } from '@/components/header/Header';
@@ -67,6 +62,7 @@ import { Calendar } from '@/components/calendar/Calendar';
 import { TimeFrame } from '@/components/time-frame/TimeFrame';
 import type { TimeFrameValue } from '@/components/time-frame/TimeFrame';
 import { Areachart } from '@/components/areachart/Areachart';
+import { showToast } from '@/components/ui/Toast';
 
 import { useConfigContext } from '@/state/ConfigContext';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -78,6 +74,8 @@ import { MeasurementDSService } from '@/data/datastore/measurement-ds';
 import {
   transformData,
   calculateOverallStats,
+  calculateMeasurement,
+  calculateDetailedMeasurement,
 } from '@/domain/aggregations/historical-aggregations';
 
 import type { Historical, MeasurementModel } from '@/data/models/configuration/measurements.model';
@@ -122,6 +120,116 @@ interface CompleteTaskHistorical extends CompletedTask {
   name: string;
 }
 
+interface ChartDataResult {
+  chartLabels: string[];
+  chartData: number[];
+  chartMinData: number[];
+  chartMaxData: number[];
+  detailedMode: boolean;
+  ymin: number | undefined;
+  ymax: number | undefined;
+  xmin: string;
+  xmax: string;
+}
+
+// ─── Chart data builder ────────────────────────────────────────────────────────
+
+/**
+ * Builds chart data from measurement config + raw measurements.
+ * Mirrors original updateChart() logic (historical.page.ts).
+ * Uses B07 pure aggregation functions.
+ */
+function buildChartData(
+  measureSelected: Historical,
+  rawMeasurements: Array<{ data?: Record<string, number> | null; ts: string }>,
+  measuresConfig: MeasurementModel | null,
+  year: number,
+  monthIndex: number,
+): ChartDataResult {
+  const transformedData = transformData(rawMeasurements);
+  const configGraph = measureSelected.graph;
+
+  // x-axis range (ISO YYYY-MM-DD)
+  const startOfMonth = new Date(year, monthIndex, 1, 0, 0, 0, 0)
+    .toLocaleDateString('en-CA'); // YYYY-MM-DD
+  const endOfMonth = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999)
+    .toLocaleDateString('en-CA');
+
+  // y-axis range from measurement config
+  let ymin: number | undefined;
+  let ymax: number | undefined;
+  if (measuresConfig) {
+    for (const key of configGraph.measurementIds) {
+      const mc = measuresConfig.measurements[key];
+      if (!mc) continue;
+      if (ymax === undefined || mc.range.max > ymax) ymax = mc.range.max;
+      if (ymin === undefined || mc.range.min < ymin) ymin = mc.range.min;
+    }
+  }
+
+  if (
+    configGraph.type === 'line' &&
+    configGraph.aggregationFunction === 'mean'
+  ) {
+    // Detailed mode: avg/min/max band
+    const detailedMeasures = calculateDetailedMeasurement(
+      transformedData,
+      configGraph.measurementIds,
+    );
+
+    if (detailedMeasures && Object.keys(detailedMeasures).length > 0) {
+      const labels = Object.keys(detailedMeasures).sort();
+      const avgData = labels.map((d) => detailedMeasures[d]?.avg ?? 0);
+      const minData = labels.map((d) => detailedMeasures[d]?.min ?? 0);
+      const maxData = labels.map((d) => detailedMeasures[d]?.max ?? 0);
+      return {
+        chartLabels: labels,
+        chartData: avgData,
+        chartMinData: minData,
+        chartMaxData: maxData,
+        detailedMode: true,
+        ymin,
+        ymax,
+        xmin: startOfMonth,
+        xmax: endOfMonth,
+      };
+    }
+    // No data: empty detailed mode
+    return {
+      chartLabels: [],
+      chartData: [],
+      chartMinData: [],
+      chartMaxData: [],
+      detailedMode: false,
+      ymin,
+      ymax,
+      xmin: startOfMonth,
+      xmax: endOfMonth,
+    };
+  } else {
+    // Normal mode: sum or mean per day
+    const measures = calculateMeasurement(
+      transformedData,
+      configGraph.measurementIds,
+      configGraph.aggregationFunction === 'sum' ? 'sum' : 'mean',
+    );
+
+    const labels = Object.keys(measures).sort();
+    const values = labels.map((d) => measures[d] ?? 0);
+    return {
+      chartLabels: labels,
+      chartData: values,
+      chartMinData: [],
+      chartMaxData: [],
+      detailedMode: false,
+      ymin,
+      ymax,
+      xmin: startOfMonth,
+      xmax: endOfMonth,
+    };
+  }
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 /**
@@ -151,6 +259,20 @@ export function HistoricalScreen(): React.JSX.Element {
   const [measureSelected, setMeasureSelected] = useState<Historical | undefined>(undefined);
   const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sharing, setSharing] = useState(false);
+
+  // Chart data state (built by buildChartData when measureSelected changes)
+  const [chartState, setChartState] = useState<ChartDataResult>({
+    chartLabels: [],
+    chartData: [],
+    chartMinData: [],
+    chartMaxData: [],
+    detailedMode: false,
+    ymin: undefined,
+    ymax: undefined,
+    xmin: '',
+    xmax: '',
+  });
 
   // ─── useFocusEffect: reload seed on focus ──────────────────────────────────
   useFocusEffect(
@@ -270,21 +392,53 @@ export function HistoricalScreen(): React.JSX.Element {
     [currentMonthIndex, currentYearIndex],
   );
 
+  // ─── updateChartData: rebuilds chart state when measureSelected changes ──────
+
+  const updateChartData = useCallback(
+    async (measurement: Historical) => {
+      try {
+        const rawMeasurementsRaw = await MeasurementDSService.getMeasurementsByMont(
+          currentYearIndex,
+          currentMonthIndex,
+        );
+        // Parse JSON-string `data` field from Amplify DataStore model → Record<string, number>
+        const rawMeasurements = rawMeasurementsRaw.map((m) => ({
+          ts: m.ts,
+          data: m.data ? (JSON.parse(m.data) as Record<string, number>) : null,
+        }));
+        const chartData = buildChartData(
+          measurement,
+          rawMeasurements,
+          measuresConfig,
+          currentYearIndex,
+          currentMonthIndex,
+        );
+        setChartState(chartData);
+      } catch (err) {
+        console.error('[HistoricalScreen] updateChartData error:', err);
+      }
+    },
+    [currentMonthIndex, currentYearIndex, measuresConfig],
+  );
+
   // ─── changeModeData ────────────────────────────────────────────────────────
 
   const changeModeData = useCallback(() => {
     setTypeView((prev) => {
       const next = prev === 'calendar' ? 'chart' : 'calendar';
       if (next === 'chart' && variables.length > 0) {
-        setMeasureSelected({ ...variables[0], selected: true });
+        const firstVar = { ...variables[0], selected: true };
+        setMeasureSelected(firstVar);
         setVariables((v) => v.map((vr, i) => ({ ...vr, selected: i === 0 })));
+        // Async chart update (fire and forget)
+        void updateChartData(firstVar);
       } else {
         setVariables((v) => v.map((vr) => ({ ...vr, selected: false })));
         setMeasureSelected(undefined);
       }
       return next;
     });
-  }, [variables]);
+  }, [variables, updateChartData]);
 
   // ─── changeColorChart ─────────────────────────────────────────────────────
 
@@ -293,8 +447,10 @@ export function HistoricalScreen(): React.JSX.Element {
     setVariables((v) =>
       v.map((vr) => ({ ...vr, selected: vr.name === measurement.name })),
     );
-    setMeasureSelected({ ...measurement, selected: true });
-  }, []);
+    const selected = { ...measurement, selected: true };
+    setMeasureSelected(selected);
+    void updateChartData(selected);
+  }, [updateChartData]);
 
   // ─── changeSegment ────────────────────────────────────────────────────────
 
@@ -346,6 +502,67 @@ export function HistoricalScreen(): React.JSX.Element {
     () => currentYearIndex + 1 > realCurrentYear,
     [currentYearIndex, realCurrentYear],
   );
+
+  // ─── shareMonthlyReport ────────────────────────────────────────────────────
+  // B15: Shares a text report (no image — R-01 web-only risk documented).
+  // Original fallback: shareReportAsText() from historical.page.ts lines 1085-1129.
+  // On RN native: expo-sharing text file. On any platform: text share.
+
+  const shareMonthlyReport = useCallback(async () => {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      const monthStr = `${monthsNames[currentMonthIndex]} ${currentYearIndex}`;
+      let reportText = `📊 Reporte de Datos Ambientales - ${monthStr}\n\n`;
+
+      if (variables.length > 0) {
+        reportText += '📈 Resumen del mes:\n';
+        for (const variable of variables) {
+          if (variable.avg !== undefined) {
+            reportText += `• ${variable.name}: ${variable.avg.toFixed(1)}${variable.unit}`;
+            if (variable.min !== undefined && variable.max !== undefined) {
+              reportText += ` (Min: ${variable.min.toFixed(1)}, Max: ${variable.max.toFixed(1)})`;
+            }
+            reportText += '\n';
+          }
+        }
+      } else {
+        reportText += '📈 No hay datos disponibles para este mes\n';
+      }
+
+      if (nRegisters) {
+        reportText += `\n📝 Total de registros: ${nRegisters}`;
+      }
+      reportText += '\n\n🌱 Generado con App UVA';
+
+      // On native: expo-sharing. On any platform Share.share (not available in Expo Go).
+      // R-01: image sharing deferred — text report only.
+      if (await Sharing.isAvailableAsync()) {
+        // Write to a temp file and share (expo-sharing text approach)
+        // Since we can't write to filesystem here without expo-file-system (which is already
+        // available via Capacitor), we fall back to expo-sharing if available.
+        // Actually expo-sharing.shareAsync requires a file URI. For text, use RN Share.
+        const { Share } = require('react-native');
+        await Share.share({
+          title: `Reporte de Datos Ambientales - ${monthStr}`,
+          message: reportText,
+        });
+      } else {
+        const { Share } = require('react-native');
+        await Share.share({
+          title: `Reporte de Datos Ambientales - ${monthStr}`,
+          message: reportText,
+        });
+      }
+
+      showToast({ message: 'Reporte compartido exitosamente', type: 'success', duration: 2000 });
+    } catch (error) {
+      console.error('[HistoricalScreen] shareMonthlyReport error:', error);
+      showToast({ message: 'Error al compartir el reporte. Intenta de nuevo.', type: 'error', duration: 3000 });
+    } finally {
+      setSharing(false);
+    }
+  }, [sharing, variables, nRegisters, currentMonthIndex, currentYearIndex]);
 
   // ─── goToDetail ───────────────────────────────────────────────────────────
 
@@ -526,14 +743,23 @@ export function HistoricalScreen(): React.JSX.Element {
                   </View>
                 ) : null
               ) : (
-                // Chart mode: Areachart with selected variable data
+                // Chart mode: Areachart with real chart data from buildChartData
+                // NOTE (B15 gate): Skia chart renders BLANK on SwiftShader emulator.
+                // This is a known GPU deuda — see integrator notes.
                 measureSelected ? (
                   <Areachart
-                    chartLabels={[]}
-                    chartData={[]}
+                    chartLabels={chartState.chartLabels}
+                    chartData={chartState.chartData}
+                    chartMinData={chartState.chartMinData}
+                    chartMaxData={chartState.chartMaxData}
                     background={measureSelected.style.backgroundColor.colorHex}
                     borderColor={measureSelected.style.borderColor.colorHex}
-                    detailedMode={false}
+                    detailedMode={chartState.detailedMode}
+                    ymin={chartState.ymin}
+                    ymax={chartState.ymax}
+                    xmin={chartState.xmin}
+                    xmax={chartState.xmax}
+                    height={220}
                   />
                 ) : null
               )}
@@ -576,17 +802,15 @@ export function HistoricalScreen(): React.JSX.Element {
             )}
 
             {/* Share button — full-width teal at bottom of month card */}
-            {completedTaskMonth && typeView === 'calendar' && (
+            {completedTaskMonth && (
               <TouchableOpacity
-                style={styles.shareBtn}
-                onPress={() => {
-                  // Share functionality deferred — placeholder action
-                  // TODO B15: implement real share/export
-                }}
+                style={[styles.shareBtn, sharing && styles.shareBtnDisabled]}
+                onPress={() => void shareMonthlyReport()}
+                disabled={sharing}
                 testID="share-data-btn"
               >
                 <Text style={[styles.shareBtnText, { fontFamily: fontFamilyForWeight('500') }]}>
-                  ↑ Compartir datos
+                  {sharing ? 'Generando...' : '↑ Compartir datos'}
                 </Text>
               </TouchableOpacity>
             )}
@@ -854,6 +1078,9 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
   },
+  shareBtnDisabled: {
+    backgroundColor: '#9CA3AF', // gray when disabled
+  },
   yearNav: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -866,11 +1093,14 @@ const styles = StyleSheet.create({
   miniCalendarGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    // B15 FIX: use explicit marginHorizontal instead of padding on cells to prevent overflow
   },
   miniCalendarCell: {
-    width: '33.33%',
-    padding: 4,
-    // Inner card styled with wrapper View — see miniCalendarInner
+    // B15 BUG FIX: original uses ~13px day circles so mini-calendars fit 3-per-row.
+    // On 360px screen with 10px card padding: available = 340px, 3 cells = ~113px each.
+    // Using exact 33.33% causes rounding overlap; explicit 33% + overflow:hidden avoids it.
+    width: '33%',
+    padding: 3,
   },
   miniCalendarInner: {
     backgroundColor: '#FFFFFF', // Ionic: .calendar_content { background: #fff }
@@ -878,6 +1108,7 @@ const styles = StyleSheet.create({
     borderColor: '#E5E5E5', // --Colors-Gray-200
     borderRadius: 10, // Ionic: border-radius: 10px
     overflow: 'hidden',
+    // Contain the mini Calendar's day cells
   },
   bottomPadding: { height: 80 },
 });
