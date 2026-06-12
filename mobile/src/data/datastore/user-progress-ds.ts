@@ -1,18 +1,17 @@
 /**
- * B04 — UserProgressDSService (initial port)
+ * B07 — UserProgressDSService (B07 split: read-pure vs side-effects)
  * Ported from: src/app/core/services/storage/datastore/user-progress-ds.service.ts
  * Classification: Major adaptation
- * Changes:
- *   - No @Injectable (already had none in original)
- *   - Import paths updated to mobile/ structure
- *   - SessionService → imported from provisional placeholder (B05 will replace)
  *
- * IMPORTANT — B07 TODO:
- *   getLastUserProgress() mixes read with side-effects (creates UserProgress, emits GamificationEvents).
- *   Per portability-matrix §4.4 (R-28): in React StrictMode / useFocusEffect this WILL duplicate
- *   progress and alerts. B07 MUST separate the idempotent daily recalculation from the pure getter.
- *   This file is ported as-is for now so the dependency chain compiles for B04 gate.
- *   Do NOT call getLastUserProgress() from React components until B07 completes the split.
+ * B07 changes (per portability-matrix §4.4 / R-28):
+ *   - Added getLastUserProgressPure(): pure read-only getter with ZERO side-effects.
+ *     Safe to call from React hooks / useFocusEffect / StrictMode without duplication.
+ *   - Added recalculateDailyProgress(): idempotent daily update that creates/updates
+ *     UserProgress records and emits alerts. Called ONCE per day from app init or
+ *     the screen that bootstraps the session, NOT from multiple hook calls.
+ *   - getLastUserProgress() is KEPT for backward-compatibility but now delegates
+ *     to recalculateDailyProgress() + getLastUserProgressPure(). Callers should
+ *     prefer the split API.
  *
  * PRESERVED: umbrales hardcodeados 11/41/64 (seedToMilestone) per portability-matrix §4.4.
  * Diverge from ConfigModel.gamification — documented deuda; do not silently unify.
@@ -137,60 +136,84 @@ export class UserProgressDSService {
   }
 
   /**
-   * Retrieves the last progress entry for a specific user.
+   * B07 — Pure read-only getter: returns the most recent UserProgress record without
+   * creating any new records or emitting any alerts. Safe to call multiple times from
+   * React hooks, useFocusEffect, StrictMode, etc.
    *
-   * ⚠️  B07 TODO: This method mixes READ with SIDE-EFFECTS (creates records, emits alerts).
-   * Calling it multiple times (StrictMode, useFocusEffect) WILL duplicate progress/alerts (R-28).
-   * B07 will split into:
-   *   - getLastUserProgressPure(): read-only getter (no side-effects)
-   *   - recalculateDailyProgress(): idempotent daily update (called once per day)
+   * Returns:
+   *   - The last UserProgress entry if one exists
+   *   - null if no records exist yet
    *
    * @returns {Promise<UserProgress | null>} The last UserProgress entry.
    */
-  static async getLastUserProgress(): Promise<UserProgress | undefined | null> {
-    // A. Obtener último registro
+  static async getLastUserProgressPure(): Promise<
+    UserProgress | undefined | null
+  > {
+    const lastsProgress = await this.getUserProgress(
+      1,
+      SortDirection.DESCENDING,
+    );
+    if (!lastsProgress.length) {
+      return null;
+    }
+    return lastsProgress[0];
+  }
+
+  /**
+   * B07 — Idempotent daily recalculation: checks whether a new day has started since
+   * the last UserProgress record and, if so, creates the appropriate record and emits
+   * the correct alerts (streak maintenance, reset, or recovery prompt).
+   *
+   * This method MUST be called at most once per app session (e.g., in the startup hook
+   * or splash logic), NOT inside useFocusEffect / component renders.
+   *
+   * Business rules (preserved from original getLastUserProgress):
+   *   - Same day (diff=0): no-op, returns existing record
+   *   - One day ago (diff=1): creates new progress row, emits streakRecovery alert
+   *     if completedTasks===0 and previous streak>0
+   *   - More than one day (diff>1): resets streak to 0, emits streakLost alert
+   *   - Also handles milestone assignment (seeds→brote/plantula/flor) at month boundary
+   *
+   * @returns {Promise<UserProgress | null>} The current day's UserProgress entry.
+   */
+  static async recalculateDailyProgress(): Promise<
+    UserProgress | undefined | null
+  > {
     const lastsProgress = await this.getUserProgress(
       1,
       SortDirection.DESCENDING,
     );
 
-    // B. Si no hay registros previos, retornar null
     if (!lastsProgress.length) {
       return null;
     }
 
     const lastProgress = lastsProgress[0];
-    // Convertir fechas para el cálculo de la diferencia
     const currentDate = new Date();
     const lastProgressDate = new Date(lastProgress.ts);
-
-    // Calcular la diferencia en días entre el último registro y la fecha actual
     const daysDifference = this.calculateDaysDifference(
       lastProgressDate,
       currentDate,
     );
-    // Handle milestone assignment if necessary
     const newSeed = await this.handleMilestoneAssignment(lastProgress);
 
     if (daysDifference === 0) {
       return lastProgress;
     } else if (daysDifference === 1) {
-      // Día inmediatamente anterior: Mantener racha
       const newUserProgress = await this.createUserProgress({
         completedTasks: 0,
         Seed: newSeed,
         Streak:
           lastProgress.completedTasks === 0 ? 0 : (lastProgress.Streak ?? 0),
       });
-
-      // Generar alerta de recuperación si el usuario perdió un día pero tenía racha activa
-      if (lastProgress.completedTasks === 0 && (lastProgress.Streak ?? 0) > 0) {
+      if (
+        lastProgress.completedTasks === 0 &&
+        (lastProgress.Streak ?? 0) > 0
+      ) {
         await GamificationAlertsService.createStreakRecoveryAlert();
       }
-
       return newUserProgress;
     } else {
-      // Más de un día de inactividad: Reiniciar racha
       const resetProgress = await this.createUserProgress({
         completedTasks: 0,
         Seed: newSeed,
@@ -199,6 +222,23 @@ export class UserProgressDSService {
       await GamificationAlertsService.createStreakLostAlert();
       return resetProgress;
     }
+  }
+
+  /**
+   * Retrieves the last progress entry for a specific user.
+   *
+   * ⚠️  DEPRECATED in favour of the split API (B07/R-28):
+   *   - For read-only access use: getLastUserProgressPure()
+   *   - To trigger daily recalculation use: recalculateDailyProgress()
+   *
+   * This method is kept for backward-compatibility. New callers MUST use the split API.
+   * It now internally delegates to recalculateDailyProgress().
+   *
+   * @returns {Promise<UserProgress | null>} The last UserProgress entry.
+   */
+  static async getLastUserProgress(): Promise<UserProgress | undefined | null> {
+    // Delegated to recalculateDailyProgress() for B07 backward-compatibility.
+    return this.recalculateDailyProgress();
   }
 
   /**
