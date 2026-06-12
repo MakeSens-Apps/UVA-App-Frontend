@@ -29,7 +29,8 @@ playwright-cli close-all > /dev/null 2>&1 || true
 
 # Open browser in headed mode (visible window) — the default config file
 # .playwright/cli.config.json forces the iPhone SE 375x667 mobile viewport.
-playwright-cli open --headed "$URL"
+playwright-cli open --config=.playwright/cli.config.json --headed "$URL"
+playwright-cli resize 360 740
 
 # Sanity-check the viewport so it's obvious in the logs that this is mobile
 VIEWPORT=$(playwright-cli --raw eval "JSON.stringify({w: innerWidth, h: innerHeight, dpr: devicePixelRatio})" 2>/dev/null || echo "unknown")
