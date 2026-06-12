@@ -222,11 +222,11 @@ El RN ya usaba `theme.colors.green[500] = #69AB3C` (token, no hardcode) → **el
 
 - Jest: 543/543 verdes (27 suites). Snapshots de ProgressBar/MoonCard actualizados (cambios intencionales); mock de ConfigContext en b13b estabilizado (objeto estable entre renders, como el provider real)
 - ESLint: 0 errores (91 warnings pre-existentes en todo el repo)
-- tsc: **reparado** — `mobile/tsconfig.json` tenía `baseUrl` (rota con TypeScript 6.0.3: error de config que abortaba el chequeo; tsc nunca había chequeado nada en realidad). Con la config reparada + `src/types/svg.d.ts` + types jest/node: archivos de esta pasada en 0 errores; **quedan 63 errores pre-existentes** (Areachart/Skia, file-system, graphql API, fixtures b07, pantallas measurement con WIP sin commitear) — pendiente para una pasada de tipos (B19)
+- tsc: **reparado** — `mobile/tsconfig.json` tenía `baseUrl` (rota con TypeScript 6.0.3: error de config que abortaba el chequeo; tsc nunca había chequeado nada en realidad). Con la config reparada + `src/types/svg.d.ts` + types jest/node: archivos de esta pasada en 0 errores; **quedan 57 errores pre-existentes** (Areachart/Skia, file-system, graphql API, fixtures b07, SplashScreen) — pendiente para una pasada de tipos (B19). Los de las pantallas de measurement se cerraron en `56b7b5b` (pasada paralela de measurement)
 
 ## Pendientes honestos (fuera del alcance de esta ronda)
 
 - Mini-calendarios de la vista "Año": los círculos de día salen a tamaño completo y se solapan (el original usa días de 13px). Pre-existente de B13b, visible en la verificación en vivo
-- 63 errores de tsc pre-existentes (ver Gate)
+- 57 errores de tsc pre-existentes (ver Gate)
 - Toast pre-existente al arrancar: `FileSystemService Error ... lunar-phases-2026-06.json ENOENT` (caché de fases lunares, no relacionado)
 - Las tareas de measurement siguen sin poder verificarse visualmente (limitación de datos del entorno, igual que ronda 2)
