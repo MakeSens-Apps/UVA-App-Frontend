@@ -513,33 +513,46 @@ export function HistoricalScreen(): React.JSX.Element {
                   <Text
                     style={[
                       styles.monthNavText,
-                      { fontFamily: fontFamilyForWeight('400'), color: theme.colors.blue[700] ?? theme.colors.blue[600] },
+                      { fontFamily: fontFamilyForWeight('500') },
                     ]}
                   >
                     ← {monthsNames[completedTaskMonth.mes - 1] ?? monthsNames[11]}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.monthNavBtn}
+                  style={[
+                    styles.monthNavBtn,
+                    (completedTaskMonth.mes === 11 && isNextYearDisabled()) && styles.monthNavBtnDisabled,
+                  ]}
                   onPress={() => goToMonth(completedTaskMonth.mes + 1)}
                   disabled={completedTaskMonth.mes === 11 && isNextYearDisabled()}
                 >
                   <Text
                     style={[
                       styles.monthNavText,
-                      {
-                        fontFamily: fontFamilyForWeight('400'),
-                        color:
-                          completedTaskMonth.mes === 11 && isNextYearDisabled()
-                            ? theme.colors.gray[400]
-                            : theme.colors.blue[700] ?? theme.colors.blue[600],
-                      },
+                      (completedTaskMonth.mes === 11 && isNextYearDisabled()) && styles.monthNavTextDisabled,
                     ]}
                   >
                     {monthsNames[completedTaskMonth.mes + 1] ?? monthsNames[0]} →
                   </Text>
                 </TouchableOpacity>
               </View>
+            )}
+
+            {/* Share button — full-width teal at bottom of month card */}
+            {completedTaskMonth && typeView === 'calendar' && (
+              <TouchableOpacity
+                style={styles.shareBtn}
+                onPress={() => {
+                  // Share functionality deferred — placeholder action
+                  // TODO B15: implement real share/export
+                }}
+                testID="share-data-btn"
+              >
+                <Text style={[styles.shareBtnText, { fontFamily: fontFamilyForWeight('500') }]}>
+                  ↑ Compartir datos
+                </Text>
+              </TouchableOpacity>
             )}
           </View>
         )}
@@ -635,15 +648,17 @@ export function HistoricalScreen(): React.JSX.Element {
                   style={styles.miniCalendarCell}
                   onPress={() => goToMonth(register.mes)}
                 >
-                  <Calendar
-                    isMini
-                    hasTitle
-                    title={register.name}
-                    viewDate={register.date}
-                    daysComplete={register.daysComplete}
-                    daysIncomplete={register.daysIncomplete}
-                    daysSaveStreak={register.daysSaveStreak}
-                  />
+                  <View style={styles.miniCalendarInner}>
+                    <Calendar
+                      isMini
+                      hasTitle
+                      title={register.name}
+                      viewDate={register.date}
+                      daysComplete={register.daysComplete}
+                      daysIncomplete={register.daysIncomplete}
+                      daysSaveStreak={register.daysSaveStreak}
+                    />
+                  </View>
                 </TouchableOpacity>
               ))}
             </View>
@@ -683,10 +698,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   monthTitle: {
-    fontSize: 18,
+    fontSize: 16, // Ionic: @include text-base(16px, 700)
   },
   registerCount: {
-    fontSize: 13,
+    fontSize: 14, // Ionic: @include text-base(14px, 500)
     marginTop: 2,
   },
   toggleBtn: {
@@ -703,7 +718,7 @@ const styles = StyleSheet.create({
   },
   variableCard: {
     borderWidth: 2,
-    borderRadius: 8,
+    borderRadius: 10, // Ionic: border-radius: 10px
     padding: 8,
     marginRight: 8,
     minWidth: 80,
@@ -742,11 +757,34 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: '#E5E7EB',
+    marginBottom: 8,
   },
   monthNavBtn: {
-    padding: 8,
+    backgroundColor: '#14788A', // --Colors-Blue-700: solid teal pill button
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  monthNavBtnDisabled: {
+    backgroundColor: '#9CA3AF', // gray when disabled
   },
   monthNavText: {
+    fontSize: 14,
+    color: '#FFFFFF', // white text on teal background
+  },
+  monthNavTextDisabled: {
+    color: '#FFFFFF',
+  },
+  shareBtn: {
+    backgroundColor: '#14788A', // --Colors-Blue-700
+    borderRadius: 8,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  shareBtnText: {
+    color: '#FFFFFF',
     fontSize: 14,
   },
   yearNav: {
@@ -765,6 +803,14 @@ const styles = StyleSheet.create({
   miniCalendarCell: {
     width: '33.33%',
     padding: 4,
+    // Inner card styled with wrapper View — see miniCalendarInner
+  },
+  miniCalendarInner: {
+    backgroundColor: '#FFFFFF', // Ionic: .calendar_content { background: #fff }
+    borderWidth: 1,
+    borderColor: '#E5E5E5', // --Colors-Gray-200
+    borderRadius: 10, // Ionic: border-radius: 10px
+    overflow: 'hidden',
   },
   bottomPadding: { height: 80 },
 });

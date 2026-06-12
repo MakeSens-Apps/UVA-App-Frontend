@@ -73,8 +73,8 @@ export function TimeFrame({
       style={[
         styles.container,
         {
-          backgroundColor: theme.colors.gray[100],
-          borderColor: theme.colors.gray[200],
+          backgroundColor: '#FFFFFF', // Ionic: var(--White) = #fff
+          borderColor: '#10BCCA',     // Ionic: var(--Colors-Blue-500)
         },
       ]}
       testID="time-frame"
@@ -87,7 +87,7 @@ export function TimeFrame({
             style={[
               styles.segment,
               isActive && {
-                backgroundColor: theme.colors.blue[500],
+                backgroundColor: '#1097AA', // Ionic: --background-checked: var(--Colors-Blue-600)
               },
             ]}
             onPress={() => onSegmentChange?.(value)}
@@ -98,7 +98,7 @@ export function TimeFrame({
                 styles.segmentText,
                 {
                   fontFamily: fontFamilyForWeight(isActive ? '600' : '400'),
-                  color: isActive ? theme.colors.white : theme.semanticColors.textSecondary,
+                  color: isActive ? theme.colors.white : '#10BCCA', // inactive: --Colors-Blue-500
                 },
               ]}
             >
@@ -117,9 +117,9 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     borderRadius: 8,
-    borderWidth: 1,
+    borderWidth: 2, // Ionic: border: 2px solid var(--Colors-Blue-500)
     overflow: 'hidden',
-    alignSelf: 'center',
+    alignSelf: 'stretch', // full width like Ionic original
   },
   segment: {
     flex: 1,

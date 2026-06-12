@@ -160,6 +160,7 @@ export function Day({
         { width: circleSize, height: circleSize, borderRadius: circleSize / 2 },
         { backgroundColor: bgColor },
         state === 'today' && styles.circleBorderToday,
+        state === 'incomplete' && styles.circleBorderIncomplete,
       ]}
       testID={`day-cell-${day}`}
     >
@@ -211,13 +212,13 @@ function resolveBackground(
 ): string {
   switch (state) {
     case 'complete':
-      return theme.colors.green[100];
+      return '#1097AA'; // --Colors-Blue-600 (Ionic original)
     case 'saveStreak':
-      return theme.colors.green[200];
+      return '#1097AA'; // --Colors-Blue-600 (Ionic original — same as complete)
     case 'today':
-      return theme.colors.blue[500];
+      return 'transparent'; // dashed border circle, no fill
     case 'incomplete':
-      return theme.colors.orange[100];
+      return 'transparent'; // solid border circle, no fill
     case 'future':
       return theme.colors.gray[100];
     case 'none':
@@ -233,14 +234,21 @@ function resolveTextColor(
   theme: ReturnType<typeof useTheme>['theme'],
 ): string {
   switch (state) {
+    case 'complete':
+      return '#FFFFFF'; // white text on teal background
+    case 'saveStreak':
+      return '#FFFFFF'; // white text on teal background
     case 'today':
-      return theme.colors.white;
+      return '#164551'; // --Colors-Blue-900
+    case 'incomplete':
+      return '#164551'; // --Colors-Blue-900
     case 'future':
       return theme.colors.gray[400];
     case 'none':
       return 'transparent';
+    case 'normal':
     default:
-      return theme.semanticColors.text;
+      return '#164551'; // --Colors-Blue-900 (not gray/black)
   }
 }
 
@@ -254,7 +262,13 @@ const styles = StyleSheet.create({
   },
   circleBorderToday: {
     borderWidth: 2,
-    borderColor: '#10BCCA', // blue[500] — hardcoded so StyleSheet can validate
+    borderStyle: 'dashed',
+    borderColor: '#14788A', // --Colors-Blue-700 (Ionic original: 2px dashed)
+  },
+  circleBorderIncomplete: {
+    borderWidth: 2,
+    borderStyle: 'solid',
+    borderColor: '#14788A', // --Colors-Blue-700 (Ionic original: 2px solid)
   },
   dayText: {
     fontSize: 13,

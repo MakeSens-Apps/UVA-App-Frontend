@@ -12,7 +12,7 @@ exports[`ConfirmModal — resolves OK/CANCEL matches snapshot 1`] = `
     style={
       {
         "alignItems": "center",
-        "backgroundColor": "rgba(0,0,0,0.5)",
+        "backgroundColor": "rgba(0,0,0,0.25)",
         "flex": 1,
         "justifyContent": "center",
         "padding": 24,
@@ -23,7 +23,7 @@ exports[`ConfirmModal — resolves OK/CANCEL matches snapshot 1`] = `
       style={
         {
           "backgroundColor": "#FFFFFF",
-          "borderRadius": 12,
+          "borderRadius": 20,
           "elevation": 8,
           "maxWidth": 400,
           "padding": 20,
@@ -115,8 +115,8 @@ exports[`ConfirmModal — resolves OK/CANCEL matches snapshot 1`] = `
           [
             {
               "flexDirection": "row",
-              "gap": 8,
-              "justifyContent": "flex-end",
+              "gap": 10,
+              "justifyContent": "space-between",
             },
             false,
           ]
@@ -158,7 +158,7 @@ exports[`ConfirmModal — resolves OK/CANCEL matches snapshot 1`] = `
               {
                 "alignItems": "center",
                 "borderRadius": 8,
-                "minWidth": 80,
+                "flex": 1,
                 "paddingHorizontal": 16,
                 "paddingVertical": 10,
               },
@@ -226,7 +226,7 @@ exports[`ConfirmModal — resolves OK/CANCEL matches snapshot 1`] = `
               {
                 "alignItems": "center",
                 "borderRadius": 8,
-                "minWidth": 80,
+                "flex": 1,
                 "paddingHorizontal": 16,
                 "paddingVertical": 10,
               },
@@ -274,8 +274,9 @@ exports[`Day snapshot — complete state with icon 1`] = `
         "width": 40,
       },
       {
-        "backgroundColor": "#E3F2D5",
+        "backgroundColor": "#1097AA",
       },
+      false,
       false,
     ]
   }
@@ -290,7 +291,7 @@ exports[`Day snapshot — complete state with icon 1`] = `
           "lineHeight": 18,
         },
         {
-          "color": "#171717",
+          "color": "#FFFFFF",
         },
         false,
       ]
@@ -346,8 +347,9 @@ exports[`Day snapshot — saveStreak state 1`] = `
         "width": 40,
       },
       {
-        "backgroundColor": "#C8E6B0",
+        "backgroundColor": "#1097AA",
       },
+      false,
       false,
     ]
   }
@@ -362,7 +364,7 @@ exports[`Day snapshot — saveStreak state 1`] = `
           "lineHeight": 18,
         },
         {
-          "color": "#171717",
+          "color": "#FFFFFF",
         },
         false,
       ]
@@ -406,12 +408,14 @@ exports[`Day snapshot — today state 1`] = `
         "width": 40,
       },
       {
-        "backgroundColor": "#10BCCA",
+        "backgroundColor": "transparent",
       },
       {
-        "borderColor": "#10BCCA",
+        "borderColor": "#14788A",
+        "borderStyle": "dashed",
         "borderWidth": 2,
       },
+      false,
     ]
   }
   testID="day-cell-6"
@@ -425,7 +429,7 @@ exports[`Day snapshot — today state 1`] = `
           "lineHeight": 18,
         },
         {
-          "color": "#FFFFFF",
+          "color": "#164551",
         },
         false,
       ]
