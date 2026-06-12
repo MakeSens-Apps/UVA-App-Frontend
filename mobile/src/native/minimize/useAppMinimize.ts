@@ -1,39 +1,27 @@
 /**
- * B17 — useAppMinimize / minimizeApp
+ * B17/B18 — useAppMinimize / minimizeApp
  *
  * Ported from: AppMinimizeService.appMinimize() (app-minimize.service.ts)
- * Classification: Rewrite (Capacitor App.minimizeApp → native module)
+ * Classification: Rewrite (Capacitor App.minimizeApp → expo-modules native module)
  *
  * STRATEGY:
  *   Capacitor's @capacitor/app minimizeApp() wraps Activity.moveTaskToBack(true).
  *   React Native has no built-in equivalent (BackHandler.exitApp() CLOSES the app).
  *
- *   We expose minimizeApp() via a NativeModules call to a thin native module
- *   named "AppMinimize". The module must be registered in the CNG prebuild
- *   (see devNote below on how to create it if needed).
+ *   We expose minimizeApp() via the expo-modules AppMinimize local module located at
+ *   mobile/modules/app-minimize/ which is auto-discovered by expo-modules autolinking
+ *   (nativeModulesDir defaults to ./modules).
  *
- * FALLBACK (deviation documented in StructuredOutput.deviations):
- *   If the native module is absent (emulator/web/iOS), we call BackHandler.exitApp()
- *   which CLOSES instead of minimizes. The integrator must verify the native module
- *   is present via CNG prebuild before shipping.
+ *   The module registers as "AppMinimize" and exposes an AsyncFunction("minimize")
+ *   which calls Activity.moveTaskToBack(true). It is accessible via
+ *   NativeModules.AppMinimize in the React Native bridge (legacy arch + expo bridge).
  *
- * CNG NOTE — AppMinimize native module:
- *   The simplest approach compatible with CNG/prebuild is an expo-modules module
- *   under mobile/modules/app-minimize/ with a single Android method:
+ * FALLBACK:
+ *   If the native module is absent (web/iOS or missing from the prebuild), we call
+ *   BackHandler.exitApp() which CLOSES the app. With modules/app-minimize/ present
+ *   in the CNG prebuild, this path is never reached on Android.
  *
- *     fun minimize(promise: Promise) {
- *       val activity = appContext.currentActivity
- *       activity?.moveTaskToBack(true)
- *       promise.resolve(null)
- *     }
- *
- *   Alternatively, this can be a bare NativeModules wrapper if prebuild is not
- *   needed. The integrator decides based on CNG constraints.
- *   If neither is viable, BackHandler fallback is the acceptable deviation per
- *   plan.md B17 "si no es viable sin romper CNG, BackHandler que NO cierra
- *   (return true) + deviation documentada".
- *
- * Portability matrix: @capacitor/app minimizeApp → native module / BackHandler fallback
+ * Portability matrix: @capacitor/app minimizeApp → expo-modules AppMinimize (Android)
  * Risks: R-14, R-19
  */
 
@@ -42,30 +30,27 @@ import { NativeModules, BackHandler, Platform } from 'react-native';
 /**
  * Moves the app to the background (Android only).
  *
- * Tries NativeModules.AppMinimize.minimize() first.
+ * Uses the expo-modules AppMinimize local module (mobile/modules/app-minimize/).
+ * Access via NativeModules.AppMinimize (bridge registration by expo-modules-core).
  * Falls back to BackHandler.exitApp() if the native module is unavailable.
- *
- * DEVIATION: If AppMinimize native module is not present in the build,
- * BackHandler.exitApp() is called instead which CLOSES the app.
- * See useAppMinimize.ts header for how to add the native module.
  */
 export function minimizeApp(): void {
   if (Platform.OS !== 'android') {
-    // On iOS/web there is no "minimize" concept — do nothing
+    // On iOS/web there is no "minimize" concept — do nothing.
     return;
   }
 
-  if ((NativeModules.AppMinimize as { minimize?: () => void } | undefined)?.minimize) {
-    // Native module present (CNG prebuild includes expo-modules AppMinimize)
-    (NativeModules.AppMinimize as { minimize: () => void }).minimize();
+  const mod = NativeModules.AppMinimize as { minimize?: () => void } | undefined;
+  if (mod?.minimize) {
+    // Native module present (CNG prebuild from mobile/modules/app-minimize/).
+    mod.minimize();
   } else {
-    // DEVIATION: Native module absent → BackHandler.exitApp() CLOSES the app.
-    // The integrator must add the AppMinimize native module to the CNG prebuild
-    // to restore true minimize-to-background behavior (plan.md B17, R-14).
+    // FALLBACK: Native module absent → BackHandler.exitApp() CLOSES the app.
+    // Ensure mobile/modules/app-minimize/ is included in the prebuild.
     console.warn(
-      '[B17] AppMinimize native module not found. ' +
-      'Falling back to BackHandler.exitApp() which CLOSES the app. ' +
-      'Add mobile/modules/app-minimize/ expo-module to restore minimize behavior.',
+      '[B18] AppMinimize native module not found. ' +
+        'Falling back to BackHandler.exitApp() which CLOSES the app. ' +
+        'Ensure mobile/modules/app-minimize/ is included in the prebuild.',
     );
     BackHandler.exitApp();
   }

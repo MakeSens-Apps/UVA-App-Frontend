@@ -1,0 +1,10 @@
+{
+  "name": "app-minimize",
+  "version": "1.0.0",
+  "description": "Local Expo module: moves the Android task to background (Activity.moveTaskToBack)",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "peerDependencies": {
+    "expo": "*"
+  }
+}
