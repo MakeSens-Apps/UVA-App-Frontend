@@ -72,6 +72,13 @@ export function SplashScreen({ onAuthResolved }: SplashScreenProps): React.JSX.E
   const animationDone = useRef(false);
   const authDone = useRef(false);
   const callbackFired = useRef(false);
+  // B13c fix: latest destination in a ref. The reanimated completion callback
+  // (scheduleAnimationDone) is created on the FIRST render, so its closure
+  // captures destination=null forever. When auth resolved BEFORE the animation
+  // finished, maybeFireCallback(null) consumed callbackFired without firing
+  // onAuthResolved → splash deadlock. The ref always holds the fresh value
+  // (updated in the destination effect below — never during render).
+  const destinationRef = useRef<typeof destination>(null);
 
   // ─── Animated styles ──────────────────────────────────────────────────────
   const leafStyle = useAnimatedStyle(() => ({
@@ -88,11 +95,14 @@ export function SplashScreen({ onAuthResolved }: SplashScreenProps): React.JSX.E
 
   // ─── Fire callback once both animation AND auth are done ─────────────────
 
-  function maybeFireCallback(dest: typeof destination): void {
-    if (animationDone.current && authDone.current && !callbackFired.current) {
+  function maybeFireCallback(): void {
+    // B13c fix: read the destination from the ref (never a stale closure) and
+    // only consume callbackFired when we can actually fire the callback.
+    const dest = destinationRef.current;
+    if (animationDone.current && authDone.current && !callbackFired.current && dest) {
       callbackFired.current = true;
       void SplashScreenExpo.hideAsync().catch(() => {});
-      if (onAuthResolved && dest) {
+      if (onAuthResolved) {
         onAuthResolved(dest);
       }
     }
@@ -107,9 +117,10 @@ export function SplashScreen({ onAuthResolved }: SplashScreenProps): React.JSX.E
   // ─── React to destination change ──────────────────────────────────────────
 
   useEffect(() => {
+    destinationRef.current = destination;
     if (destination) {
       authDone.current = true;
-      maybeFireCallback(destination);
+      maybeFireCallback();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [destination]);
@@ -150,7 +161,7 @@ export function SplashScreen({ onAuthResolved }: SplashScreenProps): React.JSX.E
   function scheduleAnimationDone(): void {
     const timer = setTimeout(() => {
       animationDone.current = true;
-      maybeFireCallback(destination);
+      maybeFireCallback();
     }, 500);
     // Cleanup handled implicitly (component unmounts after navigation)
     return () => clearTimeout(timer) as unknown as void;

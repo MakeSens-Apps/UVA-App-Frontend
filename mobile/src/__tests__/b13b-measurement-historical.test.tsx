@@ -79,6 +79,7 @@ jest.mock('@gorhom/bottom-sheet', () => {
       return open ? <View testID="bottom-sheet">{children}</View> : null;
     },
   );
+  MockBS.displayName = 'MockBS';
   return {
     __esModule: true,
     default: MockBS,

@@ -215,7 +215,12 @@ export function SyncProvider({ children }: SyncProviderProps): React.JSX.Element
         }, timeoutMs);
 
         // Start DataStore (idempotent) — don't await here so we don't block the Promise
-        void DataStore.start().catch(() => {
+        void DataStore.start().catch((err) => {
+          console.error(
+            'DataStore.start() failed in waitForSync:',
+            err,
+            err instanceof Error ? err.stack : '',
+          );
           clearTimeout(timer);
           wrappedResolve();
         });
