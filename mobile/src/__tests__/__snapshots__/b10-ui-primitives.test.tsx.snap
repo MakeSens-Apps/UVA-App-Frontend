@@ -12,7 +12,7 @@ exports[`ConfirmModal — resolves OK/CANCEL matches snapshot 1`] = `
     style={
       {
         "alignItems": "center",
-        "backgroundColor": "rgba(0,0,0,0.5)",
+        "backgroundColor": "rgba(0,0,0,0.25)",
         "flex": 1,
         "justifyContent": "center",
         "padding": 24,
@@ -23,7 +23,7 @@ exports[`ConfirmModal — resolves OK/CANCEL matches snapshot 1`] = `
       style={
         {
           "backgroundColor": "#FFFFFF",
-          "borderRadius": 12,
+          "borderRadius": 20,
           "elevation": 8,
           "maxWidth": 400,
           "padding": 20,
@@ -115,8 +115,8 @@ exports[`ConfirmModal — resolves OK/CANCEL matches snapshot 1`] = `
           [
             {
               "flexDirection": "row",
-              "gap": 8,
-              "justifyContent": "flex-end",
+              "gap": 10,
+              "justifyContent": "space-between",
             },
             false,
           ]
@@ -158,7 +158,7 @@ exports[`ConfirmModal — resolves OK/CANCEL matches snapshot 1`] = `
               {
                 "alignItems": "center",
                 "borderRadius": 8,
-                "minWidth": 80,
+                "flex": 1,
                 "paddingHorizontal": 16,
                 "paddingVertical": 10,
               },
@@ -226,7 +226,7 @@ exports[`ConfirmModal — resolves OK/CANCEL matches snapshot 1`] = `
               {
                 "alignItems": "center",
                 "borderRadius": 8,
-                "minWidth": 80,
+                "flex": 1,
                 "paddingHorizontal": 16,
                 "paddingVertical": 10,
               },

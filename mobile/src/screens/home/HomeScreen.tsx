@@ -24,6 +24,14 @@
  *   - ChangeDetectorRef.detectChanges → setState (React)
  *   - IonContent → ScrollView
  *
+ * Visual parity fixes (home feature audit):
+ *   - dateHeader: color blue[900] (#164551), textAlign:'center', fontWeight:'700'
+ *     removed textTransform:'capitalize' (original only capitalizes "Hoy")
+ *   - modal_Days: replaced Unicode symbols with Day components showing actual state colors
+ *   - modal_Days_question: added mini calendar example + "Tienes 2 Días de racha 😌" title
+ *   - modal_token: each rule in white card (tokenCard style — screen-07 reference)
+ *   - modal_token_2: each range in white card (tokenCard style — screen-08 reference)
+ *
  * Uses B07 getLastUserProgressPure (NOT legacy getLastUserProgress with side-effects).
  * recalculateDailyProgress is called once from onMount (mirrors ngOnInit timing).
  *
@@ -49,6 +57,7 @@ import type { CalendarDay } from '@/components/calendar/calendarLogic';
 
 import { Header } from '@/components/header/Header';
 import { Calendar } from '@/components/calendar/Calendar';
+import { Day } from '@/components/ui/Day';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { MoonCard } from '@/components/moon-card/MoonCard';
 import { UvaFullBottomSheet } from '@/components/ui/BottomSheet';
@@ -228,12 +237,14 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
         showsVerticalScrollIndicator={false}
       >
         {/* Date header */}
+        {/* Original: color: --Colors-Blue-900 = #164551; font-size: 16px; font-weight: 700;
+            text-align: center; NO textTransform (original string "Hoy, lunes 11 de junio" is lowercase) */}
         <Text
           style={[
             styles.dateHeader,
             {
-              fontFamily: fontFamilyForWeight('600'),
-              color: theme.semanticColors.text,
+              fontFamily: fontFamilyForWeight('700'),
+              color: theme.colors.blue[900],
             },
           ]}
           testID="date-header"
@@ -354,15 +365,25 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
           <Text style={[styles.modalText, { fontFamily: fontFamilyForWeight('700'), color: theme.semanticColors.text }]}>
             Los días tienen estos estados:{' '}
           </Text>
-          <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
-            ✓ Registros del día <Text style={{ fontFamily: fontFamilyForWeight('700') }}>completos</Text>
-          </Text>
-          <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
-            ◗ Registros del día <Text style={{ fontFamily: fontFamilyForWeight('700') }}>incompletos</Text>
-          </Text>
-          <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
-            ○ Día <Text style={{ fontFamily: fontFamilyForWeight('700') }}>por registrar.</Text>
-          </Text>
+          {/* Visual calendar-state rows: Day components matching screen-05 ionic reference */}
+          <View style={styles.modalStateRow}>
+            <Day day={4} state="complete" />
+            <Text style={[styles.modalText, { color: theme.semanticColors.text, flex: 1 }]}>
+              Registros del día <Text style={{ fontFamily: fontFamilyForWeight('700') }}>completos</Text>
+            </Text>
+          </View>
+          <View style={styles.modalStateRow}>
+            <Day day={3} state="incomplete" />
+            <Text style={[styles.modalText, { color: theme.semanticColors.text, flex: 1 }]}>
+              Registros del día <Text style={{ fontFamily: fontFamilyForWeight('700') }}>incompletos</Text>
+            </Text>
+          </View>
+          <View style={styles.modalStateRow}>
+            <Day day={6} state="today" />
+            <Text style={[styles.modalText, { color: theme.semanticColors.text, flex: 1 }]}>
+              Día <Text style={{ fontFamily: fontFamilyForWeight('700') }}>por registrar.</Text>
+            </Text>
+          </View>
           <TouchableOpacity
             style={[styles.button, { backgroundColor: theme.colors.blue[600], marginTop: 16 }]}
             onPress={() => closeAndOpen(modalDaysRef, modalDaysQuestionRef)}
@@ -397,11 +418,27 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
               <Text style={[styles.closeBtn, { color: theme.colors.blue[600] }]}>✕</Text>
             </Pressable>
           </View>
+          {/* screen-06 ionic: "Tienes 2 Días de racha 😌" title above mini calendar */}
+          <Text style={[styles.modalText, { fontFamily: fontFamilyForWeight('700'), color: theme.semanticColors.text }]}>
+            Tienes 2 Días de racha 😌
+          </Text>
           <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
             En el siguiente <Text style={{ fontFamily: fontFamilyForWeight('700') }}>ejemplo</Text> se muestran dos días de racha:
           </Text>
+          {/* Mini calendar example (screen-06: 02 azul, 03 outline, 04/05 azul, 06 dashed, 07/08 gris) */}
+          <View style={styles.miniCalendarWrapper}>
+            <Calendar
+              calendarView="week"
+              isMini
+              hasHeader={false}
+              daysComplete={[2, 4, 5]}
+              daysIncomplete={[3]}
+              daysSaveStreak={[]}
+              viewDate={new Date(new Date().getFullYear(), new Date().getMonth(), 6)}
+            />
+          </View>
           <Text style={[styles.modalText, { color: theme.semanticColors.text, marginTop: 8 }]}>
-            <Text style={{ fontFamily: fontFamilyForWeight('700') }}>¿Por qué solo dos días?</Text> A pesar de haber 3 días completos, el día ◗ está incompleto y rompe con la secuencia.
+            <Text style={{ fontFamily: fontFamilyForWeight('700') }}>¿Por qué solo dos días?</Text> A pesar de haber 3 días completos, el día incompleto rompe con la secuencia.
           </Text>
           <TouchableOpacity
             style={[styles.button, { backgroundColor: theme.colors.blue[600], marginTop: 16 }]}
@@ -425,24 +462,31 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
           contentContainerStyle={styles.modalContent}
           testID="modal-token"
         >
-          <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
-            Cada día que cumplas <Text style={{ fontFamily: fontFamilyForWeight('700') }}>con todos tus registros</Text> ganas dos semillas.
-          </Text>
-          <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>+2 🌰</Text>
-          <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
-            Los días que <Text style={{ fontFamily: fontFamilyForWeight('700') }}>cumplas con algunos</Text> registros ganas una semilla.
-          </Text>
-          <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>+1 🌰</Text>
-          <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
-            Con estas semillas podrás recuperar tu racha.
-          </Text>
-          <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
-            Para recuperar un día incompleto, <Text style={{ fontFamily: fontFamilyForWeight('700') }}>debes pagar 5 semillas.</Text>
-          </Text>
-          <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
-            Si cumples <Text style={{ fontFamily: fontFamilyForWeight('700') }}>con 7 días de racha</Text> ganas <Text style={{ fontFamily: fontFamilyForWeight('700') }}>3 semillas adicionales.</Text>
-          </Text>
-          <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>+3 🌰</Text>
+          {/* Each seed rule in white card (screen-07 ionic: 4 tarjetas blancas separadas) */}
+          <View style={styles.tokenCard}>
+            <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>+2 🌰</Text>
+            <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
+              Cada día que cumplas <Text style={{ fontFamily: fontFamilyForWeight('700') }}>con todos tus registros</Text> ganas dos semillas.
+            </Text>
+          </View>
+          <View style={styles.tokenCard}>
+            <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>+1 🌰</Text>
+            <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
+              Los días que <Text style={{ fontFamily: fontFamilyForWeight('700') }}>cumplas con algunos</Text> registros ganas una semilla.
+            </Text>
+          </View>
+          <View style={styles.tokenCard}>
+            <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>5 🌰</Text>
+            <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
+              Con estas semillas podrás recuperar tu racha. Para recuperar un día incompleto, <Text style={{ fontFamily: fontFamilyForWeight('700') }}>debes pagar 5 semillas.</Text>
+            </Text>
+          </View>
+          <View style={styles.tokenCard}>
+            <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>+3 🌰</Text>
+            <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
+              Si cumples <Text style={{ fontFamily: fontFamilyForWeight('700') }}>con 7 días de racha</Text> ganas <Text style={{ fontFamily: fontFamilyForWeight('700') }}>3 semillas adicionales.</Text>
+            </Text>
+          </View>
           <TouchableOpacity
             style={[styles.button, { backgroundColor: theme.colors.blue[600], marginTop: 16 }]}
             onPress={() => closeAndOpen(modalTokenRef, modalToken2Ref)}
@@ -485,37 +529,51 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
             Al finalizar el <Text style={{ fontFamily: fontFamilyForWeight('700') }}>mes</Text> la cantidad de tus semillas <Text style={{ fontFamily: fontFamilyForWeight('700') }}>germinará</Text> de esta manera:
           </Text>
 
+          {/* Each germination range in white card (screen-08 ionic: 4 tarjetas blancas individuales) */}
+          {/* testID on inner Text so existing tests can read text via .children */}
           {/* 11 a 40 → brote */}
-          <View style={styles.germinationRow}>
+          <View style={styles.tokenCard}>
             <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>11 🌰 a 40 🌰 → 🌱</Text>
+            <Text
+              style={[styles.modalText, { color: theme.semanticColors.text }]}
+              testID="germination-brote"
+            >
+              De 11 a 40 semillas germina un <Text style={{ fontFamily: fontFamilyForWeight('700') }}>brote</Text>
+            </Text>
           </View>
-          <Text style={[styles.modalText, { color: theme.semanticColors.text }]} testID="germination-brote">
-            De 11 a 40 semillas germina un <Text style={{ fontFamily: fontFamilyForWeight('700') }}>brote</Text>
-          </Text>
 
           {/* 41 a 63 → plántula */}
-          <View style={styles.germinationRow}>
+          <View style={styles.tokenCard}>
             <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>41 🌰 a 63 🌰 → 🌿</Text>
+            <Text
+              style={[styles.modalText, { color: theme.semanticColors.text }]}
+              testID="germination-plantula"
+            >
+              De 41 a 63 semillas germina una <Text style={{ fontFamily: fontFamilyForWeight('700') }}>plantula</Text>
+            </Text>
           </View>
-          <Text style={[styles.modalText, { color: theme.semanticColors.text }]} testID="germination-plantula">
-            De 41 a 63 semillas germina una <Text style={{ fontFamily: fontFamilyForWeight('700') }}>plantula</Text>
-          </Text>
 
           {/* más de 63 → flor */}
-          <View style={styles.germinationRow}>
+          <View style={styles.tokenCard}>
             <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>mas de 63 🌰 → 🌸</Text>
+            <Text
+              style={[styles.modalText, { color: theme.semanticColors.text }]}
+              testID="germination-flor"
+            >
+              más de 63 semillas germina una <Text style={{ fontFamily: fontFamilyForWeight('700') }}>flor</Text>
+            </Text>
           </View>
-          <Text style={[styles.modalText, { color: theme.semanticColors.text }]} testID="germination-flor">
-            más de 63 semillas germina una <Text style={{ fontFamily: fontFamilyForWeight('700') }}>flor</Text>
-          </Text>
 
           {/* 0 a 10 → nada */}
-          <View style={styles.germinationRow}>
+          <View style={styles.tokenCard}>
             <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>0 🌰 a 10 🌰</Text>
+            <Text
+              style={[styles.modalText, { color: theme.semanticColors.text }]}
+              testID="germination-nada"
+            >
+              De 0 a 10 semillas <Text style={{ fontFamily: fontFamilyForWeight('700') }}>No</Text> alcanza a germinar <Text style={{ fontFamily: fontFamilyForWeight('700') }}>nada</Text> 😒
+            </Text>
           </View>
-          <Text style={[styles.modalText, { color: theme.semanticColors.text }]} testID="germination-nada">
-            De 0 a 10 semillas <Text style={{ fontFamily: fontFamilyForWeight('700') }}>No</Text> alcanza a germinar <Text style={{ fontFamily: fontFamilyForWeight('700') }}>nada</Text> 😒
-          </Text>
 
           <TouchableOpacity
             style={[styles.button, { backgroundColor: theme.colors.blue[600], marginTop: 16 }]}
@@ -549,7 +607,8 @@ const styles = StyleSheet.create({
   dateHeader: {
     fontSize: 16,
     marginBottom: 16,
-    textTransform: 'capitalize',
+    textAlign: 'center', // original: text-align: center (home.page.scss .date-header)
+    // textTransform removed: original "Hoy, lunes 11 de junio" is NOT capitalize
   },
   card: {
     borderRadius: 12,
@@ -624,6 +683,26 @@ const styles = StyleSheet.create({
   germinationRow: {
     alignItems: 'center',
     marginTop: 8,
+  },
+  // modal_Days state rows (screen-05: Day circle + label side by side)
+  modalStateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  // White card for each seed rule / germination range (screen-07/08)
+  // Original: .container_text { background: #FFF; border-radius: 10px; padding: 10px }
+  tokenCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 10,
+    gap: 4,
+  },
+  // Wrapper for mini calendar in modal_Days_question (screen-06)
+  miniCalendarWrapper: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 10,
   },
 });
 

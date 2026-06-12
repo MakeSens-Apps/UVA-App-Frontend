@@ -24,6 +24,15 @@
  *   - Asset paths updated to mobile/src/assets/svg/moon/
  *   - Bug fix applied: fallback 'NEW_MOON' used consistently in setter
  *
+ * Visual parity fixes (home feature audit):
+ *   - background 'gray': --Colors-Gray-700 = #404040 (not gray[100])
+ *   - background 'green': --Colors-Blue-800 = #1A6270 (not green[100])
+ *   - title color: #FFFFFF (white, not semanticColors.text)
+ *   - subtitle color: --Colors-Gray-300 = #D4D4D4 (not textSecondary)
+ *   - arrow color: #FFFFFF (white, not semanticColors.text)
+ *   - subtitle font-size: 14px (was 12); title font-size: 18px (was 16)
+ *   - subtitle font-weight: 500; title font-weight: 600
+ *
  * Risks: R-24
  */
 
@@ -77,6 +86,14 @@ export type LunarPhaseKey = keyof typeof LUNAR_PHASE_NAME;
 // ─── Default phase (fallback) ─────────────────────────────────────────────────
 
 const DEFAULT_PHASE: LunarPhaseKey = 'NEW_MOON';
+
+// ─── Fixed text / icon colors (original always uses dark backgrounds) ─────────
+// moon-card.component.scss background is always dark (gray-700 or blue-800),
+// so text must always be light regardless of global theme.
+
+const MOON_CARD_TITLE_COLOR = '#FFFFFF'; // always white on dark bg
+const MOON_CARD_SUBTITLE_COLOR = '#D4D4D4'; // --Colors-Gray-300
+const MOON_CARD_ARROW_COLOR = '#FFFFFF'; // always white on dark bg
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -134,7 +151,9 @@ export function MoonCard({
     <View
       style={[
         styles.container,
-        { backgroundColor: isGreen ? theme.colors.green[100] : theme.colors.gray[100] },
+        // Original: gray variant → --Colors-Gray-700 = #404040 (charcoal dark)
+        //           green variant → --Colors-Blue-800 = #1A6270 (teal dark)
+        { backgroundColor: isGreen ? theme.colors.blue[800] : theme.colors.gray[700] },
       ]}
       testID="moon-card"
     >
@@ -150,8 +169,9 @@ export function MoonCard({
             style={[
               styles.subtitle,
               {
-                fontFamily: fontFamilyForWeight('400'),
-                color: theme.semanticColors.textSecondary,
+                // original: font-size:14px, font-weight:500, color:--Colors-Gray-300
+                fontFamily: fontFamilyForWeight('500'),
+                color: MOON_CARD_SUBTITLE_COLOR,
               },
             ]}
           >
@@ -161,8 +181,9 @@ export function MoonCard({
             style={[
               styles.title,
               {
-                fontFamily: fontFamilyForWeight('700'),
-                color: theme.semanticColors.text,
+                // original: font-size:18px, font-weight:600, color:#fff
+                fontFamily: fontFamilyForWeight('600'),
+                color: MOON_CARD_TITLE_COLOR,
               },
             ]}
             testID="moon-card-phase-name"
@@ -177,7 +198,7 @@ export function MoonCard({
             <ArrowRightIcon
               width={20}
               height={20}
-              color={theme.semanticColors.text}
+              color={MOON_CARD_ARROW_COLOR}
             />
           </View>
         )}
@@ -216,10 +237,10 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 14, // original: 14px
   },
   title: {
-    fontSize: 16,
+    fontSize: 18, // original: 18px
   },
   arrowWrapper: {
     alignItems: 'center',

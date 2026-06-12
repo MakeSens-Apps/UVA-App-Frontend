@@ -12,6 +12,12 @@
  *   - Bar fills proportionally: width = (currentProgress / totalProgress) * 100%
  *   - Color: green (uva_green-500 token)
  *
+ * Visual parity fixes (home feature audit):
+ *   - text color: --Colors-Gray-500 = #737373 (was semanticColors.text = #171717)
+ *   - text fontSize: 14px (was 12px)
+ *   - text fontFamily: Montserrat-Medium (weight 500, was Regular)
+ *   - track backgroundColor: --Colors-Green-200 = #C8E6B0 (was gray[200] = #E5E5E5)
+ *
  * Risks: R-06
  */
 
@@ -53,13 +59,15 @@ export function ProgressBar({
 
   return (
     <View style={styles.container} testID="progress-bar-container">
-      <Text style={[styles.text, { color: theme.semanticColors.text }]}>
+      {/* Original: .progress_text { color: --Colors-Gray-500 = #737373; font-size: 14px; font-weight: 500 } */}
+      <Text style={[styles.text, { color: theme.colors.gray[500] }]}>
         {`Progreso: ${currentProgress} de ${totalProgress}`}
       </Text>
+      {/* Original: ion-progress-bar { background: --Colors-Green-200 = #C8E6B0 } */}
       <View
         style={[
           styles.track,
-          { backgroundColor: theme.colors.gray[200] },
+          { backgroundColor: theme.colors.green[200] },
         ]}
         testID="progress-bar-track"
       >
@@ -85,8 +93,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   text: {
-    fontSize: 12,
-    fontFamily: 'Montserrat-Regular',
+    fontSize: 14, // original: font-size: 14px (progress-bar.component.scss .progress_text)
+    fontFamily: 'Montserrat-Medium', // original: font-weight: 500
     marginBottom: 4,
     textAlign: 'center',
   },

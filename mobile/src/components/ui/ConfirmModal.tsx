@@ -193,14 +193,14 @@ export function ConfirmModal({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.25)', // more transparent — login bg remains visible (alert.component.scss:3-14)
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 20, // .modal-wrapper border-radius:20px (alert.component.scss:41-44)
     padding: 20,
     width: '100%',
     maxWidth: 400,
@@ -216,8 +216,8 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 8,
+    justifyContent: 'space-between', // .button-container (alert.component.scss:22-27)
+    gap: 10,
   },
   buttonContainerReversed: {
     flexDirection: 'row-reverse',
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
-    minWidth: 80,
+    flex: 1, // ion-button flex:1 (alert.component.scss:16-20)
     alignItems: 'center',
   },
   buttonFilled: {
