@@ -69,7 +69,7 @@ exports[`baseTheme snapshot matches snapshot (theme object structure) 1`] = `
   },
   "semanticColors": {
     "accent": "#E58B24",
-    "background": "#F5F5F5",
+    "background": "#F4F4F4",
     "border": "#E5E5E5",
     "danger": "#E5245E",
     "primary": "#10BCCA",

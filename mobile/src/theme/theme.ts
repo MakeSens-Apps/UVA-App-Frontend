@@ -125,7 +125,14 @@ export const semanticColors = {
   secondary: colors.green[500],
   accent: colors.orange[500],
   danger: colors.danger,
-  background: colors.gray[100],  // replaces most `--background: #f4f4f4 / #F5F5F5`
+  /**
+   * Default page background.
+   * #F4F4F4 — hardcoded in home.page.scss (`ion-content { --background: #f4f4f4 }`)
+   * and used as the most common content background in the Ionic app.
+   * Note: --Colors-Gray-100 = #F5F5F5 (1 unit lighter) is used by some other pages;
+   * this token reflects the dominant value (#f4f4f4) to match the Home screen.
+   */
+  background: '#F4F4F4' as string,
   surface: colors.white,
   text: colors.gray[900],
   textSecondary: colors.gray[600],
