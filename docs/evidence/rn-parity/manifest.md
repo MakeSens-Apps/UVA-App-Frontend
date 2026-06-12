@@ -1,0 +1,159 @@
+# RN Parity Manifest — Capturas lado a lado
+
+> Generado: 2026-06-12. Emulador: UVA_API35 (emulator-5554, Android 14). Usuario: 3000000002.
+> Las rutas Ionic son relativas a `docs/evidence/`. Las rutas RN son relativas a `docs/evidence/rn-parity/`.
+
+---
+
+## Leyenda de estado
+
+| Símbolo | Significado |
+|---|---|
+| CAPTURADO | Pantalla visible y capturada. |
+| PLACEHOLDER | Pantalla es placeholder en la versión RN actual (B14+ pendiente). |
+| NO-CAPTURABLE | No alcanzable en el entorno de emulador/test actual. |
+| SKIA-BLANK | El área del chart se renderiza vacía (Victory Native / Skia sin datos o sin implementar). |
+
+---
+
+## Feature: auth-login
+
+| # | Captura Ionic (ruta) | Captura RN (ruta) | Estado | Notas de captura |
+|---|---|---|---|---|
+| 00 | `auth-login/screen-00-splash.png` | `auth-login/screen-00-splash.png` | CAPTURADO | Splash screen con spinner circular (LoadingComponent). La animación de hojas/logo MakeSens no está implementada en RN aún — solo ActivityIndicator. |
+| 01 | `auth-login/screen-01-login-vacio.png` | `auth-login/screen-01-login-vacio.png` | CAPTURADO | Login vacío con fondo degradado teal, tarjeta blanca, campo teléfono placeholder "XXXXXXXXXX", botón "Continuar" deshabilitado. |
+| 02 | `auth-login/screen-02-login-telefono-corto.png` | `auth-login/screen-02-login-telefono-corto.png` | CAPTURADO | Teléfono "123" (3 dígitos) — botón "Continuar" permanece deshabilitado. |
+| 03 | `auth-login/screen-03-login-telefono-valido.png` | `auth-login/screen-03-login-telefono-valido.png` | CAPTURADO | Teléfono "3000000002" completo — botón "Continuar" habilitado con color primario. |
+| 04 | `auth-login/screen-04-modal-confirmar-telefono.png` | `auth-login/screen-04-modal-confirmar-telefono.png` | CAPTURADO | Modal de confirmación "¿Es correcto este número de teléfono: 3000000002?" con botones "No, editar" y "Sí, continuar". |
+| 05 | `auth-login/screen-05-vinculando-proyecto.png` | `auth-login/screen-05-vinculando-proyecto.png` | PLACEHOLDER | ProjectVinculationScreen B14: muestra texto "ProjectVinculation [Placeholder — B14 implementa]" + botón "Validar proyecto (test)". Sin fondo degradado ni spinner real. |
+| 06 | `auth-login/screen-06-otp-vacio.png` | — | NO-CAPTURABLE | OtpScreen es placeholder B14. Solo alcanzable con usuario registrado no-test. Al intentar con 3100000001: UserNotFoundException (no registrado). El test user 3000000002 salta directamente a ProjectVinculation. |
+| 07 | `auth-login/screen-07-otp-parcialmente-llenado.png` | — | NO-CAPTURABLE | Mismo bloqueo que 06. |
+| 08 | `auth-login/screen-08-otp-error-codigo-incorrecto.png` | — | NO-CAPTURABLE | Mismo bloqueo que 06. |
+| 09 | `auth-login/screen-09-otp-reenviar-codigo.png` | — | NO-CAPTURABLE | Mismo bloqueo que 06. |
+| 10 | `auth-login/screen-10-register-success.png` | — | NO-CAPTURABLE | RegisterSuccessScreen es placeholder B14. No alcanzable sin completar flujo de registro real. |
+
+---
+
+## Feature: home
+
+| # | Captura Ionic (ruta) | Captura RN (ruta) | Estado | Notas de captura |
+|---|---|---|---|---|
+| 01 | `home/screen-01-home-top.png` | `home/screen-01-home-top.png` | CAPTURADO | Home completo: header "Inicio" + chip semillas, fecha hoy, tarjeta racha 0 días con calendario semanal, sección "Registra y gana +2" con barra de progreso, moon card "Luna llena". |
+| 02 | `home/screen-02-home-bottom.png` | — | NO-CAPTURABLE | El home RN cabe en pantalla sin scroll — no hay contenido debajo del fold. |
+| 03 | `home/screen-03-home-full-top.png` | `home/screen-14-home-reload-with-data.png` | CAPTURADO | Mismo estado que screen-01 (no hay variante separada en RN). |
+| 04 | `home/screen-04-tab-bar.png` | `app-shell/screen-07-tab-bar-home-active.png` | CAPTURADO | Tab bar: "Inicio" activo con pill, "Registrar" e "Historial" inactivos. |
+| 05 | `home/screen-05-modal-days-states.png` | `home/screen-05-modal-days-states.png` | CAPTURADO | Bottom sheet modal_Days con 3 estados de días explicados. Disparado por tap en ⓘ de la tarjeta de racha. |
+| 06 | `home/screen-06-modal-days-question.png` | `home/screen-06-modal-days-question.png` | CAPTURADO | Modal modal_Days segunda pantalla con botones ← y ✕. Disparado por tap en "Siguiente" dentro de modal_Days. |
+| 07 | `home/screen-07-modal-token-seeds.png` | `home/screen-07-modal-token-seeds.png` | CAPTURADO | Bottom sheet modal_token con explicación de semillas (+2 completo, +1 parcial, 5 para recuperar racha, +3 por 7 días). Disparado por tap en ⓘ de la sección "Registra y gana". |
+| 08 | `home/screen-08-modal-token-germination.png` | `home/screen-08-modal-token-germination.png` | CAPTURADO | Modal_token segunda pantalla con rangos de germinación (11-40 brote, 41-63 plántula, >63 flor, 0-10 nada). Disparado por "Siguiente" dentro de modal_token. |
+| 09 | `home/screen-09-moon-card.png` | `home/screen-01-home-top.png` | CAPTURADO | MoonCard "Luna llena" visible en la captura completa del home. No hay captura aislada del componente. |
+| 10 | `home/screen-10-header.png` | `app-shell/screen-10-header-no-back-with-profile.png` | CAPTURADO | Header "Inicio" con chip semillas (0 🌰 + avatar). |
+| 11 | `home/screen-11-gamification-progress.png` | `home/screen-01-home-top.png` | CAPTURADO | Sección progreso visible en home completo. |
+| 12 | `home/screen-12-streak-calendar.png` | `home/screen-01-home-top.png` | CAPTURADO | Tarjeta de racha con calendario semanal visible en home completo. |
+| 13 | `home/screen-13-home-state-zero-streak.png` | `home/screen-14-home-reload-with-data.png` | CAPTURADO | Home con Streak=0, semillas=0, progreso 0 de 1. |
+| 14 | `home/screen-14-home-reload-with-data.png` | `home/screen-14-home-reload-with-data.png` | CAPTURADO | **Referencia principal.** Home cargado con datos reales. |
+| 15 | `home/screen-15-home-scrolled-moon-visible.png` | — | NO-CAPTURABLE | El home RN no hace scroll — todo cabe en un viewport de 360×800. |
+| 16 | `home/screen-16-header-seed-count.png` | `app-shell/screen-10-header-no-back-with-profile.png` | CAPTURADO | Header con chip "0 🌰". |
+
+---
+
+## Feature: measurement
+
+| # | Captura Ionic (ruta) | Captura RN (ruta) | Estado | Notas de captura |
+|---|---|---|---|---|
+| 01 | `measurement/screen-01-measurement-tab-tasks.png` | `measurement/screen-01-measurement-tab-tasks.png` | CAPTURADO | Tab "Registros climáticos": 1 completada (Temp y hum mañana 29°C / 65%), 2 pendientes con banners de restricción horaria. Progress "1 de 3". |
+| 02 | `measurement/screen-02-register-measurement-empty.png` | `measurement/screen-04-register-form-flow1-empty.png` | CAPTURADO | Formulario flow1 vacío. En RN la guía NO se auto-abre antes de ver el formulario vacío — cerrada manualmente para capturar. |
+| 03 | `measurement/screen-03-guide-flow1-step1.png` | `measurement/screen-03-guide-flow1-step1.png` | CAPTURADO | Modal guía flow1 auto-abierta (termómetro + lista de pasos). Disparada al navegar al task "Temperatura y humedad (tarde)". |
+| 04 | `measurement/screen-04-register-form-flow1-empty.png` | `measurement/screen-04-register-form-flow1-empty.png` | CAPTURADO | Formulario flow1 vacío después de cerrar guía: 2 cards (Temperatura máxima / Humedad máxima), 2 digit inputs c/u, link "¿Cómo ver este dato?". |
+| 05 | `measurement/screen-05-guide-manual-flow1.png` | `measurement/screen-03-guide-flow1-step1.png` | CAPTURADO | Guía abierta manualmente = idéntica a la auto-abierta. Reutilizado screen-03 RN. |
+| 06 | `measurement/screen-06-register-form-flow1-filled.png` | `measurement/screen-06-register-form-flow1-filled.png` | CAPTURADO | Temperatura=28°C, Humedad=65% ingresados en inputs de dígitos. |
+| 07 | `measurement/screen-07-register-form-out-of-range.png` | `measurement/screen-07-register-form-out-of-range.png` | CAPTURADO | Temperatura=99°C: alerta inline "¿Estás seguro de este dato? La temperatura max no puede ser mayor a 38 °C". |
+| 08 | `measurement/screen-08-register-form-valid-after-error.png` | `measurement/screen-08-register-form-valid-after-error.png` | CAPTURADO | Temperatura restaurada a 28°C, alerta desaparecida. |
+| 09 | `measurement/screen-09-confirmation-modal.png` | `measurement/screen-20-confirmation-modal-with-blur.png` | CAPTURADO | Modal "Verifica los datos 🧐" con los valores (28°C / 65%) y efecto blur en el fondo. |
+| 10 | `measurement/screen-10-guide-rain-step1.png` | `measurement/screen-10-guide-rain-step1.png` | CAPTURADO | Guía lluvia paso 1: imagen pluviómetro + texto "Ten en cuenta esta información para medir las lluvias". Botón "Continuar" (con nextGuide). |
+| 11 | `measurement/screen-11-guide-rain-step2.png` | — | NO-CAPTURABLE | La guía lluvia paso 2 (menisco) no se mostró en este flujo: al tocar "Continuar" en paso 1, el flujo navegó directamente al formulario sin mostrar paso 2. El guide step 2 requiere que el guide config defina `nextGuide`. |
+| 12 | `measurement/screen-12-rain-form-empty.png` | `measurement/screen-12-rain-form-empty.png` | CAPTURADO | Formulario flow3 vacío: card "Precipitaciones", 3 digit inputs, unidad "mm". |
+| 13 | `measurement/screen-13-rain-form-filled.png` | `measurement/screen-13-rain-form-filled.png` | CAPTURADO | Precipitaciones=025mm ingresados. |
+| 14-22 | `measurement/screen-14..22.png` | — | NO-CAPTURABLE | Guías de tarde (idénticas), flow2, header sin back, pantallas de sesión no alcanzables en este estado de datos. |
+| 20 | `measurement/screen-20-confirmation-modal-with-blur.png` | `measurement/screen-20-confirmation-modal-with-blur.png` | CAPTURADO | Modal confirmación flow1 con blur de fondo. |
+
+---
+
+## Feature: historical
+
+| # | Captura Ionic (ruta) | Captura RN (ruta) | Estado | Notas de captura |
+|---|---|---|---|---|
+| 01 | `historical/screen-01-historical-junio-calendario.png` | `historical/screen-01-historical-junio-calendario.png` | CAPTURADO | Junio 2026 calendario, 0 Registros pero stats muestran 29.0°C / 65.0% de la medición del día actual. Día 12 resaltado con borde discontinuo. |
+| 02 | `historical/screen-02-historical-junio-calendario-scroll.png` | — | NO-CAPTURABLE | El contenido Junio cabe sin scroll en RN. Los botones Mayo/Julio y "Compartir datos" se ven dentro del viewport sin scroll. |
+| 03 | `historical/screen-03-historical-mayo-calendario.png` | `historical/screen-03-historical-mayo-calendario.png` | CAPTURADO | Mayo 2026 con 68 registros. Días con círculo verde+checkmark (completos) y sin decoración (incompletos). |
+| 04 | `historical/screen-04-historical-mayo-calendario-scroll.png` | — | NO-CAPTURABLE | Contenido Mayo cabe sin scroll en RN. |
+| 05 | `historical/screen-05-historical-mayo-grafica.png` | `historical/screen-05-historical-mayo-grafica.png` | CAPTURADO | Vista gráfica Mayo activada. Stats strip visible. Área de chart en blanco (Skia/Victory sin renderizado de datos). |
+| 06 | `historical/screen-06-historical-mayo-grafica-chart.png` | `historical/screen-06-historical-mayo-grafica-chart.png` | SKIA-BLANK | Tem card seleccionada. Área de chart en blanco. |
+| 07 | `historical/screen-07-historical-mayo-grafica-hum.png` | `historical/screen-07-historical-mayo-grafica-hum.png` | SKIA-BLANK | Hum card seleccionada. Área de chart en blanco. |
+| 08 | `historical/screen-08-historical-mayo-grafica-acu.png` | `historical/screen-08-historical-mayo-grafica-acu.png` | SKIA-BLANK | Acu card seleccionada. Área de chart en blanco. |
+| 09 | `historical/screen-09-historical-mayo-calendario-top.png` | `historical/screen-03-historical-mayo-calendario.png` | CAPTURADO | Mismo estado que screen-03 RN. |
+| 10 | `historical/screen-10-historical-timeframe-ano.png` | `historical/screen-10-historical-timeframe-ano.png` | CAPTURADO | Vista Año 2026: mini-calendarios de los 12 meses con datos de enero-mayo visibles. Selector 2025/2027. Stats anuales. |
+| 11 | `historical/screen-11-historical-timeframe-ano-scroll.png` | `historical/screen-11-historical-timeframe-ano-scroll.png` | CAPTURADO | Vista Año scrolleada para ver meses julio-diciembre (vacíos). |
+| 12 | `historical/screen-12-measurement-detail-complete.png` | `historical/screen-12-measurement-detail-complete.png` | PLACEHOLDER | MeasurementDetailScreen B15: muestra "MeasurementDetail — calendar: 2026-05-02 — origin: historical — [Placeholder — B15 implementa]". Sin datos ni layout real. |
+| 13 | `historical/screen-13-measurement-detail-scroll.png` | — | PLACEHOLDER | MeasurementDetail es placeholder — no hay contenido para scrollear. |
+| 14 | `historical/screen-14-measurement-detail-bottom.png` | — | PLACEHOLDER | Idem. |
+| 15 | `historical/screen-15-measurement-detail-normal.png` | — | PLACEHOLDER | Idem. |
+| 16 | `historical/screen-16-historical-junio-empty-state.png` | `historical/screen-16-historical-junio-empty-state.png` | CAPTURADO | Junio 2026 vista calendario sin ningún día marcado. Segunda sesión (post-clear-data). |
+| 17 | `historical/screen-17-historical-junio-grafica-vacia.png` | `historical/screen-17-historical-junio-grafica-vacia.png` | SKIA-BLANK | Gráfica Junio: área de chart completamente en blanco, solo stats con 0 registros. |
+| 18-20 | `historical/screen-18..20.png` | `historical/screen-06..08-historical-mayo-grafica-*.png` | SKIA-BLANK | Capturas top de cada métrica con chart en blanco. Reutilizados los screen-06, 07, 08 de RN. |
+| 21 | `historical/screen-21-historical-abril-calendario.png` | `historical/screen-21-historical-abril-calendario.png` | CAPTURADO | Abril 2026 con 41 registros. Mix de días completos e incompletos. |
+| 22 | `historical/screen-22-measurement-detail-incomplete.png` | `historical/screen-22-measurement-detail-incomplete.png` | PLACEHOLDER | MeasurementDetail para día 02/04/2026 — placeholder B15. |
+| 23-29 | `historical/screen-23..29.png` | — | PLACEHOLDER o NO-CAPTURABLE | Detalles de días (B15 placeholder), scroll de detalle, compartir (no implementado en RN), variantes de top segment. |
+
+---
+
+## Feature: app-shell
+
+| # | Captura Ionic (ruta) | Captura RN (ruta) | Estado | Notas de captura |
+|---|---|---|---|---|
+| 01 | `app-shell/screen-01-login-state.png` | `app-shell/screen-01-login-state.png` | CAPTURADO | Login vacío. |
+| 02-04 | `app-shell/screen-02..04-splash-frame*.png` | `auth-login/screen-00-splash.png` | CAPTURADO | Splash con spinner. La animación no está implementada en RN (sin frames intermedios). |
+| 05 | `app-shell/screen-05-alert-component-confirm-phone.png` | `app-shell/screen-05-alert-component-confirm-phone.png` | CAPTURADO | AlertComponent de confirmación de teléfono. |
+| 06 | `app-shell/screen-06-home-tab-active.png` | `app-shell/screen-18-tab-inicio-selected.png` | CAPTURADO | Home con tab Inicio activo. |
+| 07 | `app-shell/screen-07-tab-bar-home-active.png` | `app-shell/screen-07-tab-bar-home-active.png` | CAPTURADO | Tab bar completo con Inicio activo. |
+| 08 | `app-shell/screen-08-tab-register-active.png` | `app-shell/screen-19-tab-registrar-selected.png` | CAPTURADO | Tab "Registrar" activo con tareas. |
+| 09 | `app-shell/screen-09-tab-history-active.png` | `app-shell/screen-20-tab-historial-selected.png` | CAPTURADO | Tab "Historial" activo con calendario Junio. |
+| 10 | `app-shell/screen-10-header-no-back-with-profile.png` | `app-shell/screen-10-header-no-back-with-profile.png` | CAPTURADO | Header "Inicio" sin back, con chip semillas. |
+| 11 | `app-shell/screen-11-header-with-back-button.png` | — | NO-CAPTURABLE | Header de Profile page (custom header con back+campana). Profile es placeholder B16. |
+| 12 | `app-shell/screen-12-header-back-with-settings.png` | — | NO-CAPTURABLE | Header de Alerts page. Alerts es placeholder B16+. |
+| 13 | `app-shell/screen-13-header-with-seeds-count.png` | — | NO-CAPTURABLE | Header con back+profile (usado en MoonPhase). MoonPhase es placeholder. |
+| 14 | `app-shell/screen-14-header-back-no-profile.png` | — | NO-CAPTURABLE | Header con back sin profile — visible en RegisterMeasurementPage pero tasks no disponibles en sesión limpia. |
+| 15 | `app-shell/screen-15-validate-project-loader.png` | `auth-login/screen-05-vinculando-proyecto.png` | PLACEHOLDER | ValidateProject es placeholder B14. Sin loader real ni degradado teal. |
+| 16 | `app-shell/screen-16-validate-code-loader.png` | — | NO-CAPTURABLE | ValidateCode es placeholder B14. Solo alcanzable tras OTP real. |
+| 17 | `app-shell/screen-17-splash-reload-attempt.png` | `app-shell/screen-18-tab-inicio-selected.png` | CAPTURADO | Post-reload navega a home. |
+| 18 | `app-shell/screen-18-tab-inicio-selected.png` | `app-shell/screen-18-tab-inicio-selected.png` | CAPTURADO | Tab "Inicio" seleccionado, estado completo. |
+| 19 | `app-shell/screen-19-tab-registrar-selected.png` | `app-shell/screen-19-tab-registrar-selected.png` | CAPTURADO | Tab "Registrar" con tareas. |
+| 20 | `app-shell/screen-20-tab-historial-selected.png` | `app-shell/screen-20-tab-historial-selected.png` | CAPTURADO | Tab "Historial" con Junio vacío. |
+| 21-32 | `app-shell/screen-21..32.png` | — | NO-CAPTURABLE | Configuration (B16+), loading overlays, profile share modal, header variantes de sub-páginas no implementadas en B13. |
+
+---
+
+## Resumen de cobertura
+
+| Feature | Total Ionic | Capturados RN | Placeholder RN | No capturable |
+|---|---|---|---|---|
+| auth-login | 11 | 5 | 1 | 5 |
+| home | 16 | 12 | 0 | 4 |
+| measurement | 22 | 11 | 0 | 11 |
+| historical | 29 | 11 | 4 | 14 |
+| app-shell | 32 | 10 | 1 | 21 |
+| **TOTAL** | **110** | **49** | **6** | **55** |
+
+---
+
+## Notas transversales
+
+1. **LogBox**: En todas las sesiones aparecen 1-2 toasts de LogBox (FileSystemService warning + UserUnAuthenticatedException). Se cerraron manualmente antes de cada captura usando las coordenadas `[970,2043][1022,2095]` y `[970,2183][1022,2235]`.
+
+2. **Skia/chart en blanco**: Las capturas de gráficas históricas (screen-05 a 08) muestran el área de chart completamente en blanco. El componente `Areachart` depende de Victory Native / Skia que requiere datos del DataStore. Los datos de Mayo/Abril se cargan correctamente en DataStore pero el renderizado de la gráfica no produce output visual en el emulador.
+
+3. **Placeholders B14+**: OtpScreen, ValidateCodeScreen, ValidateProjectScreen, ProjectVinculationScreen, RegisterSuccessScreen, MeasurementDetailScreen, y todas las pantallas de Profile son placeholders marcados "[Placeholder — B14/B15/B16 implementa]". No tienen layout ni estilos del diseño final.
+
+4. **Test user 3000000002**: Salta el OTP en la lógica de negocio pero aún pasa por ProjectVinculationScreen (B14 placeholder) que no navega automáticamente al app. Se requirió force-stop + restart para usar la sesión Cognito almacenada y llegar a Home.
+
+5. **Datos reales**: Mayo 2026 tiene 68 registros sincronizados en DataStore local. El calendario de Mayo muestra todos los días con datos correctamente decorados (círculos verdes con checkmark). Hoy (12 Jun 2026) tiene 1 medición de temperatura y humedad registrada por la mañana (visible en el tab Registrar como "Temperatura y humedad (mañana) 29°C/65%").
