@@ -27,6 +27,17 @@
  *   - Router.navigate → navigation.navigate (React Navigation typed params)
  *   - ion-* → RN primitives + ExploreContainer (B11)
  *
+ * Visual parity fixes (original SCSS sources):
+ *   - Logo: Image 70x70 borderRadius:14 (explore-container / global.scss:195-199)
+ *   - Subtitle: "Por favor ingresa tu número de teléfono." (explore-container subTitle)
+ *   - Input label: "Número de teléfono" (ion-label, global.scss:151-155)
+ *   - Input border: blue[500] (#10BCCA), bg:gray[50] (#FAFAFA), radius:10 (global.scss:170-172)
+ *   - Button disabled: blue[700] opacity:0.4 (not gray[300])
+ *   - Button radius: 14 (global.scss:197 explore-container ion-button)
+ *   - Help text: "Te enviaremos un código..." (login.page.html:25-27)
+ *   - Register row: "¿No tienes cuenta?" + "Registrate aquí" side by side (login.page.html:29-32)
+ *   - Register link color: blue[800] (#1A6270) (global.scss:275 .ref)
+ *
  * Navigation paths:
  *   - OTP screen: navigation.navigate('Otp', { type: 'login', phone })
  *   - ProjectVinculation: navigation.navigate('ProjectVinculation') [test user / direct signIn]
@@ -39,6 +50,7 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  Image,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -163,15 +175,13 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
         testID="login-screen"
       >
         <View style={styles.card}>
-          {/* Logo placeholder */}
-          <Text
-            style={[
-              styles.logo,
-              { fontFamily: fontFamilyForWeight('700'), color: theme.colors.blue[600] },
-            ]}
-          >
-            UVA
-          </Text>
+          {/* Logo — ion-thumbnail 70x70, border-radius:14 (explore-container / global.scss:195-199) */}
+          <Image
+            source={require('@/assets/png/icon-only.png') as number}
+            style={styles.logo}
+            resizeMode="contain"
+            testID="logo-image"
+          />
 
           <Text
             style={[
@@ -180,6 +190,32 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
             ]}
           >
             Hola de nuevo 👋
+          </Text>
+
+          {/* Subtitle — explore-container subTitle (font-size:16, weight:700, gray-700) */}
+          <Text
+            style={[
+              styles.subtitle,
+              {
+                fontFamily: fontFamilyForWeight('700'),
+                color: theme.colors.gray[700],
+              },
+            ]}
+          >
+            Por favor ingresa tu número de teléfono.
+          </Text>
+
+          {/* Label — ion-label (font-size:14, weight:500, gray-700) global.scss:151-155 */}
+          <Text
+            style={[
+              styles.inputLabel,
+              {
+                fontFamily: fontFamilyForWeight('500'),
+                color: theme.colors.gray[700],
+              },
+            ]}
+          >
+            Número de teléfono
           </Text>
 
           {/* Phone input */}
@@ -196,7 +232,10 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
                 style={[
                   styles.input,
                   {
-                    borderColor: theme.colors.gray[300],
+                    // border: 1px solid var(--Colors-Blue-500) (global.scss:171)
+                    // background: var(--Colors-Gray-50) (global.scss:172)
+                    borderColor: theme.colors.blue[500],
+                    backgroundColor: theme.colors.gray[50],
                     color: theme.semanticColors.text,
                     fontFamily: fontFamilyForWeight('400'),
                   },
@@ -214,14 +253,13 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
             )}
           />
 
-          {/* Continuar button */}
+          {/* Continuar button — disabled uses blue[700] + opacity:0.4 (not gray) */}
           <TouchableOpacity
             style={[
               styles.button,
               {
-                backgroundColor: isValid
-                  ? theme.colors.blue[700]
-                  : theme.colors.gray[300],
+                backgroundColor: theme.colors.blue[700],
+                opacity: isValid ? 1 : 0.4,
               },
             ]}
             onPress={onSubmit}
@@ -243,7 +281,7 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
             )}
           </TouchableOpacity>
 
-          {/* Help text */}
+          {/* Help text — login.page.html:25-27, font-size:14px */}
           <Text
             style={[
               styles.helpText,
@@ -253,26 +291,40 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
               },
             ]}
           >
-            Ingresa tu número de celular para continuar.
+            Te enviaremos un código por mensaje de texto para que puedas acceder.
           </Text>
 
-          {/* Register link */}
-          <TouchableOpacity
-            onPress={() => navigation.navigate('PreRegister')}
-            testID="register-link"
-          >
+          {/* Register row — .container_link max-width:300, space-between (login.page.html:29-32) */}
+          <View style={styles.registerRow}>
             <Text
               style={[
-                styles.registerLink,
+                styles.registerQuestion,
                 {
-                  fontFamily: fontFamilyForWeight('600'),
-                  color: theme.colors.blue[600],
+                  fontFamily: fontFamilyForWeight('500'),
+                  color: theme.colors.gray[700],
                 },
               ]}
             >
-              Registrate aquí
+              ¿No tienes cuenta?
             </Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('PreRegister')}
+              testID="register-link"
+            >
+              <Text
+                style={[
+                  styles.registerLink,
+                  {
+                    // .ref: color:var(--Colors-Blue-800) = #1A6270 (global.scss:275)
+                    fontFamily: fontFamilyForWeight('600'),
+                    color: theme.colors.blue[800],
+                  },
+                ]}
+              >
+                Registrate aquí
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </LinearGradient>
 
@@ -307,18 +359,35 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
   },
   logo: {
-    fontSize: 32,
+    // ion-thumbnail: 70x70, --border-radius:14px (global.scss:195-199)
+    width: 70,
+    height: 70,
+    borderRadius: 14,
     marginBottom: 4,
   },
   title: {
     fontSize: 20,
     textAlign: 'center',
+    marginBottom: 4,
+  },
+  subtitle: {
+    // explore-container subTitle: font-size:16, weight:700, gray-700 (global.scss)
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 24,
     marginBottom: 8,
+  },
+  inputLabel: {
+    // ion-label: font-size:14, weight:500, gray-700 (global.scss:151-155)
+    fontSize: 14,
+    alignSelf: 'flex-start',
+    marginBottom: 4,
   },
   input: {
     width: '100%',
     borderWidth: 1,
-    borderRadius: 8,
+    // border-radius: var(--xl, 10px) → 10 (global.scss:170)
+    borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
     fontSize: 16,
@@ -327,7 +396,8 @@ const styles = StyleSheet.create({
   button: {
     width: '100%',
     paddingVertical: 13,
-    borderRadius: 8,
+    // --border-radius: 14px (global.scss:197 explore-container ion-button)
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -336,10 +406,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   helpText: {
-    fontSize: 12,
+    // paragraph font-size:14px (global.scss)
+    fontSize: 14,
     textAlign: 'center',
   },
+  registerRow: {
+    // .container_link: max-width:300, flex-direction:row, space-between (login.page.html:29-32)
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    maxWidth: 300,
+    marginTop: 4,
+  },
+  registerQuestion: {
+    // paragraph text-sm: font-size:14
+    fontSize: 14,
+  },
   registerLink: {
+    // .ref: font-size:14, color:var(--Colors-Blue-800)=#1A6270 (global.scss:275)
     fontSize: 14,
     textDecorationLine: 'underline',
   },

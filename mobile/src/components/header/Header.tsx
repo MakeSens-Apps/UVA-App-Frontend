@@ -24,6 +24,12 @@
  *   - title, seed, hasBackButton, routerBackButton, hasProfileButton, hasCenterTitle props
  *   - seed shown with semilla icon next to user avatar chip
  *
+ * Visual parity fixes (home feature audit):
+ *   - chip backgroundColor: --Colors-Blue-100 = #D1FBFC (was rgba(255,255,255,0.15))
+ *   - seedText color: --Colors-Blue-700 = #14788A (was white)
+ *   - SemillaIcon / UserCircleIcon color: --Colors-Blue-700 (was white)
+ *   - chip height: 40px; borderRadius: 18px (original ion-chip sizing)
+ *
  * Risks: R-29
  */
 
@@ -140,7 +146,7 @@ export function Header({
         <Text
           style={[
             styles.title,
-            { fontFamily: fontFamilyForWeight('600'), color: theme.colors.white },
+            { fontFamily: fontFamilyForWeight('700'), color: theme.colors.white },
             hasCenterTitle && styles.titleCenter,
           ]}
           numberOfLines={1}
@@ -150,11 +156,13 @@ export function Header({
         </Text>
 
         {/* User chip with seed */}
+        {/* Original ion-chip: --background: --Colors-Blue-100 = #D1FBFC;
+            color: --Colors-Blue-700 = #14788A; height: 40px; border-radius: 18px */}
         {hasProfileButton && (
           <TouchableOpacity
             style={[
               styles.chip,
-              { backgroundColor: 'rgba(255,255,255,0.15)' },
+              { backgroundColor: theme.colors.blue[100] },
             ]}
             onPress={onProfilePress}
             testID="header-profile-btn"
@@ -163,15 +171,15 @@ export function Header({
               style={[
                 styles.seedText,
                 {
-                  fontFamily: fontFamilyForWeight('600'),
-                  color: theme.colors.white,
+                  fontFamily: fontFamilyForWeight('700'),
+                  color: theme.colors.blue[700],
                 },
               ]}
             >
               {seedValue}
             </Text>
-            <SemillaIcon width={16} height={16} color={theme.colors.white} />
-            <UserCircleIcon width={28} height={28} color={theme.colors.white} />
+            <SemillaIcon width={16} height={16} color={theme.colors.blue[700]} />
+            <UserCircleIcon width={40} height={40} color={theme.colors.blue[700]} />
           </TouchableOpacity>
         )}
       </View>
@@ -212,13 +220,13 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 20,
+    height: 40,       // original: ion-chip height 40px
+    borderRadius: 18, // original: ion-chip border-radius 18px
     paddingHorizontal: 10,
-    paddingVertical: 4,
     gap: 4,
   },
   seedText: {
-    fontSize: 14,
+    fontSize: 16, // ion-label font-size:16 (header.component.scss:38-40)
   },
 });
 

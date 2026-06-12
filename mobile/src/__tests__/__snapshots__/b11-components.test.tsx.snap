@@ -146,7 +146,7 @@ exports[`Header matches snapshot 1`] = `
           },
           {
             "color": "#FFFFFF",
-            "fontFamily": "Montserrat-SemiBold",
+            "fontFamily": "Montserrat-Bold",
           },
           false,
         ]

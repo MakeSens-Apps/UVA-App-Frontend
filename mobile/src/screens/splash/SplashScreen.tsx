@@ -19,12 +19,17 @@
  *  3. MakeSens logo: opacity 0→1, 1000ms, ease-in, delay 1000ms
  *  4. After logo finishes: +500ms pause → auth gate determines destination
  *
+ * Visual parity fixes (original SCSS source):
+ *  - Background: BackgroundSvg component fills the container (replaces backgroundColor:'#E6F4FE')
+ *    splash-animation.page.scss: background-image:url('background.svg'), backdrop-filter:blur(25px)
+ *  - BlurView intensity:80 overlays the background (approximates backdrop-filter:blur(25px))
+ *
  * Portability matrix: SplashAnimationPage → Rewrite → B12
  * Risks: R-41, R-04, R-23, R-15, R-30
  */
 
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Image } from 'react-native';
+import { View, StyleSheet, Image, StyleProp, ViewStyle } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -33,6 +38,7 @@ import Animated, {
   Easing,
   runOnJS,
 } from 'react-native-reanimated';
+import { BlurView } from 'expo-blur';
 import * as SplashScreenExpo from 'expo-splash-screen';
 
 import { useAuthGate } from '@/navigation/useAuthGate';
@@ -40,6 +46,8 @@ import { useAuthGate } from '@/navigation/useAuthGate';
 // SVG components (via react-native-svg-transformer — NOT used as Image sources)
 import LeafSvg from '@/assets/svg/logo.svg';
 import MakeSensLogoSvg from '@/assets/svg/logo_Makesens.svg';
+// Background SVG — splash-animation.page.scss: background-image:url('background.svg')
+import BackgroundSvg from '@/assets/svg/background.svg';
 
 // Prevent expo native splash from hiding until we're ready
 void SplashScreenExpo.preventAutoHideAsync().catch(() => {
@@ -168,7 +176,26 @@ export function SplashScreen({ onAuthResolved }: SplashScreenProps): React.JSX.E
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="splash-screen">
+      {/*
+       * Background SVG fills the entire container.
+       * splash-animation.page.scss: background-image:url('background.svg')
+       * position:absolute + fill so it covers without displacing sibling layout.
+       */}
+      <BackgroundSvg
+        width="100%"
+        height="100%"
+        style={styles.backgroundSvg as StyleProp<ViewStyle>}
+        preserveAspectRatio="xMidYMid slice"
+      />
+
+      {/*
+       * BlurView approximates backdrop-filter:blur(25px) from the original CSS
+       * ::before pseudoelement (splash-animation.page.scss:5-14).
+       * intensity:40 gives a subtle blur without completely obscuring the BG.
+       */}
+      <BlurView intensity={40} style={styles.blurOverlay} tint="light" />
+
       {/* Leaf / UVA logo — animates from top */}
       <Animated.View style={[styles.leafWrapper, leafStyle]}>
         <LeafSvg width={160} height={160} />
@@ -194,18 +221,30 @@ export function SplashScreen({ onAuthResolved }: SplashScreenProps): React.JSX.E
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E6F4FE',
+    // No backgroundColor — BackgroundSvg provides the background (parity with original)
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  backgroundSvg: {
+    // Fills the container absolutely, behind all other content
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  blurOverlay: {
+    // Covers entire screen as the blur layer (::before pseudo approximation)
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   leafWrapper: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  leafIcon: {
-    width: 160,
-    height: 160,
   },
   bottomArea: {
     paddingBottom: 40,
