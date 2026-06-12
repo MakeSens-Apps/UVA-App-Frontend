@@ -31,7 +31,7 @@
  *            El integrador valida el flujo de UI hasta paso 2 pero NO confirma el borrado.
  */
 
-import React, { useRef, useCallback, useEffect, useState } from 'react';
+import React, { useRef, useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -119,11 +119,8 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
   });
 
   // Refs for focus (foco por refs, original: setTimeout + document.querySelector)
-  const lastNameRef = useRef<TextInput>(null);
-  const emailRef = useRef<TextInput>(null);
-  const fincaRef = useRef<TextInput>(null);
-  const veredaRef = useRef<TextInput>(null);
-  const municipioRef = useRef<TextInput>(null);
+  // Note: lat/long/alt refs are used; name/email/finca/vereda/municipio fields
+  // are focused via Controller's onSubmitEditing without explicit refs.
   const latRef = useRef<TextInput>(null);
   const longRef = useRef<TextInput>(null);
   const altRef = useRef<TextInput>(null);

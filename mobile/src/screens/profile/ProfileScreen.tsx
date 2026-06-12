@@ -33,7 +33,7 @@
  * Risks addressed: R-29, R-37, R-44
  */
 
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -209,35 +209,43 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
     },
   ];
 
+  // ─── Open share sheet ─────────────────────────────────────────────────────
+  const openShareSheet = useCallback(() => {
+    shareSheetRef.current?.present();
+  }, []);
+
   // ─── Menu items (original ion-list) ───────────────────────────────────────
 
-  const menuItems = [
-    {
-      label: 'Información personal',
-      icon: require('@/assets/png/profile/Arrow-forward.png'),
-      onPress: () => navigation.navigate('PersonalInfo'),
-    },
-    {
-      label: 'Tus logros',
-      icon: require('@/assets/png/profile/Medal.png'),
-      onPress: () => navigation.navigate('Achievement'),
-    },
-    {
-      label: 'Configuración',
-      icon: require('@/assets/png/profile/Options.png'),
-      onPress: () => navigation.navigate('Configuration'),
-    },
-    {
-      label: 'Comparte la aplicación',
-      icon: require('@/assets/png/profile/Share-social.png'),
-      onPress: () => shareSheetRef.current?.present(),
-    },
-    {
-      label: 'Soporte documental',
-      icon: require('@/assets/png/profile/Open.png'),
-      onPress: () => void Linking.openURL('https://docs.makesens.co/ayuda-uva'),
-    },
-  ];
+  const menuItems = useMemo(
+    () => [
+      {
+        label: 'Información personal',
+        icon: require('@/assets/png/profile/Arrow-forward.png'),
+        onPress: () => navigation.navigate('PersonalInfo'),
+      },
+      {
+        label: 'Tus logros',
+        icon: require('@/assets/png/profile/Medal.png'),
+        onPress: () => navigation.navigate('Achievement'),
+      },
+      {
+        label: 'Configuración',
+        icon: require('@/assets/png/profile/Options.png'),
+        onPress: () => navigation.navigate('Configuration'),
+      },
+      {
+        label: 'Comparte la aplicación',
+        icon: require('@/assets/png/profile/Share-social.png'),
+        onPress: openShareSheet,
+      },
+      {
+        label: 'Soporte documental',
+        icon: require('@/assets/png/profile/Open.png'),
+        onPress: () => void Linking.openURL('https://docs.makesens.co/ayuda-uva'),
+      },
+    ],
+    [navigation, openShareSheet],
+  );
 
   return (
     <View style={styles.root}>
@@ -341,6 +349,7 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
 
           {/* Menu list */}
           <View style={styles.menuList}>
+            {/* eslint-disable-next-line react-hooks/refs -- ref accessed only inside onPress callbacks, not during render */}
             {menuItems.map((item) => (
               <TouchableOpacity
                 key={item.label}
