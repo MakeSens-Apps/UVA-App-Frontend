@@ -70,6 +70,12 @@ import { fontFamilyForWeight } from '@/theme/theme';
 // ─── Icons ─────────────────────────────────────────────────────────────────────
 
 import SemillaIcon from '@/assets/svg/icons/semilla.svg';
+import WhatappIcon from '@/assets/svg/icons/whatapp.svg';
+import NotionIcon from '@/assets/svg/icons/notion.svg';
+import FaceIcon from '@/assets/svg/icons/face.svg';
+import ContentCopyIcon from '@/assets/svg/icons/content_copy.svg';
+import MoreHorizIcon from '@/assets/svg/icons/more_horiz.svg';
+import LogopIcon from '@/assets/svg/icons/logop.svg';
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
@@ -180,34 +186,39 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
   const hasUnread = unreadCount > 0;
 
   // ─── Share options (original shareOptions[]) ──────────────────────────────
+  // NOTE: SVGs must be used as React components (react-native-svg-transformer),
+  // NOT as Image source via require(). Use IconComponent field instead of icon.
 
-  const shareOptions = [
-    {
-      label: 'WhatsApp',
-      icon: require('@/assets/svg/icons/whatapp.svg'),
-      action: shareOnWhatsApp,
-    },
-    {
-      label: 'Notion',
-      icon: require('@/assets/svg/icons/notion.svg'),
-      action: () => goUrlShare('https://notion.so'),
-    },
-    {
-      label: 'Facebook',
-      icon: require('@/assets/svg/icons/face.svg'),
-      action: () => goUrlShare('https://facebook.com'),
-    },
-    {
-      label: 'Copiar enlace',
-      icon: require('@/assets/svg/icons/content_copy.svg'),
-      action: () => void copyLink(),
-    },
-    {
-      label: 'Más',
-      icon: require('@/assets/svg/icons/more_horiz.svg'),
-      action: () => void shareApp(),
-    },
-  ];
+  const shareOptions = useMemo(
+    () => [
+      {
+        label: 'WhatsApp',
+        IconComponent: WhatappIcon,
+        action: shareOnWhatsApp,
+      },
+      {
+        label: 'Notion',
+        IconComponent: NotionIcon,
+        action: () => goUrlShare('https://notion.so'),
+      },
+      {
+        label: 'Facebook',
+        IconComponent: FaceIcon,
+        action: () => goUrlShare('https://facebook.com'),
+      },
+      {
+        label: 'Copiar enlace',
+        IconComponent: ContentCopyIcon,
+        action: () => void copyLink(),
+      },
+      {
+        label: 'Más',
+        IconComponent: MoreHorizIcon,
+        action: () => void shareApp(),
+      },
+    ],
+    [shareOnWhatsApp, goUrlShare, copyLink, shareApp],
+  );
 
   // ─── Open share sheet ─────────────────────────────────────────────────────
   const openShareSheet = useCallback(() => {
@@ -425,11 +436,7 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
         <View style={styles.shareSheet}>
           {/* Header row */}
           <View style={styles.shareHeaderRow}>
-            <Image
-              source={require('@/assets/svg/icons/logop.svg')}
-              style={styles.shareLogoIcon}
-              resizeMode="contain"
-            />
+            <LogopIcon width={40} height={40} />
             <Text
               style={[
                 styles.shareHeaderText,
@@ -450,11 +457,7 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
                 onPress={opt.action}
                 testID={`share-option-${opt.label}`}
               >
-                <Image
-                  source={opt.icon}
-                  style={styles.shareOptionIcon}
-                  resizeMode="contain"
-                />
+                <opt.IconComponent width={40} height={40} />
                 <Text
                   style={[
                     styles.shareOptionLabel,

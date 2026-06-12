@@ -59,6 +59,12 @@ import { authService } from '@/data/auth/auth';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';
 
+// ─── SVG icons ────────────────────────────────────────────────────────────────
+// NOTE: react-native-svg-transformer requires SVG imports as React components,
+// NOT as Image source via require().
+import TrashIcon from '@/assets/svg/icons/profile/trash.svg';
+import PencilIcon from '@/assets/svg/icons/profile/pencil.svg';
+
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
 type Props = NativeStackScreenProps<AppStackParamList, 'PersonalInfo'>;
@@ -540,11 +546,7 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
               >
                 Eliminar la cuenta
               </Text>
-              <Image
-                source={require('@/assets/svg/icons/profile/trash.svg')}
-                style={[styles.trashIcon, { tintColor: theme.colors.danger }]}
-                resizeMode="contain"
-              />
+              <TrashIcon width={18} height={18} color={theme.colors.danger} />
             </TouchableOpacity>
           </View>
 
@@ -575,11 +577,7 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
             >
               {isEditable ? 'Guardar cambios' : 'Editar datos'}
             </Text>
-            <Image
-              source={require('@/assets/svg/icons/profile/pencil.svg')}
-              style={styles.editIcon}
-              resizeMode="contain"
-            />
+            <PencilIcon width={16} height={16} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

@@ -34,7 +34,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Image,
   StyleSheet,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -50,8 +49,14 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';
 
 // ─── Icons ─────────────────────────────────────────────────────────────────────
+// NOTE: react-native-svg-transformer requires SVG imports as React components.
 
 import SemillaIcon from '@/assets/svg/icons/semilla.svg';
+import BroteIcon from '@/assets/svg/icons/brote.svg';
+import PlatulaIcon from '@/assets/svg/icons/platula.svg';
+import FlorIcon from '@/assets/svg/icons/flor.svg';
+import ArrowRightIcon from '@/assets/svg/icons/arrow-right.svg';
+import DateIncompleteToDoneIcon from '@/assets/svg/icons/date_incomplete_to_done.svg';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -62,11 +67,12 @@ interface Achievement {
 type Props = NativeStackScreenProps<AppStackParamList, 'Achievement'>;
 
 // ─── Achievement icon map ──────────────────────────────────────────────────────
+// Maps achievement icon key → SVG component (react-native-svg-transformer style)
 
-const ACHIEVEMENT_ICONS: Record<Achievement['icon'], ReturnType<typeof require>> = {
-  brote: require('@/assets/svg/icons/brote.svg'),
-  plantula: require('@/assets/svg/icons/platula.svg'),
-  flor: require('@/assets/svg/icons/flor.svg'),
+const ACHIEVEMENT_ICONS: Record<Achievement['icon'], React.FC<{ width: number; height: number }>> = {
+  brote: BroteIcon,
+  plantula: PlatulaIcon,
+  flor: FlorIcon,
 };
 
 // ─── Component ─────────────────────────────────────────────────────────────────
@@ -171,15 +177,14 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
                 Aún no tienes logros. ¡Completa registros para ganarlos!
               </Text>
             )}
-            {achievements.map((item, index) => (
-              <View key={index} style={styles.achievementItem} testID="achievement-item">
-                <Image
-                  source={ACHIEVEMENT_ICONS[item.icon]}
-                  style={styles.achievementImg}
-                  resizeMode="contain"
-                />
-              </View>
-            ))}
+            {achievements.map((item, index) => {
+              const AchievIcon = ACHIEVEMENT_ICONS[item.icon];
+              return (
+                <View key={index} style={styles.achievementItem} testID="achievement-item">
+                  <AchievIcon width={52} height={52} />
+                </View>
+              );
+            })}
           </View>
         </ScrollView>
 
@@ -278,11 +283,7 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
             >
               Con estas semillas podrás recuperar tu racha.
             </Text>
-            <Image
-              source={require('@/assets/svg/icons/date_incomplete_to_done.svg')}
-              style={styles.recoveryImg}
-              resizeMode="contain"
-            />
+            <DateIncompleteToDoneIcon width={80} height={40} />
             <Text
               style={[
                 styles.tokenBody,
@@ -395,8 +396,8 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
               <SemillaIcon width={20} height={20} color={theme.colors.blue[700]} />
               <Text style={[styles.tokenBody, { fontFamily: fontFamilyForWeight('400') }]}> a 40</Text>
               <SemillaIcon width={20} height={20} color={theme.colors.blue[700]} />
-              <Image source={require('@/assets/svg/icons/arrow-right.svg')} style={styles.arrowIcon} resizeMode="contain" />
-              <Image source={require('@/assets/svg/icons/brote.svg')} style={styles.germinationIcon} resizeMode="contain" />
+              <ArrowRightIcon width={20} height={20} />
+              <BroteIcon width={32} height={32} />
             </View>
             <Text style={[styles.tokenBody, { fontFamily: fontFamilyForWeight('400') }]}>De 11 a 40 semillas germina un <Text style={styles.tokenStrong}>brote</Text></Text>
           </View>
@@ -408,8 +409,8 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
               <SemillaIcon width={20} height={20} color={theme.colors.blue[700]} />
               <Text style={[styles.tokenBody, { fontFamily: fontFamilyForWeight('400') }]}> a 63</Text>
               <SemillaIcon width={20} height={20} color={theme.colors.blue[700]} />
-              <Image source={require('@/assets/svg/icons/arrow-right.svg')} style={styles.arrowIcon} resizeMode="contain" />
-              <Image source={require('@/assets/svg/icons/platula.svg')} style={styles.germinationIcon} resizeMode="contain" />
+              <ArrowRightIcon width={20} height={20} />
+              <PlatulaIcon width={32} height={32} />
             </View>
             <Text style={[styles.tokenBody, { fontFamily: fontFamilyForWeight('400') }]}>De 41 a 63 semillas germina una <Text style={styles.tokenStrong}>plantula</Text></Text>
           </View>
@@ -419,8 +420,8 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
             <View style={styles.germinationRow}>
               <Text style={[styles.tokenAmount, { color: theme.colors.blue[900] ?? theme.colors.blue[700], fontFamily: fontFamilyForWeight('600') }]}>mas de 63</Text>
               <SemillaIcon width={20} height={20} color={theme.colors.blue[700]} />
-              <Image source={require('@/assets/svg/icons/arrow-right.svg')} style={styles.arrowIcon} resizeMode="contain" />
-              <Image source={require('@/assets/svg/icons/flor.svg')} style={styles.germinationIcon} resizeMode="contain" />
+              <ArrowRightIcon width={20} height={20} />
+              <FlorIcon width={32} height={32} />
             </View>
             <Text style={[styles.tokenBody, { fontFamily: fontFamilyForWeight('400') }]}>más de 63 semillas germina una <Text style={styles.tokenStrong}>flor</Text></Text>
           </View>

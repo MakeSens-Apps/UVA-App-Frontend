@@ -63,10 +63,10 @@ export interface DayProps {
   /** The day's state determines visual styling and icon. */
   state?: DayState;
   /**
-   * Custom icon source (require() path or URI).
-   * Only used when customIcon=true.
+   * Custom icon: either a React SVG component (react-native-svg-transformer)
+   * or a URI string. Only used when customIcon=true.
    */
-  icon?: string | null;
+  icon?: React.FC<{ width: number; height: number }> | string | null;
   /** When true, renders the custom `icon` instead of built-in state icons. */
   customIcon?: boolean;
   /** Position of the state icon overlay. */
@@ -183,7 +183,7 @@ export function Day({
 function renderIcon(
   state: DayState,
   customIcon: boolean,
-  icon: string | null | undefined,
+  icon: React.FC<{ width: number; height: number }> | string | null | undefined,
   iconSize: number,
 ): React.JSX.Element | null {
   if (state === 'complete') {
@@ -193,6 +193,12 @@ function renderIcon(
     return <CheckSaveStreakIcon width={iconSize} height={iconSize} />;
   }
   if (customIcon && icon) {
+    // SVG component (react-native-svg-transformer)
+    if (typeof icon === 'function') {
+      const SvgIcon = icon;
+      return <SvgIcon width={iconSize} height={iconSize} />;
+    }
+    // URI string fallback
     return (
       <Image
         source={{ uri: icon }}

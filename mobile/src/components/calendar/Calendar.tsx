@@ -40,15 +40,23 @@ import {
 } from './calendarLogic';
 
 // ─── Moon phase icon assets ───────────────────────────────────────────────────
-// Map from phase key → require() so the bundler picks them up statically
+// SVGs imported as React components via react-native-svg-transformer.
+// Map from phase key → SVG component (NOT require() for Image.source).
 
-const MOON_PHASE_ICONS: Record<string, unknown> = {
-  'new-moon': require('@/assets/svg/moon/nueva.svg'),
-  'waning-crescent': require('@/assets/svg/moon/gibosa_creciente.svg'),
-  'first-quarter': require('@/assets/svg/moon/cuarto_creciente.svg'),
-  'full-moon': require('@/assets/svg/moon/llena.svg'),
-  'last-quarter': require('@/assets/svg/moon/cuarto_menguante.svg'),
-  'waning-gibbous': require('@/assets/svg/moon/gibosa_menguante.svg'),
+import NewMoonIcon from '@/assets/svg/moon/nueva.svg';
+import WaningCrescentIcon from '@/assets/svg/moon/gibosa_creciente.svg';
+import FirstQuarterIcon from '@/assets/svg/moon/cuarto_creciente.svg';
+import FullMoonIcon from '@/assets/svg/moon/llena.svg';
+import LastQuarterIcon from '@/assets/svg/moon/cuarto_menguante.svg';
+import WaningGibbousIcon from '@/assets/svg/moon/gibosa_menguante.svg';
+
+const MOON_PHASE_ICONS: Record<string, React.FC<{ width: number; height: number }>> = {
+  'new-moon': NewMoonIcon,
+  'waning-crescent': WaningCrescentIcon,
+  'first-quarter': FirstQuarterIcon,
+  'full-moon': FullMoonIcon,
+  'last-quarter': LastQuarterIcon,
+  'waning-gibbous': WaningGibbousIcon,
 };
 
 // Day header abbreviations (Spanish, Sun-first like original getDay() output)
@@ -205,7 +213,7 @@ export function Calendar({
                 customIcon={typeCalendar === 'moon' && !!dayData.icon}
                 icon={
                   typeCalendar === 'moon' && dayData.icon
-                    ? (MOON_PHASE_ICONS[dayData.icon] as string | undefined) ?? null
+                    ? (MOON_PHASE_ICONS[dayData.icon] ?? null)
                     : null
                 }
               />

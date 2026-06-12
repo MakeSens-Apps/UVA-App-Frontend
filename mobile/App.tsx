@@ -54,6 +54,8 @@ if (__DEV__) {
     'Amplify has not been configured',
     '[WARN]',
     'No syncPredicate found',
+    // Expected ENOENT when lunar-phases cache file has not been downloaded yet:
+    'FileSystemService Error:',
   ]);
 }
 // eslint-disable-next-line import/first
