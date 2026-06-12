@@ -57,7 +57,9 @@
         }
       ],
       "expo-image",
-      "expo-font"
+      "expo-font",
+      "expo-sharing",
+      "expo-notifications"
     ]
   }
 }
