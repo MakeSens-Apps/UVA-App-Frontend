@@ -1,5 +1,5 @@
 /**
- * B01/B03/B06 Smoke test — verifies that App renders without crashing.
+ * B01/B03/B06/B08 Smoke test — verifies that App renders without crashing.
  *
  * Note: RNTL 14 + React 19 uses async render.
  *
@@ -8,6 +8,7 @@
  *
  * B03 additions: mock Amplify modules so the test doesn't require real credentials.
  * B06 additions: mock auth + app-usage singletons to prevent AsyncStorage load error.
+ * B08 additions: mock expo-font (useFonts) and Montserrat TTF requires.
  * Native module mocks (get-random-values, netinfo, async-storage) are in jest.setup.js.
  * amplifyconfiguration.json is mocked via moduleNameMapper → __mocks__/
  */
@@ -91,6 +92,13 @@ jest.mock('../data/storage/s3', () => ({
     listFiles: jest.fn(() => Promise.resolve({ success: false })),
     getFile: jest.fn(() => Promise.resolve({ success: false })),
   },
+}));
+
+// B08: mock expo-font so ThemeProvider does not try to load actual font files in Jest.
+// The TTF requires in MONTSERRAT_FONTS are handled by @react-native/jest-preset
+// assetFileTransformer (returns {testUri:'...'}) — that's fine since useFonts is mocked.
+jest.mock('expo-font', () => ({
+  useFonts: jest.fn(() => [true, null]),
 }));
 
 import App from '../../App';

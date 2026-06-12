@@ -54,6 +54,10 @@ import { SessionProvider } from '@/state/SessionContext';
 // eslint-disable-next-line import/first
 import { ConfigProvider } from '@/state/ConfigContext';
 
+// ─── B08 ThemeProvider ───────────────────────────────────────────────────────
+// eslint-disable-next-line import/first
+import { ThemeProvider } from '@/theme/ThemeProvider';
+
 // ─── Demo component: shows networkStatus from SyncContext (B06 gate) ──────────
 
 function NetworkStatusBadge() {
@@ -70,12 +74,14 @@ export default function App() {
     <SyncProvider>
       <SessionProvider>
         <ConfigProvider>
-          <View style={styles.container}>
-            <Text style={styles.title}>UVA App</Text>
-            <Text style={styles.subtitle}>React Native — B06 Contexts</Text>
-            <NetworkStatusBadge />
-            <StatusBar style="auto" />
-          </View>
+          <ThemeProvider>
+            <View style={styles.container}>
+              <Text style={styles.title}>UVA App</Text>
+              <Text style={styles.subtitle}>React Native — B06 Contexts</Text>
+              <NetworkStatusBadge />
+              <StatusBar style="auto" />
+            </View>
+          </ThemeProvider>
         </ConfigProvider>
       </SessionProvider>
     </SyncProvider>

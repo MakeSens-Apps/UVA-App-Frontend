@@ -103,7 +103,7 @@ export interface ConfigContextValue {
 
 // ─── Context ─────────────────────────────────────────────────────────────────
 
-const ConfigContext = createContext<ConfigContextValue | null>(null);
+export const ConfigContext = createContext<ConfigContextValue | null>(null);
 
 // ─── Helper: get RACIMO path from session ────────────────────────────────────
 

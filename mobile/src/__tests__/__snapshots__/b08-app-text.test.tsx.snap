@@ -1,0 +1,18 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AppText snapshot matches expected shape 1`] = `
+<Text
+  style={
+    [
+      {
+        "color": "#000000",
+        "fontFamily": "Montserrat-Medium",
+        "fontSize": 16,
+        "lineHeight": 19,
+      },
+    ]
+  }
+>
+  Snapshot text
+</Text>
+`;
