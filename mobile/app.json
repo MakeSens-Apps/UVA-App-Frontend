@@ -55,7 +55,9 @@
           "resizeMode": "contain",
           "backgroundColor": "#E6F4FE"
         }
-      ]
+      ],
+      "expo-image",
+      "expo-font"
     ]
   }
 }

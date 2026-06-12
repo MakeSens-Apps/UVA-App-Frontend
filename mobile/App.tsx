@@ -2,6 +2,7 @@
  * UVA App — React Native (Expo)
  * Entry point — B03: Amplify + DataStore + NetInfo bootstrap
  *               B06: SyncContext + SessionContext + ConfigContext
+ *               B12: RootNavigator condicional + NotificationContext
  *
  * Import ORDER is critical (portability matrix §3.2, R-04):
  *  1. react-native-get-random-values  — must be FIRST (UUIDs for DataStore models)
@@ -44,11 +45,15 @@ import React from 'react';
 // eslint-disable-next-line import/first
 import { StatusBar } from 'expo-status-bar';
 // eslint-disable-next-line import/first
-import { StyleSheet, Text, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+// eslint-disable-next-line import/first
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+// eslint-disable-next-line import/first
+import Toast from 'react-native-toast-message';
 
 // ─── B06 Context providers ───────────────────────────────────────────────────
 // eslint-disable-next-line import/first
-import { SyncProvider, useSyncContext } from '@/state/SyncContext';
+import { SyncProvider } from '@/state/SyncContext';
 // eslint-disable-next-line import/first
 import { SessionProvider } from '@/state/SessionContext';
 // eslint-disable-next-line import/first
@@ -58,60 +63,30 @@ import { ConfigProvider } from '@/state/ConfigContext';
 // eslint-disable-next-line import/first
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
-// ─── Demo component: shows networkStatus from SyncContext (B06 gate) ──────────
-
-function NetworkStatusBadge() {
-  const { networkStatus, state } = useSyncContext();
-  return (
-    <Text style={styles.badge}>
-      {networkStatus ? '🟢 Online' : '🔴 Offline'} · {state}
-    </Text>
-  );
-}
+// ─── B12 NotificationContext + RootNavigator ─────────────────────────────────
+// eslint-disable-next-line import/first
+import { NotificationProvider } from '@/state/notification/NotificationContext';
+// eslint-disable-next-line import/first
+import { RootNavigator } from '@/navigation/RootNavigator';
 
 export default function App() {
   return (
-    <SyncProvider>
-      <SessionProvider>
-        <ConfigProvider>
-          <ThemeProvider>
-            <View style={styles.container}>
-              <Text style={styles.title}>UVA App</Text>
-              <Text style={styles.subtitle}>React Native — B06 Contexts</Text>
-              <NetworkStatusBadge />
-              <StatusBar style="auto" />
-            </View>
-          </ThemeProvider>
-        </ConfigProvider>
-      </SessionProvider>
-    </SyncProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <SyncProvider>
+          <SessionProvider>
+            <ConfigProvider>
+              <ThemeProvider>
+                <NotificationProvider>
+                  <RootNavigator />
+                  <Toast />
+                  <StatusBar style="auto" />
+                </NotificationProvider>
+              </ThemeProvider>
+            </ConfigProvider>
+          </SessionProvider>
+        </SyncProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#E6F4FE',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1a4a7a',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#4a7aaa',
-  },
-  badge: {
-    fontSize: 14,
-    color: '#2a5a8a',
-    backgroundColor: '#C8E8FC',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-});
