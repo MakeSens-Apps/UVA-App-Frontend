@@ -326,6 +326,44 @@ jest.mock('@/data/storage/preferences', () => ({
   LAST_MEASUREMENT_VALUES_KEY: 'lastMeasurementValues',
 }));
 
+// UserDSService mock (needed transitively via HistoricalScreen → EnvironmentalReport → environmental-report.ts)
+jest.mock('@/data/datastore/user-ds', () => ({
+  UserDSService: {
+    getUser: jest.fn().mockResolvedValue(null),
+    updateUser: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
+// UvaDSService mock (same transitive chain)
+jest.mock('@/data/datastore/uva-ds', () => ({
+  UvaDSService: {
+    getUVAByID: jest.fn().mockResolvedValue(undefined),
+    getUVAByuserID: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
+// EnvironmentalReportService mock (short-circuits the DataStore transitive chain)
+jest.mock('@/domain/report/environmental-report', () => ({
+  EnvironmentalReportService: {
+    generateReportData: jest.fn().mockResolvedValue(null),
+  },
+}));
+
+// react-native-view-shot mock (used in HistoricalScreen)
+jest.mock('react-native-view-shot', () => ({
+  captureRef: jest.fn().mockResolvedValue('file:///tmp/report.png'),
+}));
+
+// expo-linear-gradient mock (used in EnvironmentalReport)
+jest.mock('expo-linear-gradient', () => ({
+  LinearGradient: 'LinearGradient',
+}));
+
+// expo-sharing mock (used in HistoricalScreen)
+jest.mock('expo-sharing', () => ({
+  shareAsync: jest.fn().mockResolvedValue(undefined),
+}));
+
 // Navigation mock
 const mockNavigate = jest.fn();
 const mockGoBack = jest.fn();

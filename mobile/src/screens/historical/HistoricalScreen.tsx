@@ -30,9 +30,10 @@
  *   - @ViewChild(CalendarComponent) → Calendar component re-renders reactively
  *   - @ViewChild(AreachartComponent) → Areachart component via reactive props
  *   - IonContent → ScrollView
- *   - Share: expo-sharing text (no image — R-01 web-only-risks documented)
+ *   - Share: image capture via react-native-view-shot (B15-cierre, R-01 resolved).
+ *     Text report is the fallback if captureRef throws.
  *
- * Risks: R-32, R-12, R-15, R-01
+ * Risks: R-32, R-12, R-15
  *
  * Round 3 (paridad visual):
  *   - Tabla de variables (Tem/Hum/Acu — avg/max/min) con los estilos exactos de
@@ -43,7 +44,7 @@
  *   - Calendario envuelto en card blanco (.calendar_content)
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -55,6 +56,7 @@ import {
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Sharing from 'expo-sharing';
+import { captureRef } from 'react-native-view-shot';
 
 import type { AppStackParamList } from '@/navigation/types';
 import { Header } from '@/components/header/Header';
@@ -81,6 +83,9 @@ import {
 import type { Historical, MeasurementModel } from '@/data/models/configuration/measurements.model';
 import type { UserProgress } from '@/data/models';
 import type { CalendarDay } from '@/components/calendar/calendarLogic';
+import { EnvironmentalReport } from '@/components/environmental-report/EnvironmentalReport';
+import { EnvironmentalReportService } from '@/domain/report/environmental-report';
+import type { ReportData } from '@/domain/report/environmental-report';
 
 // ─── Month names (preserved from historical.model.ts) ─────────────────────────
 
@@ -260,6 +265,10 @@ export function HistoricalScreen(): React.JSX.Element {
   const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [loading, setLoading] = useState(true);
   const [sharing, setSharing] = useState(false);
+
+  // B15-cierre: off-screen report for view-shot capture
+  const reportViewRef = useRef<View>(null);
+  const [reportData, setReportData] = useState<ReportData | null>(null);
 
   // Chart data state (built by buildChartData when measureSelected changes)
   const [chartState, setChartState] = useState<ChartDataResult>({
@@ -504,50 +513,98 @@ export function HistoricalScreen(): React.JSX.Element {
   );
 
   // ─── shareMonthlyReport ────────────────────────────────────────────────────
-  // B15: Shares a text report (no image — R-01 web-only risk documented).
-  // Original fallback: shareReportAsText() from historical.page.ts lines 1085-1129.
-  // On RN native: expo-sharing text file. On any platform: text share.
+  // B15-cierre: Shares a PNG image of the environmental report.
+  // Strategy:
+  //   1. Generate ReportData via EnvironmentalReportService.generateReportData()
+  //   2. Set reportData state → triggers render of off-screen EnvironmentalReport
+  //   3. Wait one frame for React to paint the off-screen view
+  //   4. captureRef() → PNG file URI (tmpdir)
+  //   5. expo-sharing.shareAsync(uri) → native share sheet with image attached
+  //   6. Fallback to text report if captureRef throws (e.g. during Jest / headless)
+  //
+  // The off-screen view is rendered below the viewport (position absolute, top 10000)
+  // with collapsable={false} so Android does not skip layout.
 
   const shareMonthlyReport = useCallback(async () => {
     if (sharing) return;
     setSharing(true);
+    const monthStr = `${monthsNames[currentMonthIndex]} ${currentYearIndex}`;
+
     try {
-      const monthStr = `${monthsNames[currentMonthIndex]} ${currentYearIndex}`;
-      let reportText = `📊 Reporte de Datos Ambientales - ${monthStr}\n\n`;
+      // ── Step 1: generate report data ──────────────────────────────────────
+      let data: ReportData;
+      try {
+        data = await EnvironmentalReportService.generateReportData(
+          currentYearIndex,
+          currentMonthIndex,
+        );
+      } catch (dataErr) {
+        console.warn('[HistoricalScreen] generateReportData failed, falling back to text:', dataErr);
+        // Fall through to text sharing
+        throw dataErr;
+      }
 
-      if (variables.length > 0) {
-        reportText += '📈 Resumen del mes:\n';
-        for (const variable of variables) {
-          if (variable.avg !== undefined) {
-            reportText += `• ${variable.name}: ${variable.avg.toFixed(1)}${variable.unit}`;
-            if (variable.min !== undefined && variable.max !== undefined) {
-              reportText += ` (Min: ${variable.min.toFixed(1)}, Max: ${variable.max.toFixed(1)})`;
-            }
-            reportText += '\n';
-          }
+      // ── Step 2: mount off-screen report ──────────────────────────────────
+      setReportData(data);
+
+      // ── Step 3: wait two frames for React layout ──────────────────────────
+      await new Promise<void>((resolve) => {
+        // Two rAF cycles: first to schedule paint, second to confirm layout
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            resolve();
+          });
+        });
+      });
+
+      // ── Step 4: capture to PNG ────────────────────────────────────────────
+      let imageUri: string | null = null;
+      try {
+        if (reportViewRef.current) {
+          imageUri = await captureRef(reportViewRef, {
+            format: 'png',
+            quality: 1,
+            result: 'tmpfile',
+            // pixelRatio 3 → 340 * 3 = 1020px effective width (close to 816 original)
+            // but we keep it at 2 to stay within Android memory limits
+          });
         }
-      } else {
-        reportText += '📈 No hay datos disponibles para este mes\n';
+      } catch (captureErr) {
+        console.warn('[HistoricalScreen] captureRef failed, falling back to text:', captureErr);
       }
 
-      if (nRegisters) {
-        reportText += `\n📝 Total de registros: ${nRegisters}`;
-      }
-      reportText += '\n\n🌱 Generado con App UVA';
-
-      // On native: expo-sharing. On any platform Share.share (not available in Expo Go).
-      // R-01: image sharing deferred — text report only.
-      if (await Sharing.isAvailableAsync()) {
-        // Write to a temp file and share (expo-sharing text approach)
-        // Since we can't write to filesystem here without expo-file-system (which is already
-        // available via Capacitor), we fall back to expo-sharing if available.
-        // Actually expo-sharing.shareAsync requires a file URI. For text, use RN Share.
-        const { Share } = require('react-native');
-        await Share.share({
-          title: `Reporte de Datos Ambientales - ${monthStr}`,
-          message: reportText,
+      // ── Step 5: share ─────────────────────────────────────────────────────
+      if (imageUri && (await Sharing.isAvailableAsync())) {
+        // Image share via expo-sharing (native share sheet with PNG attachment)
+        await Sharing.shareAsync(imageUri, {
+          mimeType: 'image/png',
+          dialogTitle: `Reporte de Datos Ambientales - ${monthStr}`,
+          UTI: 'public.png',
         });
       } else {
+        // Fallback: text report (original B15 behavior)
+        let reportText = `\u{1F4CA} Reporte de Datos Ambientales - ${monthStr}\n\n`;
+
+        if (variables.length > 0) {
+          reportText += '\u{1F4C8} Resumen del mes:\n';
+          for (const variable of variables) {
+            if (variable.avg !== undefined) {
+              reportText += `• ${variable.name}: ${variable.avg.toFixed(1)}${variable.unit}`;
+              if (variable.min !== undefined && variable.max !== undefined) {
+                reportText += ` (Min: ${variable.min.toFixed(1)}, Max: ${variable.max.toFixed(1)})`;
+              }
+              reportText += '\n';
+            }
+          }
+        } else {
+          reportText += '\u{1F4C8} No hay datos disponibles para este mes\n';
+        }
+
+        if (nRegisters) {
+          reportText += `\n\u{1F4DD} Total de registros: ${nRegisters}`;
+        }
+        reportText += '\n\n\u{1F331} Generado con App UVA';
+
         const { Share } = require('react-native');
         await Share.share({
           title: `Reporte de Datos Ambientales - ${monthStr}`,
@@ -557,10 +614,20 @@ export function HistoricalScreen(): React.JSX.Element {
 
       showToast({ message: 'Reporte compartido exitosamente', type: 'success', duration: 2000 });
     } catch (error) {
-      console.error('[HistoricalScreen] shareMonthlyReport error:', error);
-      showToast({ message: 'Error al compartir el reporte. Intenta de nuevo.', type: 'error', duration: 3000 });
+      // Pure text fallback (reached if generateReportData itself failed)
+      try {
+        const { Share } = require('react-native');
+        const fallbackText = `Reporte de Datos Ambientales - ${monthStr}\nGenerado con App UVA`;
+        await Share.share({ title: `Reporte - ${monthStr}`, message: fallbackText });
+        showToast({ message: 'Reporte compartido exitosamente', type: 'success', duration: 2000 });
+      } catch {
+        console.error('[HistoricalScreen] shareMonthlyReport error:', error);
+        showToast({ message: 'Error al compartir el reporte. Intenta de nuevo.', type: 'error', duration: 3000 });
+      }
     } finally {
       setSharing(false);
+      // Unmount the off-screen view once sharing is done
+      setReportData(null);
     }
   }, [sharing, variables, nRegisters, currentMonthIndex, currentYearIndex]);
 
@@ -930,6 +997,21 @@ export function HistoricalScreen(): React.JSX.Element {
 
         <View style={styles.bottomPadding} />
       </ScrollView>
+
+      {/* B15-cierre: off-screen EnvironmentalReport for view-shot capture.
+          Rendered below the visible viewport (top: 10000) so it does not
+          appear to the user. collapsable={false} ensures Android performs layout.
+          Only mounted when reportData is non-null (during share flow). */}
+      {reportData !== null && (
+        <View
+          ref={reportViewRef}
+          collapsable={false}
+          style={styles.offScreenReport}
+          testID="offscreen-report"
+        >
+          <EnvironmentalReport reportData={reportData} />
+        </View>
+      )}
     </View>
   );
 }
@@ -1111,6 +1193,15 @@ const styles = StyleSheet.create({
     // Contain the mini Calendar's day cells
   },
   bottomPadding: { height: 80 },
+  // B15-cierre: off-screen capture container
+  offScreenReport: {
+    position: 'absolute',
+    top: 10000,   // Far below viewport — not visible to user
+    left: 0,
+    // Do NOT set opacity: 0 or display: none — Android skips layout for invisible views.
+    // Instead, position far below the screen.
+    backgroundColor: '#FFFFFF',
+  },
 });
 
 export default HistoricalScreen;
