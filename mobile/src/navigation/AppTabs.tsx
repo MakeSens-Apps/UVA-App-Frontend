@@ -25,6 +25,7 @@ import type { AppTabsParamList, HomeStackParamList } from './types';
 
 import { HomeScreen } from '@/screens/home/HomeScreen';
 import { MoonPhaseScreen } from '@/screens/moon/MoonPhaseScreen';
+import { DevGateScreen } from '@/screens/dev/DevGateScreen';
 import { MeasurementScreen } from '@/screens/measurement/MeasurementScreen';
 import { HistoricalScreen } from '@/screens/historical/HistoricalScreen';
 import { ProfileScreen } from '@/screens/profile/ProfileScreen';
@@ -37,10 +38,14 @@ function HomeStackNavigator(): React.JSX.Element {
   return (
     <HomeStack.Navigator
       screenOptions={{ headerShown: false }}
+      // DEV_GATE: start directly on DevGate to verify B08-B12 without needing tap navigation
+      initialRouteName={__DEV__ ? 'DevGate' : 'Home'}
     >
       <HomeStack.Screen name="Home" component={HomeScreen} />
       {/* MoonPhase is hidden from tabs — accessible via navigation.navigate('MoonPhase') */}
       <HomeStack.Screen name="MoonPhase" component={MoonPhaseScreen} />
+      {/* DevGate — only in dev builds, for visual integration gates */}
+      {__DEV__ && <HomeStack.Screen name="DevGate" component={DevGateScreen} />}
     </HomeStack.Navigator>
   );
 }

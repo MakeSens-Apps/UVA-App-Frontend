@@ -24,6 +24,14 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
       >
         <Text style={styles.buttonText}>Ir a Fase Lunar</Text>
       </Pressable>
+      {__DEV__ && (
+        <Pressable
+          style={[styles.button, { backgroundColor: '#8B0000' }]}
+          onPress={() => navigation.navigate('DevGate')}
+        >
+          <Text style={styles.buttonText}>DEV: Gate Waves 1-3</Text>
+        </Pressable>
+      )}
     </View>
   );
 }

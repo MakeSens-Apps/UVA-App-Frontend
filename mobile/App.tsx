@@ -43,6 +43,14 @@ initAppUsage();
 // eslint-disable-next-line import/first
 import React from 'react';
 // eslint-disable-next-line import/first
+import { LogBox } from 'react-native';
+
+// Suppress all warnings in DEV to prevent the Expo Dev Client warning banner
+// from intercepting touches during gate testing.
+if (__DEV__) {
+  LogBox.ignoreAllLogs(true);
+}
+// eslint-disable-next-line import/first
 import { StatusBar } from 'expo-status-bar';
 // eslint-disable-next-line import/first
 import { GestureHandlerRootView } from 'react-native-gesture-handler';

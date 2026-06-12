@@ -29,6 +29,8 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 export type HomeStackParamList = {
   Home: undefined;
   MoonPhase: undefined;
+  /** DEV-only gate screen — only accessible in __DEV__ builds */
+  DevGate: undefined;
 };
 
 /**

@@ -19,15 +19,18 @@
  * Risks: R-15, R-43, R-30, R-04, R-12, R-41, R-23
  */
 
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import * as SplashScreenExpo from 'expo-splash-screen';
 
 import type { RootStackParamList } from './types';
 import { AuthStack } from './AuthStack';
 import { AppStack } from './AppStack';
 import { SplashScreen } from '@/screens/splash/SplashScreen';
 import { useAuthGate } from './useAuthGate';
+import type { AuthGateDestination } from './useAuthGate';
+import { registerDevBypassSetter } from './devBypass';
 
 const Root = createNativeStackNavigator<RootStackParamList>();
 
@@ -49,7 +52,26 @@ export function getCurrentRoute(
 export function RootNavigator(): React.JSX.Element {
   const navigationRef = useRef<NavigationContainerRef<RootStackParamList> | null>(null);
   const routeNameRef = useRef<string | undefined>(undefined);
-  const { destination, startAuthCheck } = useAuthGate();
+
+  // destination is lifted from SplashScreen's useAuthGate via onAuthResolved callback.
+  // null = splash still showing; non-null = navigate to the resolved stack.
+  // DEV_GATE: skip splash+auth, go straight to App stack for B08-B12 gate testing.
+  const [destination, setDestination] = useState<AuthGateDestination | null>(
+    __DEV__ ? 'app' : null,
+  );
+
+  // When DEV_GATE skips SplashScreen, hide the native splash manually.
+  useEffect(() => {
+    if (__DEV__) {
+      void SplashScreenExpo.hideAsync().catch(() => {});
+    }
+  }, []);
+
+  // Register bypass setter (used by DEV button in LoginScreen)
+  useEffect(() => {
+    registerDevBypassSetter(setDestination);
+    return () => { registerDevBypassSetter(null); };
+  }, [setDestination]);
 
   // ─── onReady: capture initial route name ─────────────────────────────────
 
@@ -76,10 +98,9 @@ export function RootNavigator(): React.JSX.Element {
 
   const handleAuthResolved = useCallback(
     (dest: 'login' | 'app' | 'validate-project') => {
-      // Navigation is handled reactively: destination state change triggers re-render
-      // No imperative navigate() call needed — RootNavigator re-renders with new stack
-      // This callback is informational only (for SplashScreen to hide the native splash)
-      void dest;
+      // SplashScreen fires this after both animation + auth are complete.
+      // Setting destination here triggers RootNavigator to swap to Auth/App stack.
+      setDestination(dest);
     },
     [],
   );
@@ -97,6 +118,7 @@ export function RootNavigator(): React.JSX.Element {
 
   return (
     <NavigationContainer
+      key={destination}
       ref={navigationRef}
       onReady={handleReady}
       onStateChange={handleStateChange}

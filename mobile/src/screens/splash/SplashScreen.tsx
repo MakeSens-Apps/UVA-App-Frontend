@@ -37,6 +37,10 @@ import * as SplashScreenExpo from 'expo-splash-screen';
 
 import { useAuthGate } from '@/navigation/useAuthGate';
 
+// SVG components (via react-native-svg-transformer — NOT used as Image sources)
+import LeafSvg from '@/assets/svg/logo.svg';
+import MakeSensLogoSvg from '@/assets/svg/logo_Makesens.svg';
+
 // Prevent expo native splash from hiding until we're ready
 void SplashScreenExpo.preventAutoHideAsync().catch(() => {
   // Already showing or not available in test env — ignore
@@ -44,13 +48,7 @@ void SplashScreenExpo.preventAutoHideAsync().catch(() => {
 
 // ─── Assets ───────────────────────────────────────────────────────────────────
 
-// Inline require so Metro can resolve the path statically
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const leafIcon = require('@/assets/svg/logo.svg') as number;
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const poweredByLogo = require('@/assets/png/Powered_by.png') as number;
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const makeSensLogo = require('@/assets/svg/logo_Makesens.svg') as number;
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -162,7 +160,7 @@ export function SplashScreen({ onAuthResolved }: SplashScreenProps): React.JSX.E
     <View style={styles.container}>
       {/* Leaf / UVA logo — animates from top */}
       <Animated.View style={[styles.leafWrapper, leafStyle]}>
-        <Image source={leafIcon} style={styles.leafIcon} resizeMode="contain" />
+        <LeafSvg width={160} height={160} />
       </Animated.View>
 
       {/* Bottom area: powered by + makesens logo */}
@@ -175,11 +173,7 @@ export function SplashScreen({ onAuthResolved }: SplashScreenProps): React.JSX.E
           />
         </Animated.View>
         <Animated.View style={logoStyle}>
-          <Image
-            source={makeSensLogo}
-            style={styles.makeSensLogo}
-            resizeMode="contain"
-          />
+          <MakeSensLogoSvg width={140} height={40} />
         </Animated.View>
       </View>
     </View>

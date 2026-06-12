@@ -141,7 +141,12 @@ export function useAuthGate(): UseAuthGateResult {
       await waitForSync();
 
       console.log('👤 Checking for local user data...');
-      const localUser = await UserDSService.getUser();
+      // Guard: DataStore.query can hang indefinitely if DataStore never started.
+      // Race with a 10s timeout so the auth gate never blocks the splash screen.
+      const localUser = await Promise.race<ReturnType<typeof UserDSService.getUser>>([
+        UserDSService.getUser(),
+        new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), 10_000)),
+      ]);
 
       if (localUser) {
         console.log('✅ Local user found, attempting offline-first flow...');

@@ -10,6 +10,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '@/navigation/types';
+import { devBypassToApp } from '@/navigation/devBypass';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
@@ -24,6 +25,14 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
       >
         <Text style={styles.buttonText}>Ir a OTP (test)</Text>
       </Pressable>
+      {__DEV__ && (
+        <Pressable
+          style={[styles.button, { backgroundColor: '#8B0000', marginTop: 8 }]}
+          onPress={() => devBypassToApp()}
+        >
+          <Text style={styles.buttonText}>DEV: Bypass → App (gates)</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
