@@ -39,23 +39,32 @@ import {
   generateCalendarWeek,
 } from './calendarLogic';
 
-// ─── Moon phase icon assets ───────────────────────────────────────────────────
-// Moon SVGs use xlink:href with embedded bitmaps which react-native-svg cannot
-// render on web (and inconsistently on some native devices).
-// Use extracted PNG assets instead — identical to MoonCard fix (Divergence 13).
-// Map from phase key → PNG require() number for Image.source.
-// The Image rendering happens inside Day.tsx (which accepts number source).
+// ─── Moon phase icon assets (vectorial SVG) ───────────────────────────────────
+// The original Ionic app uses small vectorial SVG icons (~15×16px) from
+//   assets/images/icons/Moon/{new,full,crescent,declining,Gibosa_crescent,Gibosa_declining}.svg
+// These are pure path-based SVGs (NO xlink:href) — compatible with
+// react-native-svg-transformer → import as React components.
+//
+// The large "Moon/" SVGs (nueva.svg, llena.svg …) contain base64 bitmaps via
+// xlink:href and must NOT be used here — the icon SVGs are the correct reference.
 
-// On native, require() for PNG returns a number (asset ID registered with NativeModules).
-// On web (Metro web bundler), require() returns a string URL.
-// Use `unknown` and let Day.tsx handle both.
-const MOON_PHASE_PNG_ICONS: Record<string, number | string> = {
-  'new-moon':        require('@/assets/png/moon/nueva.png') as number | string,
-  'waning-crescent': require('@/assets/png/moon/gibosa_creciente.png') as number | string,
-  'first-quarter':   require('@/assets/png/moon/cuarto_creciente.png') as number | string,
-  'full-moon':       require('@/assets/png/moon/llena.png') as number | string,
-  'last-quarter':    require('@/assets/png/moon/cuarto_menguante.png') as number | string,
-  'waning-gibbous':  require('@/assets/png/moon/gibosa_menguante.png') as number | string,
+import MoonNewIcon        from '@/assets/svg/icons/moon/new.svg';
+import MoonFullIcon       from '@/assets/svg/icons/moon/full.svg';
+import MoonCrescentIcon   from '@/assets/svg/icons/moon/crescent.svg';
+import MoonDecliningIcon  from '@/assets/svg/icons/moon/declining.svg';
+import MoonGibCresIcon    from '@/assets/svg/icons/moon/gibosa_crescent.svg';
+import MoonGibDecIcon     from '@/assets/svg/icons/moon/gibosa_declining.svg';
+
+type MoonSvgComponent = React.FC<{ width: number; height: number }>;
+
+// Map from phase key → SVG component (same keys used by calendarLogic/setIconPhase)
+const MOON_PHASE_SVG_ICONS: Record<string, MoonSvgComponent> = {
+  'new-moon':        MoonNewIcon as MoonSvgComponent,
+  'waning-crescent': MoonGibCresIcon as MoonSvgComponent,
+  'first-quarter':   MoonCrescentIcon as MoonSvgComponent,
+  'full-moon':       MoonFullIcon as MoonSvgComponent,
+  'last-quarter':    MoonDecliningIcon as MoonSvgComponent,
+  'waning-gibbous':  MoonGibDecIcon as MoonSvgComponent,
 };
 
 // Day header abbreviations (Spanish, Sun-first like original getDay() output)
@@ -226,7 +235,7 @@ export function Calendar({
                 customIcon={typeCalendar === 'moon' && !!dayData.icon}
                 icon={
                   typeCalendar === 'moon' && dayData.icon
-                    ? (MOON_PHASE_PNG_ICONS[dayData.icon] ?? null)
+                    ? (MOON_PHASE_SVG_ICONS[dayData.icon] ?? null)
                     : null
                 }
               />

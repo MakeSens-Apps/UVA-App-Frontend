@@ -81,14 +81,15 @@ export interface DayProps {
 const CIRCLE_SIZE_NORMAL = 40;
 // Original: calendar.component.scss .day.mini { width: 13.223px; height: 13.223px }
 const CIRCLE_SIZE_MINI = 13;
+// Moon calendar today circle (solid teal #1097AA background behind the icon+number cell)
 const CIRCLE_SIZE_MOON = 36;
 
 const ICON_SIZE_NORMAL = 14;
 // Original: .day.mini { font-size: 4.628px } → icon sized proportionally
 const ICON_SIZE_MINI = 5;
-// Original: ion-icon for custom SVG phase icons in moon calendar ~24px (ion-icon default for custom SVGs)
-// screen-07 shows icons ~24px occupying most of the 40px cell
-const ICON_SIZE_MOON = 24;
+// Original: icon SVGs from assets/images/icons/Moon/ are 15×16px native size.
+// screen-07 shows icons rendered at ~14-15px on the calendar grid — match that.
+const ICON_SIZE_MOON = 15;
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
@@ -151,16 +152,25 @@ export function Day({
     state === 'complete' || state === 'saveStreak' || customIcon;
 
   // Moon calendar special layout: icon on top, number below (column layout).
-  // Original: ion-icon with custom src renders the moon phase image centered in the cell,
-  // with the day number below it. The cell is a column, not a pure circle.
+  // Original SCSS: .current.isMoonCalendar { background-color: var(--Colors-Blue-600, #1097AA); border: none }
+  // → for today: solid teal circle background behind icon+number; for others: transparent.
+  // Icon (ion-icon with iconPosition="top") is ~15px, day number is below.
   if (isMoonCalendar && customIcon && icon) {
     return (
       <View
-        style={styles.moonDayContainer}
+        style={[
+          styles.moonDayContainer,
+          state === 'today' && {
+            backgroundColor: '#1097AA',
+            borderRadius: CIRCLE_SIZE_MOON / 2,
+            width: CIRCLE_SIZE_MOON,
+            height: CIRCLE_SIZE_MOON,
+          },
+        ]}
         testID={`day-cell-${day}`}
       >
-        {/* Moon phase icon — full circular PNG, centered */}
-        {renderIcon(state, customIcon, icon, CIRCLE_SIZE_MOON)}
+        {/* Moon phase icon — vectorial SVG, ~15px, centered */}
+        {renderIcon(state, customIcon, icon, ICON_SIZE_MOON)}
         {/* Day number below icon */}
         <Text
           style={[
@@ -171,16 +181,6 @@ export function Day({
         >
           {dayLabel}
         </Text>
-        {/* Today highlight: teal circle around icon */}
-        {state === 'today' && (
-          <View
-            style={[
-              styles.moonTodayRing,
-              { width: CIRCLE_SIZE_MOON, height: CIRCLE_SIZE_MOON, borderRadius: CIRCLE_SIZE_MOON / 2 },
-            ]}
-            pointerEvents="none"
-          />
-        )}
       </View>
     );
   }
@@ -376,15 +376,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontSize: 11,
   },
-  // Today highlight ring overlaid on the icon
-  moonTodayRing: {
-    position: 'absolute',
-    top: 0,
-    borderWidth: 2,
-    borderStyle: 'solid',
-    borderColor: '#1097AA',
-    backgroundColor: 'transparent',
-  },
+  // (moonTodayRing removed — today in moon calendar uses filled circle background, not a ring overlay
+  //  Original SCSS: .current.isMoonCalendar { background-color: #1097AA; border: none })
 });
 
 export default Day;
