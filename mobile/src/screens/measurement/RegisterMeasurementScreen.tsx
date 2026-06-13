@@ -59,6 +59,7 @@ import {
   ActivityIndicator,
   type TextInputProps,
 } from 'react-native';
+import ExclamationIcon from '@/assets/svg/icons/exclamation.svg';
 import { BlurView } from 'expo-blur';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -570,17 +571,20 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
                   </View>
 
                   {/* Alert / error message */}
+                  {/* Original: .alert .title { color: var(--Colors-Orange-500, #e58b24) }
+                      register-measurement.page.scss:130-131
+                      ion-icon src="exclamation.svg" 20×20px (register-measurement.page.html:54) */}
                   {showAlert && errorMsg ? (
                     <View
                       style={[styles.alertContainer, { backgroundColor: theme.colors.orange[50] ?? '#FFF7ED' }]}
                       testID={`measurement-alert-${measIdx}`}
                     >
                       <View style={styles.alertTitleRow}>
-                        <Text style={styles.alertIcon}>⚠️</Text>
+                        <ExclamationIcon width={20} height={20} />
                         <Text
                           style={[
                             styles.alertTitle,
-                            { fontFamily: fontFamilyForWeight('600'), color: theme.colors.orange[700] ?? '#C2410C' },
+                            { fontFamily: fontFamilyForWeight('600'), color: theme.colors.orange[500] ?? '#E58B24' },
                           ]}
                         >
                           ¿Estás seguro de este dato?
@@ -767,7 +771,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scroll: { flex: 1 },
-  formContainer: { padding: 16 },
+  // .container { padding: 10px } — register-measurement.page.scss:56-57
+  formContainer: { padding: 10 },
   titleSection: { marginBottom: 16 },
   measurementCard: {
     // Original: borderRadius 16, borderWidth 1 (not 2)
@@ -819,9 +824,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginBottom: 4,
-  },
-  alertIcon: {
-    fontSize: 18,
   },
   alertTitle: {
     fontSize: 13,

@@ -29,6 +29,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import ClipboardCheckIcon from '@/assets/svg/icons/clipboard-check.svg';
+import CalendarIcon from '@/assets/svg/icons/calendar.svg';
 
 import type { AppTabsParamList, HomeStackParamList } from './types';
 import { colors, fontFamilyForWeight } from '@/theme/theme';
@@ -66,10 +68,21 @@ function HomeStackNavigator(): React.JSX.Element {
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
-const TAB_CONFIG: Record<string, { label: string; active: IoniconName; inactive: IoniconName }> = {
-  HomeStack:   { label: 'Inicio',    active: 'home',        inactive: 'home-outline' },
-  Measurement: { label: 'Registrar', active: 'add-circle',  inactive: 'add-circle-outline' },
-  Historical:  { label: 'Historial', active: 'bar-chart',   inactive: 'bar-chart-outline' },
+// Measurement and Historical tabs use the original custom SVG icons (not Ionicons).
+// Original Ionic tabs.page.html:
+//   Registrar → assets/images/icons/clipboard-check.svg
+//   Historial  → assets/images/icons/calendar.svg
+// Other tabs use Ionicons as before.
+type SvgTabIcon = 'clipboard-check' | 'calendar';
+const TAB_CONFIG: Record<string, { label: string; active: IoniconName | null; inactive: IoniconName | null; svgIcon?: SvgTabIcon }> = {
+  HomeStack:   { label: 'Inicio',    active: 'home',       inactive: 'home-outline' },
+  Measurement: { label: 'Registrar', active: null,          inactive: null,          svgIcon: 'clipboard-check' },
+  Historical:  { label: 'Historial', active: null,          inactive: null,          svgIcon: 'calendar' },
+};
+
+const SVG_TAB_ICONS: Record<SvgTabIcon, React.ElementType> = {
+  'clipboard-check': ClipboardCheckIcon,
+  'calendar': CalendarIcon,
 };
 
 function UvaTabBar({ state, descriptors, navigation }: BottomTabBarProps): React.JSX.Element {
@@ -85,7 +98,7 @@ function UvaTabBar({ state, descriptors, navigation }: BottomTabBarProps): React
         if (!cfg) return null;
 
         const isFocused = state.index === state.routes.indexOf(route);
-        const iconName: IoniconName = isFocused ? cfg.active : cfg.inactive;
+        const iconName: IoniconName | null = isFocused ? cfg.active : cfg.inactive;
         // active: --Colors-Blue-700 (#14788A); inactive: --Colors-Gray-50 (#FAFAFA)
         const tintColor = isFocused ? colors.blue[700] : colors.gray[50];
 
@@ -122,7 +135,12 @@ function UvaTabBar({ state, descriptors, navigation }: BottomTabBarProps): React
                 isFocused && tabBarStyles.pillActive,
               ]}
             >
-              <Ionicons name={iconName} size={24} color={tintColor} />
+              {cfg.svgIcon ? (() => {
+                const SvgIcon = SVG_TAB_ICONS[cfg.svgIcon];
+                return <SvgIcon width={24} height={24} color={tintColor} />;
+              })() : (
+                <Ionicons name={iconName as IoniconName} size={24} color={tintColor} />
+              )}
               <Text
                 style={[
                   tabBarStyles.label,

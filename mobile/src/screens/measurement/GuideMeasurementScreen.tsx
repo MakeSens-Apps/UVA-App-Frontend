@@ -29,10 +29,11 @@ import {
   Image,
   ScrollView,
   TouchableOpacity,
+  Pressable,
   StyleSheet,
   ActivityIndicator,
-  Switch,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { AppStackParamList } from '@/navigation/types';
@@ -197,20 +198,14 @@ export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.gray[50] }]}>
-      {/* Close button X — .btn_close: absolute top-right, teal #10BCCA bg, 38px */}
+      {/* Close button — .btn_close: absolute top-right, teal #10BCCA bg, 38px, borderRadius 4
+          Original: ion-button with ion-icon name="close" (Ionicons vectorial icon) */}
       <TouchableOpacity
         style={[styles.btnClose, { backgroundColor: theme.colors.blue[500] }]}
         onPress={() => closeModal(false)}
         testID="guide-btn-close"
       >
-        <Text
-          style={[
-            styles.btnCloseText,
-            { fontFamily: fontFamilyForWeight('700'), color: theme.colors.white },
-          ]}
-        >
-          ✕
-        </Text>
+        <Ionicons name="close" size={20} color={theme.colors.white} />
       </TouchableOpacity>
 
       <ScrollView
@@ -238,12 +233,16 @@ export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.
           />
         ) : null}
 
-        {/* Guide title — original .html shows guide.name as the title (.title p) */}
+        {/* Guide title — original [ngStyle]="{ color: guide.icon.colorHex }" — guide-measurement.html:10
+            Falls back to blue[700] when colorHex is not configured */}
         {guide.name ? (
           <Text
             style={[
               styles.guideTitle,
-              { fontFamily: fontFamilyForWeight('700'), color: theme.colors.blue[700] },
+              {
+                fontFamily: fontFamilyForWeight('700'),
+                color: (guide as Guide & { icon?: { colorHex?: string } }).icon?.colorHex ?? theme.colors.blue[700],
+              },
             ]}
           >
             {guide.name}
@@ -269,15 +268,28 @@ export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.
           <RichText html={guide.text as string} baseFontSize={15} />
         )}
 
-        {/* Checkbox "Mostrar automáticamente" */}
-        <View style={styles.checkboxRow}>
-          <Switch
-            value={showAutomatic}
-            onValueChange={(v) => void handleShowAutomaticChange(v)}
-            thumbColor={showAutomatic ? theme.colors.blue[600] : theme.colors.gray[300]}
-            trackColor={{ false: theme.colors.gray[200], true: theme.colors.blue[200] }}
-            testID="guide-show-automatic"
-          />
+        {/* Checkbox "Mostrar automáticamente"
+            Original: <ion-checkbox> with border-radius:4px, color=uva_blue-600
+            guide-measurement.component.scss:62-64 and guide-measurement.component.html:39-47 */}
+        <Pressable
+          style={styles.checkboxRow}
+          onPress={() => void handleShowAutomaticChange(!showAutomatic)}
+          testID="guide-show-automatic"
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: showAutomatic }}
+        >
+          <View
+            style={[
+              styles.checkboxBox,
+              showAutomatic
+                ? { backgroundColor: theme.colors.blue[600], borderColor: theme.colors.blue[600] }
+                : { borderColor: theme.colors.blue[600] },
+            ]}
+          >
+            {showAutomatic ? (
+              <Ionicons name="checkmark" size={14} color={theme.colors.white} />
+            ) : null}
+          </View>
           <Text
             style={[
               styles.checkboxLabel,
@@ -286,7 +298,7 @@ export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.
           >
             Mostrar automáticamente
           </Text>
-        </View>
+        </Pressable>
       </ScrollView>
 
       {/* Action buttons */}
@@ -328,6 +340,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   // .btn_close: absolute top-right, 38×38px, teal bg, borderRadius 4
+  // Original uses ion-icon name="close" (Ionicons vectorial) — guide-measurement.component.html:4-7
   btnClose: {
     position: 'absolute',
     top: 10,
@@ -338,9 +351,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  btnCloseText: {
-    fontSize: 16,
   },
   // 70% width, height 260 (60% of screen width, centered)
   guideImage: {
@@ -372,7 +382,18 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 16,
   },
+  // ion-checkbox::part(container) { border-radius: 4px; border-color: #1097aa }
+  // guide-measurement.component.scss:62-64
+  checkboxBox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   checkboxLabel: {
+    // ion-checkbox::part(label): 14px, 500, color Gray-700 — guide-measurement.component.scss:67-74
     fontSize: 14,
   },
   buttonsContainer: {

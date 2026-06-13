@@ -42,6 +42,13 @@ export interface ProgressBarProps {
   currentProgress?: number;
   /** Total / max value. Defaults to 1. */
   totalProgress?: number;
+  /**
+   * When true, renders without the container's own white background and border-radius.
+   * Use when ProgressBar is already inside a white card to avoid a double-box effect.
+   * Original: .progress_container has background:#fff and border-radius:14px, which
+   * creates a visible nested box when placed inside another white card (home screen).
+   */
+  naked?: boolean;
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────
@@ -58,6 +65,7 @@ export interface ProgressBarProps {
 export function ProgressBar({
   currentProgress = 0,
   totalProgress = 1,
+  naked = false,
 }: ProgressBarProps): React.JSX.Element {
   const { theme } = useTheme();
 
@@ -69,8 +77,13 @@ export function ProgressBar({
   return (
     // Original: .progress_container { padding:10px; gap:8px; border-radius:14px;
     // background:#fff; align-items:flex-start }
+    // naked=true: skip own background + borderRadius (use inside white card without double-box)
     <View
-      style={[styles.container, { backgroundColor: theme.colors.white }]}
+      style={[
+        styles.container,
+        !naked && { backgroundColor: theme.colors.white },
+        naked && { borderRadius: 0, padding: 0 },
+      ]}
       testID="progress-bar-container"
     >
       {/* Original: .progress_text { color: --Colors-Gray-500 = #737373; font-size: 14px; font-weight: 500 } */}

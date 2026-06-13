@@ -37,6 +37,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import SemillaIcon from '@/assets/svg/icons/semilla.svg';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -214,8 +215,10 @@ export function MeasurementScreen(): React.JSX.Element {
   const surpriseSheetRef = useRef<BottomSheetRef>(null);
 
   // ─── Derived: count total tasks (avoids setState-in-effect) ────────────────
+  // Fallback is 0 (not 1) so ProgressBar shows '0/0' instead of the misleading '0/1'
+  // when config is unavailable (e.g. expo-file-system blocked in web validation mode).
   const totalTask = useMemo(
-    () => (configMeasurement ? countTasks(configMeasurement) : 1),
+    () => (configMeasurement ? countTasks(configMeasurement) : 0),
     [configMeasurement, countTasks],
   );
 
@@ -379,14 +382,18 @@ export function MeasurementScreen(): React.JSX.Element {
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Progress card */}
         <View style={styles.card}>
-          <Text
-            style={[
-              styles.cardTitle,
-              { fontFamily: fontFamilyForWeight('700'), color: theme.colors.blue[800] },
-            ]}
-          >
-            Registra y gana: +2
-          </Text>
+          {/* Title row with semilla icon — mirrors Ionic: ion-icon src="semilla.svg" next to "+2" */}
+          <View style={styles.cardTitleRow}>
+            <Text
+              style={[
+                styles.cardTitle,
+                { fontFamily: fontFamilyForWeight('700'), color: theme.colors.blue[800] },
+              ]}
+            >
+              Registra y gana: +2
+            </Text>
+            <SemillaIcon width={20} height={20} />
+          </View>
           <ProgressBar
             currentProgress={tasksCompleted.length}
             totalProgress={totalTask}
@@ -467,7 +474,8 @@ export function MeasurementScreen(): React.JSX.Element {
                           },
                         ]}
                       />
-                      <RichText html={task.name} inline baseFontSize={14} />
+                      {/* ion-checkbox::part(label) { font-size: 18px } — measurement.page.scss:114 */}
+                      <RichText html={task.name} inline baseFontSize={18} />
                     </View>
                   </TouchableOpacity>
                 );
@@ -502,7 +510,8 @@ export function MeasurementScreen(): React.JSX.Element {
                         { backgroundColor: theme.colors.blue[500] },
                       ]}
                     />
-                    <RichText html={task.name} inline baseFontSize={14} />
+                    {/* ion-checkbox::part(label) { font-size: 18px } — measurement.page.scss:114 */}
+                    <RichText html={task.name} inline baseFontSize={18} />
                   </View>
                   {/* Measurements list */}
                   <View style={styles.measurementsContainer}>
@@ -638,17 +647,28 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { flex: 1 },
   card: {
-    // .cards: gray-50 bg, gray-200 border, borderRadius 10, no shadow
-    margin: 16,
+    // .cards: gray-50 bg, gray-200 border, borderRadius 10, margin-inline 10px, padding 10px, padding-top 0
+    // global.scss:335-345: margin-inline-start/end: 10px; padding: 10px; padding-top: 0
+    marginHorizontal: 10,
+    marginTop: 8,
     borderRadius: 10,
-    padding: 10,
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+    paddingTop: 0,
     backgroundColor: '#FAFAFA',
     borderWidth: 1,
     borderColor: '#E5E5E5',
   },
+  cardTitleRow: {
+    // Row that contains the title text + semilla icon (flexDirection row, alignItems center)
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 12,
+    paddingTop: 10,
+  },
   cardTitle: {
     fontSize: 16,
-    marginBottom: 12,
   },
   bonusBanner: {
     marginHorizontal: 16,
@@ -658,7 +678,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bonusText: { fontSize: 18 },
-  section: { paddingHorizontal: 16, marginBottom: 8 },
+  // .measurement { padding: 10px } — global.scss:434-442
+  section: { paddingHorizontal: 10, paddingVertical: 10, marginBottom: 8 },
   sectionTitle: { fontSize: 16, marginBottom: 8 },
   // measurement_incomplete: white bg, no border
   groupIncomplete: {
@@ -683,16 +704,17 @@ const styles = StyleSheet.create({
   },
   taskRowDisabled: { opacity: 0.6 },
   taskRowInner: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  // ion-checkbox::part(container) { border-radius: 4px } — measurement.page.scss:108-111
   checkbox: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: 4,
     borderWidth: 2,
   },
   checkboxChecked: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: 4,
   },
   taskName: { fontSize: 14, flex: 1 },
   // .restrictionTime chip: orange-100 bg, orange-800 text, italic, borderRadius 8
