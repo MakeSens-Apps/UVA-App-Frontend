@@ -717,6 +717,9 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     flex: 1,
+    // configuration.page.scss .header: justify-content:space-between + title in .user-info
+    // → title renders at the right side of the toolbar. Match with textAlign:'right'.
+    textAlign: 'right',
   },
   // Content (mirrors .profile-content)
   content: {

@@ -214,9 +214,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   logo: {
+    // ion-thumbnail: 70x70, --border-radius:14px, bg:#F5F5F5 (global.scss:195-199)
     width: 70,
     height: 70,
     borderRadius: 14,
+    backgroundColor: '#F5F5F5',
     marginBottom: 4,
   },
   title: {
