@@ -709,7 +709,8 @@ export function HistoricalScreen(): React.JSX.Element {
                     { fontFamily: fontFamilyForWeight('400'), color: theme.colors.blue[500] },
                   ]}
                 >
-                  Ver como {typeView === 'calendar' ? 'gráfica' : 'calendario'}
+                  {/* Original: historical.page.html swap-horizontal-outline icon after text */}
+                  Ver como {typeView === 'calendar' ? 'gráfica' : 'calendario'} ⇄
                 </Text>
               </TouchableOpacity>
             </View>
@@ -877,7 +878,8 @@ export function HistoricalScreen(): React.JSX.Element {
                 testID="share-data-btn"
               >
                 <Text style={[styles.shareBtnText, { fontFamily: fontFamilyForWeight('500') }]}>
-                  {sharing ? 'Generando...' : '↑ Compartir datos'}
+                  {/* Original: ion-icon share-outline (⇗ share/export arrow) */}
+                  {sharing ? 'Generando...' : '⇗ Compartir datos'}
                 </Text>
               </TouchableOpacity>
             )}

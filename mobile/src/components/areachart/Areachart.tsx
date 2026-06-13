@@ -39,7 +39,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { View, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, useWindowDimensions, Platform } from 'react-native';
 import {
   CartesianChart,
   Area,
@@ -48,6 +48,7 @@ import {
 import type { SkFont } from '@shopify/react-native-skia';
 import { useFont } from '@shopify/react-native-skia';
 import { format } from 'date-fns';
+import Svg, { Path, Defs, LinearGradient as SvgLinearGradient, Stop, Polyline } from 'react-native-svg';
 
 // Font asset — loaded via useFont (Skia). Must be a static require so metro bundles it.
 // In test environments this may resolve to undefined; useFont handles that gracefully.
@@ -119,6 +120,96 @@ export interface AreachartProps {
   chartMaxData?: number[];
   /** Chart height (default: 200) */
   height?: number;
+}
+
+// ─── Web fallback component ────────────────────────────────────────────────────
+
+// Padding constants (module-level to avoid useMemo dependency warnings)
+const WEB_PAD_X = 8;
+const WEB_PAD_Y = 8;
+
+/**
+ * AreachartWeb
+ *
+ * SVG-based area chart rendered via react-native-svg (web-compatible).
+ * Mirrors the visual style of the Ionic original (Chart.js area chart):
+ *   - Area fill with opacity, colored border line, no grid lines.
+ * Used automatically when Platform.OS === 'web'.
+ */
+interface AreachartWebProps {
+  chartDatum: ChartDatum[];
+  background: string;
+  borderColor: string;
+  areaFillColor: string;
+  height: number;
+  width: number;
+  detailedMode: boolean;
+  yDomain: [number, number] | undefined;
+  xDomain: [number, number] | undefined;
+}
+
+function AreachartWeb({
+  chartDatum,
+  borderColor,
+  areaFillColor,
+  height,
+  width,
+  detailedMode,
+  yDomain,
+  xDomain,
+}: AreachartWebProps): React.JSX.Element {
+  const chartW = width - WEB_PAD_X * 2;
+  const chartH = height - WEB_PAD_Y * 2;
+
+  // Derive domains for scaling
+  const xMin = xDomain ? xDomain[0] : Math.min(...chartDatum.map((d) => d.x));
+  const xMax = xDomain ? xDomain[1] : Math.max(...chartDatum.map((d) => d.x));
+  const allY = chartDatum.flatMap((d) =>
+    detailedMode ? [d.y, d.yMin ?? d.y, d.yMax ?? d.y] : [d.y],
+  );
+  const yMin = yDomain ? yDomain[0] : Math.min(...allY);
+  const yMax = yDomain ? yDomain[1] : Math.max(...allY);
+  const yRange = yMax - yMin || 1;
+  const xRange = xMax - xMin || 1;
+
+  // Build SVG paths — all domain values captured as dependencies
+  const { areaPath, linePoints } = useMemo(() => {
+    if (chartDatum.length === 0) return { areaPath: '', linePoints: '' };
+
+    const mapX = (x: number) => WEB_PAD_X + ((x - xMin) / xRange) * chartW;
+    const mapY = (y: number) => WEB_PAD_Y + (1 - (y - yMin) / yRange) * chartH;
+
+    const pts = chartDatum.map((d) => `${mapX(d.x).toFixed(1)},${mapY(d.y).toFixed(1)}`);
+    const bR = `${mapX(chartDatum[chartDatum.length - 1].x).toFixed(1)},${(WEB_PAD_Y + chartH).toFixed(1)}`;
+    const bL = `${mapX(chartDatum[0].x).toFixed(1)},${(WEB_PAD_Y + chartH).toFixed(1)}`;
+
+    return {
+      areaPath: `M ${pts.join(' L ')} L ${bR} L ${bL} Z`,
+      linePoints: pts.join(' '),
+    };
+  }, [chartDatum, chartW, chartH, xMin, xRange, yMin, yRange]);
+
+  return (
+    <View style={[styles.container, { height, width }]} testID="areachart">
+      <Svg width={width} height={height}>
+        <Defs>
+          <SvgLinearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={areaFillColor} stopOpacity="0.8" />
+            <Stop offset="1" stopColor={areaFillColor} stopOpacity="0.1" />
+          </SvgLinearGradient>
+        </Defs>
+        {/* Area fill */}
+        <Path d={areaPath} fill="url(#areaGrad)" />
+        {/* Border line */}
+        <Polyline
+          points={linePoints}
+          fill="none"
+          stroke={borderColor}
+          strokeWidth={2}
+        />
+      </Svg>
+    </View>
+  );
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -203,6 +294,24 @@ export function Areachart({
 
   // Color with opacity for area fill
   const areaFillColor = hexToRgba(background, 0.6);
+
+  // ── Web fallback: victory-native/Skia requires GPU canvas (unavailable on web).
+  // Use react-native-svg to draw a simple area chart that mirrors the Ionic original.
+  if (Platform.OS === 'web') {
+    return (
+      <AreachartWeb
+        chartDatum={chartDatum}
+        background={background}
+        borderColor={borderColor}
+        areaFillColor={areaFillColor}
+        height={height}
+        width={windowWidth}
+        detailedMode={detailedMode}
+        yDomain={yDomain}
+        xDomain={xDomain}
+      />
+    );
+  }
 
   return (
     <View

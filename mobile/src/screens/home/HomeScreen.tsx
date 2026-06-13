@@ -324,9 +324,12 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
             </TouchableOpacity>
           </View>
 
+          {/* naked=true: ProgressBar is inside a white card — skip its own white container
+              to avoid the visible "double-box" effect (divergence #12 in home audit) */}
           <ProgressBar
             currentProgress={completedTasksValue}
             totalProgress={totalTask}
+            naked
           />
 
           <TouchableOpacity
@@ -418,8 +421,9 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
               <Text style={[styles.closeBtn, { color: theme.colors.blue[600] }]}>✕</Text>
             </Pressable>
           </View>
-          {/* screen-06 ionic: "Tienes 2 Días de racha 😌" title above mini calendar */}
-          <Text style={[styles.modalText, { fontFamily: fontFamilyForWeight('700'), color: theme.semanticColors.text }]}>
+          {/* screen-06 ionic: "Tienes 2 Días de racha 😌" title above mini calendar
+              Original: .date-header { font-size:16px, font-weight:700 } used as heading reference */}
+          <Text style={[styles.modalHeading, { color: theme.semanticColors.text }]}>
             Tienes 2 Días de racha 😌
           </Text>
           <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
@@ -477,6 +481,14 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
           </View>
           <View style={styles.tokenCard}>
             <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>5 🌰</Text>
+            {/* Original: home.page.scss #modal_token .icon_arrow { font-size:18px }
+                screen-07: third card shows "03 → [03✓]" — Day(incomplete) → arrow → Day(complete)
+                Visually illustrates the streak-recovery mechanism */}
+            <View style={styles.streakRecoveryRow}>
+              <Day day={3} state="incomplete" />
+              <Text style={[styles.streakArrow, { color: theme.semanticColors.text }]}>→</Text>
+              <Day day={3} state="complete" />
+            </View>
             <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
               Con estas semillas podrás recuperar tu racha. Para recuperar un día incompleto, <Text style={{ fontFamily: fontFamilyForWeight('700') }}>debes pagar 5 semillas.</Text>
             </Text>
@@ -598,11 +610,15 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flex: 1,
+    // Original: home.page.scss ion-content { --background: #f4f4f4 }
+    backgroundColor: '#F4F4F4',
   },
   scrollContent: {
     padding: 16,
     gap: 0,
     paddingBottom: 32,
+    // Ensure the gutter between cards is also #F4F4F4 (not white)
+    backgroundColor: '#F4F4F4',
   },
   dateHeader: {
     fontSize: 16,
@@ -613,7 +629,9 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 12,
     padding: 16,
-    gap: 12,
+    // Original: ion-card internal spacing — gap 16 matches visible spacing between
+    // title/calendar/button sections visible in screen-01-home-top.png
+    gap: 16,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -651,6 +669,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 32,
     gap: 12,
+    // Original: home.page.scss %modalCommons { background-color: var(--Colors-Gray-100) = #F5F5F5 }
+    backgroundColor: '#F5F5F5',
   },
   modalScrollContainer: {
     flex: 1,
@@ -674,6 +694,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat-Regular',
     lineHeight: 20,
   },
+  // Modal section heading — larger than body text (screen-06: "Tienes 2 Días de racha 😌")
+  // Original: .date-header { @include text-base(16px, 700) } — used as modal title reference
+  modalHeading: {
+    fontSize: 16,
+    fontFamily: 'Montserrat-Bold',
+    lineHeight: 24,
+  },
   modalBig: {
     fontSize: 20,
     fontFamily: 'Montserrat-Bold',
@@ -689,6 +716,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  // screen-07: streak recovery visual — Day(incomplete) → arrow → Day(complete)
+  // Original: #modal_token .icon_arrow { font-size: 18px } + two Day circles inline
+  streakRecoveryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  streakArrow: {
+    fontSize: 18, // original: .icon_arrow { font-size: 18px }
+    fontFamily: 'Montserrat-Regular',
   },
   // White card for each seed rule / germination range (screen-07/08)
   // Original: .container_text { background: #FFF; border-radius: 10px; padding: 10px }
