@@ -1,0 +1,50 @@
+{
+ "feature": "app-shell",
+ "round": 2,
+ "captured": ["screen-06-home-tab-active.png", "screen-07-tab-bar-home-active.png", "screen-08-tab-register-active.png", "screen-09-tab-history-active.png", "screen-10-header-no-back-with-profile.png", "screen-11-header-with-back-button.png", "screen-12-header-back-with-settings.png", "screen-14-header-back-no-profile.png", "screen-18-tab-inicio-selected.png", "screen-19-tab-registrar-selected.png", "screen-20-tab-historial-selected.png", "screen-21-configuration-page.png", "screen-31-profile-share-modal.png", "screen-32-header-no-back-with-profile-history.png"],
+ "not_capturable": ["screen-01: login state — AuthStack inaccesible con sesión activa", "screen-02 to screen-04: SplashAnimationPage redirige en <100ms", "screen-15 to screen-16: ValidateProject/ValidateCode en AuthStack", "screen-22/25: IonLoadingController overlays <200ms no capturables", "screen-27 to screen-29: measurement screens requieren config en web (ahora disponible — recaptura pendiente)", "screen-30: CreationPage QA no migrada"],
+ "fixed_since_round1": [
+  "Tab bar iconos: Registrar usa clipboard-check SVG (corregido de add-circle Ionicons), Historial usa calendar SVG (corregido de bar-chart Ionicons)",
+  "Campana de alertas: SVG bell icon outline blanco (corregido de emoji)",
+  "Settings icon en AlertsScreen: SVG outline blanco (corregido de emoji)",
+  "Back button en ProfileScreen: eliminado (era incorrecto en pantalla tab raíz)"
+ ],
+ "divergences": [
+  {
+   "what": "Tab bar pill activo: en el original la tab activa tiene un pill destacado con fondo #A9F5F8 (celeste claro) con borderRadius:14 — verificar que el RN aplique esto correctamente vs el original",
+   "original": "tabs.page.scss: tab activa con ion-tab-bar ion-tab-button[selected] { background: #A9F5F8; border-radius: 14px }. tab bar general: background #10BCCA, labels blancos",
+   "current": "AppTabs.tsx: pill activo implementado en CustomTabBar con backgroundColor: '#A9F5F8' para tab seleccionada — parece correcto en la captura. Verificar borderRadius:14 aplicado",
+   "severity": "baja",
+   "fix": "Verificar en AppTabs.tsx que el pill activo tenga borderRadius:14 exacto y paddingHorizontal:12 como en el original"
+  },
+  {
+   "what": "Header back button: usa flecha '←' (texto/emoji) vs IonBackButton SVG de Ionic del original",
+   "original": "ion-back-button SVG vectorial del framework Ionic — chevron izquierdo nítido 24px en blanco",
+   "current": "Header.tsx: texto '←' o flecha unicode — ligeramente diferente al chevron vectorial de Ionic en cuanto a grosor y forma",
+   "severity": "media",
+   "fix": "mobile/src/components/header/Header.tsx — usar <Ionicons name='chevron-back' size={24} color='#FFFFFF' /> del paquete @expo/vector-icons para replicar el back button de Ionic"
+  },
+  {
+   "what": "Logo en pantallas auth (splash redirect): RN muestra logo SVG sin fondo gris (#F5F5F5) en el contenedor — issue trasversale a todas las pantallas auth",
+   "original": "ion-thumbnail con background #F5F5F5 y border-radius:14px visible como cuadrado redondeado gris alrededor del logo",
+   "current": "Image del logo sin backgroundColor en el wrapper — el icono SVG flota sobre fondo blanco sin el badge de fondo",
+   "severity": "media",
+   "fix": "Añadir backgroundColor: '#F5F5F5' en styles.logo en LoginScreen.tsx y análogos"
+  },
+  {
+   "what": "SplashAnimationPage: animación Lottie no disponible en Expo Web — muestra imagen estática o pantalla rápida antes de redirect",
+   "original": "splash-animation.page.ts: animación Lottie splash con logo animado, duración ~2s antes de navegar a home",
+   "current": "SplashAnimationScreen.tsx en web: lottie-react-native no renderiza en Expo Web — la animación es una imagen estática o se omite completamente. El redirect al home ocurre en <100ms",
+   "severity": "baja",
+   "fix": "Aceptable — la animación splash es opcional en web. Para mejora: usar @lottiefiles/react-lottie-player como alternativa web en SplashAnimationScreen con Platform.OS === 'web' guard"
+  },
+  {
+   "what": "Header sin perfil en pantallas de detalle: en el original el header de MeasurementDetail, PersonalInfo etc tiene el botón de perfil (avatar) a la derecha — verificar si RN lo muestra correctamente",
+   "original": "header.component.html: siempre muestra el avatar/pill de semillas a la derecha cuando showProfile=true",
+   "current": "Header.tsx: showProfile prop controla la visibilidad — en las subpantallas de detalle puede que showProfile=false, perdiendo el pill de semillas en el header",
+   "severity": "baja",
+   "fix": "Verificar que las pantallas de detalle que en el original tenían el avatar (como MeasurementDetail) tengan showProfile={true} en su Header component"
+  }
+ ],
+ "verdict": "MEJORADO — Los fixes de tab bar (SVG icons clipboard/calendar) y campana/settings (SVG outline) resuelven los problemas más visibles de round 1. El tab bar ahora se ve esencialmente correcto. Quedan 5 divergencias residuales: 1 media (back button texto vs SVG chevron), 1 media (logo auth sin fondo gris), 3 bajas (pill borderRadius, splash animation, header showProfile en detalle). La estructura general del app-shell (tab bar colores, pill activo, headers) está bien implementada."
+}

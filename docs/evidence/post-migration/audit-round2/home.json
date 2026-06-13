@@ -1,0 +1,56 @@
+{
+ "feature": "home",
+ "round": 2,
+ "captured": ["screen-01-home-top.png", "screen-02-home-bottom.png", "screen-03-home-full-top.png", "screen-04-tab-bar.png", "screen-09-moon-card.png", "screen-10-header.png", "screen-11-gamification-progress.png", "screen-12-streak-calendar.png", "screen-13-home-state-zero-streak.png"],
+ "fixed_since_round1": [
+  "Tab bar iconos: Registrar ahora muestra clipboard-check SVG (corregido de add-circle Ionicons); Historial ahora muestra calendar SVG (corregido de bar-chart Ionicons)",
+  "MoonCard: imagen de fase lunar PNG ahora visible (cuarto menguante visible en screen-02 y screen-09)",
+  "Progreso: ahora muestra '0 de 3' en lugar de '0 de 1' (fix del fallback de ConfigContext)",
+  "Semillas pill: ahora muestra '0 🌰' emoji de semilla correcto"
+ ],
+ "divergences": [
+  {
+   "what": "Header pill de semillas: emoji 🌰 (nuez) vs imagen SVG semilla.svg (silueta de semilla café/tostada oval) del original. El original usa <ion-icon src='assets/images/icons/semilla.svg'> que es una silueta específica de semilla, no un emoji de nuez.",
+   "original": "header.component.html: <ion-icon src='assets/images/icons/semilla.svg'> — SVG custom de semilla, forma oval-café específica del diseño",
+   "current": "Header.tsx: emoji 🌰 (U+1F330 Chestnut/Castaña) — el glifo emoji es una nuez/castaña marrón, no el SVG semilla personalizado",
+   "severity": "media",
+   "fix": "mobile/src/components/header/Header.tsx — reemplazar el emoji 🌰 por <Image source={require('@/assets/images/icons/semilla.png')} style={{width:18, height:18}} /> usando el PNG extraído del SVG original"
+  },
+  {
+   "what": "Tab bar icono Historial muestra SVG de calendario pero ligeramente más pequeño/pixelado en web vs el SVG vectorial original de Ionic",
+   "original": "calendar.svg Ionic: icono SVG nítido a cualquier DPR, renderizado perfecto",
+   "current": "AppTabs.tsx: PNG/Image de calendar, puede mostrar aliasing en DPR alto — menor calidad visual pero forma correcta",
+   "severity": "baja",
+   "fix": "Usar require('.svg') directamente con react-native-svg-transformer en vez de PNG para preservar calidad vectorial"
+  },
+  {
+   "what": "Home background: fondo blanco puro (#FFFFFF) vs fondo gris muy claro del original",
+   "original": "global.scss y variables.scss: fondo de páginas tab usa --ion-background-color que es ligeramente gris (#F4F4F4 aprox. en Ionic default)",
+   "current": "HomeScreen.tsx: backgroundColor: '#FFFFFF' o default sin color — fondo blanco puro, más brillante que el original",
+   "severity": "baja",
+   "fix": "mobile/src/screens/home/HomeScreen.tsx — añadir backgroundColor: theme.colors.gray[50] = '#FAFAFA' en el contenedor raíz de la pantalla"
+  },
+  {
+   "what": "Pill de semillas en header: píldora muestra '0' sin espacio antes del emoji vs '0 🌰' bien espaciado en algunos states",
+   "original": "header.component.html: '0' + ion-icon semilla — separados en elementos distintos con gap visual",
+   "current": "Header.tsx: renderizado en un container flex-row pero el spacing puede variar",
+   "severity": "baja",
+   "fix": "Verificar marginLeft del Image de semilla en Header.tsx styles para asegurar gap de 4px"
+  },
+  {
+   "what": "Botón 'Ver historial →': posicionado diferente — en original es un botón teal completo dentro de la card; en RN es texto con flecha más compacto",
+   "original": "home.page.html: <ion-button> separado bajo el calendario semanal, color teal completo, width 100% de la card",
+   "current": "HomeScreen.tsx: texto link 'Ver historial →' con cursor=pointer — botón compacto sin el ancho completo del original",
+   "severity": "media",
+   "fix": "mobile/src/screens/home/HomeScreen.tsx — cambiar el View ver-historial-btn a un TouchableOpacity con backgroundColor:theme.colors.blue[700] padding:12 borderRadius:8 y texto blanco centrado"
+  },
+  {
+   "what": "Modal de semillas abierto automáticamente (bottom sheet visible en captura): en el original el modal se abre la primera vez que el usuario accede, pero no en cada visita",
+   "original": "home.page.ts: modal de semillas se muestra una vez al inicio de sesión basado en un flag",
+   "current": "HomeScreen.tsx: el modal bottom sheet de germinación aparece abierto en la captura screen-01 (muestra '← X' navigation visible en la parte superior del bottom sheet)",
+   "severity": "baja",
+   "fix": "Verificar lógica de flag de 'primer acceso' en HomeScreen.tsx para asegurar que el modal no se muestre en cada render"
+  }
+ ],
+ "verdict": "MEJORÓ SIGNIFICATIVAMENTE — Los 3 fixes más críticos de round 1 fueron aplicados: (1) iconos del tab bar ahora usan SVGs correctos (clipboard, calendar), (2) imagen luna PNG visible en MoonCard, (3) progreso '0 de 3' correcto. Quedan 6 divergencias residuales: 1 media (emoji 🌰 vs SVG semilla custom), 1 media (botón 'Ver historial' estilo compacto vs botón teal completo), 4 bajas (background, icon quality, spacing, modal auto-open). El home está visualmente mucho más cercano al original que en round 1."
+}

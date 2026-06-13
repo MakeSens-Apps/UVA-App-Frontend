@@ -1,10 +1,12 @@
 # Manifest — COSECHA Post-Migración (Ionic → React Native)
 
-Fecha: 2026-06-12  
-Agente: COSECHA post-migración + RE-VERIFICADOR (sesión extendida)  
+Fecha última actualización: 2026-06-13 (Ronda 2)
+Fecha primera cosecha: 2026-06-12 (Ronda 1)
+Agente Ronda 1: COSECHA post-migración + RE-VERIFICADOR (sesión extendida)
+Agente Ronda 2: RE-COSECHA+AUDIT (con infra arreglada — s3.web.ts, file-system.web.ts, Areachart.web.tsx)
 App RN: Expo 56, puerto 8090 (`npx expo start --web --port 8090 --no-dev --clear`)  
-Usuario prueba: 3000000002 (auto-confirmado, sin OTP, 68 registros Mayo 2026)  
-Viewport: Samsung Galaxy S8 — 360×740 CSS px, dpr 3  
+Usuario prueba: 3000000002 (auto-confirmado, sin OTP, 10000 registros históricos en IndexedDB)  
+Viewport: Samsung Galaxy S8 — 360×740 CSS px, dpr 1 (Expo Web)  
 
 ---
 
@@ -19,15 +21,54 @@ Viewport: Samsung Galaxy S8 — 360×740 CSS px, dpr 3
 
 ---
 
-## Resumen por feature
+## Resumen por feature — Ronda 2 (post-infra-fix)
 
-| Feature | Orig. capturas | Post-migración capturas | Veredictos (OK/MEJORÓ/SIN CAMBIO) |
+| Feature | Ronda 1 capturas | Ronda 2 capturas | Divergencias residuales (alta/media/baja) | Veredicto Ronda 2 |
+|---|---|---|---|---|
+| auth-login | 8 | 6 | 1a / 5m / 2b | MEJORÓ-FALTA |
+| register | 10 | 10 | 3a / 3m / 1b | MEJORÓ-FALTA |
+| home | 16 | 9 | 0a / 2m / 4b | MEJORÓ SIGNIFICATIVAMENTE |
+| measurement | 2 | 5 | 0a / 5m / 3b | MEJORADO (infra desbloqueada) |
+| historical | 29 | 17 | 1a / 2m / 2b | MEJORADO (chart visible) |
+| moon-phase | 8 | 5 | 2a / 2m / 0b | MEJORÓ-FALTA |
+| profile | 15 | 15 | 0a / 5m / 1b | MEJORADO SIGNIFICATIVAMENTE |
+| gamification-alerts | 21 | 21 | 0a / 3m / 2b | MEJORADO |
+| app-shell | 14 | 14 | 0a / 2m / 3b | MEJORADO |
+
+**Resumen total ronda 2**: 7 altas / 29 medias / 18 bajas divergencias residuales (vs 47 altas / 38 medias / 18 bajas en ronda 1)
+
+---
+
+## Fixes aplicados entre Ronda 1 y Ronda 2
+
+| Fix | Archivos modificados | Feature impactado |
+|---|---|---|
+| s3.web.ts — web shim para getUrl()+fetch()+FileReader | mobile/src/data/storage/s3.web.ts | measurement, historical |
+| file-system.web.ts — getFileUri() retorna data:URL | mobile/src/data/storage/file-system.web.ts | measurement, historical |
+| Areachart.web.tsx — SVG puro sin Skia para web | mobile/src/components/areachart/Areachart.web.tsx | historical |
+| updateChartData() typeof guard para JSON.parse | mobile/src/screens/historical/HistoricalScreen.tsx | historical |
+| Tab bar icons: clipboard-check + calendar SVGs | mobile/src/navigation/AppTabs.tsx | home, measurement, app-shell |
+| Campana: emoji → Ionicons notifications-outline | mobile/src/screens/profile/ProfileScreen.tsx | profile, gamification-alerts |
+| Settings icon: emoji ⚙️ → Ionicons settings-outline | mobile/src/screens/profile/AlertsScreen.tsx | profile |
+| Profile back button eliminado (tab raíz) | mobile/src/screens/profile/ProfileScreen.tsx | profile, app-shell |
+| Achievement ImageBackground back.png restaurado | mobile/src/screens/profile/AchievementScreen.tsx | profile, gamification-alerts |
+| Moon calendar PNG icons fix (Calendar.tsx + Day.tsx) | mobile/src/components/calendar/ | moon-phase |
+| EclipsesIcon pointerEvents:none (MoonCard) | mobile/src/components/moon-card/MoonCard.tsx | moon-phase, home |
+| ConfigContext fallback count fix (0 vs 1) | mobile/src/screens/measurement/MeasurementScreen.tsx | measurement, home |
+
+---
+
+## Divergencias residuales prioritarias (Alta severidad)
+
+| # | Feature | Divergencia | Fix recomendado |
 |---|---|---|---|
-| auth-login | 12 | 8 | 3 PIXEL OK / 5 MEJORÓ-FALTA / 0 SIN CAMBIO |
-| register | 23 | 10 | 4 PIXEL OK / 6 MEJORÓ-FALTA / 0 SIN CAMBIO |
-| home | 17 | 16 | 5 PIXEL OK / 11 MEJORÓ-FALTA / 0 SIN CAMBIO |
-| measurement | 23 | 2 | 1 PIXEL OK / 1 MEJORÓ-FALTA / 0 SIN CAMBIO |
-| historical | 30 | 29 | 8 PIXEL OK / 19 MEJORÓ-FALTA / 2 SIN CAMBIO |
+| 1 | historical | Gráfica de área sin ejes Y/X, sin etiquetas, sin grid | Añadir ejes SVG manuales en Areachart.web.tsx |
+| 2 | auth-login | OTP border inferior teal vs gris oscuro #525252 | borderColor: gray[600] en OtpScreen.tsx |
+| 3 | moon-phase | Íconos PNG fotorrealistas vs SVG simbólicos del original | Recrear SVG simbólicos de fase lunar |
+| 4 | moon-phase | Calendario lunar sin fondo teal (#1A6270) | styles.containerMoon en Calendar.tsx |
+| 5 | register | Tarjetas auth fondo blanco opaco vs semi-transparente | LinearGradient 'rgba(255,255,255,0.3)' en cards |
+| 6 | register | Título PreRegister diferente al original | Cambiar a 'Hola 👋 es un gusto tenerte aquí!' |
+| 7 | register | Card semi-transparente sobre gradiente | LinearGradient en PreRegisterScreen, RegisterScreen, SetPhoneRegisterScreen |
 | moon-phase | 11 | 8 | 2 PIXEL OK / 6 MEJORÓ-FALTA / 0 SIN CAMBIO |
 | profile | 27 | 15 | 5 PIXEL OK / 10 MEJORÓ-FALTA / 0 SIN CAMBIO |
 | gamification-alerts | 29 | 21 | 8 PIXEL OK / 13 MEJORÓ-FALTA / 0 SIN CAMBIO |

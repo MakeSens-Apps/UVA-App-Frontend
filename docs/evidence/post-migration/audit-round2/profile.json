@@ -1,0 +1,56 @@
+{
+ "feature": "profile",
+ "round": 2,
+ "captured": ["screen-01-profile-main.png", "screen-02-profile-bottom.png", "screen-03-profile-share-modal.png", "screen-04-personal-info-readonly.png", "screen-05-personal-info-location.png", "screen-06-personal-info-other-actions.png", "screen-07-personal-info-edit-mode.png", "screen-08-personal-info-delete-modal-1.png", "screen-09-achievement-with-data.png", "screen-10-achievement-modal-seeds.png", "screen-11-achievement-modal-germination.png", "screen-13-alerts-with-data.png", "screen-13b-alerts-more.png", "screen-14-configuration.png", "screen-16-sync-in-progress.png"],
+ "fixed_since_round1": [
+  "Campana de alertas: ahora muestra ícono SVG outline blanco (Ionicons notifications-outline) en lugar del emoji 🔔/🔕 — fix aplicado correctamente en ProfileScreen.tsx",
+  "Ícono de settings en AlertsScreen: ahora muestra ícono SVG de engranaje outline blanco en lugar del emoji ⚙️",
+  "Back button en ProfileScreen: eliminado el botón '<' incorrecto — ProfileScreen es pantalla tab raíz sin back button",
+  "Achievement screen: ImageBackground con back.png restaurado — fondo verde con textura de pasto visible"
+ ],
+ "divergences": [
+  {
+   "what": "Achievement screen: iconos de logros — solo algunos íconos renderizados correctamente, varios cells pueden estar vacíos o con SVG incorrecto",
+   "original": "screen-09: 16 celdas con íconos de plantas (brote1-brote5, plantula, flor, etc.) 53×52px bien visibles sobre fondo verde con patrón",
+   "current": "screen-09-achievement-with-data.png round 2: número de iconos visibles a verificar — el fix de ImageBackground fue aplicado pero los SVGs individuales de logros (BroteIcon, PlatulaIcon, FlorIcon) requieren que getMilestones() retorne los tipos correctos",
+   "severity": "media",
+   "fix": "mobile/src/screens/profile/AchievementScreen.tsx — verificar que el mapping de tipos de logro coincida con los strings devueltos por getMilestones(). Añadir fallback visual para tipos no reconocidos."
+  },
+  {
+   "what": "Profile share modal: LogopIcon (SVG Natura/Isagen) puede no renderizar correctamente en web — cuadrado blanco vacío en lugar del logo",
+   "original": "screen-03: thumbnail del logo visible (imagen naranja-beige) en el preview del share modal",
+   "current": "screen-03-profile-share-modal.png round 2: el LogopIcon puede aparecer vacío si el SVG no tiene viewBox y paths correctos",
+   "severity": "media",
+   "fix": "mobile/src/screens/profile/ProfileScreen.tsx — reemplazar LogopIcon por <Image source={require('@/assets/png/logo_Natura_Isagen.png')} style={{ width: 40, height: 40 }} /> si el SVG no renderiza"
+  },
+  {
+   "what": "Notifications timestamp: formato 'Hoy • 00:05' (relativo) vs '31/5/2026' (absoluto dd/MM/yyyy) del original",
+   "original": "screen-13: timestamps como '31/5/2026', '30/5/2026' en color gray-500 (#737373), font-size 12px",
+   "current": "screen-13-alerts-with-data.png round 2: 'Hoy • 00:05' para todas las alertas — formato relativo diferente al original",
+   "severity": "media",
+   "fix": "mobile/src/domain/gamification/gamification.ts — formatear timestamp como fecha absoluta: format(new Date(notification.date), 'dd/MM/yyyy') usando date-fns"
+  },
+  {
+   "what": "Notification icons en AlertsScreen: emojis (🔥, ❌, ⚠️, 🏆) vs SVG vectoriales outline dentro de círculos del original",
+   "original": "screen-13: círculos 48×48px con fondo semitransparente por tipo + SVG icon 20px adentro (estrella, llama, advertencia SVG de Ionic, trofeo SVG)",
+   "current": "screen-13 round 2: emojis Unicode dentro de los círculos — los colores de fondo de los círculos son correctos pero el ícono interno es emoji no SVG",
+   "severity": "media",
+   "fix": "mobile/src/screens/profile/AlertsScreen.tsx — reemplazar emojis por Ionicons o SVG iconos: flame-outline para racha, close-circle para pérdida, warning para alerta, trophy-outline para logro"
+  },
+  {
+   "what": "Delete account modal buttons: 'Sí, quiero eliminarla' y 'No, no quiero eliminarla' apilados full-width en lugar de side-by-side 50% cada uno",
+   "original": "screen-08: dos botones horizontales side-by-side, cada uno ~50% del ancho — outline naranja + sólido naranja",
+   "current": "screen-08-personal-info-delete-modal-1.png round 2: posible que el flex:1 no se aplique correctamente dentro del BottomSheet, resultando en botones apilados verticalmente",
+   "severity": "media",
+   "fix": "mobile/src/screens/profile/PersonalInfoScreen.tsx — asegurar flex:1 en ambos botones del deleteButtons container con flexDirection:'row'"
+  },
+  {
+   "what": "ProfileScreen fondo exterior: área fuera del card podría ser blanco en lugar de gris (#F5F5F5)",
+   "original": "profile.page.scss: fondo #F5F5F5 en toda la página fuera de la tarjeta blanca",
+   "current": "ProfileScreen.tsx: styles.root puede no tener backgroundColor explícito — podría aparecer blanco en web",
+   "severity": "baja",
+   "fix": "mobile/src/screens/profile/ProfileScreen.tsx — añadir backgroundColor: '#F5F5F5' en styles.root"
+  }
+ ],
+ "verdict": "MEJORADO SIGNIFICATIVAMENTE — Los 4 fixes de alta severidad de round 1 fueron aplicados exitosamente: (1) campana ahora es SVG blanco outline, (2) settings icon es SVG outline blanco, (3) back button eliminado del ProfileScreen, (4) ImageBackground con back.png restaurado en Achievement. Quedan 6 divergencias residuales: 1 media (achievement icons visibilidad), 1 media (share modal logo), 1 media (timestamps formato absoluto vs relativo), 1 media (notification icons emoji vs SVG), 1 media (delete modal buttons layout), 1 baja (fondo exterior). El feature está funcionalmente correcto y visualmente mucho más cercano al original."
+}

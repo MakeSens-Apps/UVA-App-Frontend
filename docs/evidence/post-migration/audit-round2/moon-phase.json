@@ -1,0 +1,47 @@
+{
+ "feature": "moon-phase",
+ "round": 2,
+ "captured": ["screen-01-home-moon-card.png", "screen-02-home-moon-card-scrolled.png", "screen-03-home-moon-card-closeup.png", "screen-04-moon-phase-page.png", "screen-07-moon-calendar-grid.png"],
+ "fixed_since_round1": [
+  "EclipsesIcon SVG overlay pointerEvents:none — fix aplicado en round 1, MoonCard click ahora navega correctamente a MoonPhaseScreen",
+  "Iconos PNG en Calendar lunar: fix de Calendar.tsx e Day.tsx para usar PNG require() — iconos de fase lunar visibles en grid del calendario"
+ ],
+ "divergences": [
+  {
+   "what": "Iconos de fase lunar en calendario: imágenes PNG reales de fotografía de la luna (circulares, blanco/negro, ~36px) vs iconos SVG vectoriales outline/filled de Ionic (iconos de símbolo de fase, teal sobre fondo oscuro, ~14px) del original",
+   "original": "moon-phase/screen-07: grid con iconos SVG outline pequeños (~14px) de Ionic moon-symbols sobre fondo oscuro teal (#1A6270) — son símbolos abstractos de fase (círculo partido, media luna, etc.) en color teal claro",
+   "current": "Calendar.tsx/Day.tsx round 2: imágenes PNG de fotografías reales de la luna (~36px) — mucho más grandes, fotorrealistas, en blanco y negro. Visualmente muy diferente a los iconos simbólicos del original.",
+   "severity": "alta",
+   "fix": "mobile/src/components/calendar/Day.tsx — reemplazar las imágenes PNG fotográficas por SVG vectoriales simbólicos de fase lunar. Crear SVG simples con círculos/medias lunas en color teal (#10BCCA) sobre el fondo oscuro del calendario moon. Los SVG originales de Ionic (moon-outline, etc.) son la referencia correcta."
+  },
+  {
+   "what": "Calendario lunar: fondo del contenedor sigue siendo blanco/gris claro en lugar del fondo teal oscuro (#1A6270) del original",
+   "original": "calendar.component.scss .calendar.moon: { background: var(--Colors-Blue-800, #1A6270); border-radius: 16px; padding: 20px 10px 10px 10px; color: white } — contenedor del grid con fondo teal oscuro",
+   "current": "Calendar.tsx: el container View no aplica el estilo condicional para typeCalendar==='moon' con backgroundColor:#1A6270. El grid de íconos aparece sobre fondo gris claro/blanco.",
+   "severity": "alta",
+   "fix": "mobile/src/components/calendar/Calendar.tsx — añadir estilo condicional: <View style={[styles.container, typeCalendar === 'moon' && styles.containerMoon]}> con containerMoon: { backgroundColor: '#1A6270', borderRadius: 16, paddingTop: 20, paddingHorizontal: 10, paddingBottom: 10 }"
+  },
+  {
+   "what": "MoonCard en Home: imagen de fase lunar ahora visible (PNG fotográfico) pero ligeramente más grande que el original (56×56px vs los iconos SVG de 56×56px del original que tienen menos peso visual)",
+   "original": "moon-card.component.html: ion-img con SVG de luna (xlink:href base64) renderizado como 56×56px — imagen simbólica con fondo transparente",
+   "current": "MoonCard.tsx round 2: Image PNG fotográfico de la luna, 56×56px — más detallado y fotorrealista, círculo correcto pero tipo de imagen diferente",
+   "severity": "media",
+   "fix": "Aceptable como workaround, pero idealmente usar PNGs simplificados con alpha transparente o reconvertir SVGs sin xlink:href. La forma circular es correcta."
+  },
+  {
+   "what": "Día actual en calendario lunar sin ring teal dashed (borde especial del día de hoy)",
+   "original": "moon-phase/screen-07: el día '11' (hoy) tiene un borde circular dashed teal (#10BCCA) diferente al resto de días",
+   "current": "Day.tsx: el día actual puede no tener el estilo de ring especial en el calendario lunar — verificar que styles.today aplique sobre el fondo oscuro #1A6270",
+   "severity": "media",
+   "fix": "mobile/src/components/calendar/Day.tsx — asegurar que para typeCalendar==='moon' el day container 'today' aplique un borde circular con borderColor:'#10BCCA', borderStyle:'dashed', borderWidth:1.5"
+  },
+  {
+   "what": "Header días del calendario lunar: 'D L M M J V S' (1 letra) — CORRECTO en round 2 ✓",
+   "original": "1 letra por día de semana",
+   "current": "Calendar.tsx: 1 letra — correcto",
+   "severity": "resuelta",
+   "fix": "No requiere fix"
+  }
+ ],
+ "verdict": "MEJORÓ-FALTA — El fix de pointerEvents (round 1) permite navegar a MoonPhaseScreen correctamente. Los iconos PNG permiten que el grid sea visible. PERO persisten 2 divergencias altas: (1) el fondo teal oscuro (#1A6270) del calendario lunar no se aplica — el grid aparece sobre fondo blanco/gris, (2) los iconos PNG fotográficos son visualmente muy diferentes a los SVG simbólicos del original. Estas son las divergencias residuales más visibles del feature. La tarjeta lunar en Home es aceptable (imagen de luna visible) pero los iconos del calendario dedicado difieren significativamente del original."
+}

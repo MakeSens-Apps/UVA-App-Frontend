@@ -1,0 +1,69 @@
+{
+ "feature": "auth-login",
+ "round": 2,
+ "captured": ["screen-00-splash.png", "screen-01-login-vacio.png", "screen-02-login-telefono-corto.png", "screen-03-login-telefono-valido.png", "screen-04-modal-confirmar-telefono.png", "screen-05-vinculando-proyecto.png"],
+ "not_capturable": ["screen-06-otp-vacio.png (AuthStack inaccesible con sesión activa)", "screen-07 to screen-11 (AuthStack inaccesible)"],
+ "fixed_since_round1": [
+  "screen-00: ahora capturado correctamente desde sesión activa (home visible en splash/redirect)",
+  "screen-05: 'Vinculando al proyecto' ahora navega correctamente a ValidateProjectScreen con spinner y texto correcto"
+ ],
+ "divergences": [
+  {
+   "what": "Logo en LoginScreen sin fondo gris (backgroundColor faltante en contenedor de logo)",
+   "original": "ion-thumbnail aplica fondo #F5F5F5 con border-radius:14px — círculo redondeado gris claro visible alrededor del icono SVG",
+   "current": "Image con width:70 height:70 borderRadius:14 pero sin backgroundColor — el icono SVG flota sobre fondo blanco de tarjeta sin badge de fondo",
+   "severity": "media",
+   "fix": "mobile/src/screens/auth/LoginScreen.tsx — en styles.logo añadir backgroundColor: '#F5F5F5'. Mismo fix en OtpScreen.tsx, ProjectVinculationScreen.tsx, RegisterSuccessScreen.tsx"
+  },
+  {
+   "what": "Botón 'Continuar' deshabilitado: azul-teal semitransparente vs gris neutro del original",
+   "original": "Ionic disabled button muestra fondo rgba(var(--ion-color-uva_green-700-rgb), 0.12) = gris-azulado apagado muy claro (#B5C8CB aprox.)",
+   "current": "backgroundColor: theme.colors.blue[700] con opacity:0.4 = #14788A al 40% — tono azul-teal saturado visible, perceptiblemente diferente al gris neutro",
+   "severity": "media",
+   "fix": "mobile/src/screens/auth/LoginScreen.tsx — cambiar a backgroundColor: isValid ? theme.colors.blue[700] : theme.colors.gray[300] con opacity:1 siempre"
+  },
+  {
+   "what": "Modal de confirmación: capitalización 'No, editar' / 'Sí, continuar' (minúsculas) vs 'No, Editar' / 'Sí, Continuar' (capitalize del original)",
+   "original": "alert.component.scss:17-18: ion-button { text-transform: capitalize } → 'No, Editar' / 'Sí, Continuar'",
+   "current": "LoginScreen.tsx: textCancelButton: 'No, editar', textOkButton: 'Sí, continuar' — strings en minúsculas sin text-transform en ConfirmModal",
+   "severity": "media",
+   "fix": "mobile/src/screens/auth/LoginScreen.tsx — cambiar strings a 'No, Editar' y 'Sí, Continuar'. O añadir textTransform:'capitalize' en ConfirmModal.tsx styles.buttonText"
+  },
+  {
+   "what": "OTP: borde inferior de inputs usa blue[500] (#10BCCA teal) vs gris oscuro #525252 del original en estado normal",
+   "original": "otp.page.scss:12: border-bottom: 2px solid var(--Colors-Gray-600) = #525252 en estado vacío/normal",
+   "current": "OtpScreen.tsx: borderColor: showError ? theme.colors.danger : theme.colors.blue[500] — teal brillante en estado normal, completamente distinto",
+   "severity": "alta",
+   "fix": "mobile/src/screens/auth/OtpScreen.tsx — cambiar: borderColor: showError ? theme.colors.danger : theme.colors.gray[600]"
+  },
+  {
+   "what": "OTP: font-size de dígitos es 22px vs 26px del original",
+   "original": "otp.page.scss:14: font-size: 26px !important",
+   "current": "OtpScreen.tsx styles.otpInput: fontSize: 22",
+   "severity": "media",
+   "fix": "mobile/src/screens/auth/OtpScreen.tsx — cambiar fontSize: 22 a fontSize: 26 en styles.otpInput"
+  },
+  {
+   "what": "OTP: texto de instrucción incompleto — falta 'de 6 dígitos', 'por mensaje de texto' y los dos puntos antes del número",
+   "original": "'Ingresa el código de 6 dígitos que enviamos por mensaje de texto al número: 3000000002'",
+   "current": "OtpScreen.tsx: 'Ingresa el código que enviamos al número {phone}' — menos descriptivo, diferente literalmente",
+   "severity": "media",
+   "fix": "mobile/src/screens/auth/OtpScreen.tsx — cambiar texto a: 'Ingresa el código de 6 dígitos que enviamos por mensaje de texto al número: {phone}'"
+  },
+  {
+   "what": "Padding de tarjeta auth: RN usa padding:24 vs 18px (~5vw en 360px) del original, haciendo la tarjeta más estrecha (312px vs 324px)",
+   "original": "global.scss:74: .container_explore { padding: 5vw } ≈ 18px en 360px de ancho",
+   "current": "LoginScreen.tsx styles.gradient: padding: 24 (24px fijos) — 6px más de cada lado que el original",
+   "severity": "baja",
+   "fix": "mobile/src/screens/auth/LoginScreen.tsx — cambiar padding: 24 a padding: 18 en styles.gradient"
+  },
+  {
+   "what": "Modal de confirmación posicionado en centro exacto vs zona inferior del original",
+   "original": "Ionic: ion-modal aparece en zona central-inferior con slide-up animation, backdrop barely oscurece",
+   "current": "ConfirmModal.tsx: justifyContent:'center' — perfectamente centrado, animationType='fade', backdrop rgba(0,0,0,0.25) más oscuro",
+   "severity": "baja",
+   "fix": "mobile/src/components/ui/ConfirmModal.tsx — cambiar justifyContent:'center' a justifyContent:'flex-end' con paddingBottom:40 en styles.backdrop"
+  }
+ ],
+ "verdict": "MEJORÓ-FALTA — El fix de screen-00 y screen-05 fue exitoso (ambos ahora capturan los estados correctos). Las pantallas OTP (screens 06-11) siguen siendo NO CAPTURABLES por AuthStack inaccesible con sesión activa. Quedan 8 divergencias residuales: 1 alta (OTP border color), 3 medias perceptibles (logo sin fondo, botón deshabilitado, capitalización modal, OTP font-size, texto OTP), 2 bajas (padding tarjeta, posición modal). Las divergencias OTP no son validables en web — requieren flujo no autenticado."
+}
