@@ -410,10 +410,16 @@ export function HistoricalScreen(): React.JSX.Element {
           currentYearIndex,
           currentMonthIndex,
         );
-        // Parse JSON-string `data` field from Amplify DataStore model → Record<string, number>
+        // Parse JSON-string `data` field from Amplify DataStore model → Record<string, number>.
+        // On web, the IndexedDB driver may already deserialize the field into an object,
+        // so guard against double-parsing ("object is not valid JSON").
         const rawMeasurements = rawMeasurementsRaw.map((m) => ({
           ts: m.ts,
-          data: m.data ? (JSON.parse(m.data) as Record<string, number>) : null,
+          data: m.data
+            ? typeof m.data === 'string'
+              ? (JSON.parse(m.data) as Record<string, number>)
+              : (m.data as unknown as Record<string, number>)
+            : null,
         }));
         const chartData = buildChartData(
           measurement,
