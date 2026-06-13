@@ -142,8 +142,9 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
   },
   doneGif: {
-    width: 120,
-    height: 120,
+    // Original screen-10: icon occupies ≈80px visually in the card
+    width: 80,
+    height: 80,
   },
   title: {
     fontSize: 20,

@@ -346,9 +346,9 @@ describe('LoginScreen — post-signIn branching', () => {
       fireEvent.press(getByTestId('submit-button'));
     });
 
-    // Press OK in the confirm modal (button text: "Sí, continuar")
+    // Press OK in the confirm modal (button text: "Sí, Continuar")
     await act(async () => {
-      fireEvent.press(getByText('Sí, continuar'));
+      fireEvent.press(getByText('Sí, Continuar'));
     });
 
     await waitFor(() => {
@@ -380,7 +380,7 @@ describe('LoginScreen — post-signIn branching', () => {
     });
 
     await act(async () => {
-      fireEvent.press(getByText('Sí, continuar'));
+      fireEvent.press(getByText('Sí, Continuar'));
     });
 
     await waitFor(() => {
@@ -409,9 +409,9 @@ describe('LoginScreen — post-signIn branching', () => {
       fireEvent.press(getByTestId('submit-button'));
     });
 
-    // Confirm first modal (press "Sí, continuar")
+    // Confirm first modal (press "Sí, Continuar")
     await act(async () => {
-      fireEvent.press(getByText('Sí, continuar'));
+      fireEvent.press(getByText('Sí, Continuar'));
     });
 
     // Second modal (register modal) should appear with "no se encuentra registrado"
@@ -442,7 +442,7 @@ describe('LoginScreen — post-signIn branching', () => {
 
     // Confirm first modal
     await act(async () => {
-      fireEvent.press(getByText('Sí, continuar'));
+      fireEvent.press(getByText('Sí, Continuar'));
     });
 
     // Register modal appears — confirm with "Sí, registrame"
@@ -474,9 +474,9 @@ describe('LoginScreen — post-signIn branching', () => {
       fireEvent.press(getByTestId('submit-button'));
     });
 
-    // Press CANCEL ("No, editar")
+    // Press CANCEL ("No, Editar")
     await act(async () => {
-      fireEvent.press(getByText('No, editar'));
+      fireEvent.press(getByText('No, Editar'));
     });
 
     await waitFor(() => {

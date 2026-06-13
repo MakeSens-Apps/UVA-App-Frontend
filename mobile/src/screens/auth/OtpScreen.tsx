@@ -259,7 +259,7 @@ export function OtpScreen({ route, navigation }: Props): React.JSX.Element {
               },
             ]}
           >
-            Ingresa el código que enviamos al número{' '}
+            Ingresa el código de 6 dígitos que enviamos por mensaje de texto al número:{' '}
             <Text style={{ fontFamily: fontFamilyForWeight('700') }}>{phone}</Text>
           </Text>
 
@@ -274,9 +274,10 @@ export function OtpScreen({ route, navigation }: Props): React.JSX.Element {
                 style={[
                   styles.otpInput,
                   {
+                    // otp.page.scss:12: border-bottom: 2px solid var(--Colors-Gray-600) = #525252
                     borderColor: showError
                       ? theme.colors.danger
-                      : theme.colors.blue[500],
+                      : theme.colors.gray[600],
                     color: theme.colors.gray[800],
                     fontFamily: fontFamilyForWeight('700'),
                   },
@@ -408,9 +409,11 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
   },
   logo: {
+    // ion-thumbnail: 70x70, --border-radius:14px, bg:#F5F5F5 (global.scss:195-199)
     width: 70,
     height: 70,
     borderRadius: 14,
+    backgroundColor: '#F5F5F5',
   },
   title: {
     fontSize: 20,
@@ -428,15 +431,16 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   otpInput: {
-    // Underline-style input (borde inferior) — evidence README
-    width: 42,
+    // Underline-style input (borde inferior) — otp.page.scss:9-18
+    // width:40px (otp.page.scss:17), font-size:26px (otp.page.scss:14)
+    width: 40,
     height: 52,
     borderBottomWidth: 2,
     borderTopWidth: 0,
     borderLeftWidth: 0,
     borderRightWidth: 0,
     textAlign: 'center',
-    fontSize: 22,
+    fontSize: 26,
   },
   errorCard: {
     width: '100%',
