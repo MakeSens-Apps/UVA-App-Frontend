@@ -34,6 +34,15 @@ import { fileSystemService, Directory } from '@/data/storage/file-system';
 import { s3Service } from '@/data/storage/s3';
 import { sessionService } from '@/data/session/session';
 
+// ─── Platform detection ──────────────────────────────────────────────────────
+// On web (Expo web / react-native-web) the file-system shim uses localStorage.
+// For returning users who bypass the registration flow, localStorage never gets
+// populated because downLoadData() is only called in ValidateProjectScreen.
+// Evaluated at call-time so that tests can control globalThis.document.
+function isWebPlatform(): boolean {
+  return typeof document !== 'undefined';
+}
+
 // ─── Constants (preserved from original) ────────────────────────────────────
 
 const BASE_PATH = 'public/racimos';
@@ -129,6 +138,10 @@ export function ConfigProvider({ children }: ConfigProviderProps): React.JSX.Ele
   const configMeasurementCache = useRef<MeasurementModel | null>(null);
   const configColorsCache = useRef<ColorsModel | null>(null);
 
+  // Web-only: tracks whether a lazy S3 download has been attempted in this session.
+  // Prevents repeated download attempts (once per mount is enough).
+  const downloadAttemptedRef = useRef(false);
+
   // ─── downLoadData ─────────────────────────────────────────────────────────
 
   const downLoadData = useCallback(async (): Promise<boolean> => {
@@ -192,7 +205,32 @@ export function ConfigProvider({ children }: ConfigProviderProps): React.JSX.Ele
     if (!pathRacimo) return null;
 
     const path = `${pathRacimo}/config.json`;
-    const response = await fileSystemService.readFile(path, Directory.Data);
+    let response = await fileSystemService.readFile(path, Directory.Data);
+
+    // Web lazy-download fallback: on web the file-system shim uses localStorage.
+    // Returning users skip ValidateProjectScreen (which calls downLoadData), so
+    // localStorage has no config. Attempt a one-time S3 download if the file is missing.
+    if (!response.success && isWebPlatform() && !downloadAttemptedRef.current) {
+      downloadAttemptedRef.current = true;
+      const listFiles = await s3Service.listFiles(pathRacimo);
+      if (listFiles.success) {
+        for (const item of listFiles.data) {
+          const file = await s3Service.getFile(item.path);
+          if (file.success) {
+            const content =
+              file.data.type === 'JSON' || file.data.type === 'TXT'
+                ? typeof file.data.content === 'object'
+                  ? JSON.stringify(file.data.content)
+                  : (file.data.content as string)
+                : (file.data.content as string);
+            const isBase64 = file.data.type === 'BASE64';
+            await fileSystemService.writeFile(item.path, content, Directory.Data, isBase64);
+          }
+        }
+        // Retry after download
+        response = await fileSystemService.readFile(path, Directory.Data);
+      }
+    }
 
     if (response.success) {
       try {
@@ -222,7 +260,32 @@ export function ConfigProvider({ children }: ConfigProviderProps): React.JSX.Ele
       if (!pathRacimo) return null;
 
       const path = `${pathRacimo}/measurementRegistration/measurementsRegistration.json`;
-      const response = await fileSystemService.readFile(path, Directory.Data);
+      let response = await fileSystemService.readFile(path, Directory.Data);
+
+      // Web lazy-download fallback: if the measurement config is not in localStorage,
+      // and we haven't attempted a download yet in this session, trigger downLoadData.
+      // This handles returning users who bypass ValidateProjectScreen.
+      if (!response.success && isWebPlatform() && !downloadAttemptedRef.current) {
+        downloadAttemptedRef.current = true;
+        const listFiles = await s3Service.listFiles(pathRacimo);
+        if (listFiles.success) {
+          for (const item of listFiles.data) {
+            const file = await s3Service.getFile(item.path);
+            if (file.success) {
+              const content =
+                file.data.type === 'JSON' || file.data.type === 'TXT'
+                  ? typeof file.data.content === 'object'
+                    ? JSON.stringify(file.data.content)
+                    : (file.data.content as string)
+                  : (file.data.content as string);
+              const isBase64 = file.data.type === 'BASE64';
+              await fileSystemService.writeFile(item.path, content, Directory.Data, isBase64);
+            }
+          }
+          // Retry after download
+          response = await fileSystemService.readFile(path, Directory.Data);
+        }
+      }
 
       if (response.success) {
         try {
@@ -325,6 +388,9 @@ export function ConfigProvider({ children }: ConfigProviderProps): React.JSX.Ele
     configAppCache.current = null;
     configMeasurementCache.current = null;
     configColorsCache.current = null;
+    // Reset the web lazy-download flag so a fresh download is attempted after
+    // logout / RACIMO change.
+    downloadAttemptedRef.current = false;
     setConfigApp(null);
     setConfigMeasurement(null);
     setConfigColors(null);

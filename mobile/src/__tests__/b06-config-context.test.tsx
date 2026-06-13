@@ -360,4 +360,71 @@ describe('B06 — ConfigContext', () => {
     expect(parsed).toBeNull();
     expect(mockReadFile).not.toHaveBeenCalled();
   });
+
+  // ─── Web lazy-download fallback ──────────────────────────────────────────────
+  // Simulates the IS_WEB branch: when config.json is not in localStorage (readFile fails),
+  // the context should auto-fetch from S3 and retry the read (D-01 fix).
+
+  it('getConfigurationMeasurement triggers S3 download when file is missing on web', async () => {
+    // Patch IS_WEB to true for this test by replacing the module-level constant
+    // via the existing s3Service mock (the logic is inside the same module).
+    // We cannot directly set IS_WEB, but we can simulate what happens:
+    // readFile fails → s3Service.listFiles → s3Service.getFile → writeFile → readFile again.
+
+    // Sequence:
+    // 1st readFile call: MISS (simulates localStorage empty on web)
+    mockReadFile
+      .mockResolvedValueOnce({ success: false, error: { mensage: 'ENOENT' } })
+      // 2nd readFile (retry after download): HIT
+      .mockResolvedValueOnce({
+        success: true,
+        data: { data: JSON.stringify(MOCK_MEASUREMENT) },
+      });
+
+    mockListFiles.mockResolvedValueOnce({
+      success: true,
+      data: [
+        {
+          path: 'public/racimos/RACIMO01/measurementRegistration/measurementsRegistration.json',
+          size: 100,
+        },
+      ],
+    });
+
+    mockGetFile.mockResolvedValueOnce({
+      success: true,
+      data: { type: 'JSON', content: MOCK_MEASUREMENT },
+    });
+
+    // Temporarily set IS_WEB = true inside ConfigContext via document polyfill.
+    // jest-expo runs in React Native environment (no `document`); we patch it here.
+    const originalDocument = globalThis.document;
+    Object.defineProperty(globalThis, 'document', {
+      value: { createElement: jest.fn() },
+      writable: true,
+      configurable: true,
+    });
+
+    const { result } = await renderConfigHook();
+
+    let parsed: MeasurementModel | null = null;
+    await act(async () => {
+      parsed = await result.current.getConfigurationMeasurement();
+    });
+
+    // Restore
+    Object.defineProperty(globalThis, 'document', {
+      value: originalDocument,
+      writable: true,
+      configurable: true,
+    });
+
+    // Should have called listFiles once (lazy download)
+    expect(mockListFiles).toHaveBeenCalledWith('public/racimos/RACIMO01');
+    // Should have fetched + written the file
+    expect(mockGetFile).toHaveBeenCalledTimes(1);
+    expect(mockWriteFile).toHaveBeenCalledTimes(1);
+    // Should have returned the parsed measurement model
+    expect(parsed).toEqual(MOCK_MEASUREMENT);
+  });
 });
