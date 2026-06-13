@@ -43,6 +43,7 @@ import { View, StyleSheet, useWindowDimensions, Platform } from 'react-native';
 import {
   CartesianChart,
   Area,
+  AreaRange,
   Line,
 } from 'victory-native';
 import type { SkFont } from '@shopify/react-native-skia';
@@ -340,36 +341,59 @@ export function Areachart({
           },
         }}
       >
-        {({ points, chartBounds }) => (
+        {({ points: rawPoints, chartBounds }) => {
+          // Cast to any to access dynamic yKeys ('y', 'yMin', 'yMax') that CartesianChart
+          // infers conditionally based on the yKeys prop.  Same TS2339 suppression pattern
+          // as the pre-existing code in this file — runtime keys are valid because
+          // CartesianChart receives them via the yKeys prop.
+          const pts = rawPoints as any;
+          return (
           <>
             {detailedMode && chartMinData.length > 0 && chartMaxData.length > 0 ? (
               <>
-                {/* Min-max band (background area) */}
-                <Area
-                  points={points.yMax ?? []}
-                  y0={(chartBounds.bottom + chartBounds.top) / 2}
+                {/* Min-max band (background): AreaRange fills between yMin and yMax.
+                    This mirrors the Chart.js original:
+                      datasets[0]: fill '+1', data=chartMaxData → fills from yMax to yMin
+                      datasets[1]: fill false, data=chartMinData → bottom boundary
+                    NOTE: verify visually on device — SwiftShader emulator may render blank. */}
+                <AreaRange
+                  upperPoints={pts.yMax ?? []}
+                  lowerPoints={pts.yMin ?? []}
                   color={areaFillColor}
                   animate={{ type: 'timing', duration: 300 }}
                 />
-                {/* Avg line (foreground) */}
+                {/* Average line (foreground) — rendered on top of the band */}
                 <Line
-                  points={points.y}
+                  points={pts.y}
                   color={borderColor}
                   strokeWidth={2}
                   animate={{ type: 'timing', duration: 300 }}
                 />
               </>
             ) : (
-              /* Normal mode: filled area + line */
-              <Area
-                points={points.y}
-                y0={chartBounds.bottom}
-                color={areaFillColor}
-                animate={{ type: 'timing', duration: 300 }}
-              />
+              <>
+                {/* Normal mode: area fill from the bottom of the chart up to the data line.
+                    Matches Chart.js: fill:true, backgroundColor:gradient, borderColor:color.
+                    NOTE: verify visually on device — victory-native Area uses a solid fill
+                    (no top-to-bottom gradient); gradient requires a custom Skia paint. */}
+                <Area
+                  points={pts.y}
+                  y0={chartBounds.bottom}
+                  color={areaFillColor}
+                  animate={{ type: 'timing', duration: 300 }}
+                />
+                {/* Border line on top of the area — matches Chart.js borderColor/borderWidth:2 */}
+                <Line
+                  points={pts.y}
+                  color={borderColor}
+                  strokeWidth={2}
+                  animate={{ type: 'timing', duration: 300 }}
+                />
+              </>
             )}
           </>
-        )}
+          );
+        }}
       </CartesianChart>
     </View>
   );

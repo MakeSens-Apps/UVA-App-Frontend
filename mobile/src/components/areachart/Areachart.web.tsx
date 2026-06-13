@@ -39,6 +39,7 @@ import Svg, {
   Stop,
   Polyline,
   Line,
+  Text as SvgText,
 } from 'react-native-svg';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -307,9 +308,10 @@ function AreachartSvg({
   const yRange = yDomainMax - yDomainMin || 1;
   const xRange = xDomainMax - xDomainMin || 1;
 
-  // X-axis ticks — ~6 evenly spaced date labels (Chart.js time scale default)
+  // X-axis ticks — ~10 evenly spaced date labels (Chart.js time scale default
+  // shows ~10 ticks for a 31-day month; cap at data length to avoid duplicates)
   const xTicks = useMemo(
-    () => xAxisTicks(xDomainMin, xDomainMax, Math.min(6, chartDatum.length)),
+    () => xAxisTicks(xDomainMin, xDomainMax, Math.min(10, chartDatum.length)),
     [xDomainMin, xDomainMax, chartDatum.length],
   );
 
@@ -430,19 +432,39 @@ function AreachartSvg({
           strokeWidth={1}
         />
 
-        {/* X-axis tick marks */}
-        {xTicks.map((ts) => {
+        {/* X-axis tick marks and labels (SVG Text for reliable cross-platform rendering).
+            First tick: textAnchor="start" to prevent left-clip (label starts at tick x).
+            Last tick:  textAnchor="end"   to prevent right-clip (label ends at tick x).
+            Middle ticks: textAnchor="middle" (Chart.js default behaviour). */}
+        {xTicks.map((ts, tickIdx) => {
           const x = mapX(ts);
+          const anchor =
+            tickIdx === 0
+              ? 'start'
+              : tickIdx === xTicks.length - 1
+                ? 'end'
+                : 'middle';
           return (
-            <Line
-              key={`xtick-${ts}`}
-              x1={x}
-              y1={PAD_TOP + plotH}
-              x2={x}
-              y2={PAD_TOP + plotH + 4}
-              stroke={AXIS_COLOR}
-              strokeWidth={1}
-            />
+            <React.Fragment key={`xtick-${ts}`}>
+              <Line
+                x1={x}
+                y1={PAD_TOP + plotH}
+                x2={x}
+                y2={PAD_TOP + plotH + 4}
+                stroke={AXIS_COLOR}
+                strokeWidth={1}
+              />
+              <SvgText
+                x={x}
+                y={PAD_TOP + plotH + 4 + TICK_FONT_SIZE + 2}
+                textAnchor={anchor}
+                fontSize={TICK_FONT_SIZE}
+                fill={TICK_LABEL_COLOR}
+                fontFamily="Montserrat-Regular"
+              >
+                {formatDayMonth(ts)}
+              </SvgText>
+            </React.Fragment>
           );
         })}
 
@@ -473,21 +495,9 @@ function AreachartSvg({
         )}
       </Svg>
 
-      {/* X-axis date labels — RN Text for crisp font, positioned below chart */}
-      <View style={[styles.xLabelsRow, { top: PAD_TOP + plotH + 6, left: PAD_LEFT }]}>
-        {xTicks.map((ts) => {
-          const x = mapX(ts) - PAD_LEFT;
-          return (
-            <Text
-              key={`xlabel-${ts}`}
-              style={[styles.xLabel, { left: x - 14, color: TICK_LABEL_COLOR }]}
-              numberOfLines={1}
-            >
-              {formatDayMonth(ts)}
-            </Text>
-          );
-        })}
-      </View>
+      {/* X-axis date labels are rendered inside the SVG as SvgText elements
+          for reliable cross-platform display (React Native Web positioning
+          issues with absolutely-placed RN Text in zero-size parent Views). */}
     </View>
   );
 }
@@ -505,6 +515,8 @@ const styles = StyleSheet.create({
     left: 0,
   },
   // Y-axis label — positioned absolutely to the left of PAD_LEFT
+  // (RN Text works here because it is a direct child of the container View,
+  //  which has explicit width and height, so absolute positioning is well-defined)
   yLabel: {
     position: 'absolute',
     left: 0,
@@ -514,18 +526,9 @@ const styles = StyleSheet.create({
     lineHeight: TICK_FONT_SIZE + 2,
     fontFamily: 'Montserrat-Regular',
   },
-  // X-axis labels row — absolute container inside the chart View
-  xLabelsRow: {
-    position: 'absolute',
-  },
-  xLabel: {
-    position: 'absolute',
-    width: 28,
-    fontSize: TICK_FONT_SIZE,
-    lineHeight: TICK_FONT_SIZE + 2,
-    textAlign: 'center',
-    fontFamily: 'Montserrat-Regular',
-  },
+  // NOTE: X-axis labels are rendered as SvgText inside the SVG element
+  // (not as RN Text in a View) to avoid React Native Web zero-width
+  // parent container issues with absolutely positioned children.
 });
 
 export default Areachart;

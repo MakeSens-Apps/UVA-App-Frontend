@@ -66,9 +66,10 @@ jest.mock('victory-native', () => {
   };
 
   const Area = () => React.createElement(View, { testID: 'victory-area' });
+  const AreaRange = () => React.createElement(View, { testID: 'victory-area-range' });
   const Line = () => React.createElement(View, { testID: 'victory-line' });
 
-  return { CartesianChart, Area, Line };
+  return { CartesianChart, Area, AreaRange, Line };
 });
 
 jest.mock('../data/storage/s3', () => ({
