@@ -218,8 +218,10 @@ export function MoonCard({
           (assets/images/Moon/eclipses_card_home .svg — white star dots, 340x88)
           + .scss .eclipses { position:absolute; top:0; height:100%; margin-inline:16px }
           Rendered at full opacity covering the whole card (see
-          docs/evidence/home/screen-09-moon-card.png). */}
-      <View style={styles.eclipsesWrapper} pointerEvents="none">
+          docs/evidence/home/screen-09-moon-card.png).
+          BUG FIX: pointerEvents in style (not prop) ensures CSS pointer-events:none on
+          web (react-native-web) so the overlay does NOT intercept TouchableOpacity taps. */}
+      <View style={styles.eclipsesWrapper}>
         <EclipsesIcon
           width="100%"
           height="100%"
@@ -274,6 +276,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 6,
     right: 6,
+    // BUG FIX: pointer-events:none in style (not prop) so react-native-web
+    // correctly applies the CSS property and the overlay never intercepts taps.
+    pointerEvents: 'none',
   },
 });
 

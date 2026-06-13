@@ -378,11 +378,11 @@ exports[`MoonCard — name and icon never undefined (§4.4 bug fix) matches snap
     </View>
   </View>
   <View
-    pointerEvents="none"
     style={
       {
         "bottom": 0,
         "left": 6,
+        "pointerEvents": "none",
         "position": "absolute",
         "right": 6,
         "top": 0,
