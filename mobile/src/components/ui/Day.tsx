@@ -63,10 +63,11 @@ export interface DayProps {
   /** The day's state determines visual styling and icon. */
   state?: DayState;
   /**
-   * Custom icon: either a React SVG component (react-native-svg-transformer)
-   * or a URI string. Only used when customIcon=true.
+   * Custom icon: a React SVG component (react-native-svg-transformer),
+   * a PNG require() number (native) or string URL (web), or a URI string.
+   * Only used when customIcon=true.
    */
-  icon?: React.FC<{ width: number; height: number }> | string | null;
+  icon?: React.FC<{ width: number; height: number }> | number | string | null;
   /** When true, renders the custom `icon` instead of built-in state icons. */
   customIcon?: boolean;
   /** Position of the state icon overlay. */
@@ -149,7 +150,42 @@ export function Day({
   const showIcon =
     state === 'complete' || state === 'saveStreak' || customIcon;
 
-  // Icon overlay
+  // Moon calendar special layout: icon on top, number below (column layout).
+  // Original: ion-icon with custom src renders the moon phase image centered in the cell,
+  // with the day number below it. The cell is a column, not a pure circle.
+  if (isMoonCalendar && customIcon && icon) {
+    return (
+      <View
+        style={styles.moonDayContainer}
+        testID={`day-cell-${day}`}
+      >
+        {/* Moon phase icon — full circular PNG, centered */}
+        {renderIcon(state, customIcon, icon, CIRCLE_SIZE_MOON)}
+        {/* Day number below icon */}
+        <Text
+          style={[
+            styles.dayText,
+            styles.moonDayText,
+            { color: textColor },
+          ]}
+        >
+          {dayLabel}
+        </Text>
+        {/* Today highlight: teal circle around icon */}
+        {state === 'today' && (
+          <View
+            style={[
+              styles.moonTodayRing,
+              { width: CIRCLE_SIZE_MOON, height: CIRCLE_SIZE_MOON, borderRadius: CIRCLE_SIZE_MOON / 2 },
+            ]}
+            pointerEvents="none"
+          />
+        )}
+      </View>
+    );
+  }
+
+  // Icon overlay (for non-moon-calendar with custom icon)
   const iconEl = showIcon ? (
     <View
       style={[
@@ -194,7 +230,7 @@ export function Day({
 function renderIcon(
   state: DayState,
   customIcon: boolean,
-  icon: React.FC<{ width: number; height: number }> | string | null | undefined,
+  icon: React.FC<{ width: number; height: number }> | number | string | null | undefined,
   iconSize: number,
 ): React.JSX.Element | null {
   if (state === 'complete') {
@@ -203,18 +239,30 @@ function renderIcon(
   if (state === 'saveStreak') {
     return <CheckSaveStreakIcon width={iconSize} height={iconSize} />;
   }
-  if (customIcon && icon) {
-    // SVG component (react-native-svg-transformer)
+  if (customIcon && icon !== null && icon !== undefined) {
+    // PNG require() — On native Metro returns a number (asset ID); on web Metro
+    // returns a string URL. Both cases: render as Image with the same source.
+    if (typeof icon === 'number') {
+      return (
+        <Image
+          source={icon}
+          style={{ width: iconSize, height: iconSize, borderRadius: iconSize / 2 }}
+          resizeMode="cover"
+        />
+      );
+    }
+    // SVG component (react-native-svg-transformer) — only when it's a function
     if (typeof icon === 'function') {
       const SvgIcon = icon;
       return <SvgIcon width={iconSize} height={iconSize} />;
     }
-    // URI string fallback
+    // String: Metro web returns a URL string for require() PNG assets.
+    // Pass directly as source (react-native-web renders as <img>).
     return (
       <Image
-        source={{ uri: icon }}
-        style={{ width: iconSize, height: iconSize }}
-        resizeMode="contain"
+        source={icon as any}
+        style={{ width: iconSize, height: iconSize, borderRadius: iconSize / 2 }}
+        resizeMode="cover"
       />
     );
   }
@@ -316,6 +364,26 @@ const styles = StyleSheet.create({
   iconBottomLeft: {
     bottom: -4,
     left: -2,
+  },
+  // Moon calendar: column layout — icon on top, number below
+  // Original: each cell shows the moon phase image above the day number
+  moonDayContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  moonDayText: {
+    marginTop: 2,
+    fontSize: 11,
+  },
+  // Today highlight ring overlaid on the icon
+  moonTodayRing: {
+    position: 'absolute',
+    top: 0,
+    borderWidth: 2,
+    borderStyle: 'solid',
+    borderColor: '#1097AA',
+    backgroundColor: 'transparent',
   },
 });
 

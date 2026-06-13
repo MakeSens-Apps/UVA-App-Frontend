@@ -40,23 +40,22 @@ import {
 } from './calendarLogic';
 
 // ─── Moon phase icon assets ───────────────────────────────────────────────────
-// SVGs imported as React components via react-native-svg-transformer.
-// Map from phase key → SVG component (NOT require() for Image.source).
+// Moon SVGs use xlink:href with embedded bitmaps which react-native-svg cannot
+// render on web (and inconsistently on some native devices).
+// Use extracted PNG assets instead — identical to MoonCard fix (Divergence 13).
+// Map from phase key → PNG require() number for Image.source.
+// The Image rendering happens inside Day.tsx (which accepts number source).
 
-import NewMoonIcon from '@/assets/svg/moon/nueva.svg';
-import WaningCrescentIcon from '@/assets/svg/moon/gibosa_creciente.svg';
-import FirstQuarterIcon from '@/assets/svg/moon/cuarto_creciente.svg';
-import FullMoonIcon from '@/assets/svg/moon/llena.svg';
-import LastQuarterIcon from '@/assets/svg/moon/cuarto_menguante.svg';
-import WaningGibbousIcon from '@/assets/svg/moon/gibosa_menguante.svg';
-
-const MOON_PHASE_ICONS: Record<string, React.FC<{ width: number; height: number }>> = {
-  'new-moon': NewMoonIcon,
-  'waning-crescent': WaningCrescentIcon,
-  'first-quarter': FirstQuarterIcon,
-  'full-moon': FullMoonIcon,
-  'last-quarter': LastQuarterIcon,
-  'waning-gibbous': WaningGibbousIcon,
+// On native, require() for PNG returns a number (asset ID registered with NativeModules).
+// On web (Metro web bundler), require() returns a string URL.
+// Use `unknown` and let Day.tsx handle both.
+const MOON_PHASE_PNG_ICONS: Record<string, number | string> = {
+  'new-moon':        require('@/assets/png/moon/nueva.png') as number | string,
+  'waning-crescent': require('@/assets/png/moon/gibosa_creciente.png') as number | string,
+  'first-quarter':   require('@/assets/png/moon/cuarto_creciente.png') as number | string,
+  'full-moon':       require('@/assets/png/moon/llena.png') as number | string,
+  'last-quarter':    require('@/assets/png/moon/cuarto_menguante.png') as number | string,
+  'waning-gibbous':  require('@/assets/png/moon/gibosa_menguante.png') as number | string,
 };
 
 // Day header abbreviations (Spanish, Sun-first like original getDay() output)
@@ -227,7 +226,7 @@ export function Calendar({
                 customIcon={typeCalendar === 'moon' && !!dayData.icon}
                 icon={
                   typeCalendar === 'moon' && dayData.icon
-                    ? (MOON_PHASE_ICONS[dayData.icon] ?? null)
+                    ? (MOON_PHASE_PNG_ICONS[dayData.icon] ?? null)
                     : null
                 }
               />
