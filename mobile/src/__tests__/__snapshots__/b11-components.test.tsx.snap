@@ -214,7 +214,6 @@ exports[`Header matches snapshot 1`] = `
         15
       </Text>
       <svg
-        color="#14788A"
         height={16}
         width={16}
       />

@@ -13,22 +13,32 @@
  *   web before any render guard is reached.
  *
  *   This file imports ONLY react-native-svg (web-compatible) and renders the
- *   same visual as the Ionic Chart.js original: area fill + border line.
+ *   same visual as the Ionic Chart.js original: area fill + border line,
+ *   Y-axis ticks/labels, X-axis date ticks/labels, horizontal grid lines.
  *
  * Native path (iOS / Android):
  *   Metro resolves `Areachart.tsx` — full victory-native + Skia implementation.
  *
  * Contract: IDENTICAL props interface as Areachart.tsx, IDENTICAL testIDs.
+ *
+ * Visual parity with Chart.js original (areachart.component.ts):
+ *   - X axis: time scale, dd/MM format, evenly spaced ticks across full range
+ *   - Y axis: nice ticks at ~5-unit intervals, labels on the left
+ *   - Horizontal grid lines (Chart.js default: light gray #E5E5E5)
+ *   - Area gradient fill: rgba(color, 0.8) top → rgba(color, 0.2) bottom
+ *   - Border line: 2px, borderColor
+ *   - No legend, no tooltip (static SVG)
  */
 
 import React, { useMemo } from 'react';
-import { View, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import Svg, {
   Path,
   Defs,
   LinearGradient as SvgLinearGradient,
   Stop,
   Polyline,
+  Line,
 } from 'react-native-svg';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -42,6 +52,66 @@ export function hexToRgba(hex: string, alpha: number): string {
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/**
+ * Format a timestamp as 'dd/MM' (original Chart.js displayFormats.day).
+ */
+function formatDayMonth(ts: number): string {
+  const d = new Date(ts);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  return `${day}/${month}`;
+}
+
+/**
+ * Compute "nice" Y-axis ticks that cover [dataMin, dataMax].
+ * Mirrors Chart.js default linear scale behaviour: picks a step size
+ * and generates 4-7 ticks.
+ *
+ * @param dataMin - minimum data value (or ymin prop)
+ * @param dataMax - maximum data value (or ymax prop)
+ * @returns array of tick values (ascending)
+ */
+function niceYTicks(dataMin: number, dataMax: number): number[] {
+  const range = dataMax - dataMin;
+  if (range === 0) {
+    // Degenerate: single value — return ±2 around it
+    const base = Math.round(dataMin);
+    return [base - 4, base - 2, base, base + 2, base + 4];
+  }
+
+  // Find a "nice" step: target ~5-6 ticks
+  const rawStep = range / 5;
+  // Round step to nearest: 1, 2, 5, 10, 20, 25, 50 …
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const candidates = [1, 2, 2.5, 5, 10].map((c) => c * magnitude);
+  const step = candidates.find((c) => c >= rawStep) ?? candidates[candidates.length - 1];
+
+  const tickMin = Math.floor(dataMin / step) * step;
+  const tickMax = Math.ceil(dataMax / step) * step;
+
+  const ticks: number[] = [];
+  let t = tickMin;
+  while (t <= tickMax + step * 0.001) {
+    ticks.push(parseFloat(t.toFixed(10)));
+    t += step;
+  }
+  return ticks;
+}
+
+/**
+ * Pick ~5-7 evenly distributed X-axis date ticks from the domain.
+ * First and last tick are always the xDomainMin and xDomainMax.
+ */
+function xAxisTicks(xMin: number, xMax: number, targetCount = 6): number[] {
+  if (xMin === xMax) return [xMin];
+  const step = (xMax - xMin) / (targetCount - 1);
+  const ticks: number[] = [];
+  for (let i = 0; i < targetCount; i++) {
+    ticks.push(Math.round(xMin + i * step));
+  }
+  return ticks;
 }
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
@@ -85,10 +155,27 @@ interface ChartDatum {
   yMax?: number;
 }
 
-// ─── Constants ─────────────────────────────────────────────────────────────────
+// ─── Layout constants ─────────────────────────────────────────────────────────
+// Mirror Chart.js default padding: space for Y-axis labels on left,
+// X-axis labels below, and a small top/right margin.
 
-const PAD_X = 8;
-const PAD_Y = 8;
+/** Left padding — space for Y-axis labels (e.g. "38") */
+const PAD_LEFT = 36;
+/** Right padding — small right margin */
+const PAD_RIGHT = 8;
+/** Top padding — small top margin */
+const PAD_TOP = 8;
+/** Bottom padding — space for X-axis labels */
+const PAD_BOTTOM = 28;
+
+/** Chart.js default grid line color */
+const GRID_COLOR = '#E5E5E5';
+/** Axis line color */
+const AXIS_COLOR = '#D4D4D4';
+/** Tick label color — gray-600 (#525252) */
+const TICK_LABEL_COLOR = '#525252';
+/** Tick label font size */
+const TICK_FONT_SIZE = 10;
 
 /**
  * Parses a date string safely (replaces "-" with "/" for Safari/Android compat).
@@ -104,11 +191,11 @@ function parseDateSafe(dateString: string): Date {
  *
  * Renders an area chart using react-native-svg (web-compatible).
  * Mirrors the visual style of the Ionic original (Chart.js area chart):
- *   - Gradient fill area with opacity
- *   - Colored border line
- *   - No grid lines (matches original minimal style)
- *
- * In detailedMode: renders max-area band + avg line (simplified from Ionic original).
+ *   - Y-axis ticks and labels (left side)
+ *   - X-axis date ticks and labels (bottom)
+ *   - Horizontal grid lines (Chart.js default style)
+ *   - Gradient fill area with opacity (0.8 top → 0.2 bottom)
+ *   - Colored border line (2px)
  */
 export function Areachart({
   chartData = [],
@@ -189,8 +276,9 @@ function AreachartSvg({
   xmin,
   xmax,
 }: AreachartSvgProps): React.JSX.Element {
-  const chartW = width - PAD_X * 2;
-  const chartH = height - PAD_Y * 2;
+  // Plot area dimensions (inside the axis padding)
+  const plotW = width - PAD_LEFT - PAD_RIGHT;
+  const plotH = height - PAD_TOP - PAD_BOTTOM;
 
   // Derive domains for scaling
   const xDomainMin = xmin
@@ -203,26 +291,49 @@ function AreachartSvg({
   const allY = chartDatum.flatMap((d) =>
     detailedMode ? [d.y, d.yMin ?? d.y, d.yMax ?? d.y] : [d.y],
   );
-  const yDomainMin = ymin !== undefined ? ymin : Math.min(...allY);
-  const yDomainMax = ymax !== undefined ? ymax : Math.max(...allY);
+  const rawYMin = ymin !== undefined ? ymin : Math.min(...allY);
+  const rawYMax = ymax !== undefined ? ymax : Math.max(...allY);
+
+  // Compute nice Y ticks (same domain as Chart.js linear scale)
+  const yTicks = useMemo(
+    () => niceYTicks(rawYMin, rawYMax),
+    [rawYMin, rawYMax],
+  );
+
+  // Use nice tick bounds as the actual Y domain (Chart.js behaviour)
+  const yDomainMin = yTicks[0];
+  const yDomainMax = yTicks[yTicks.length - 1];
 
   const yRange = yDomainMax - yDomainMin || 1;
   const xRange = xDomainMax - xDomainMin || 1;
 
+  // X-axis ticks — ~6 evenly spaced date labels (Chart.js time scale default)
+  const xTicks = useMemo(
+    () => xAxisTicks(xDomainMin, xDomainMax, Math.min(6, chartDatum.length)),
+    [xDomainMin, xDomainMax, chartDatum.length],
+  );
+
+  // Coordinate mapping helpers (used in both the path useMemo and JSX render)
+  // Derived from domain/range values — inline to keep dependency arrays clean.
+  const mapX = (x: number) => PAD_LEFT + ((x - xDomainMin) / xRange) * plotW;
+  const mapY = (y: number) => PAD_TOP + (1 - (y - yDomainMin) / yRange) * plotH;
+
   // Build SVG paths
   const { avgAreaPath, avgLinePoints, maxAreaPath } = useMemo(() => {
+    // Local versions of mapX/mapY that capture the same derived values
+    // so the useMemo dependency array stays stable.
+    const mX = (x: number) => PAD_LEFT + ((x - xDomainMin) / xRange) * plotW;
+    const mY = (y: number) => PAD_TOP + (1 - (y - yDomainMin) / yRange) * plotH;
+
     if (chartDatum.length === 0) {
       return { avgAreaPath: '', avgLinePoints: '', maxAreaPath: '' };
     }
 
-    const mapX = (x: number) => PAD_X + ((x - xDomainMin) / xRange) * chartW;
-    const mapY = (y: number) => PAD_Y + (1 - (y - yDomainMin) / yRange) * chartH;
-
     const avgPts = chartDatum.map(
-      (d) => `${mapX(d.x).toFixed(1)},${mapY(d.y).toFixed(1)}`,
+      (d) => `${mX(d.x).toFixed(1)},${mY(d.y).toFixed(1)}`,
     );
-    const bottomRight = `${mapX(chartDatum[chartDatum.length - 1].x).toFixed(1)},${(PAD_Y + chartH).toFixed(1)}`;
-    const bottomLeft = `${mapX(chartDatum[0].x).toFixed(1)},${(PAD_Y + chartH).toFixed(1)}`;
+    const bottomRight = `${mX(chartDatum[chartDatum.length - 1].x).toFixed(1)},${(PAD_TOP + plotH).toFixed(1)}`;
+    const bottomLeft = `${mX(chartDatum[0].x).toFixed(1)},${(PAD_TOP + plotH).toFixed(1)}`;
 
     const areaPath = `M ${avgPts.join(' L ')} L ${bottomRight} L ${bottomLeft} Z`;
     const linePoints = avgPts.join(' ');
@@ -232,27 +343,47 @@ function AreachartSvg({
     if (detailedMode && chartDatum.some((d) => d.yMax !== undefined)) {
       const maxPts = chartDatum.map((d) => {
         const yVal = d.yMax ?? d.y;
-        return `${mapX(d.x).toFixed(1)},${mapY(yVal).toFixed(1)}`;
+        return `${mX(d.x).toFixed(1)},${mY(yVal).toFixed(1)}`;
       });
       const minPts = [...chartDatum]
         .reverse()
         .map((d) => {
           const yVal = d.yMin ?? d.y;
-          return `${mapX(d.x).toFixed(1)},${mapY(yVal).toFixed(1)}`;
+          return `${mX(d.x).toFixed(1)},${mY(yVal).toFixed(1)}`;
         });
       maxPath = `M ${maxPts.join(' L ')} L ${minPts.join(' L ')} Z`;
     }
 
     return { avgAreaPath: areaPath, avgLinePoints: linePoints, maxAreaPath: maxPath };
-  }, [chartDatum, chartW, chartH, xDomainMin, xRange, yDomainMin, yRange, detailedMode]);
+  }, [chartDatum, plotW, plotH, xDomainMin, xRange, yDomainMin, yRange, detailedMode]);
 
   return (
     <View style={[styles.container, { height, width }]} testID="areachart">
-      <Svg width={width} height={height}>
+      {/* Y-axis labels — rendered as RN Text outside SVG for crisp font */}
+      {yTicks.map((tick) => {
+        const y = mapY(tick);
+        // Only render if within visible plot area
+        if (y < PAD_TOP - 2 || y > PAD_TOP + plotH + 2) return null;
+        return (
+          <Text
+            key={`ytick-${tick}`}
+            style={[
+              styles.yLabel,
+              { top: y - TICK_FONT_SIZE / 2, color: TICK_LABEL_COLOR },
+            ]}
+            numberOfLines={1}
+          >
+            {Number.isInteger(tick) ? tick : tick.toFixed(1)}
+          </Text>
+        );
+      })}
+
+      <Svg width={width} height={height} style={styles.svg}>
         <Defs>
+          {/* Area gradient: 0.8 top → 0.2 bottom (matches Ionic createLinearGradient 0.8→0.2) */}
           <SvgLinearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor={areaFillColor} stopOpacity="0.8" />
-            <Stop offset="1" stopColor={areaFillColor} stopOpacity="0.1" />
+            <Stop offset="1" stopColor={areaFillColor} stopOpacity="0.2" />
           </SvgLinearGradient>
           {detailedMode && (
             <SvgLinearGradient id="bandGrad" x1="0" y1="0" x2="0" y2="1">
@@ -262,6 +393,60 @@ function AreachartSvg({
           )}
         </Defs>
 
+        {/* Horizontal grid lines — one per Y tick (Chart.js default) */}
+        {yTicks.map((tick) => {
+          const y = mapY(tick);
+          if (y < PAD_TOP - 1 || y > PAD_TOP + plotH + 1) return null;
+          return (
+            <Line
+              key={`grid-${tick}`}
+              x1={PAD_LEFT}
+              y1={y}
+              x2={PAD_LEFT + plotW}
+              y2={y}
+              stroke={GRID_COLOR}
+              strokeWidth={1}
+            />
+          );
+        })}
+
+        {/* X-axis baseline */}
+        <Line
+          x1={PAD_LEFT}
+          y1={PAD_TOP + plotH}
+          x2={PAD_LEFT + plotW}
+          y2={PAD_TOP + plotH}
+          stroke={AXIS_COLOR}
+          strokeWidth={1}
+        />
+
+        {/* Y-axis baseline */}
+        <Line
+          x1={PAD_LEFT}
+          y1={PAD_TOP}
+          x2={PAD_LEFT}
+          y2={PAD_TOP + plotH}
+          stroke={AXIS_COLOR}
+          strokeWidth={1}
+        />
+
+        {/* X-axis tick marks */}
+        {xTicks.map((ts) => {
+          const x = mapX(ts);
+          return (
+            <Line
+              key={`xtick-${ts}`}
+              x1={x}
+              y1={PAD_TOP + plotH}
+              x2={x}
+              y2={PAD_TOP + plotH + 4}
+              stroke={AXIS_COLOR}
+              strokeWidth={1}
+            />
+          );
+        })}
+
+        {/* Chart area and line */}
         {detailedMode && maxAreaPath ? (
           <>
             {/* Min-max band */}
@@ -287,6 +472,22 @@ function AreachartSvg({
           </>
         )}
       </Svg>
+
+      {/* X-axis date labels — RN Text for crisp font, positioned below chart */}
+      <View style={[styles.xLabelsRow, { top: PAD_TOP + plotH + 6, left: PAD_LEFT }]}>
+        {xTicks.map((ts) => {
+          const x = mapX(ts) - PAD_LEFT;
+          return (
+            <Text
+              key={`xlabel-${ts}`}
+              style={[styles.xLabel, { left: x - 14, color: TICK_LABEL_COLOR }]}
+              numberOfLines={1}
+            >
+              {formatDayMonth(ts)}
+            </Text>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -296,6 +497,34 @@ function AreachartSvg({
 const styles = StyleSheet.create({
   container: {
     overflow: 'hidden',
+    position: 'relative',
+  },
+  svg: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  // Y-axis label — positioned absolutely to the left of PAD_LEFT
+  yLabel: {
+    position: 'absolute',
+    left: 0,
+    width: PAD_LEFT - 4,
+    textAlign: 'right',
+    fontSize: TICK_FONT_SIZE,
+    lineHeight: TICK_FONT_SIZE + 2,
+    fontFamily: 'Montserrat-Regular',
+  },
+  // X-axis labels row — absolute container inside the chart View
+  xLabelsRow: {
+    position: 'absolute',
+  },
+  xLabel: {
+    position: 'absolute',
+    width: 28,
+    fontSize: TICK_FONT_SIZE,
+    lineHeight: TICK_FONT_SIZE + 2,
+    textAlign: 'center',
+    fontFamily: 'Montserrat-Regular',
   },
 });
 
