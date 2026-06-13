@@ -59,10 +59,11 @@ jest.mock('@/assets/svg/icons/platula.svg', () => 'PlatulaIcon');
 jest.mock('@/assets/svg/icons/flor.svg', () => 'FlorIcon');
 jest.mock('@/assets/svg/icons/arrow-right.svg', () => 'ArrowRightIcon');
 jest.mock('@/assets/svg/icons/date_incomplete_to_done.svg', () => 'DateIcon');
-jest.mock('@/assets/svg/icons/logop.svg', () => 'LogoIcon');
-jest.mock('@/assets/svg/icons/whatapp.svg', () => 'WhatappIcon');
-jest.mock('@/assets/svg/icons/notion.svg', () => 'NotionIcon');
-jest.mock('@/assets/svg/icons/face.svg', () => 'FaceIcon');
+// logop/whatapp/notion/face now use PNG (xlink:href SVGs unsupported in RN)
+jest.mock('@/assets/png/social/whatapp.png', () => 1);
+jest.mock('@/assets/png/social/notion.png', () => 1);
+jest.mock('@/assets/png/social/face.png', () => 1);
+jest.mock('@/assets/png/social/logop.jpg', () => 1);
 jest.mock('@/assets/svg/icons/content_copy.svg', () => 'CopyIcon');
 jest.mock('@/assets/svg/icons/more_horiz.svg', () => 'MoreIcon');
 jest.mock('@/assets/svg/icons/profile/trash.svg', () => 'TrashIcon');

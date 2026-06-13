@@ -27,10 +27,10 @@ import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import ClipboardCheckIcon from '@/assets/svg/icons/clipboard-check.svg';
 import CalendarIcon from '@/assets/svg/icons/calendar.svg';
+import HomeIcon from '@/assets/svg/icons/home.svg';
 
 import type { AppTabsParamList, HomeStackParamList } from './types';
 import { colors, fontFamilyForWeight } from '@/theme/theme';
@@ -66,21 +66,26 @@ function HomeStackNavigator(): React.JSX.Element {
 // Renders the pill indicator (borderRadius:14, bg:blue[200], height:56) on the
 // active tab, matching global.scss:327-331 .tab-selected rules.
 
-type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
-
 // Measurement and Historical tabs use the original custom SVG icons (not Ionicons).
 // Original Ionic tabs.page.html:
 //   Registrar → assets/images/icons/clipboard-check.svg
 //   Historial  → assets/images/icons/calendar.svg
 // Other tabs use Ionicons as before.
-type SvgTabIcon = 'clipboard-check' | 'calendar';
-const TAB_CONFIG: Record<string, { label: string; active: IoniconName | null; inactive: IoniconName | null; svgIcon?: SvgTabIcon }> = {
-  HomeStack:   { label: 'Inicio',    active: 'home',       inactive: 'home-outline' },
-  Measurement: { label: 'Registrar', active: null,          inactive: null,          svgIcon: 'clipboard-check' },
-  Historical:  { label: 'Historial', active: null,          inactive: null,          svgIcon: 'calendar' },
+// All three tabs use the original custom SVG icons (not Ionicons).
+// Original Ionic tabs.page.html:
+//   Inicio     → assets/images/icons/home.svg
+//   Registrar  → assets/images/icons/clipboard-check.svg
+//   Historial  → assets/images/icons/calendar.svg
+// global.scss:322-325: ion-icon { width: 20px; height: 20px }
+type SvgTabIcon = 'home' | 'clipboard-check' | 'calendar';
+const TAB_CONFIG: Record<string, { label: string; svgIcon: SvgTabIcon }> = {
+  HomeStack:   { label: 'Inicio',    svgIcon: 'home' },
+  Measurement: { label: 'Registrar', svgIcon: 'clipboard-check' },
+  Historical:  { label: 'Historial', svgIcon: 'calendar' },
 };
 
 const SVG_TAB_ICONS: Record<SvgTabIcon, React.ElementType> = {
+  'home': HomeIcon,
   'clipboard-check': ClipboardCheckIcon,
   'calendar': CalendarIcon,
 };
@@ -98,7 +103,6 @@ function UvaTabBar({ state, descriptors, navigation }: BottomTabBarProps): React
         if (!cfg) return null;
 
         const isFocused = state.index === state.routes.indexOf(route);
-        const iconName: IoniconName | null = isFocused ? cfg.active : cfg.inactive;
         // active: --Colors-Blue-700 (#14788A); inactive: --Colors-Gray-50 (#FAFAFA)
         const tintColor = isFocused ? colors.blue[700] : colors.gray[50];
 
@@ -135,12 +139,11 @@ function UvaTabBar({ state, descriptors, navigation }: BottomTabBarProps): React
                 isFocused && tabBarStyles.pillActive,
               ]}
             >
-              {cfg.svgIcon ? (() => {
+              {/* Original: ion-icon width=20px height=20px (global.scss:322-325) */}
+              {(() => {
                 const SvgIcon = SVG_TAB_ICONS[cfg.svgIcon];
-                return <SvgIcon width={24} height={24} color={tintColor} />;
-              })() : (
-                <Ionicons name={iconName as IoniconName} size={24} color={tintColor} />
-              )}
+                return <SvgIcon width={20} height={20} color={tintColor} />;
+              })()}
               <Text
                 style={[
                   tabBarStyles.label,

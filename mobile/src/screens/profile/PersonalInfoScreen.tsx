@@ -64,6 +64,7 @@ import { fontFamilyForWeight } from '@/theme/theme';
 // NOT as Image source via require().
 import TrashIcon from '@/assets/svg/icons/profile/trash.svg';
 import PencilIcon from '@/assets/svg/icons/profile/pencil.svg';
+import ArrowRightIcon from '@/assets/svg/icons/arrow-right.svg';
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
@@ -280,7 +281,12 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
           onPress={() => navigation.goBack()}
           testID="personal-info-back-btn"
         >
-          <Text style={styles.headerBtnText}>{'<'}</Text>
+          <ArrowRightIcon
+            width={24}
+            height={24}
+            color="#FFFFFF"
+            style={styles.backIcon}
+          />
         </TouchableOpacity>
         <Text
           style={[
@@ -637,6 +643,8 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
                     fontFamily: fontFamilyForWeight('500'),
                   },
                 ]}
+                numberOfLines={2}
+                textBreakStrategy="simple"
               >
                 Sí, quiero eliminarla
               </Text>
@@ -654,6 +662,8 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
                   styles.deleteSolidBtnText,
                   { fontFamily: fontFamilyForWeight('500') },
                 ]}
+                numberOfLines={2}
+                textBreakStrategy="simple"
               >
                 No, no quiero eliminarla
               </Text>
@@ -764,7 +774,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   headerBtn: { padding: 4, minWidth: 36, alignItems: 'center' },
-  headerBtnText: { fontSize: 20, color: '#FFFFFF' },
+  backIcon: { transform: [{ scaleX: -1 }] },
   headerTitle: {
     fontSize: 18,
     color: '#FAFAFA',

@@ -37,7 +37,7 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 
 import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';
@@ -45,14 +45,19 @@ import { fontFamilyForWeight } from '@/theme/theme';
 // ─── Moon phase SVG icons ─────────────────────────────────────────────────────
 
 import Svg, { Path } from 'react-native-svg';
-
-import NuevaMoonIcon from '@/assets/svg/moon/nueva.svg';
-import LlenaMoonIcon from '@/assets/svg/moon/llena.svg';
-import CuartoCrecienteMoonIcon from '@/assets/svg/moon/cuarto_creciente.svg';
-import CuartoMenguanteMoonIcon from '@/assets/svg/moon/cuarto_menguante.svg';
-import GibosaCrecienteMoonIcon from '@/assets/svg/moon/gibosa_creciente.svg';
-import GibosaMenguanteMoonIcon from '@/assets/svg/moon/gibosa_menguante.svg';
+// EclipsesIcon is a proper vector SVG (no xlink:href) — can be used with react-native-svg
 import EclipsesIcon from '@/assets/svg/moon/eclipses_card_home.svg';
+
+// Moon phase SVGs use xlink:href pattern with embedded bitmaps which react-native-svg
+// cannot render. Use extracted PNG assets instead. (Divergence 13 — audit-round1)
+const MOON_PHASE_IMAGES: Record<string, number> = {
+  NEW_MOON:        require('@/assets/png/moon/nueva.png') as number,
+  FULL_MOON:       require('@/assets/png/moon/llena.png') as number,
+  FIRST_QUARTER:   require('@/assets/png/moon/cuarto_creciente.png') as number,
+  LAST_QUARTER:    require('@/assets/png/moon/cuarto_menguante.png') as number,
+  WANING_GIBBOUS:  require('@/assets/png/moon/gibosa_menguante.png') as number,
+  WANING_CRESCENT: require('@/assets/png/moon/gibosa_creciente.png') as number,
+};
 
 // Same arrow path as assets/svg/icons/arrow-right.svg, but drawn inline so the
 // color can be WHITE: the asset hardcodes fill/stroke #10BCCA (teal, used by the
@@ -62,18 +67,7 @@ const ARROW_RIGHT_PATH =
 
 // ─── Constants (preserved from original) ──────────────────────────────────────
 
-/**
- * Maps LUNAR_PHASE keys to their SVG component.
- * Preserved from original: same key names.
- */
-const LUNAR_PHASE_COMPONENTS: Record<keyof typeof LUNAR_PHASE_NAME, React.ElementType> = {
-  NEW_MOON: NuevaMoonIcon,
-  FIRST_QUARTER: CuartoCrecienteMoonIcon,
-  WANING_GIBBOUS: GibosaMenguanteMoonIcon,
-  FULL_MOON: LlenaMoonIcon,
-  WANING_CRESCENT: GibosaCrecienteMoonIcon,
-  LAST_QUARTER: CuartoMenguanteMoonIcon,
-};
+// Moon phase images resolved from MOON_PHASE_IMAGES map (PNG per phase)
 
 /**
  * Lunar phase display names.
@@ -149,8 +143,8 @@ export function MoonCard({
   // Phase name: caller override takes precedence; else derived from resolvedPhase
   const phaseName: string = phaseNameProp ?? LUNAR_PHASE_NAME[resolvedPhase];
 
-  // Phase icon component
-  const PhaseIconComponent = LUNAR_PHASE_COMPONENTS[resolvedPhase];
+  // Moon phase image source (PNG — SVGs have xlink:href that react-native-svg cannot render)
+  const moonPhaseImage = MOON_PHASE_IMAGES[resolvedPhase];
 
   const isGreen = background === 'green';
 
@@ -167,7 +161,12 @@ export function MoonCard({
       <View style={styles.card}>
         {/* Moon phase icon */}
         <View style={styles.iconWrapper}>
-          <PhaseIconComponent width={56} height={56} />
+          {/* Moon phase PNG image (circular, 55px — original ion-img) */}
+          <Image
+            source={moonPhaseImage}
+            style={styles.moonImage}
+            resizeMode="cover"
+          />
         </View>
 
         {/* Phase name text */}
@@ -256,6 +255,13 @@ const styles = StyleSheet.create({
     height: 56,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  // Moon phase PNG (circular; matches original ion-img with rx=43 SVG clip)
+  moonImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
   },
   textWrapper: {
     // Original: .card_text { gap: 10px }

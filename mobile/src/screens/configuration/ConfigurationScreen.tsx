@@ -83,6 +83,7 @@ import { localRemindersService } from '@/native/notifications/LocalRemindersServ
 import type { SystemStatus, NotificationState } from '@/native/notifications/LocalRemindersService';
 
 import { MoonPhaseService } from '@/domain/moon/moon-phase';
+import ChevronDownIcon from '@/assets/svg/icons/chevron-down.svg';
 
 import type { AppStackParamList } from '@/navigation/types';
 
@@ -484,9 +485,12 @@ export function ConfigurationScreen({ navigation }: Props): React.JSX.Element {
                         {getNotificationStatusText()}
                       </Text>
                     </View>
-                    <Text style={[styles.chevronIcon, { color: theme.colors.gray[500] }]}>
-                      {showNotificationDetails ? '▲' : '▼'}
-                    </Text>
+                    <ChevronDownIcon
+                      width={16}
+                      height={16}
+                      color={theme.colors.gray[500]}
+                      style={showNotificationDetails ? styles.chevronUp : undefined}
+                    />
                   </TouchableOpacity>
 
                   {/* Collapsible status panel */}
@@ -792,8 +796,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   chevronIcon: {
-    fontSize: 14,
     marginLeft: 8,
+  },
+  chevronUp: {
+    marginLeft: 8,
+    transform: [{ scaleY: -1 }],
   },
   // Collapsible status panel (border-left 4px blue)
   notificationStatusPanel: {

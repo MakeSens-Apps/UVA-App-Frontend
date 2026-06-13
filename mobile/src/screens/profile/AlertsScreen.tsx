@@ -47,8 +47,12 @@ import { useNotificationContext } from '@/state/notification/NotificationContext
 import { GamificationService } from '@/domain/gamification/gamification';
 import type { GamificationNotification } from '@/domain/gamification/gamification-alerts-types';
 
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';
+
+import ArrowRightIcon from '@/assets/svg/icons/arrow-right.svg';
+import SettingsOutlineIcon from '@/assets/svg/icons/settings-outline.svg';
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
@@ -262,7 +266,12 @@ export function AlertsScreen({ navigation }: Props): React.JSX.Element {
           onPress={() => navigation.goBack()}
           testID="alerts-back-btn"
         >
-          <Text style={styles.headerBtnText}>{'<'}</Text>
+          <ArrowRightIcon
+            width={24}
+            height={24}
+            color="#FFFFFF"
+            style={styles.backIcon}
+          />
         </TouchableOpacity>
         <Text
           style={[
@@ -277,7 +286,7 @@ export function AlertsScreen({ navigation }: Props): React.JSX.Element {
           onPress={() => navigation.navigate('Configuration')}
           testID="alerts-settings-btn"
         >
-          <Text style={styles.headerBtnText}>⚙️</Text>
+          <SettingsOutlineIcon width={24} height={24} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
@@ -304,7 +313,8 @@ export function AlertsScreen({ navigation }: Props): React.JSX.Element {
               onPress={() => void deleteAll()}
               testID="delete-all-btn"
             >
-              <Text style={styles.deleteAllIcon}>🗑️</Text>
+              {/* ion-icon name='trash-outline' color=#dc3545 (divergence 4) */}
+              <Ionicons name="trash-outline" size={24} color="#dc3545" />
             </TouchableOpacity>
           </View>
         )}
@@ -325,7 +335,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   headerBtn: { padding: 4, minWidth: 36, alignItems: 'center' },
-  headerBtnText: { fontSize: 20, color: '#FFFFFF' },
+  backIcon: { transform: [{ scaleX: -1 }] },
   headerTitle: { fontSize: 18, color: '#FAFAFA', flex: 1, textAlign: 'center' },
   listWrapper: { flex: 1, backgroundColor: '#FFFFFF' },
   listContent: {

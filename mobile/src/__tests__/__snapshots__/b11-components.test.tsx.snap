@@ -262,13 +262,25 @@ exports[`MoonCard — name and icon never undefined (§4.4 bug fix) matches snap
           "alignItems": "center",
           "height": 56,
           "justifyContent": "center",
+          "overflow": "hidden",
           "width": 56,
         }
       }
     >
-      <svg
-        height={56}
-        width={56}
+      <Image
+        resizeMode="cover"
+        source={
+          {
+            "testUri": "../../../src/assets/png/moon/llena.png",
+          }
+        }
+        style={
+          {
+            "borderRadius": 28,
+            "height": 56,
+            "width": 56,
+          }
+        }
       />
     </View>
     <View

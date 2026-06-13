@@ -69,13 +69,17 @@ import { fontFamilyForWeight } from '@/theme/theme';
 
 // ─── Icons ─────────────────────────────────────────────────────────────────────
 
+import { Ionicons } from '@expo/vector-icons';
 import SemillaIcon from '@/assets/svg/icons/semilla.svg';
-import WhatappIcon from '@/assets/svg/icons/whatapp.svg';
-import NotionIcon from '@/assets/svg/icons/notion.svg';
-import FaceIcon from '@/assets/svg/icons/face.svg';
 import ContentCopyIcon from '@/assets/svg/icons/content_copy.svg';
 import MoreHorizIcon from '@/assets/svg/icons/more_horiz.svg';
-import LogopIcon from '@/assets/svg/icons/logop.svg';
+
+// Social icons: SVGs use xlink:href with embedded bitmaps (not supported by
+// react-native-svg). Use extracted PNG assets instead. (Divergence 12 — audit-round1)
+const whatappImg = require('@/assets/png/social/whatapp.png') as number;
+const notionImg = require('@/assets/png/social/notion.png') as number;
+const faceImg = require('@/assets/png/social/face.png') as number;
+const logopImg = require('@/assets/png/social/logop.jpg') as number;
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
@@ -186,36 +190,18 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
   const hasUnread = unreadCount > 0;
 
   // ─── Share options (original shareOptions[]) ──────────────────────────────
-  // NOTE: SVGs must be used as React components (react-native-svg-transformer),
-  // NOT as Image source via require(). Use IconComponent field instead of icon.
 
-  const shareOptions = useMemo(
+  type ShareOption =
+    | { label: string; imageSource: number; SvgIcon?: never; action: () => void }
+    | { label: string; imageSource?: never; SvgIcon: React.ElementType; action: () => void };
+
+  const shareOptions: ShareOption[] = useMemo(
     () => [
-      {
-        label: 'WhatsApp',
-        IconComponent: WhatappIcon,
-        action: shareOnWhatsApp,
-      },
-      {
-        label: 'Notion',
-        IconComponent: NotionIcon,
-        action: () => goUrlShare('https://notion.so'),
-      },
-      {
-        label: 'Facebook',
-        IconComponent: FaceIcon,
-        action: () => goUrlShare('https://facebook.com'),
-      },
-      {
-        label: 'Copiar enlace',
-        IconComponent: ContentCopyIcon,
-        action: () => void copyLink(),
-      },
-      {
-        label: 'Más',
-        IconComponent: MoreHorizIcon,
-        action: () => void shareApp(),
-      },
+      { label: 'WhatsApp', imageSource: whatappImg, action: shareOnWhatsApp },
+      { label: 'Notion', imageSource: notionImg, action: () => goUrlShare('https://notion.so') },
+      { label: 'Facebook', imageSource: faceImg, action: () => goUrlShare('https://facebook.com') },
+      { label: 'Copiar enlace', SvgIcon: ContentCopyIcon, action: () => void copyLink() },
+      { label: 'Más', SvgIcon: MoreHorizIcon, action: () => void shareApp() },
     ],
     [shareOnWhatsApp, goUrlShare, copyLink, shareApp],
   );
@@ -272,7 +258,8 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
           onPress={() => navigation.goBack()}
           testID="profile-back-btn"
         >
-          <Text style={styles.headerBtnText}>{'<'}</Text>
+          {/* ion-icon name='arrow-back-outline' size 24 color #FFFFFF (divergence 3) */}
+          <Ionicons name="arrow-back-outline" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text
           style={[
@@ -287,9 +274,12 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
           onPress={() => navigation.navigate('Alerts')}
           testID="profile-notifications-btn"
         >
-          <Text style={styles.headerBtnText}>
-            {hasUnread ? '🔔' : '🔕'}
-          </Text>
+          {/* ion-icon name='notifications'/'notifications-outline' (divergence 1) */}
+          <Ionicons
+            name={hasUnread ? 'notifications' : 'notifications-outline'}
+            size={24}
+            color="#FFFFFF"
+          />
           {hasUnread && (
             <View
               style={styles.badge}
@@ -434,9 +424,10 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
         enablePanDownToClose
       >
         <View style={styles.shareSheet}>
-          {/* Header row */}
+          {/* Header row — uses png logo (logop.svg has xlink:href which is unsupported in RN) */}
           <View style={styles.shareHeaderRow}>
-            <LogopIcon width={40} height={40} />
+            {/* logop.svg has xlink:href which is unsupported in RN — use PNG */}
+            <Image source={logopImg} style={styles.shareLogoIcon} resizeMode="cover" />
             <Text
               style={[
                 styles.shareHeaderText,
@@ -457,7 +448,11 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
                 onPress={opt.action}
                 testID={`share-option-${opt.label}`}
               >
-                <opt.IconComponent width={40} height={40} />
+                {opt.imageSource !== undefined ? (
+                  <Image source={opt.imageSource} style={styles.shareOptionIcon} resizeMode="contain" />
+                ) : (
+                  opt.SvgIcon && <opt.SvgIcon width={40} height={40} />
+                )}
                 <Text
                   style={[
                     styles.shareOptionLabel,
@@ -481,6 +476,7 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    backgroundColor: '#F5F5F5',
   },
   // Header bar (ion-toolbar color="uva_blue-500")
   headerBar: {
@@ -495,10 +491,6 @@ const styles = StyleSheet.create({
     minWidth: 36,
     alignItems: 'center',
     position: 'relative',
-  },
-  headerBtnText: {
-    fontSize: 20,
-    color: '#FFFFFF',
   },
   headerTitle: {
     fontSize: 18,
@@ -639,6 +631,7 @@ const styles = StyleSheet.create({
   shareLogoIcon: {
     width: 40,
     height: 40,
+    borderRadius: 4,
   },
   shareHeaderText: {
     flex: 1,

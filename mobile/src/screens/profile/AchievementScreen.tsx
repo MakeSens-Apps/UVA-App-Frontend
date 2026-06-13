@@ -34,6 +34,8 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  Image,
+  ImageBackground,
   StyleSheet,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -50,13 +52,14 @@ import { fontFamilyForWeight } from '@/theme/theme';
 
 // ─── Icons ─────────────────────────────────────────────────────────────────────
 // NOTE: react-native-svg-transformer requires SVG imports as React components.
+// brote uses brote1.png (original also uses .png for brote, see achievement.page.ts line 53)
 
 import SemillaIcon from '@/assets/svg/icons/semilla.svg';
-import BroteIcon from '@/assets/svg/icons/brote.svg';
 import PlatulaIcon from '@/assets/svg/icons/platula.svg';
 import FlorIcon from '@/assets/svg/icons/flor.svg';
 import ArrowRightIcon from '@/assets/svg/icons/arrow-right.svg';
 import DateIncompleteToDoneIcon from '@/assets/svg/icons/date_incomplete_to_done.svg';
+// ArrowRightIcon is used mirrored (scaleX: -1) as back button
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -66,14 +69,24 @@ interface Achievement {
 
 type Props = NativeStackScreenProps<AppStackParamList, 'Achievement'>;
 
-// ─── Achievement icon map ──────────────────────────────────────────────────────
-// Maps achievement icon key → SVG component (react-native-svg-transformer style)
+// ─── Achievement icon renderer ─────────────────────────────────────────────────
+// brote uses PNG (original: brote1.png); plantula + flor use SVG
 
-const ACHIEVEMENT_ICONS: Record<Achievement['icon'], React.FC<{ width: number; height: number }>> = {
-  brote: BroteIcon,
-  plantula: PlatulaIcon,
-  flor: FlorIcon,
-};
+function AchievementIcon({ icon }: { icon: Achievement['icon'] }): React.JSX.Element {
+  if (icon === 'brote') {
+    return (
+      <Image
+        source={require('@/assets/png/profile/brote1.png')}
+        style={{ width: 52, height: 52 }}
+        resizeMode="contain"
+      />
+    );
+  }
+  if (icon === 'plantula') {
+    return <PlatulaIcon width={52} height={52} />;
+  }
+  return <FlorIcon width={52} height={52} />;
+}
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
@@ -146,7 +159,12 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
           onPress={() => navigation.goBack()}
           testID="achievement-back-btn"
         >
-          <Text style={styles.headerBtnText}>{'<'}</Text>
+          <ArrowRightIcon
+            width={24}
+            height={24}
+            color="#FFFFFF"
+            style={styles.backIcon}
+          />
         </TouchableOpacity>
         <Text
           style={[
@@ -159,8 +177,12 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
         <View style={styles.headerBtn} />
       </View>
 
-      {/* Content — background verde claro aproximado */}
-      <View style={styles.contentWrapper}>
+      {/* Content — background verde claro con patrón (achievement.page.scss .content) */}
+      <ImageBackground
+        source={require('@/assets/png/profile/back.png')}
+        style={styles.contentWrapper}
+        imageStyle={styles.contentBgImage}
+      >
         <ScrollView
           contentContainerStyle={styles.scrollInner}
           showsVerticalScrollIndicator={false}
@@ -177,14 +199,11 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
                 Aún no tienes logros. ¡Completa registros para ganarlos!
               </Text>
             )}
-            {achievements.map((item, index) => {
-              const AchievIcon = ACHIEVEMENT_ICONS[item.icon];
-              return (
-                <View key={index} style={styles.achievementItem} testID="achievement-item">
-                  <AchievIcon width={52} height={52} />
-                </View>
-              );
-            })}
+            {achievements.map((item, index) => (
+              <View key={index} style={styles.achievementItem} testID="achievement-item">
+                <AchievementIcon icon={item.icon} />
+              </View>
+            ))}
           </View>
         </ScrollView>
 
@@ -208,7 +227,7 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
             ¿Dudas?
           </Text>
         </TouchableOpacity>
-      </View>
+      </ImageBackground>
 
       {/* modal_token_a — explicación de semillas */}
       <UvaBottomSheet
@@ -397,7 +416,11 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
               <Text style={[styles.tokenBody, { fontFamily: fontFamilyForWeight('400') }]}> a 40</Text>
               <SemillaIcon width={20} height={20} color={theme.colors.blue[700]} />
               <ArrowRightIcon width={20} height={20} color={theme.colors.blue[500]} />
-              <BroteIcon width={32} height={32} />
+              <Image
+                source={require('@/assets/png/profile/brote1.png')}
+                style={{ width: 32, height: 32 }}
+                resizeMode="contain"
+              />
             </View>
             <Text style={[styles.tokenBody, { fontFamily: fontFamilyForWeight('400') }]}>De 11 a 40 semillas germina un <Text style={styles.tokenStrong}>brote</Text></Text>
           </View>
@@ -475,11 +498,13 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   headerBtn: { padding: 4, minWidth: 36, alignItems: 'center' },
-  headerBtnText: { fontSize: 20, color: '#FFFFFF' },
+  backIcon: { transform: [{ scaleX: -1 }] },
   headerTitle: { fontSize: 18, color: '#FAFAFA', flex: 1, textAlign: 'center' },
   contentWrapper: {
     flex: 1,
-    backgroundColor: '#F4F4F4', // achievement bg approx
+  },
+  contentBgImage: {
+    resizeMode: 'cover',
   },
   scrollInner: { padding: 16, paddingBottom: 80 },
   emptyText: { textAlign: 'center', fontSize: 14, marginTop: 40 },
