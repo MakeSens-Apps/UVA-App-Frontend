@@ -656,6 +656,9 @@ const styles = StyleSheet.create({
     paddingLeft: 8,
   },
   button: {
+    // Original: ion-button expand="block" → full width. Explicit width:'100%' ensures
+    // parity on react-native-web where TouchableOpacity may not auto-stretch.
+    width: '100%',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',

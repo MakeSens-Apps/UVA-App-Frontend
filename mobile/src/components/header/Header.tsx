@@ -28,7 +28,9 @@
  * Visual parity fixes (home feature audit):
  *   - chip backgroundColor: --Colors-Blue-100 = #D1FBFC (was rgba(255,255,255,0.15))
  *   - seedText color: --Colors-Blue-700 = #14788A (was white)
- *   - SemillaIcon / UserCircleIcon color: --Colors-Blue-700 (was white)
+ *   - UserCircleIcon color: --Colors-Blue-700 (was white)
+ *   - SemillaIcon: no color prop — semilla.svg uses gradient fills (orange/brown)
+ *     that match the original <ion-icon src="semilla.svg"> which renders as-is (no tint)
  *   - chip height: 40px; borderRadius: 18px (original ion-chip sizing)
  *
  * Risks: R-29
@@ -174,7 +176,10 @@ export function Header({
             >
               {seedValue}
             </Text>
-            <SemillaIcon width={16} height={16} color={theme.colors.blue[700]} />
+            {/* semilla.svg has hardcoded gradient fills (orange/brown oval seed shape).
+                Original: <ion-icon src="semilla.svg"> renders without any color tint.
+                No color prop here — gradient fills must not be overridden. */}
+            <SemillaIcon width={16} height={16} />
             <UserCircleIcon width={40} height={40} color={theme.colors.blue[700]} />
           </TouchableOpacity>
         )}
