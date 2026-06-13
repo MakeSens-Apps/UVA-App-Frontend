@@ -27,7 +27,6 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  View,
   Text,
   Image,
   TextInput,
@@ -111,10 +110,10 @@ export function SetPhoneRegisterScreen({ navigation }: Props): React.JSX.Element
     void abrirModal();
   });
 
-  // Personalized subtitle: "{name}, por favor ingresa tu número de teléfono."
+  // Personalized subtitle: "{name}, por favor ingresa tu número de teléfono" (set-phone-register.page.html:3, no trailing period)
   const subtitle = userName
-    ? `${userName}, por favor ingresa tu número de teléfono.`
-    : 'Por favor ingresa tu número de teléfono.';
+    ? `${userName}, por favor ingresa tu número de teléfono`
+    : 'Por favor ingresa tu número de teléfono';
 
   return (
     <>
@@ -129,7 +128,13 @@ export function SetPhoneRegisterScreen({ navigation }: Props): React.JSX.Element
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.card}>
+          {/* Card: LinearGradient rgba(255,255,255,0.3)→rgba(255,255,255,0.8) (global.scss:100-106 .card-content_gradient) */}
+          <LinearGradient
+            colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.8)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={styles.card}
+          >
             {/* Logo */}
             <Image
               source={require('@/assets/png/icon-only.png') as number}
@@ -137,16 +142,17 @@ export function SetPhoneRegisterScreen({ navigation }: Props): React.JSX.Element
               resizeMode="contain"
             />
 
+            {/* Title: "Número de teléfono" (set-phone-register.page.html:2) — h1 font-weight:600 (global.scss:119) */}
             <Text
               style={[
                 styles.title,
                 {
-                  fontFamily: fontFamilyForWeight('700'),
+                  fontFamily: fontFamilyForWeight('600'),
                   color: theme.colors.blue[800],
                 },
               ]}
             >
-              Ingresa tu teléfono
+              Número de teléfono
             </Text>
 
             <Text
@@ -231,7 +237,7 @@ export function SetPhoneRegisterScreen({ navigation }: Props): React.JSX.Element
                 </Text>
               )}
             </TouchableOpacity>
-          </View>
+          </LinearGradient>
         </ScrollView>
       </LinearGradient>
 
@@ -253,8 +259,8 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    // LinearGradient replaces opaque white: see .card-content_gradient (global.scss:100-106)
+    borderRadius: 20,
     padding: 24,
     width: '100%',
     maxWidth: 400,
@@ -265,6 +271,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
+    overflow: 'hidden',
   },
   logo: {
     width: 70,

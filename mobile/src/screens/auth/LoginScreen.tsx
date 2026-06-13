@@ -8,8 +8,8 @@
  *   - Form validation: required, minLength(10), maxLength(10)
  *   - Modal confirmation texts (literal from original):
  *       content: "¿Es correcto este número de teléfono: <strong>{phone}</strong>?"
- *       textCancelButton: "No, editar"
- *       textOkButton: "Sí, continuar"
+ *       textCancelButton: "No, Editar"
+ *       textOkButton: "Sí, Continuar"
  *   - Post-signIn branch:
  *       isSignedIn (test user / no MFA) → createNewUser + navigate to ProjectVinculation
  *       !isSignedIn (MFA SMS challenge) → navigate to OTP
@@ -32,7 +32,7 @@
  *   - Subtitle: "Por favor ingresa tu número de teléfono." (explore-container subTitle)
  *   - Input label: "Número de teléfono" (ion-label, global.scss:151-155)
  *   - Input border: blue[500] (#10BCCA), bg:gray[50] (#FAFAFA), radius:10 (global.scss:170-172)
- *   - Button disabled: blue[700] opacity:0.4 (not gray[300])
+ *   - Button disabled: gray[300] (#D4D4D4) — Ionic disabled renders grayish neutral (not saturated teal)
  *   - Button radius: 14 (global.scss:197 explore-container ion-button)
  *   - Help text: "Te enviaremos un código..." (login.page.html:25-27)
  *   - Register row: "¿No tienes cuenta?" + "Registrate aquí" side by side (login.page.html:29-32)
@@ -124,8 +124,8 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
   async function abrirModal(phone: string): Promise<void> {
     const result = await showConfirm({
       content: `<p> ¿Es correcto este número de teléfono: <strong> ${phone} </strong>? </p>`,
-      textCancelButton: 'No, editar',
-      textOkButton: 'Sí, continuar',
+      textCancelButton: 'No, Editar',
+      textOkButton: 'Sí, Continuar',
     });
 
     if (result !== 'OK') return;
@@ -174,7 +174,13 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
         style={styles.gradient}
         testID="login-screen"
       >
-        <View style={styles.card}>
+        {/* Card: LinearGradient rgba(255,255,255,0.3)→rgba(255,255,255,0.8) (global.scss:100-106 .card-content_gradient) */}
+        <LinearGradient
+          colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.8)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.card}
+        >
           {/* Logo — ion-thumbnail 70x70, border-radius:14 (explore-container / global.scss:195-199) */}
           <Image
             source={require('@/assets/png/icon-only.png') as number}
@@ -186,7 +192,7 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
           <Text
             style={[
               styles.title,
-              { fontFamily: fontFamilyForWeight('700'), color: theme.semanticColors.text },
+              { fontFamily: fontFamilyForWeight('600'), color: theme.semanticColors.text },
             ]}
           >
             Hola de nuevo 👋
@@ -253,13 +259,14 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
             )}
           />
 
-          {/* Continuar button — disabled uses blue[700] + opacity:0.4 (not gray) */}
+          {/* Continuar button — disabled: gray[300] (#D4D4D4) so it doesn't bleed teal. Original Ionic
+               applies --background:rgba(var(--ion-color-uva_green-700-rgb),0.12) for disabled,
+               which renders as a grayish-neutral, not a saturated teal. */}
           <TouchableOpacity
             style={[
               styles.button,
               {
-                backgroundColor: theme.colors.blue[700],
-                opacity: isValid ? 1 : 0.4,
+                backgroundColor: isValid ? theme.colors.blue[700] : theme.colors.gray[300],
               },
             ]}
             onPress={onSubmit}
@@ -325,7 +332,7 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </LinearGradient>
       </LinearGradient>
 
       {/* Confirm modals rendered outside LinearGradient so they overlay properly */}
@@ -341,11 +348,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
+    // 5vw on 360px device = 18px (global.scss .container_explore padding:5vw)
+    padding: 18,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    // LinearGradient replaces opaque white: see .card-content_gradient (global.scss:100-106)
+    borderRadius: 20,
     padding: 24,
     width: '100%',
     maxWidth: 400,
@@ -357,12 +365,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
+    overflow: 'hidden',
   },
   logo: {
-    // ion-thumbnail: 70x70, --border-radius:14px (global.scss:195-199)
+    // ion-thumbnail: 70x70, --border-radius:14px, bg:#F5F5F5 (global.scss:195-199)
     width: 70,
     height: 70,
     borderRadius: 14,
+    backgroundColor: '#F5F5F5',
     marginBottom: 4,
   },
   title: {
@@ -389,15 +399,18 @@ const styles = StyleSheet.create({
     // border-radius: var(--xl, 10px) → 10 (global.scss:170)
     borderRadius: 10,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 12,
     fontSize: 16,
     marginBottom: 4,
   },
   button: {
     width: '100%',
+    // max-width:300px (global.scss:181 ion-button in .container_explore)
+    maxWidth: 300,
     paddingVertical: 13,
-    // --border-radius: 14px (global.scss:197 explore-container ion-button)
-    borderRadius: 14,
+    // ion-button in auth pages: no explicit --border-radius; Ionic md default ≈ 4px.
+    // Visual approximation from screen-03 evidence: ~8px.
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -423,9 +436,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   registerLink: {
-    // .ref: font-size:14, color:var(--Colors-Blue-800)=#1A6270 (global.scss:275)
+    // .ref: font-size:14, color:var(--Colors-Blue-800)=#1A6270, text-decoration:none (global.scss:273-277)
     fontSize: 14,
-    textDecorationLine: 'underline',
+    textDecorationLine: 'none',
   },
 });
 

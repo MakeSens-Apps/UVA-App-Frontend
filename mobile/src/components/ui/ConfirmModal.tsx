@@ -168,7 +168,8 @@ export function ConfirmModal({
         <View style={styles.card}>
           {/* HTML body rendered by RichText (B09) */}
           <View style={styles.contentContainer}>
-            <RichText html={content} baseFontSize={14} />
+            {/* alert.component.scss:47-50: p { font-size: 16px } */}
+            <RichText html={content} baseFontSize={16} />
           </View>
 
           {/* Button row */}
@@ -193,7 +194,8 @@ export function ConfirmModal({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.25)', // more transparent — login bg remains visible (alert.component.scss:3-14)
+    // IonModal scrim: very light overlay so teal bg card remains clearly visible (global.scss / alert.component.scss:3-14)
+    backgroundColor: 'rgba(0,0,0,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,

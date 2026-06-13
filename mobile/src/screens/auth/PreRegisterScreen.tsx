@@ -59,7 +59,13 @@ export function PreRegisterScreen({ navigation }: Props): React.JSX.Element {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.card}>
+        {/* Card: LinearGradient rgba(255,255,255,0.3)→rgba(255,255,255,0.8) (global.scss:100-106 .card-content_gradient) */}
+        <LinearGradient
+          colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.8)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.card}
+        >
           {/* Logo */}
           <Image
             source={require('@/assets/png/icon-only.png') as number}
@@ -68,20 +74,21 @@ export function PreRegisterScreen({ navigation }: Props): React.JSX.Element {
             testID="logo-image"
           />
 
-          {/* Title */}
+          {/* Title — titleHTML="<h1>Hola 👋 es un gusto <br> tenerte aquí! </h1>" (pre-register.page.html:2) */}
+          {/* h1: font-weight:600 (global.scss:119 .card-content_gradient h1) */}
           <Text
             style={[
               styles.title,
               {
-                fontFamily: fontFamilyForWeight('700'),
+                fontFamily: fontFamilyForWeight('600'),
                 color: theme.colors.blue[800],
               },
             ]}
           >
-            Bienvenido a UVA
+            Hola 👋 es un gusto{'\n'}tenerte aquí!
           </Text>
 
-          {/* Subtitle */}
+          {/* Message — "Uva App, es tu aplicación de monitoreo del clima" (pre-register.page.html:3) */}
           <Text
             style={[
               styles.subtitle,
@@ -91,7 +98,7 @@ export function PreRegisterScreen({ navigation }: Props): React.JSX.Element {
               },
             ]}
           >
-            Para continuar, debes aceptar los términos y condiciones de uso.
+            Uva App, es tu aplicación de monitoreo del clima
           </Text>
 
           {/* T&C checkbox row */}
@@ -125,6 +132,7 @@ export function PreRegisterScreen({ navigation }: Props): React.JSX.Element {
               )}
             </View>
 
+            {/* Checkbox label: "Aceptar <span class="ref">términos y condiciones</span>" (pre-register.page.html:11) */}
             <Text
               style={[
                 styles.checkboxLabel,
@@ -134,7 +142,7 @@ export function PreRegisterScreen({ navigation }: Props): React.JSX.Element {
                 },
               ]}
             >
-              Acepto los{' '}
+              {'Aceptar '}
               <Text
                 style={[
                   styles.linkText,
@@ -145,8 +153,7 @@ export function PreRegisterScreen({ navigation }: Props): React.JSX.Element {
                 ]}
               >
                 términos y condiciones
-              </Text>{' '}
-              de uso.
+              </Text>
             </Text>
           </TouchableOpacity>
 
@@ -174,7 +181,7 @@ export function PreRegisterScreen({ navigation }: Props): React.JSX.Element {
               Continuar
             </Text>
           </TouchableOpacity>
-        </View>
+        </LinearGradient>
       </ScrollView>
     </LinearGradient>
   );
@@ -193,8 +200,8 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    // LinearGradient replaces opaque white: see .card-content_gradient (global.scss:100-106)
+    borderRadius: 20,
     padding: 24,
     width: '100%',
     maxWidth: 400,
@@ -205,6 +212,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
+    overflow: 'hidden',
   },
   logo: {
     width: 70,

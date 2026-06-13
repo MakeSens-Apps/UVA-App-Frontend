@@ -80,7 +80,13 @@ export function RegisterScreen({ navigation }: Props): React.JSX.Element {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.card}>
+        {/* Card: LinearGradient rgba(255,255,255,0.3)→rgba(255,255,255,0.8) (global.scss:100-106 .card-content_gradient) */}
+        <LinearGradient
+          colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.8)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.card}
+        >
           {/* Logo */}
           <Image
             source={require('@/assets/png/icon-only.png') as number}
@@ -88,18 +94,20 @@ export function RegisterScreen({ navigation }: Props): React.JSX.Element {
             resizeMode="contain"
           />
 
+          {/* Title: "¡Conozcámonos!" (register.page.html:1) — h1 font-weight:600 (global.scss:119) */}
           <Text
             style={[
               styles.title,
               {
-                fontFamily: fontFamilyForWeight('700'),
+                fontFamily: fontFamilyForWeight('600'),
                 color: theme.colors.blue[800],
               },
             ]}
           >
-            Registro
+            ¡Conozcámonos!
           </Text>
 
+          {/* Message: "¿Cómo es tu nombre?" (register.page.html:1) */}
           <Text
             style={[
               styles.subtitle,
@@ -109,10 +117,10 @@ export function RegisterScreen({ navigation }: Props): React.JSX.Element {
               },
             ]}
           >
-            Por favor ingresa tu nombre y apellido.
+            ¿Cómo es tu nombre?
           </Text>
 
-          {/* Name field */}
+          {/* Name field — label "Nombres", placeholder "Ingresa tus nombres" (register.page.html:5,8) */}
           <View style={styles.fieldGroup}>
             <Text
               style={[
@@ -123,7 +131,7 @@ export function RegisterScreen({ navigation }: Props): React.JSX.Element {
                 },
               ]}
             >
-              Nombre
+              Nombres
             </Text>
             <Controller
               control={control}
@@ -142,7 +150,7 @@ export function RegisterScreen({ navigation }: Props): React.JSX.Element {
                       fontFamily: fontFamilyForWeight('400'),
                     },
                   ]}
-                  placeholder="Tu nombre"
+                  placeholder="Ingresa tus nombres"
                   placeholderTextColor={theme.colors.gray[400]}
                   onBlur={onBlur}
                   onChangeText={onChange}
@@ -154,7 +162,7 @@ export function RegisterScreen({ navigation }: Props): React.JSX.Element {
             />
           </View>
 
-          {/* LastName field */}
+          {/* LastName field — label "Apellidos", placeholder "Ingresa tus apellidos" (register.page.html:15,19) */}
           <View style={styles.fieldGroup}>
             <Text
               style={[
@@ -165,7 +173,7 @@ export function RegisterScreen({ navigation }: Props): React.JSX.Element {
                 },
               ]}
             >
-              Apellido
+              Apellidos
             </Text>
             <Controller
               control={control}
@@ -184,7 +192,7 @@ export function RegisterScreen({ navigation }: Props): React.JSX.Element {
                       fontFamily: fontFamilyForWeight('400'),
                     },
                   ]}
-                  placeholder="Tu apellido"
+                  placeholder="Ingresa tus apellidos"
                   placeholderTextColor={theme.colors.gray[400]}
                   onBlur={onBlur}
                   onChangeText={onChange}
@@ -220,7 +228,7 @@ export function RegisterScreen({ navigation }: Props): React.JSX.Element {
               Continuar
             </Text>
           </TouchableOpacity>
-        </View>
+        </LinearGradient>
       </ScrollView>
     </LinearGradient>
   );
@@ -239,8 +247,8 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    // LinearGradient replaces opaque white: see .card-content_gradient (global.scss:100-106)
+    borderRadius: 20,
     padding: 24,
     width: '100%',
     maxWidth: 400,
@@ -251,6 +259,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
+    overflow: 'hidden',
   },
   logo: {
     width: 70,
