@@ -99,11 +99,35 @@ function toKey(path: string, directory: Directory): string {
 }
 
 /**
- * Returns a synthetic "URI" for getFileUri — callers only need the string;
- * on web there is no real file, but the key can be used to retrieve content.
+ * Returns a synthetic "URI" for getFileUri — used only as a fallback when the
+ * file content is not found in localStorage. Callers that only check for success
+ * (not actually render the URI in an <Image>) can use this.
  */
 function toUri(path: string, directory: Directory): string {
   return `web-fs://${toKey(path, directory)}`;
+}
+
+/**
+ * Maps a file extension to its MIME type for data: URIs.
+ */
+function mimeForExtension(ext: string): string {
+  switch (ext) {
+    case 'png': return 'image/png';
+    case 'jpg':
+    case 'jpeg': return 'image/jpeg';
+    case 'svg': return 'image/svg+xml';
+    case 'gif': return 'image/gif';
+    case 'webp': return 'image/webp';
+    default: return 'application/octet-stream';
+  }
+}
+
+/**
+ * Returns true if the path points to an image file.
+ */
+function isImagePath(path: string): boolean {
+  const ext = path.split('.').pop()?.toLowerCase() ?? '';
+  return ['png', 'jpg', 'jpeg', 'svg', 'gif', 'webp'].includes(ext);
 }
 
 // ---------------------------------------------------------------------------
@@ -247,14 +271,42 @@ class FileSystemService {
   }
 
   /**
-   * Returns a synthetic URI for a given path.
-   * On web, callers that need a displayable URL should use the content directly.
+   * Returns a displayable URI for a given path.
+   *
+   * Web behaviour (B05 — no native file:// URIs):
+   *   - For image paths (png/jpg/svg/etc): reads the stored base64/text content
+   *     from localStorage and returns a data: URI so React Native <Image> can
+   *     display it in the browser.
+   *       - If the content was stored as base64 (binary): data:<mime>;base64,<content>
+   *       - If the content is SVG text (starts with '<'): encode via btoa first
+   *   - For non-image paths or when no content is stored: returns the synthetic
+   *     web-fs:// URI (original behaviour — callers that read JSON use readFile anyway).
+   *
+   * Native: unchanged — file-system.ts returns a real file:// URI via expo-file-system.
    */
   async getFileUri(
     path: string,
     directory: Directory,
   ): Promise<FileSystemResponse<GetUriResult>> {
     try {
+      if (isImagePath(path)) {
+        const key = toKey(path, directory);
+        const content = localStorage.getItem(key);
+        if (content !== null && content.length > 0) {
+          const ext = path.split('.').pop()?.toLowerCase() ?? '';
+          const mime = mimeForExtension(ext);
+          // SVG files may be stored as raw XML text (not base64) — encode them
+          if (ext === 'svg' && content.trimStart().startsWith('<')) {
+            const b64 = btoa(unescape(encodeURIComponent(content)));
+            return { success: true, data: { uri: `data:${mime};base64,${b64}` } };
+          }
+          // PNG/JPG/other binary stored as base64 string
+          return { success: true, data: { uri: `data:${mime};base64,${content}` } };
+        }
+        // Content not in localStorage yet — return synthetic URI (no-op for Image)
+        return { success: true, data: { uri: toUri(path, directory) } };
+      }
+      // Non-image path — synthetic URI (callers use readFile for JSON/text)
       const uri = toUri(path, directory);
       return { success: true, data: { uri } };
     } catch (err) {
