@@ -61,24 +61,26 @@ type Props = NativeStackScreenProps<AppStackParamList, 'Alerts'>;
 // ─── Icon helpers (portado de getNotificationIcon/Bg) ─────────────────────────
 
 /**
- * Returns a unicode emoji / text icon equivalent for the notification type.
- * Preserves the original getNotificationIcon switch exactly.
+ * Returns the Ionicons icon name for the notification type.
+ * Mirrors the original alerts.page.ts getNotificationIcon() switch exactly.
  */
-function getNotificationIcon(notification: GamificationNotification): string {
+function getNotificationIcon(
+  notification: GamificationNotification,
+): React.ComponentProps<typeof Ionicons>['name'] {
   switch (notification.type) {
     case 'seeds':
-      return '✨';
+      return 'sparkles';
     case 'streak':
-      if (notification.subtype === 'streak_recovered') return '✅';
-      if (notification.subtype === 'streak_recovery') return '⚠️';
-      if (notification.subtype === 'streak_lost') return '❌';
-      return '🔥';
+      if (notification.subtype === 'streak_recovered') return 'checkmark-circle';
+      if (notification.subtype === 'streak_recovery') return 'warning';
+      if (notification.subtype === 'streak_lost') return 'close-circle';
+      return 'flame';
     case 'achievement':
-      return '🏆';
+      return 'trophy';
     case 'bonus':
-      return '⚡';
+      return 'flash';
     default:
-      return '🔔';
+      return 'notifications-outline';
   }
 }
 
@@ -176,8 +178,9 @@ export function AlertsScreen({ navigation }: Props): React.JSX.Element {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer} testID="no-notifications">
+      {/* Original: ion-icon name="notifications-off-outline" */}
       <View style={styles.emptyIconCircle}>
-        <Text style={styles.emptyIconText}>🔕</Text>
+        <Ionicons name="notifications-off-outline" size={40} color="#737373" />
       </View>
       <Text
         style={[
@@ -202,7 +205,19 @@ export function AlertsScreen({ navigation }: Props): React.JSX.Element {
 
   const renderItem = ({ item }: { item: GamificationNotification }) => {
     const iconBg = getNotificationIconBg(item);
-    const iconEmoji = getNotificationIcon(item);
+    const iconName = getNotificationIcon(item);
+    // Icon color mirrors the original SCSS: each icon-bg class defines a paired color
+    const iconColor = (() => {
+      switch (item.type) {
+        case 'seeds': return '#c9680e';        // icon-bg-accent / uva_orange-500-shade
+        case 'streak':
+          if (item.subtype === 'streak_lost') return '#737373'; // icon-bg-muted / Gray-700
+          return '#0d8f9a';                    // icon-bg-primary / uva_green-700
+        case 'achievement': return '#0d8f9a';  // icon-bg-primary / uva_green-700
+        case 'bonus': return '#164551';        // icon-bg-yellow / Colors-Blue-900
+        default: return '#737373';             // icon-bg-muted / Colors-Gray-700
+      }
+    })();
 
     return (
       <Pressable
@@ -217,9 +232,9 @@ export function AlertsScreen({ navigation }: Props): React.JSX.Element {
           )}
         </View>
 
-        {/* Icon circle */}
+        {/* Icon circle — Ionicons SVG (matches original ion-icon) */}
         <View style={[styles.notifIconCircle, { backgroundColor: iconBg }]}>
-          <Text style={styles.notifIconText}>{iconEmoji}</Text>
+          <Ionicons name={iconName} size={20} color={iconColor} />
         </View>
 
         {/* Content */}
@@ -388,7 +403,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
-  notifIconText: { fontSize: 20 },
+  // notifIconText removed — replaced by Ionicons component
   // Notification content
   notifContent: { flex: 1, minWidth: 0 },
   notifTitle: {
@@ -426,7 +441,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.1)',
   },
-  emptyIconText: { fontSize: 40 },
+  // emptyIconText removed — replaced by Ionicons component
   emptyTitle: {
     fontSize: 18,
     color: '#000000',

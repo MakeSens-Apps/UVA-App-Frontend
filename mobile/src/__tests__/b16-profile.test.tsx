@@ -670,29 +670,29 @@ describe('AlertsScreen — markAsRead decrements unreadCount', () => {
     });
   });
 
-  it('getNotificationIcon: retorna emoji correcto por tipo (pure logic)', () => {
-    // Replicates getNotificationIcon logic from the original service
+  it('getNotificationIcon: retorna Ionicons name correcto por tipo (pure logic)', () => {
+    // r2 fix: emoji → Ionicons names (mirrors original alerts.page.ts getNotificationIcon)
     const getIcon = (type?: string, subtype?: string): string => {
       switch (type) {
-        case 'seeds': return '✨';
+        case 'seeds': return 'sparkles';
         case 'streak':
-          if (subtype === 'streak_recovered') return '✅';
-          if (subtype === 'streak_recovery') return '⚠️';
-          if (subtype === 'streak_lost') return '❌';
-          return '🔥';
-        case 'achievement': return '🏆';
-        case 'bonus': return '⚡';
-        default: return '🔔';
+          if (subtype === 'streak_recovered') return 'checkmark-circle';
+          if (subtype === 'streak_recovery') return 'warning';
+          if (subtype === 'streak_lost') return 'close-circle';
+          return 'flame';
+        case 'achievement': return 'trophy';
+        case 'bonus': return 'flash';
+        default: return 'notifications-outline';
       }
     };
 
-    expect(getIcon('seeds')).toBe('✨');
-    expect(getIcon('streak', 'streak_recovered')).toBe('✅');
-    expect(getIcon('streak', 'streak_recovery')).toBe('⚠️');
-    expect(getIcon('streak', 'streak_lost')).toBe('❌');
-    expect(getIcon('streak', 'streak_progress')).toBe('🔥');
-    expect(getIcon('achievement')).toBe('🏆');
-    expect(getIcon('bonus')).toBe('⚡');
-    expect(getIcon(undefined)).toBe('🔔');
+    expect(getIcon('seeds')).toBe('sparkles');
+    expect(getIcon('streak', 'streak_recovered')).toBe('checkmark-circle');
+    expect(getIcon('streak', 'streak_recovery')).toBe('warning');
+    expect(getIcon('streak', 'streak_lost')).toBe('close-circle');
+    expect(getIcon('streak', 'streak_progress')).toBe('flame');
+    expect(getIcon('achievement')).toBe('trophy');
+    expect(getIcon('bonus')).toBe('flash');
+    expect(getIcon(undefined)).toBe('notifications-outline');
   });
 });
