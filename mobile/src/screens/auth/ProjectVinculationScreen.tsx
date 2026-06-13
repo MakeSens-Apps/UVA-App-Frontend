@@ -302,13 +302,12 @@ export function ProjectVinculationScreen({ navigation }: Props): React.JSX.Eleme
             </View>
           )}
 
-          {/* Submit button */}
+          {/* Submit button — disabled: gray[300] (#D4D4D4) same pattern as LoginScreen */}
           <TouchableOpacity
             style={[
               styles.button,
               {
-                backgroundColor: theme.colors.blue[700],
-                opacity: isValid ? 1 : 0.4,
+                backgroundColor: isValid ? theme.colors.blue[700] : theme.colors.gray[300],
               },
             ]}
             onPress={() => void goToValidateProject()}
@@ -381,9 +380,11 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
   },
   logo: {
+    // ion-thumbnail: 70x70, --border-radius:14px, bg:#F5F5F5 (global.scss:195-199)
     width: 70,
     height: 70,
     borderRadius: 14,
+    backgroundColor: '#F5F5F5',
     marginBottom: 4,
   },
   title: {

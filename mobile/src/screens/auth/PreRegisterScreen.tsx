@@ -16,7 +16,7 @@
  *   - Card: white, borderRadius:16, padding:24, shadow
  *   - Checkbox color: blue[500] (#10BCCA)
  *   - Button enabled: blue[700] (#14788A), radius:14
- *   - Button disabled: blue[700] opacity:0.4
+ *   - Button disabled: gray[300] (#D4D4D4) — same pattern as LoginScreen
  *   - Title: 20px bold, blue[800] (#1A6270)
  *   - Subtitle: 16px medium, gray[700] (#404040)
  */
@@ -162,8 +162,7 @@ export function PreRegisterScreen({ navigation }: Props): React.JSX.Element {
             style={[
               styles.button,
               {
-                backgroundColor: theme.colors.blue[700],
-                opacity: accepted ? 1 : 0.4,
+                backgroundColor: accepted ? theme.colors.blue[700] : theme.colors.gray[300],
               },
             ]}
             onPress={() => navigation.navigate('Register')}
@@ -256,7 +255,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   linkText: {
-    textDecorationLine: 'underline',
+    // .ref: text-decoration:none (global.scss:276) — no underline, only color distinction
+    textDecorationLine: 'none',
   },
   button: {
     width: '100%',

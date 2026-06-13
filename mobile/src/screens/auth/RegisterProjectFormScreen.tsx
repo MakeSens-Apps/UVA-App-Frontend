@@ -286,13 +286,12 @@ export function RegisterProjectFormScreen({ navigation }: Props): React.JSX.Elem
             </View>
           ))}
 
-          {/* Submit button */}
+          {/* Submit button — disabled: gray[300] (#D4D4D4) same pattern as LoginScreen */}
           <TouchableOpacity
             style={[
               styles.button,
               {
-                backgroundColor: theme.colors.blue[700],
-                opacity: isFormValid() ? 1 : 0.4,
+                backgroundColor: isFormValid() ? theme.colors.blue[700] : theme.colors.gray[300],
               },
             ]}
             onPress={() => void goToCompleted()}

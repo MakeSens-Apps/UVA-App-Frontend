@@ -209,13 +209,12 @@ export function SetPhoneRegisterScreen({ navigation }: Props): React.JSX.Element
               )}
             />
 
-            {/* Continuar button */}
+            {/* Continuar button — disabled: gray[300] (#D4D4D4) same pattern as LoginScreen */}
             <TouchableOpacity
               style={[
                 styles.button,
                 {
-                  backgroundColor: theme.colors.blue[700],
-                  opacity: isValid ? 1 : 0.4,
+                  backgroundColor: isValid ? theme.colors.blue[700] : theme.colors.gray[300],
                 },
               ]}
               onPress={() => void onSubmit()}
