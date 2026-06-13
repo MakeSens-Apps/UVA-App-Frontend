@@ -18,7 +18,8 @@
  *   - goBack(url) → onBackPress callback prop
  *   - ion-header/ion-toolbar → React Navigation SafeAreaView + View
  *   - ion-chip → custom chip layout
- *   - ion-icon → SVG components
+ *   - ion-icon (arrow-back-outline) → Ionicons "arrow-back-outline" from @expo/vector-icons (pixel-perfect r2 fix)
+ *   - Other ion-icons → SVG components
  *
  * Preserved contracts:
  *   - title, seed, hasBackButton, routerBackButton, hasProfileButton, hasCenterTitle props
@@ -42,13 +43,13 @@ import {
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';
 
 // ─── Icon imports ──────────────────────────────────────────────────────────────
 
-import ArrowRightIcon from '@/assets/svg/icons/arrow-right.svg';
 import SemillaIcon from '@/assets/svg/icons/semilla.svg';
 import UserCircleIcon from '@/assets/svg/icons/user-circle.svg';
 
@@ -126,19 +127,14 @@ export function Header({
       testID="header"
     >
       <View style={[styles.toolbar, hasCenterTitle && styles.toolbarCenter]}>
-        {/* Back button */}
+        {/* Back button — ion-icon name="arrow-back-outline" (header.component.html:7) */}
         {hasBackButton && (
           <TouchableOpacity
             style={styles.backButton}
             onPress={onBackPress}
             testID="header-back-btn"
           >
-            <ArrowRightIcon
-              width={24}
-              height={24}
-              color={theme.colors.white}
-              style={{ transform: [{ rotate: '180deg' }] }}
-            />
+            <Ionicons name="arrow-back-outline" size={24} color={theme.colors.white} />
           </TouchableOpacity>
         )}
 
