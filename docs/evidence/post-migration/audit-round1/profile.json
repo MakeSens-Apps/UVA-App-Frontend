@@ -1,0 +1,113 @@
+{
+ "feature": "profile",
+ "total": 15,
+ "altas": 5,
+ "verdict": "NO pasa el criterio pixel-perfect. Se identificaron 15 divergencias: 4 de severidad alta, 6 de severidad media y 5 de baja. Los problemas críticos son: (1) la campana de alertas reportada por el usuario como 'terrible' — usa emoji Unicode coloreado 🔔 en lugar del SVG outline blanco (#FFFFFF) del original; (2) el back button en el ProfileScreen no debería existir (es un tab raíz sin back); (3) el fondo del Achievement screen perdió el ImageBackground con el patrón verde de pasto (back.png), quedando gris liso; (4) la mayoría de las celdas de logros están vacías. Los problemas medios incluyen: el ícono de settings en Alerts es emoji ⚙️, los timestamps de notificaciones cambiaron de formato absoluto a relativo, los estados de sincronización están invertidos en Configuración, y los back buttons de todas las sub-pantallas usan texto '<' en lugar del SVG chevron. La arquitectura visual del profile-card (colores, bordes, chips de estado, menú de items, botón logout) y el PersonalInfoScreen están razonablemente bien migrados. La solución prioritaria es: (a) crear/importar SVGs para campana, engranaje y flechas, (b) eliminar el back button del ProfileScreen, (c) restaurar ImageBackground en AchievementScreen, (d) corregir el formato de timestamps en GamificationService.",
+ "divergences": [
+  {
+   "what": "Campana de alertas: emoji 🔔/🔕 en lugar de icono SVG vectorial blanco outline",
+   "original": "Ion-icon 'notifications-outline' blanco (#FFFFFF), tamaño 24px, SVG outline limpio — visible en screen-01-profile-main.png (esquina superior derecha: icono campana outline monocromo, sin fondo)",
+   "current": "ProfileScreen.tsx línea 291-294: emoji Unicode 🔔/🔕 renderizado como glifo de fuente del sistema (tamaño 20px de emoji, coloreado, con contorno grueso). Badge rojo pequeño correcto (8×8 #E5245E). En post-migration/screen-01-profile-main.png se ve la campana como emoji dorado/amarillo con relleno, no outline blanco",
+   "severity": "alta",
+   "fix": "mobile/src/screens/profile/ProfileScreen.tsx: reemplazar el bloque de texto emoji con un componente SVG. Importar BellIcon desde '@/assets/svg/icons/bell.svg' (crear si no existe, usando el path SVG de notifications-outline de Ionicons, fill none, stroke white, strokeWidth 2). Cambiar:\n<Text style={styles.headerBtnText}>{hasUnread ? '🔔' : '🔕'}</Text>\npor:\n<BellIcon width={24} height={24} color=\"#FFFFFF\" />\nEl badge rojo ya existe correctamente (styles.badge)."
+  },
+  {
+   "what": "Campana de alertas en AlertsScreen: settings icon ⚙️ emoji en lugar de SVG settings-outline",
+   "original": "Ion-icon 'settings-outline' blanco (#FFFFFF), 24px, SVG outline — visible en screen-13-alerts-with-data.png (esquina derecha del header: icono engranaje outline monocromo blanco)",
+   "current": "AlertsScreen.tsx línea 281: <Text style={styles.headerBtnText}>⚙️</Text> — emoji de engranaje con colores del sistema (gris metálico), tamaño ~20px, no outline blanco. En post-migration/screen-13-alerts-with-data.png se confirma el engranaje como emoji gris oscuro con colores sistema",
+   "severity": "alta",
+   "fix": "mobile/src/screens/profile/AlertsScreen.tsx: importar SettingsIcon desde '@/assets/svg/icons/settings.svg'. Reemplazar <Text style={styles.headerBtnText}>⚙️</Text> por <SettingsIcon width={24} height={24} color=\"#FFFFFF\" />. Eliminar el headerBtnText que queda huérfano para este slot."
+  },
+  {
+   "what": "Header del ProfileScreen: botón back es '<' texto en lugar de flecha SVG y no tiene back button en el original",
+   "original": "En el header del Perfil NUNCA hay botón de back — el Perfil es un tab raíz. screen-01-profile-main.png y screen-01b-profile-with-user-data.png confirman: lado izquierdo del header completamente vacío (sin flecha). Hay campana en la derecha. En Ionic el header no tiene ion-back-button en la ruta de tab /tabs/profile",
+   "current": "ProfileScreen.tsx línea 270-278: hay un TouchableOpacity con '<' en el lado izquierdo del header. En post-migration/screen-01-profile-main.png se observa la flecha '<' en la esquina superior izquierda",
+   "severity": "alta",
+   "fix": "mobile/src/screens/profile/ProfileScreen.tsx: eliminar el primer TouchableOpacity del headerBar (el de profile-back-btn con '< '). Reemplazarlo con <View style={styles.headerBtn} /> (placeholder vacío para mantener el justify-content: space-between del header). El ProfileScreen es pantalla de tab raíz y no debe tener botón de retroceso."
+  },
+  {
+   "what": "Fondo del ProfileScreen: la app muestra un header y un fondo de color incorrecto fuera de la tarjeta",
+   "original": "profile.page.scss línea 22-23: background #F5F5F5 en todo el contenido. El scrollContent FUERA de la tarjeta blanca es gris muy claro #F5F5F5. En screen-01-profile-main.png se observa el área alrededor de la tarjeta con ese gris neutro",
+   "current": "ProfileScreen.tsx línea 304: scrollContent usa { backgroundColor: theme.colors.gray[100] } que es #F5F5F5 — correcto. Pero hay un wrapper <View style={styles.root}> con flex:1 sin backgroundColor. En web/expo, la zona entre la scrollview y el borde de pantalla puede quedar blanca. No es crítico pero sí confirmar que styles.root incluya backgroundColor: '#F5F5F5'",
+   "severity": "baja",
+   "fix": "mobile/src/screens/profile/ProfileScreen.tsx: en styles.root agregar backgroundColor: '#F5F5F5' para asegurar consistencia si el scroll no cubre toda el área."
+  },
+  {
+   "what": "Achievement screen: fondo verde con patrón (back.png) ausente — se usa #F4F4F4 gris liso",
+   "original": "achievement.page.scss línea 28-36: background-image url('back.png') con background-size: cover. Screen-09-achievement-with-data.png muestra fondo verde claro con motivo de hierbas/pasto (textura verde visible en la zona inferior). Los achievement-items también tienen un fondo rgba(242,249,236,0.7) semitransparente sobre el fondo verde",
+   "current": "AchievementScreen.tsx línea 481: contentWrapper backgroundColor '#F4F4F4' gris neutro. En post-migration/screen-09-achievement-with-data.png el fondo es completamente blanco/gris sin ninguna textura verde. Las celdas de logros aparecen blancas vacías (sin iconos SVG de semillas/brotes renderizados en la mayoría), y el fondo inferior es gris liso sin el patrón de pasto",
+   "severity": "alta",
+   "fix": "mobile/src/screens/profile/AchievementScreen.tsx: en el contentWrapper, usar ImageBackground desde react-native con source={require('@/assets/png/profile/back.png')} (o la ruta equivalente en el proyecto RN). Estilar imageStyle={{ resizeMode: 'cover' }}. Cambiar:\n<View style={styles.contentWrapper}>\npor:\n<ImageBackground source={require('@/assets/images/back.png')} style={styles.contentWrapper} imageStyle={{ resizeMode: 'cover' }}>\n... y cerrar con </ImageBackground>. Si el asset no existe en RN, copiarlo de src/assets/images/icons/back.png a mobile/src/assets/."
+  },
+  {
+   "what": "Achievement screen: iconos de logros no se renderizan correctamente — celdas vacías o con iconos muy pequeños",
+   "original": "achievement.page.scss línea 252-256: imágenes de logro 53×52px inside de celdas 70×70. En screen-09-achievement-with-data.png se ven 16 celdas con iconos de plantas (brotes) bien visibles, tamaño ~53px, con distintos niveles de planta (brote1, brote2, brote3, brote4, brote5…)",
+   "current": "AchievementScreen.tsx línea 184: AchievIcon width={52} height={52}. En post-migration/screen-09-achievement-with-data.png solo 2 de 16 celdas muestran un icono muy pequeño (~15px de planta), el resto están vacías/blancas. Indica que los SVGs existen pero el mapa ACHIEVEMENT_ICONS solo cubre 'brote'/'plantula'/'flor' y getMilestones() devuelve tipos que no coinciden con esos literales, o el SVG BroteIcon/PlatulaIcon/FlorIcon no escala correctamente en la web.",
+   "severity": "alta",
+   "fix": "mobile/src/screens/profile/AchievementScreen.tsx: verificar que UserProgressDSService.getMilestones() retorne los strings exactos 'brote', 'plantula', 'flor'. En el switch del mapeo (línea 101-108), agregar un console.log de depuración para ver qué valores reales llegan. Además, asegurarse de que BroteIcon, PlatulaIcon y FlorIcon son react-native-svg-transformer SVGs que renderizan correctamente con width/height explícito. Si getMilestones() retorna 16 items del mismo tipo, todos deberían mostrarse."
+  },
+  {
+   "what": "Profile share modal: el logo de preview (logop.svg) no se renderiza — aparece un cuadrado vacío",
+   "original": "screen-03-profile-share-modal.png (original Ionic): muestra un thumbnail cuadrado de preview con imagen naranja-beige (miniatura de imagen). El modal abre el share sheet nativo del sistema con opciones: WhatsApp, Notion, Facebook, Copiar enlace, Más",
+   "current": "post-migration/screen-03-profile-share-modal.png: el LogopIcon (SVG) muestra un cuadrado blanco vacío 40×40 sin contenido visual. Las opciones WhatsApp/Notion/Facebook/Copiar/Más aparecen como texto sin iconos debajo. El modal se muestra como BottomSheet custom (no nativo), lo cual ya es una diferencia aceptable por plataforma",
+   "severity": "media",
+   "fix": "mobile/src/screens/profile/ProfileScreen.tsx: verificar que logop.svg esté configurado en react-native-svg-transformer y que el SVG tenga viewBox y paths definidos. Si el SVG está vacío o mal formado, reemplazar LogopIcon con <Image source={require('@/assets/png/logo_Natura_Isagen.png')} style={{ width: 40, height: 40, resizeMode: 'contain' }} />. Para los íconos de las opciones (WhatsApp/Notion/Facebook) verificar que WhatappIcon, NotionIcon, FaceIcon, ContentCopyIcon, MoreHorizIcon rendericen correctamente al estar en el BottomSheet."
+  },
+  {
+   "what": "Notifications (alerts) list: los iconos de notificación usan emoji Unicode en lugar de círculos de color con SVG/icono",
+   "original": "alerts.page.scss: .notification-icon es un círculo 48×48px con background de color según tipo. El ícono dentro es un ion-icon (SVG) de 20px. En screen-13-alerts-with-data.png se observan círculos beige/naranja (#e58b2433) con estrellas SVG (✨), llamas, advertencias — los iconos son SVG vectoriales del sistema Ionic dentro de círculos coloreados con fondo semitransparente",
+   "current": "AlertsScreen.tsx línea 381: notifIconText fontSize: 20 con emoji unicode. En post-migration/screen-13-alerts-with-data.png los círculos tienen emojis: 🔥 (llama), ❌ (X roja), ⚠️ (triángulo advertencia), 🏆 (copa dorada). Los emojis tienen colores propios del sistema que no coinciden exactamente con la paleta de la app, aunque el diámetro del círculo (48×48) y colores de fondo (#e58b2433, #10bcca33) sí coinciden con el SCSS original",
+   "severity": "media",
+   "fix": "mobile/src/screens/profile/AlertsScreen.tsx: aunque los emojis son aceptables como fallback, para fidelidad perfecta reemplazar con SVG icons. Para streak=fire usar una llama SVG naranja, para streak_lost usar una X roja SVG, para seeds usar sparkles SVG. Si no hay SVGs disponibles, al menos usar Text con fontSize reducido a 18px para que el emoji quede contenido dentro del círculo sin desbordarse."
+  },
+  {
+   "what": "Notifications timestamp: formato cambiado de fecha absoluta (31/5/2026) a relativo (Hoy • 00:05)",
+   "original": "screen-13-alerts-with-data.png (Ionic): timestamp muestra fechas absolutas en formato dd/mm/yyyy: '31/5/2026', '30/5/2026'. Color #737373 (--Colors-Gray-500), font-size 12px",
+   "current": "post-migration/screen-13-alerts-with-data.png: timestamps muestran 'Hoy • 00:05' para todas las notificaciones. El formato relativo es visualmente diferente y no refleja el original. AlertsScreen.tsx línea 242: {item.timestamp} — depende del formato que retorna GamificationService.getNotifications()",
+   "severity": "media",
+   "fix": "mobile/src/domain/gamification/gamification.ts o gamification-alerts-types.ts: en el método getNotifications(), formatear el timestamp como fecha absoluta dd/mm/yyyy usando date-fns format(date, 'dd/MM/yyyy'). El campo timestamp del GamificationNotification debe ser una cadena en ese formato, no relativo."
+  },
+  {
+   "what": "Delete account modal: layout del bottom sheet no tiene fondo gris (#F5F5F5) — el modal aparece sobre contenido de la página",
+   "original": "screen-08-personal-info-delete-modal-1.png (Ionic): el modal tiene fondo semitransparente gris oscuro detrás (backdrop), y el sheet en sí tiene fondo blanco (#FFF) con el texto y botones. La parte superior del backdrop oscurece la pantalla de fondo. Los botones 'Sí, quiero eliminarla' (outline naranja) y 'No, no quiero eliminarla' (sólido naranja #D7751F) están correctamente dimensionados al 50% de ancho cada uno",
+   "current": "post-migration/screen-08-personal-info-delete-modal-1.png: el UvaBottomSheet se muestra correctamente con backdrop. Sin embargo los botones aparecen full-width apilados (no side-by-side 50/50). El texto 'No, no quiero eliminarla' se corta en el botón sólido naranja. PersonalInfoScreen.tsx styles.deleteButtons: { flexDirection: 'row', gap: 10 } — debería funcionar. Posible que el BottomSheet restrinja el ancho.",
+   "severity": "media",
+   "fix": "mobile/src/screens/profile/PersonalInfoScreen.tsx: en styles.deleteOutlineBtn y styles.deleteSolidBtn asegurarse que flex:1 esté presente (ya están correctos en el código). Verificar que el contenedor styles.deleteModal tenga paddingHorizontal adecuado (ya tiene padding:10). Si el texto se sigue cortando, reducir fontSize en deleteOutlineBtnText y deleteSolidBtnText de 13 a 12. Adicionalmente añadir numberOfLines={2} al Text de los botones con textAlign:'center'."
+  },
+  {
+   "what": "Personal info: fondo del contenido de campos es blanco (#FFFFFF) en lugar de gris (#F5F5F5 / Gray-100)",
+   "original": "personal-info.page.scss línea 21-24: .content, ion-content { background: #ffffff; --background: #ffffff; }. Los campos readonly tienen fondo #E5E5E5. La sección de formulario (form) tiene background: var(--Colors-Gray-100) = #F5F5F5. En screen-04-personal-info-readonly.png se ve que FUERA de los campos el fondo es blanco (#FFF), y la tarjeta de campos tiene fondo gris (#F5F5F5)",
+   "current": "PersonalInfoScreen.tsx línea 301: scrollContent usa { backgroundColor: theme.colors.gray[100] } = #F5F5F5. Pero el profileCard tiene backgroundColor: '#FFFFFF' con borderRadius 16, lo cual es correcto. Los inputContainer en modo read-only usan fieldBg = theme.colors.gray[100] = #F5F5F5 y borderColor gray[200]. En post-migration/screen-04-personal-info-readonly.png los inputs de datos readonly se ven con fondo gris claro — esta parte parece correcta",
+   "severity": "baja",
+   "fix": "No se requiere cambio para el fondo general. Verificar que theme.colors.gray[100] = '#F5F5F5' y theme.colors.gray[200] = '#E5E5E5' en el theme RN. Si los inputs readonly aparecen blancos en device real, asegurar que fieldBg para disabled=true siempre use theme.colors.gray[100] independientemente del isEditable."
+  },
+  {
+   "what": "ConfigurationScreen: estado de sincronización invertido respecto al original",
+   "original": "screen-14-configuration.png (Ionic): 'Sincronizar mediciones' muestra '⚠ Con sincronizaciones pendientes' (texto naranja) y botón 'Sincronizacion con la nube' activo (fondo teal). 'Actualizaciones' muestra '✓ Sin actualizaciones pendientes' (texto gris) y botón 'Actualizar configuraciones' en gris (deshabilitado o secundario)",
+   "current": "post-migration/screen-14-configuration.png: 'Sincronizar mediciones' muestra '✓ Sin sincronizaciones pendientes' (texto gris, botón deshabilitado) — el botón 'Sincronizacion con la nube' aparece gris/inactivo. 'Actualizaciones' muestra '⚠ Con actualizaciones pendientes' (naranja) y botón activo. Los estados están invertidos entre las dos secciones",
+   "severity": "media",
+   "fix": "mobile/src/screens/configuration/ConfigurationScreen.tsx: revisar la lógica que pasa hasPendingSync y hasPendingUpdate a los dos componentes SyncAction. La prop que debería ser true para mostrar el estado 'Con sincronizaciones pendientes' en el primer SyncAction se está pasando al segundo y viceversa. Intercambiar las props hasPending (o equivalente) entre los dos SyncAction instances."
+  },
+  {
+   "what": "ConfigurationScreen: el caret del chip 'Permisos requeridos' es un triángulo ▼ de texto en lugar del SVG chevron-down",
+   "original": "screen-14-configuration.png (Ionic): el chip 'Permisos requeridos' tiene a su derecha un chevron-down (V) que es un ion-icon SVG outline, gris #9E9E9E, ~16px",
+   "current": "post-migration/screen-14-configuration.png: aparece el texto '▼' (triángulo Unicode lleno, carácter de texto, negro). No es el mismo icono. ConfigurationScreen usa Text con '▼' o '▲'",
+   "severity": "baja",
+   "fix": "mobile/src/screens/configuration/ConfigurationScreen.tsx: reemplazar el caracter '▼'/'▲' con un componente ChevronDownIcon SVG importado de '@/assets/svg/icons/chevron-down.svg'. Tamaño 16×16, color '#9E9E9E'."
+  },
+  {
+   "what": "Header back button en sub-pantallas del perfil: usa texto '<' en lugar del SVG ArrowRight rotado 180°",
+   "original": "El componente Header.tsx (línea 136-143) ya tiene la implementación correcta con ArrowRightIcon rotado 180°. Pero en ProfileScreen, PersonalInfoScreen, AchievementScreen, AlertsScreen se implementan headers propios inline con '<' texto",
+   "current": "ProfileScreen.tsx línea 275, PersonalInfoScreen.tsx línea 286, AchievementScreen.tsx línea 149, AlertsScreen.tsx línea 266: todos usan <Text style={styles.headerBtnText}>{'<'}</Text> para el botón de back. En los screenshots post-migración se ve un '<' minúsculo de texto, no la flecha chevron SVG del diseño original",
+   "severity": "media",
+   "fix": "En los cuatro archivos (AlertsScreen.tsx, AchievementScreen.tsx, PersonalInfoScreen.tsx): reemplazar el Text '<' del back button por el componente Header reutilizable (ya existente en mobile/src/components/header/Header.tsx) pasando hasBackButton={true} y onBackPress={() => navigation.goBack()}. Alternativamente, importar ArrowRightIcon y usarlo con style={{ transform: [{ scaleX: -1 }] }} o rotate:'180deg'."
+  },
+  {
+   "what": "ProfileScreen: footer logo (Fundación Natura) no se renderiza — aparece imagen rota",
+   "original": "screen-02-profile-bottom.png (Ionic): al fondo de la página aparece la imagen del logo 'Fundación Natura Isagen' correctamente renderizada (texto+logo visible). El area de abajo del scroll tiene la imagen max-width:150px, height:auto",
+   "current": "post-migration/screen-02-profile-bottom.png: la misma vista que screen-01 (no se ve scroll abajo). En el original hay separación visible entre el botón 'Cerrar sesión' y la zona inferior donde debería estar el logo. En la RN no se ve el logo claramente renderizado en la evidencia post-migración",
+   "severity": "baja",
+   "fix": "mobile/src/screens/profile/ProfileScreen.tsx: verificar que require('@/assets/png/logo_Natura_Isagen.png') resuelva correctamente. Asegurarse que styles.logoImg tenga height fijo (actualmente 60, pero el original es height:auto con max-width:150). Cambiar a height={undefined} con style={{ width: 150, aspectRatio: 3 }} o un valor concreto si se conoce el ratio del logo."
+  }
+ ]
+}

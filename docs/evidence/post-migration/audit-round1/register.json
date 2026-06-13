@@ -1,0 +1,78 @@
+{
+ "feature": "register",
+ "total": 10,
+ "altas": 4,
+ "verdict": "No aprueba pixel-perfect. Se encontraron 10 divergencias distribuidas en severidad alta (4), media (2) y baja (4). Las críticas son: (1) el fondo del card es opaco blanco en RN cuando debería ser semi-transparente sobre el gradiente teal, (2) los textos de título, subtítulo, labels y placeholders de PreRegister, Register y SetPhoneRegister difieren del original (contenido literal distinto), (3) el enlace 'Registrate aquí' aparece subrayado cuando el original no tenía subrayado. El modal de confirmación de teléfono también pierde la transparencia del fondo por un backdrop demasiado oscuro. Las pantallas del flujo de registro posteriores a SetPhone (ProjectVinculation, ValidateProject, VinculationDone, RegisterProjectForm, RegisterCompleted, RegisterSuccess) no pudieron compararse por ser parte del AuthStack inaccesible con sesión activa (documentado en el manifest), por lo que quedan fuera del alcance de esta auditoría.",
+ "divergences": [
+  {
+   "what": "Card background: opaque white en RN vs translucent gradient en Ionic",
+   "original": "background: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.8) 100%) — semi-transparente, el fondo de color teal se trasluce a través de la tarjeta (global.scss líneas 101-106: '.card-content_gradient')",
+   "current": "backgroundColor: '#FFFFFF' (opaco). En todas las pantallas del flujo (LoginScreen, PreRegisterScreen, RegisterScreen, SetPhoneRegisterScreen) el card es blanco sólido, sin ningún efecto de translucidez sobre el gradiente de fondo.",
+   "severity": "alta",
+   "fix": "mobile/src/screens/auth/LoginScreen.tsx (y análogos PreRegisterScreen, RegisterScreen, SetPhoneRegisterScreen): reemplazar `backgroundColor: '#FFFFFF'` en el estilo `card` por un fondo semi-transparente. Usar `expo-linear-gradient` como child del card o `backgroundColor: 'rgba(255,255,255,0.85)'` + blur si el runtime lo soporta. La opción más fiel: usar un `LinearGradient` anidado dentro del card con colors `['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.8)']`."
+  },
+  {
+   "what": "PreRegister: título y texto de cuerpo completamente distintos",
+   "original": "Título HTML: '<h1>Hola 👋 es un gusto <br> tenerte aquí! </h1>' (pre-register.page.html línea 2). Mensaje: 'Uva App, es tu aplicación de monitoreo del clima'. Checkbox label: 'Aceptar términos y condiciones' (sin enlace hyperlink en el label visible).",
+   "current": "PreRegisterScreen.tsx: título 'Bienvenido a UVA', subtítulo 'Para continuar, debes aceptar los términos y condiciones de uso.', checkbox label 'Acepto los términos y condiciones de uso.' con los términos subrayados como enlace.",
+   "severity": "alta",
+   "fix": "mobile/src/screens/auth/PreRegisterScreen.tsx: cambiar `title` a 'Hola 👋 es un gusto tenerte aquí!', añadir texto de mensaje 'Uva App, es tu aplicación de monitoreo del clima' (eliminar subtítulo actual), y cambiar el checkbox label a 'Aceptar términos y condiciones' (con 'términos y condiciones' como texto de link pero sin el prefijo 'Acepto los' y sin el sufijo 'de uso.')."
+  },
+  {
+   "what": "Register (nombre): título y placeholders de campos distintos",
+   "original": "Título: '¡Conozcámonos!' (h1 de explore-container, register.page.html línea 1). Subtítulo tipo message: '¿Cómo es tu nombre?'. Labels: 'Nombres' / 'Apellidos'. Placeholders: 'Ingresa tus nombres' / 'Ingresa tus apellidos'.",
+   "current": "RegisterScreen.tsx: título 'Registro', subtítulo 'Por favor ingresa tu nombre y apellido.', labels 'Nombre' / 'Apellido', placeholders 'Tu nombre' / 'Tu apellido'.",
+   "severity": "alta",
+   "fix": "mobile/src/screens/auth/RegisterScreen.tsx: cambiar title a '¡Conozcámonos!', subtitle a '¿Cómo es tu nombre?', labels a 'Nombres' / 'Apellidos', y placeholders a 'Ingresa tus nombres' / 'Ingresa tus apellidos'."
+  },
+  {
+   "what": "SetPhoneRegister: título distinto",
+   "original": "Título (explore-container title prop): 'Número de teléfono' (set-phone-register.page.html).",
+   "current": "SetPhoneRegisterScreen.tsx: título 'Ingresa tu teléfono'.",
+   "severity": "alta",
+   "fix": "mobile/src/screens/auth/SetPhoneRegisterScreen.tsx: cambiar el Text del título de 'Ingresa tu teléfono' a 'Número de teléfono'."
+  },
+  {
+   "what": "Login: enlace 'Registrate aquí' tiene subrayado; original no lo tenía",
+   "original": "Clase `.ref` en global.scss línea 273: `text-decoration: none` — el enlace 'Registrate aquí' NO tiene subrayado visible.",
+   "current": "LoginScreen.tsx styles.registerLink: `textDecorationLine: 'underline'` — el enlace aparece subrayado.",
+   "severity": "media",
+   "fix": "mobile/src/screens/auth/LoginScreen.tsx: eliminar `textDecorationLine: 'underline'` del estilo `registerLink` (o cambiarlo a `'none'`)."
+  },
+  {
+   "what": "ConfirmModal (phone-confirm-modal): backdrop demasiado oscuro; bloquea visibilidad del fondo",
+   "original": "Ion Modal en Ionic muestra el fondo (tarjeta login visible con su color teal) a través de un overlay semitransparente. El modal aparece centrado sobre el contenido visible. La tarjeta de fondo mantiene su color y textura (screen-17-phone-confirm-modal.png original: fondo teal claramente visible).",
+   "current": "ConfirmModal.tsx styles.backdrop: `backgroundColor: 'rgba(0,0,0,0.25)'` — en la captura post-migración (screen-17) el fondo queda completamente oscurecido en gris, la tarjeta login no se distingue, y la página detrás pierde toda identidad visual.",
+   "severity": "media",
+   "fix": "mobile/src/components/ui/ConfirmModal.tsx: reducir opacidad del backdrop de `rgba(0,0,0,0.25)` a `rgba(0,0,0,0.12)` para que el fondo colored permanezca claramente visible, en línea con el comportamiento del IonModal de Ionic que sólo oscurece levemente el scrim."
+  },
+  {
+   "what": "SetPhoneRegister: subtítulo sin punto final en Ionic; RN añade punto",
+   "original": "Subtitle en set-phone-register.page.html: 'Carlos, por favor ingresa tu número de teléfono' — sin punto final (screen-07-set-phone-empty.png original).",
+   "current": "SetPhoneRegisterScreen.tsx línea 117: '${userName}, por favor ingresa tu número de teléfono.' — con punto final agregado.",
+   "severity": "baja",
+   "fix": "mobile/src/screens/auth/SetPhoneRegisterScreen.tsx: en la constante `subtitle` eliminar el punto final: '${userName}, por favor ingresa tu número de teléfono' (sin punto)."
+  },
+  {
+   "what": "Login: título 'Hola de nuevo 👋' en RN tiene font-weight 700 (Bold); en Ionic era 600 (SemiBold según global.scss h1 rule)",
+   "original": "global.scss línea 261: `h1 { @include text_base(20px, 600) }` — font-weight: 600 (SemiBold). El título 'Hola de nuevo 👋' se renderiza como SemiBold.",
+   "current": "LoginScreen.tsx: `fontFamily: fontFamilyForWeight('700')` en el Text del título → Montserrat-Bold.",
+   "severity": "baja",
+   "fix": "mobile/src/screens/auth/LoginScreen.tsx: cambiar `fontFamilyForWeight('700')` a `fontFamilyForWeight('600')` en el estilo del título 'Hola de nuevo 👋'."
+  },
+  {
+   "what": "PreRegister/Register/SetPhone: mismo error de peso de fuente en título (700 en lugar de 600)",
+   "original": "global.scss línea 261: h1 tiene font-weight 600 en el explore-container. Los títulos de PreRegister ('Hola 👋...'), Register ('¡Conozcámonos!') y SetPhone ('Número de teléfono') son h1 por la explore-container, por lo que deben ser SemiBold.",
+   "current": "PreRegisterScreen.tsx, RegisterScreen.tsx, SetPhoneRegisterScreen.tsx: todos usan `fontFamilyForWeight('700')` (Bold) para el título.",
+   "severity": "baja",
+   "fix": "mobile/src/screens/auth/PreRegisterScreen.tsx, RegisterScreen.tsx, SetPhoneRegisterScreen.tsx: cambiar `fontFamilyForWeight('700')` a `fontFamilyForWeight('600')` en el elemento Text del título de cada pantalla."
+  },
+  {
+   "what": "Register (nombre): el segundo campo en validación de error (screen-05) debe mantener borde blue[500] cuando no tiene error; RN lo cambia correctamente pero sólo aplica error al campo tocado",
+   "original": "En screen-05, el campo 'Apellidos' con valor 'Cd' también tiene borde rojo (border_error). Ambos campos tienen borde rojo simultáneamente cuando ambos tienen valores muy cortos.",
+   "current": "RegisterScreen.tsx: `errors.lastName ? theme.colors.danger : theme.colors.blue[500]` — el error se muestra correctamente pero sólo aparece si el campo fue 'touched' (react-hook-form mode: 'onChange'). En Ionic la validación se disparaba con 'ionInput' en ambos campos simultáneamente. El segundo campo ('Apellido') en la screenshot RN muestra borde azul activo (focused) en lugar de rojo error cuando 'Cd' fue ingresado.",
+   "severity": "baja",
+   "fix": "mobile/src/screens/auth/RegisterScreen.tsx: cambiar la regla de borde del lastName a `(errors.lastName || (control._formValues.lastName && control._formValues.lastName.length < 3)) ? theme.colors.danger : theme.colors.blue[500]` para forzar estado de error visible aunque el campo no sea el activo. Alternativamente pasar `mode: 'onBlur'` o ajustar la condición para evaluar el valor directamente."
+  }
+ ]
+}

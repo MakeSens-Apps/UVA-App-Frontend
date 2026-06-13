@@ -1,0 +1,85 @@
+{
+ "feature": "moon-phase",
+ "total": 11,
+ "altas": 4,
+ "verdict": "La tarjeta lunar (MoonCard) y el calendario lunar (MoonPhaseScreen) presentan divergencias estructurales y visuales significativas. El icono de la fase lunar no es visible en Expo Web. El calendario lunar pierde completamente su fondo teal oscuro (#1A6270), el border-radius, el padding y el color de texto blanco. El día actual en el calendario lunar no tiene el relleno teal correcto. Los headers del calendario usan abreviaciones de 2 letras en lugar de 1. El border-radius de la tarjeta y el gap de texto son incorrectos. Las 4 capturas post-migración son todas variantes de la HomeScreen (la MoonPhaseScreen completa no fue capturada por crash del browser), pero los problemas son verificables cruzando SCSS original con código RN.",
+ "divergences": [
+  {
+   "what": "Icono de fase lunar (moon phase SVG) no visible en MoonCard",
+   "original": "Los SVGs en src/assets/images/Moon/ (llena.svg, nueva.svg, etc.) son imágenes PNG embebidas como <pattern> con xlink:href base64 ~750 KB, renderizadas por ion-img a 56×56 px. Visible claramente en screen-03-home-moon-card-closeup.png (círculo lunar a la izquierda de la tarjeta).",
+   "current": "mobile/src/assets/svg/moon/llena.svg etc. mantienen el mismo xlink:href base64. react-native-svg en Expo Web no renderiza <image xlink:href='data:...'> dentro de <pattern>, el icono queda invisible. En screen-01/02/03/10 post-migración el espacio izquierdo de la tarjeta está vacío.",
+   "severity": "alta",
+   "fix": "mobile/src/components/moon-card/MoonCard.tsx — sustituir los SVG transformados por <Image source={require('@/assets/png/moon/llena.png')} style={{width:56,height:56,borderRadius:28}} /> usando los PNG originales como fuente, o exportar los SVGs de luna sin xlink:href (svg puro con <circle>/<path>). Alternativa mínima: convertir cada SVG a PNG y referenciarlo con require()."
+  },
+  {
+   "what": "Calendario lunar (typeCalendar='moon') sin fondo teal, sin border-radius, sin padding interior",
+   "original": "calendar.component.scss .calendar.moon { background: var(--Colors-Blue-800, #1A6270); border-radius: var(--4xl, 16px); padding: 20px 10px 10px 10px; gap: 6px; margin-inline: 10px; color: white }. Visible en screen-07-moon-calendar-grid.png: grid sobre fondo #1A6270 con esquinas redondeadas.",
+   "current": "mobile/src/components/calendar/Calendar.tsx — el container View usa styles.container = { width: '100%' } sin ningún estilo condicional para typeCalendar === 'moon'. No hay backgroundColor, no hay borderRadius, no hay padding especial.",
+   "severity": "alta",
+   "fix": "mobile/src/components/calendar/Calendar.tsx — en el return, cambiar <View style={styles.container}> a <View style={[styles.container, typeCalendar === 'moon' && styles.containerMoon]}> y agregar en StyleSheet: containerMoon: { backgroundColor: '#1A6270', borderRadius: 16, paddingTop: 20, paddingHorizontal: 10, paddingBottom: 10, gap: 6, marginHorizontal: 10 }"
+  },
+  {
+   "what": "Texto del header y números de día en el calendario lunar tienen color oscuro en vez de blanco",
+   "original": "calendar.component.scss .calendar.moon { color: white } — todos los elementos de texto dentro del calendario lunar (letras D L M M J V S y números de día) heredan color blanco sobre el fondo #1A6270. Visible en screen-07: letras del header y números en blanco.",
+   "current": "mobile/src/components/calendar/Calendar.tsx — headerText usa color: theme.semanticColors.textSecondary = #525252. mobile/src/components/ui/Day.tsx — resolveTextColor() devuelve #164551 (blue-900 oscuro) para 'normal'/'none' sin considerar isMoonCalendar.",
+   "severity": "alta",
+   "fix": "mobile/src/components/calendar/Calendar.tsx — pasar prop typeCalendar a headerText: color: typeCalendar === 'moon' ? '#FFFFFF' : theme.semanticColors.textSecondary. mobile/src/components/ui/Day.tsx — en resolveTextColor() agregar parámetro isMoonCalendar: boolean y para case 'normal'/'none' devolver isMoonCalendar ? '#FFFFFF' : '#164551'."
+  },
+  {
+   "what": "Día actual (state='today') en calendario lunar sin fondo teal #1097AA",
+   "original": "day.component.scss &.current.isMoonCalendar { background-color: var(--Colors-Blue-600, #1097AA); border: none; color: #fff }. En screen-07: el día 11 tiene círculo relleno teal sólido (sin borde punteado).",
+   "current": "mobile/src/components/ui/Day.tsx — resolveBackground() para case 'today' devuelve 'transparent' sin considerar isMoonCalendar. El circleBorderToday (borde punteado azul) se aplica igualmente. El día de hoy en el calendario lunar aparece con borde punteado y fondo vacío en lugar de relleno sólido teal.",
+   "severity": "alta",
+   "fix": "mobile/src/components/ui/Day.tsx — en resolveBackground() modificar case 'today': return isMoonCalendar ? '#1097AA' : 'transparent'; y en el render condicionar la aplicación de circleBorderToday: state === 'today' && !isMoonCalendar && styles.circleBorderToday. Actualizar la firma de resolveBackground para recibir (state, theme, isMoonCalendar = false)."
+  },
+  {
+   "what": "MoonCard border-radius incorrecto: 12px en RN vs 16px en original",
+   "original": "moon-card.component.scss .card_moon { border-radius: 16px }. Visible en screen-03-home-moon-card-closeup.png: esquinas claramente más redondeadas.",
+   "current": "mobile/src/components/moon-card/MoonCard.tsx — styles.container.borderRadius = 12.",
+   "severity": "media",
+   "fix": "mobile/src/components/moon-card/MoonCard.tsx — cambiar styles.container: { borderRadius: 16, ... }"
+  },
+  {
+   "what": "Gap entre 'Fase lunar' y el nombre de fase en MoonCard: 2px en RN vs 10px en original",
+   "original": "moon-card.component.scss .card_text { gap: 10px }. El espacio entre subTitle ('Fase lunar') y title ('Cuarto menguante') es 10px. Visible en screen-03: separación notoria entre la etiqueta y el nombre.",
+   "current": "mobile/src/components/moon-card/MoonCard.tsx — styles.textWrapper.gap = 2.",
+   "severity": "media",
+   "fix": "mobile/src/components/moon-card/MoonCard.tsx — cambiar styles.textWrapper: { flex: 1, gap: 10 }"
+  },
+  {
+   "what": "Tamaño del icono lunar en MoonCard: 60px en RN vs 56px en original",
+   "original": "moon-card.component.scss .card_moon .moon { width: 56px; height: 56px }.",
+   "current": "mobile/src/components/moon-card/MoonCard.tsx — <PhaseIconComponent width={60} height={60} /> y styles.iconWrapper = { width: 60, height: 60 }.",
+   "severity": "media",
+   "fix": "mobile/src/components/moon-card/MoonCard.tsx — cambiar iconWrapper: { width: 56, height: 56 } y <PhaseIconComponent width={56} height={56} />."
+  },
+  {
+   "what": "Abreviaciones de días del calendario lunar: 2 letras en RN ('Do Lu Ma Mi Ju Vi Sá') vs 1 letra en original ('D L M M J V S')",
+   "original": "calendar.component.html para moon: *ngFor=\"let day of ['D', 'L', 'M', 'M', 'J', 'V', 'S']\". Visible en screen-07-moon-calendar-grid.png: encabezados de columna con una sola letra.",
+   "current": "mobile/src/components/calendar/Calendar.tsx — const DAY_HEADERS = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'] (2 letras en todos los modos, incluyendo moon).",
+   "severity": "media",
+   "fix": "mobile/src/components/calendar/Calendar.tsx — agregar constante MOON_DAY_HEADERS = ['D', 'L', 'M', 'M', 'J', 'V', 'S'] y en el render del headerRow usar: const headers = typeCalendar === 'moon' ? MOON_DAY_HEADERS : DAY_HEADERS;"
+  },
+  {
+   "what": "Íconos de fase lunar en celdas del calendario: 14px en RN vs ~24px en original",
+   "original": "day.component.html: ion-icon con [src]=icon (SVG) renderizado con font-size por defecto de ion-icon ~20-24px para SVGs custom. Visible en screen-07: iconos de luna claramente legibles ~24px ocupando la mayor parte de la celda de 40px.",
+   "current": "mobile/src/components/ui/Day.tsx — const ICON_SIZE_NORMAL = 14. Para customIcon el SvgIcon se renderiza a 14×14 px.",
+   "severity": "media",
+   "fix": "mobile/src/components/ui/Day.tsx — agregar const ICON_SIZE_MOON = 24 y en el cálculo de iconSize: const iconSize = isMiniCalendar ? ICON_SIZE_MINI : isMoonCalendar ? ICON_SIZE_MOON : ICON_SIZE_NORMAL;"
+  },
+  {
+   "what": "MoonCard margin-inline faltante: original tiene 10px a cada lado, RN no tiene márgenes propios",
+   "original": "moon-card.component.scss .card_moon { margin-inline: 10px } + .card_moon_container { margin-block: 10px }. La tarjeta tiene 10px de sangría horizontal respecto al contenedor y 10px de margen vertical.",
+   "current": "mobile/src/components/moon-card/MoonCard.tsx — styles.container no tiene marginHorizontal ni marginVertical. El HomeScreen envuelve MoonCard en TouchableOpacity sin márgenes adicionales.",
+   "severity": "baja",
+   "fix": "mobile/src/components/moon-card/MoonCard.tsx — agregar en styles.container: { marginHorizontal: 10, marginVertical: 10, borderRadius: 16, overflow: 'hidden', position: 'relative' }. Alternativamente agregar al TouchableOpacity wrapper en HomeScreen.tsx: style={{ marginHorizontal: 10, marginVertical: 10 }}."
+  },
+  {
+   "what": "MoonPhaseScreen .cards (sección próximos eventos) sin alignSelf stretch",
+   "original": "moon-phase.page.scss .cards { align-self: stretch } — el contenedor de eventos se estira al 100% del ancho disponible.",
+   "current": "mobile/src/screens/moon/MoonPhaseScreen.tsx — styles.cards no incluye alignSelf: 'stretch' ni width: '100%'. El contenedor puede quedar más angosto que el viewport en algunos layouts.",
+   "severity": "baja",
+   "fix": "mobile/src/screens/moon/MoonPhaseScreen.tsx — en styles.cards agregar alignSelf: 'stretch'."
+  }
+ ]
+}

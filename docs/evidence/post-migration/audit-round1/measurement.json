@@ -1,0 +1,106 @@
+{
+ "feature": "measurement",
+ "total": 14,
+ "altas": 3,
+ "verdict": "PARCIAL — Solo 2 de 22 pantallas son comparables (screen-01 y screen-17, ambas idénticas entre sí). El resto del flujo (formulario de registro, guía de medición, modal de confirmación, variantes de validación) no pudo capturarse en post-migración porque expo-file-system no está disponible en Expo Web, impidiendo que ConfigContext cargue la configuración de tareas. Las divergencias detectadas son: (1) contenido faltante crítico (lista de tareas no renderiza — muestra \"No hay registros disponibles\"), (2) icono del tab \"Registrar\" cambiado de clipboard-check.svg a Ionicons add-circle, (3) progreso muestra \"0 de 1\" en lugar de \"0 de 3\", (4) título de la card sin emoji de semilla, (5) checkbox cuadrado 4px-radius reemplazado por círculo 10px-radius, (6) tam. fuente de checkbox-label cambiado de 18px a 14px, (7) IonCheckbox (nativo) reemplazado por View-box sin relleno real, (8) la guía usa Switch en lugar de IonCheckbox para \"Mostrar automáticamente\", (9) el contenedor de los paddings e inner spacing difieren en varios puntos. La mayoría de divergencias en formularios y guías no son validables en capturas por el bloqueo de expo-file-system en web.",
+ "divergences": [
+  {
+   "what": "Lista de tareas del día no se renderiza — muestra texto vacío 'No hay registros disponibles' en lugar de las 3 task cards con banners de restricción horaria",
+   "original": "screen-01: 3 tarjetas 'Temperatura y humedad (mañana)', 'Registro de lluvias', 'Temperatura y humedad (tarde)' con chip restrictionTime naranja en cada una, bajo el título 'Registros sin completar'",
+   "current": "Texto 'No hay registros disponibles' centrado en pantalla vacía — ConfigContext no puede cargar configuración porque expo-file-system.readAsStringAsync no existe en Expo Web",
+   "severity": "alta",
+   "fix": "mobile/src/state/ConfigContext.tsx — implementar fallback para web que use fetch() contra la URL S3 directamente en lugar de expo-file-system, o en MeasurementScreen mostrar el estado de carga correcto diferenciando 'sin config disponible en web' de 'sin tareas'"
+  },
+  {
+   "what": "Icono del tab 'Registrar' cambiado: clipboard-check.svg → Ionicons 'add-circle'",
+   "original": "src/app/pages/tabs/tabs.page.html línea 12-14: icon src='assets/images/icons/clipboard-check.svg' — ícono de portapapeles con check",
+   "current": "mobile/src/navigation/AppTabs.tsx línea 71: active: 'add-circle', inactive: 'add-circle-outline' — círculo con signo +, icono completamente diferente",
+   "severity": "alta",
+   "fix": "mobile/src/navigation/AppTabs.tsx línea 71 — cambiar active/inactive a 'clipboard' o usar el SVG local: reemplazar 'add-circle' / 'add-circle-outline' por la imagen local assets/images/icons/clipboard-check.svg via <Image> o MaterialCommunityIcons 'clipboard-check-outline'"
+  },
+  {
+   "what": "Contador de progreso muestra '0 de 1' en lugar de '0 de 3'",
+   "original": "screen-01: 'Progreso: 0 de 3' (3 tareas totales del día)",
+   "current": "screen-01 post-migración: 'Progreso: 0 de 1' — MeasurementScreen.tsx línea 218: totalTask = configMeasurement ? countTasks(configMeasurement) : 1 — cuando configMeasurement es null el fallback es 1",
+   "severity": "alta",
+   "fix": "mobile/src/screens/measurement/MeasurementScreen.tsx línea 218 — cambiar el fallback de 1 a 0 o mostrar '--' cuando no hay config: const totalTask = useMemo(() => (configMeasurement ? countTasks(configMeasurement) : 0), [configMeasurement, countTasks]); y en ProgressBar no renderizar cuando totalProgress===0"
+  },
+  {
+   "what": "Título 'Registra y gana: +2' sin emoji de semilla 🌱",
+   "original": "screen-01: 'Registra y gana: +2🌱' (con ion-icon src semilla.svg junto al +2, visible como emoji/imagen café)",
+   "current": "screen-01 post-migración: 'Registra y gana: +2' — MeasurementScreen.tsx línea 388: solo texto sin imagen de semilla",
+   "severity": "media",
+   "fix": "mobile/src/screens/measurement/MeasurementScreen.tsx línea 388 — añadir imagen de semilla junto al texto: <Text>Registra y gana: +2</Text><Image source={require('@/assets/images/icons/semilla.svg')} style={{width:20, height:20}} /> dentro del mismo View card, alineados en fila"
+  },
+  {
+   "what": "Checkbox de tareas: cuadrado 4px-radius IonCheckbox reemplazado por círculo 20px-radius View vacío sin check real",
+   "original": "measurement.page.scss líneas 108-110: ion-checkbox::part(container) { border-radius: 4px; border-color: var(--Colors-Gray-400) } — cuadrado con radio pequeño, color gris cuando deshabilitado",
+   "current": "mobile/src/screens/measurement/MeasurementScreen.tsx líneas 686-692: styles.checkbox = { width:20, height:20, borderRadius:10, borderWidth:2 } — círculo perfecto (radio=10px), sin fondo",
+   "severity": "media",
+   "fix": "mobile/src/screens/measurement/MeasurementScreen.tsx estilos líneas 686-692 — cambiar borderRadius de 10 a 4: checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 2 }, checkboxChecked: { width: 20, height: 20, borderRadius: 4 }"
+  },
+  {
+   "what": "Fuente del label de tarea: IonCheckbox::part(label) era 18px en measurement.page.scss; RN usa 14px (RichText baseFontSize=14)",
+   "original": "src/app/pages/measurement/measurement.page.scss línea 114: ion-checkbox::part(label) { font-size: 18px }",
+   "current": "mobile/src/screens/measurement/MeasurementScreen.tsx línea 470: <RichText html={task.name} inline baseFontSize={14} /> — 4px menos",
+   "severity": "media",
+   "fix": "mobile/src/screens/measurement/MeasurementScreen.tsx línea 470 — cambiar baseFontSize={14} a baseFontSize={18}"
+  },
+  {
+   "what": "Título de sección ('Registros sin completar') padding/margen: original dentro de .measurement { padding: 10px } con .title { text-base(16px,700) color blue-800 }; RN tiene section con paddingHorizontal:16 pero sin paddingTop, gap 8 — espaciado vertical visualmente diferente",
+   "original": "src/global.scss líneas 434-442: .measurement { padding: 10px; .title { font-size:16px, weight:700, color:#1A6270, line-height:150% } }",
+   "current": "mobile/src/screens/measurement/MeasurementScreen.tsx líneas 661-662: styles.section = { paddingHorizontal: 16, marginBottom: 8 } — sin padding vertical interno, título marginBottom:8",
+   "severity": "baja",
+   "fix": "mobile/src/screens/measurement/MeasurementScreen.tsx línea 661 — añadir paddingVertical: 10 al estilo section: section: { paddingHorizontal: 10, paddingVertical: 10, marginBottom: 8 }"
+  },
+  {
+   "what": "Card de progreso (wrapper): original .cards en global.scss usa margin-inline: 10px y padding: 10px (padding-top: 0). RN usa margin: 16 y padding: 10 — margen horizontal 6px mayor de cada lado",
+   "original": "src/global.scss líneas 335-343: .cards { border-radius:10px; border:1px solid #E5E5E5; background:#FAFAFA; margin-inline-start:10px; margin-inline-end:10px; padding:10px; padding-top:0 }",
+   "current": "mobile/src/screens/measurement/MeasurementScreen.tsx líneas 640-648: styles.card = { margin:16, borderRadius:10, padding:10 } — margen 16px en lugar de 10px",
+   "severity": "baja",
+   "fix": "mobile/src/screens/measurement/MeasurementScreen.tsx línea 641 — cambiar margin:16 a marginHorizontal:10, marginTop:8, marginBottom:0; añadir paddingTop:0"
+  },
+  {
+   "what": "Guía de medición: 'Mostrar automáticamente' implementado con Switch (toggle) en lugar de IonCheckbox cuadrado",
+   "original": "src/app/pages/measurement/guide-measurement/guide-measurement.component.html líneas 39-47: <ion-checkbox> cuadrado (border-radius:4px según guide-measurement.component.scss línea 63) con labelPlacement='end', color='uva_blue-600'",
+   "current": "mobile/src/screens/measurement/GuideMeasurementScreen.tsx líneas 273-289: <Switch> — control toggle deslizable completamente diferente visualmente",
+   "severity": "media",
+   "fix": "mobile/src/screens/measurement/GuideMeasurementScreen.tsx líneas 273-289 — reemplazar <Switch> por un Pressable con View-checkbox cuadrado (width:20, height:20, borderRadius:4, borderWidth:2, borderColor: theme.colors.blue[600]) + relleno cuando checked + Text label al lado"
+  },
+  {
+   "what": "Guía de medición: guide.name coloreado con guide.icon.colorHex; RN siempre usa theme.colors.blue[700]",
+   "original": "src/app/pages/measurement/guide-measurement/guide-measurement.component.html línea 10: [ngStyle]=\"{ color: guide.icon.colorHex }\" — el color del título viene de la configuración remota (S3)",
+   "current": "mobile/src/screens/measurement/GuideMeasurementScreen.tsx línea 244: color: theme.colors.blue[700] (hardcoded #14788A) — ignora guide.icon.colorHex del config",
+   "severity": "baja",
+   "fix": "mobile/src/screens/measurement/GuideMeasurementScreen.tsx línea 244 — usar: color: (guide as any).icon?.colorHex ?? theme.colors.blue[700]"
+  },
+  {
+   "what": "Formulario de registro: contenedor externo usa padding:16 en RN; original usa padding:10px (.container en register-measurement.page.scss)",
+   "original": "src/app/pages/measurement/register-measurement/register-measurement.page.scss línea 57: .container { padding: 10px }",
+   "current": "mobile/src/screens/measurement/RegisterMeasurementScreen.tsx línea 770: formContainer: { padding: 16 } — 6px más de cada lado",
+   "severity": "baja",
+   "fix": "mobile/src/screens/measurement/RegisterMeasurementScreen.tsx línea 770 — cambiar padding:16 a padding:10"
+  },
+  {
+   "what": "Alerta de validación inline: ícono es emoji '⚠️' en RN; original usa ion-icon SVG personalizado exclamation.svg con ancho/alto 20px",
+   "original": "src/app/pages/measurement/register-measurement/register-measurement.page.html línea 54: <ion-icon src='assets/images/icons/exclamation.svg'> — SVG custom 20×20px",
+   "current": "mobile/src/screens/measurement/RegisterMeasurementScreen.tsx línea 580: <Text style={styles.alertIcon}>⚠️</Text> — emoji Unicode, apariencia depende de fuente del sistema",
+   "severity": "media",
+   "fix": "mobile/src/screens/measurement/RegisterMeasurementScreen.tsx línea 580 — reemplazar emoji por <Image source={require('@/assets/images/icons/exclamation.svg')} style={{width:20, height:20}} /> o por un componente SvgXml del SVG local"
+  },
+  {
+   "what": "Alerta de validación: título en naranja — RN usa theme.colors.orange[700] (~#B25A1C); original usa --Colors-Orange-500 (#E58B24)",
+   "original": "src/app/pages/measurement/register-measurement/register-measurement.page.scss línea 131: .alert .title { color: var(--Colors-Orange-500, #e58b24) }",
+   "current": "mobile/src/screens/measurement/RegisterMeasurementScreen.tsx línea 584: color: theme.colors.orange[700] ?? '#C2410C' — 2 escalones más oscuro que el original",
+   "severity": "media",
+   "fix": "mobile/src/screens/measurement/RegisterMeasurementScreen.tsx línea 584 — cambiar a: color: theme.colors.orange[500] ?? '#E58B24'"
+  },
+  {
+   "what": "Guía: ícono de cerrar es 'X' texto en un botón teal cuadrado; original es ion-button con ion-icon name='close' (ícono vectorial Ionicons nativo de Ionic, no texto)",
+   "original": "src/app/pages/measurement/guide-measurement/guide-measurement.component.html líneas 4-7: <ion-button class='btn_close' color='uva_blue-600'><ion-icon slot='icon-only' name='close'></ion-icon></ion-button>",
+   "current": "mobile/src/screens/measurement/GuideMeasurementScreen.tsx línea 212: <Text ...>✕</Text> — carácter Unicode ✕ en lugar del ícono vectorial close de Ionicons",
+   "severity": "baja",
+   "fix": "mobile/src/screens/measurement/GuideMeasurementScreen.tsx línea 212 — reemplazar <Text>✕</Text> por <Ionicons name='close' size={20} color={theme.colors.white} />"
+  }
+ ]
+}

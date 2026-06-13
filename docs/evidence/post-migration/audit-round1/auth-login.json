@@ -1,0 +1,127 @@
+{
+ "feature": "auth-login",
+ "total": 17,
+ "altas": 4,
+ "verdict": "DIVERGENCIAS SIGNIFICATIVAS — la migración auth-login NO es pixel-perfect. Se detectaron 16 divergencias en 3 niveles de severidad: 4 altas (pantallas mal capturadas por fallo de navegación RN o bug de estado: screen-00 no muestra Home, screen-05 no llega a ProjectVinculationScreen, screen-06 no es alcanzable por sesión activa, screen-10 muestra Home en lugar de RegisterSuccess) + 6 medias (logo sin badge de fondo gris, botón deshabilitado azul saturado vs. gris neutro, capitalización de botones del modal en minúsculas, tamaño de fuente OTP 22px vs. 26px, color de borde OTP teal brillante vs. gris oscuro #525252, texto de instrucción OTP incompleto) + 6 bajas (padding del input, centrado de tarjeta, posición del modal, font-size del body del modal, ancho input OTP 42px vs. 40px, GIF done_register demasiado grande). Los problemas altos son parcialmente de navegación/estado (no solo visuales), pero revelan que el flujo completo del login hasta ProjectVinculation no funciona correctamente en la sesión web de prueba. Los problemas medios son visualmente perceptibles y deben corregirse antes de considerar la migración de este feature como completa.",
+ "divergences": [
+  {
+   "what": "screen-00: RN captura pantalla de Login en lugar de Home (splash). El manifest nombra la captura screen-00-splash pero en RN muestra LoginScreen vacío, lo que evidencia que la sesión NO estaba activa en el momento de la captura post-migración. Este es un mismatch de estado de sesión, no un bug de estilo, pero imposibilita la comparación 1-a-1.",
+   "original": "screen-00-splash.png → Home page con header teal, cards de racha/gamificación y tab bar (sesión activa, redirección inmediata desde splash)",
+   "current": "screen-00-splash.png → LoginScreen vacío con degradado teal y tarjeta blanca (sesión no activa). Pantallas OTP (screen-06 y demás) también muestran LoginScreen por el mismo motivo.",
+   "severity": "alta",
+   "fix": "No es un bug de código — la captura post-migración se tomó sin sesión activa. No se requiere cambio en ningún archivo RN. Recapturar screen-00 con sesión 3000000002 activa."
+  },
+  {
+   "what": "screen-01 Login vacío: logo sin círculo de fondo gris claro. En el original el logo está dentro de un `ion-thumbnail` que aplica `--size:70px; --border-radius:14px` con un fondo gris claro (#F5F5F5 de Ionic) visible como círculo/cuadrado redondeado alrededor del icono. En RN el logo es un `Image` directo sin contenedor con fondo — el icono flota sin el badge circular.",
+   "original": "explore-container HTML: `<ion-thumbnail>` con fondo gris (#F5F5F5 Ionic default) y border-radius:14px — visible en screen-01 como cuadrado redondeado gris claro alrededor del icono SVG",
+   "current": "LoginScreen.tsx: `Image` con `style={styles.logo}` (width:70, height:70, borderRadius:14) sin `backgroundColor` — el icono flota sobre el fondo blanco de la tarjeta sin ningún fondo visible",
+   "severity": "media",
+   "fix": "mobile/src/screens/auth/LoginScreen.tsx — en `styles.logo` añadir `backgroundColor: '#F5F5F5'`. Mismo fix aplica a OtpScreen.tsx, ProjectVinculationScreen.tsx, RegisterSuccessScreen.tsx (todos usan el mismo logo)."
+  },
+  {
+   "what": "screen-01 Login vacío: fondo del campo de teléfono es blanco (#FFFFFF) en RN vs. gris muy claro (#FAFAFA = Colors-Gray-50) en el original. El original usa `background: var(--Colors-Gray-50, #f9fafb)` (global.scss:172). En RN se usa `theme.colors.gray[50]` que es '#FAFAFA', pero en el render web se aprecia el campo con fondo visiblemente más blanco y sin el sutil tono gris.",
+   "original": "global.scss:172: `background: var(--Colors-Gray-50, #f9fafb)` = #FAFAFA / #F9FAFB (dos fuentes distintas, predomina FAFAFA del token variables.scss:90)",
+   "current": "LoginScreen.tsx: `backgroundColor: theme.colors.gray[50]` = '#FAFAFA' — el token es correcto pero el borde azul tiene 1px en RN vs. el original donde Ionic usa `border: 1px solid var(--Colors-Blue-500)` también de 1px. Visualmente el input en RN parece más grande/prominente debido a padding vertical diferente (RN: paddingVertical:10 vs. Ionic: --padding-top:12px, --padding-bottom:12px)",
+   "severity": "baja",
+   "fix": "mobile/src/screens/auth/LoginScreen.tsx — en `styles.input` cambiar `paddingVertical: 10` a `paddingVertical: 12` para igualar `--padding-top:12px / --padding-bottom:12px` de Ionic."
+  },
+  {
+   "what": "screen-01 Login vacío: botón 'Continuar' deshabilitado usa `blue[700]` con `opacity:0.4` en RN, pero en el original Ionic aplica el color de `uva_green-700` con la opacidad de Ionic para estado disabled, que resulta visualmente en un tono gris azulado más suave (#A3A3A3 aproximado). En la captura original el botón deshabilitado aparece gris azulado neutro — en RN aparece azul-teal semitransparente (blue[700]=#14788A al 40%), creando un tono azul verdoso visible.",
+   "original": "global.scss:180-189: `ion-button` con `color='uva_green-700'` y `[disabled]=true` → Ionic aplica `--background: rgba(var(--ion-color-uva_green-700-rgb), 0.12)` internamente, resultando en un tono gris/neutro apagado (aspecto visual: gris azulado claro como #B5C8CB aprox.)",
+   "current": "LoginScreen.tsx estilos: `backgroundColor: theme.colors.blue[700]` + `opacity: isValid ? 1 : 0.4` → #14788A al 40% = azul-teal semitransparente visible, más saturado que el original",
+   "severity": "media",
+   "fix": "mobile/src/screens/auth/LoginScreen.tsx — cambiar el estilo del botón para usar `backgroundColor: isValid ? theme.colors.blue[700] : theme.colors.gray[300]` con `opacity: 1` siempre. Cambia `opacity: isValid ? 1 : 0.4` a `1` y ajusta backgroundColor condicionalmente: `backgroundColor: isValid ? theme.colors.blue[700] : theme.colors.gray[300]`."
+  },
+  {
+   "what": "screen-01 Login vacío: tarjeta blanca en RN tiene más espacio superior respecto al borde de pantalla — la card está centrada verticalmente con `justifyContent:'center'` en toda la pantalla, pero en el original la card tiene posición ligeramente elevada (no perfectamente centrada — el espacio inferior es mayor que el superior). El original usa `display:flex; flex-flow:column; justify-content:center` en `.container_explore` con `padding:5vw` (18px en 360px), resultando en una tarjeta algo más alta dentro del viewport.",
+   "original": "global.scss:74-93: `.container_explore` → `padding: 5vw` (≈18px) + `justify-content: center` con `height:100vh`. La tarjeta `.card-content_gradient` con `border-radius:20px` y padding interno ocupa ~70% de la altura, posicionada en el centro exacto.",
+   "current": "LoginScreen.tsx: `styles.gradient` con `padding:24` (24px fijos) y `justifyContent:'center'` — la tarjeta se centra perfectamente. El padding de 24px > 18px orignal hace que la tarjeta sea marginalmente más estrecha horizontalmente: `100% - 48px` = 312px vs. `100% - 36px` = 324px en el original (ancho 90% de 360px).",
+   "severity": "baja",
+   "fix": "mobile/src/screens/auth/LoginScreen.tsx — en `styles.gradient` cambiar `padding: 24` a `padding: 18` (5vw de 360px) para preservar el ancho de tarjeta de ~90% del viewport."
+  },
+  {
+   "what": "screen-04 Modal confirmación: texto del modal en RN usa capitalización lowercase ('No, editar', 'Sí, continuar') mientras el original muestra mayúscula inicial en cada palabra ('No, Editar', 'Sí, Continuar'). El original tiene `text-transform: capitalize` en `ion-button` (global.scss:184 y alert.component.scss:17-18).",
+   "original": "alert.component.scss:17-18: `ion-button { text-transform: capitalize }` → 'No, Editar' y 'Sí, Continuar' con capitalize automático. Captura screen-04 confirma: 'No, Editar' / 'Sí, Continuar'.",
+   "current": "LoginScreen.tsx: `showConfirm({ textCancelButton: 'No, editar', textOkButton: 'Sí, continuar' })` — strings en minúsculas, sin text-transform en ConfirmModal.tsx. Captura post-migración screen-04 muestra: 'No, editar' / 'Sí, continuar' en minúsculas.",
+   "severity": "media",
+   "fix": "mobile/src/screens/auth/LoginScreen.tsx — cambiar los strings a: `textCancelButton: 'No, Editar'` y `textOkButton: 'Sí, Continuar'`. Alternativa: añadir `textTransform: 'capitalize'` en `ConfirmModal.tsx` `styles.buttonText`."
+  },
+  {
+   "what": "screen-04 Modal confirmación: el modal en RN aparece centrado en pantalla con fondo semitransparente oscuro (rgba(0,0,0,0.25)), mientras el original aparece en la parte inferior/media de la pantalla con el fondo de login aún visible y no oscurecido de forma importante (solo `--backdrop-opacity` de Ionic que es ~0.3 por defecto pero en la captura casi no se nota el oscurecimiento). El modal de Ionic usa `--height:auto; --width:90%` y se posiciona en la zona central-inferior con slide-up animation.",
+   "original": "alert.component.scss: `ion-modal { --height:auto; --width:90%; --border-radius:16px }`. La tarjeta en screen-04 aparece en la mitad inferior de la pantalla, con el contenido de login visible detrás ligeramente oscurecido (backdropOpacity Ionic ~0.3).",
+   "current": "ConfirmModal.tsx: `Modal` con `animationType='fade'` centrado — aparece centrado exactamente en medio de la pantalla. El backdrop `rgba(0,0,0,0.25)` oscurece más el fondo comparado con Ionic. Visualmente en screen-04 RN la tarjeta está más centrada verticalmente que en el original.",
+   "severity": "baja",
+   "fix": "mobile/src/components/ui/ConfirmModal.tsx — cambiar `justifyContent: 'center'` en `styles.backdrop` a `justifyContent: 'flex-end'` con `paddingBottom: 40` para simular la posición inferior del modal Ionic. Opcionalmente cambiar `animationType='fade'` a `'slide'`."
+  },
+  {
+   "what": "screen-04 Modal confirmación: texto del body del modal en RN muestra '¿Es correcto este número de teléfono: 3000000002 ?' con el número en negrita en una sola línea. En el original (screen-04) el texto aparece centrado en dos líneas: '¿Es correcto este número de' / 'teléfono: 3000000002 ?' con `font-size:16px` del `p` tag (alert.component.scss). En RN el RichText renderiza a font-size:14 (`baseFontSize={14}` en LoginScreen vía ConfirmModal). El número aparece en bold correcto pero el tamaño del texto es 2px menor.",
+   "original": "alert.component.scss:47-50: `p { font-size: 16px; margin: 0; margin-bottom: 20px }`. screen-04 captura muestra texto en 16px centrado.",
+   "current": "ConfirmModal.tsx:171: `<RichText html={content} baseFontSize={14} />` — el baseFontSize de 14px es 2px menor que el original de 16px.",
+   "severity": "baja",
+   "fix": "mobile/src/components/ui/ConfirmModal.tsx — cambiar `baseFontSize={14}` a `baseFontSize={16}` en la línea `<RichText html={content} baseFontSize={14} />`."
+  },
+  {
+   "what": "screen-05 Vinculando al proyecto: RN muestra LoginScreen (con número 3000000002 en el input y spinner en el botón) en lugar de la pantalla 'Vinculando al proyecto'. En el original, esta pantalla tiene: fondo degradado teal, tarjeta blanca con logo, texto 'Vinculando al proyecto', spinner pequeño animado, y botón 'Cancelar' de fondo teal oscuro (#14788A). En RN la navegación al confirmar el teléfono no llega a ProjectVinculationScreen sino que queda en LoadingState dentro de LoginScreen.",
+   "original": "screen-05-vinculando-proyecto.png: pantalla completa 'Vinculando al proyecto' con fondo degradado teal, tarjeta blanca, logo UVA, texto bold 'Vinculando al proyecto', spinner de carga (gif animado pequeño tipo arco azul), botón 'Cancelar' con fondo #14788A, texto blanco.",
+   "current": "screen-05-vinculando-proyecto.png post-migración: muestra LoginScreen con campo teléfono='3000000002' y botón con ActivityIndicator (spinner de carga) — corresponde al estado `loading=true` del LoginScreen, no a ProjectVinculationScreen.",
+   "severity": "alta",
+   "fix": "Este es un bug funcional (no solo visual): la navegación a ProjectVinculationScreen no ocurre durante la captura porque `SetupService.createNewUser()` en LoginScreen probablemente falló o tardó demasiado. Revisar `mobile/src/screens/auth/LoginScreen.tsx` en `abrirModal()`: si `response.data.isSignedIn` es true para el test user, verificar que `SetupService.createNewUser()` complete y que `navigation.navigate('ProjectVinculation')` se llame correctamente. También verificar que `ProjectVinculationScreen.tsx` esté registrado en `mobile/src/navigation/AuthStack.tsx`."
+  },
+  {
+   "what": "screen-06 OTP vacío: en la captura post-migración se muestra LoginScreen vacío en lugar de OtpScreen. Esto confirma que la navegación al AuthStack no es accesible desde el estado autenticado (documentado en manifest). Sin embargo, la pantalla OTP de RN tiene divergencias estructurales evidentes en el código fuente: los inputs OTP usan border inferior (`borderBottomWidth:2`) sobre fondo blanco de tarjeta, correcto per SCSS. Pero el SCSS original especifica `border-bottom: 2px solid var(--Colors-Gray-600)` = #525252 (gris oscuro), mientras el RN usa `borderColor: showError ? danger : blue[500]` = #10BCCA en estado normal — color de borde completamente diferente al original.",
+   "original": "otp.page.scss:12: `border-bottom: 2px solid var(--Colors-Gray-600)` = #525252 (gris oscuro) en estado vacío/normal. Solo cambia a error color cuando hay error (el SCSS de error no está en otp.page.scss, se infiere del card_error de global.scss).",
+   "current": "OtpScreen.tsx:278: `borderColor: showError ? theme.colors.danger : theme.colors.blue[500]` → color normal del borde inferior OTP es #10BCCA (teal brillante) en lugar de #525252 (gris oscuro).",
+   "severity": "alta",
+   "fix": "mobile/src/screens/auth/OtpScreen.tsx — en `styles.otpInput` cambiar el borderColor normal: `borderColor: showError ? theme.colors.danger : theme.colors.gray[600]` (gray[600] = '#525252' = Colors-Gray-600). También verificar que `otpInput.fontSize` sea 26px (otp.page.scss:14: `font-size: 26px !important`) — actualmente es 22px en RN."
+  },
+  {
+   "what": "screen-06 OTP: tamaño de fuente de los dígitos OTP en RN es 22px vs. 26px del original.",
+   "original": "otp.page.scss:14: `font-size: 26px !important`",
+   "current": "OtpScreen.tsx styles.otpInput: `fontSize: 22`",
+   "severity": "media",
+   "fix": "mobile/src/screens/auth/OtpScreen.tsx — en `styles.otpInput` cambiar `fontSize: 22` a `fontSize: 26`."
+  },
+  {
+   "what": "screen-06 OTP: ancho de cada input OTP en RN es 42px vs. 40px del original. Diferencia menor pero detectable.",
+   "original": "otp.page.scss:17: `width: 40px`",
+   "current": "OtpScreen.tsx styles.otpInput: `width: 42`",
+   "severity": "baja",
+   "fix": "mobile/src/screens/auth/OtpScreen.tsx — en `styles.otpInput` cambiar `width: 42` a `width: 40`."
+  },
+  {
+   "what": "screen-06 OTP: el texto de instrucción en RN dice 'Ingresa el código que enviamos al número {phone}', mientras el original dice 'Ingresa el código de 6 dígitos que enviamos por mensaje de texto al número: 3000000002' (con 'de 6 dígitos', 'por mensaje de texto' y dos puntos antes del número). El texto es literalmente diferente.",
+   "original": "README auth-login screen-06: 'Ingresa el código de 6 dígitos que enviamos por mensaje de texto al número: 3000000002'",
+   "current": "OtpScreen.tsx:262-263: 'Ingresa el código que enviamos al número {phone}' (sin 'de 6 dígitos', sin 'por mensaje de texto', sin los dos puntos antes del número)",
+   "severity": "media",
+   "fix": "mobile/src/screens/auth/OtpScreen.tsx — cambiar el Text de instrucción a: `Ingresa el código de 6 dígitos que enviamos por mensaje de texto al número: {phone}`"
+  },
+  {
+   "what": "screen-06 OTP: el color del título 'Verifica tu teléfono' en RN usa `theme.colors.blue[800]` = #1A6270 (azul muy oscuro), mientras en el original la tarjeta usa `color: var(--Colors-Gray-700)` (global.scss:110) para el texto general de la tarjeta, y el h1 usa `color: var(--Colors-Blue-800)` = #1A6270. Aparentemente correcto para el h1, pero el color general de la tarjeta es gray[700] = #404040 no blue[800].",
+   "original": "global.scss:110: `.card { color: var(--Colors-Gray-700) }` para texto general. global.scss:119: `h1 { color: var(--Colors-Blue-800) }` = #1A6270. El título 'Verifica tu teléfono' es h1, por tanto blue[800] es correcto.",
+   "current": "OtpScreen.tsx:244-246: `color: theme.colors.blue[800]` = #1A6270 — correcto para el título.",
+   "severity": "baja",
+   "fix": "No requiere cambio para el título. Pero verificar que el texto de instrucción use `theme.colors.gray[700]` (#404040) no blue — actualmente OtpScreen.tsx:258 usa `theme.colors.gray[700]` correctamente."
+  },
+  {
+   "what": "screen-10 RegisterSuccess: RN no muestra RegisterSuccessScreen — muestra Home page. La captura post-migración screen-10 corresponde al Home (con header 'Inicio', cards de racha y tab bar), no a la pantalla de registro exitoso. La navegación post-migración redirigió al Home en lugar de a RegisterSuccessScreen.",
+   "original": "screen-10-register-success.png: fondo degradado azul claro (#EDFEFE → #A9F5F8), tarjeta blanca centrada, GIF done_register.gif (check verde con confeti ~80px visible), título bold 'Registro completado satisfactoriamente.', subtítulo 'Inicia sesión para empezar a usar UVA app', botón 'Iniciar Sesión' con fondo #14788A.",
+   "current": "screen-10-register-success.png post-migración: muestra Home page con header teal, 'Hoy, viernes 12 de junio', cards de gamificación, tab bar con 'Inicio/Registrar/Historial'.",
+   "severity": "alta",
+   "fix": "No es bug de estilo sino de flujo de navegación. La ruta RegisterSuccess no es alcanzable desde la sesión autenticada (documentado en manifest). Sin embargo, analizar código: `RegisterSuccessScreen.tsx` usa `LinearGradient colors={[theme.colors.blue[50], theme.colors.blue[200]]}` = [#EDFEFE, #A9F5F8] — correcto. El `doneGif` tiene `width:120, height:120` mientras en la captura original el ícono es considerablemente más pequeño (≈80px visible). En el código verificar que el GIF `done_register.gif` exista en `mobile/assets/gifs/`."
+  },
+  {
+   "what": "screen-10 RegisterSuccess (análisis de código): el GIF done_register tiene dimensiones 120x120px en RN mientras en el original parece ocupar ≈80px visualmente (el ícono de check con confeti es pequeño en la tarjeta).",
+   "original": "screen-10 captura original: el ícono de check verde con confeti dorado/verde ocupa aprox. 80px de alto dentro de la tarjeta blanca",
+   "current": "RegisterSuccessScreen.tsx styles.doneGif: `width: 120, height: 120` — 50% más grande que el original",
+   "severity": "baja",
+   "fix": "mobile/src/screens/auth/RegisterSuccessScreen.tsx — en `styles.doneGif` cambiar `width: 120, height: 120` a `width: 80, height: 80`."
+  },
+  {
+   "what": "screen-03 Login teléfono válido: el botón 'Continuar' habilitado tiene el color correcto (#14788A = blue[700]), pero en RN el border-radius del botón es 14px mientras en el original el ion-button en el explore-container no tiene un border-radius explícito — usa el default de Ionic que es 4px (o el valor de `--border-radius` del ion-button, que no está definido en el explore-container para auth pages). En la captura screen-03 el botón del original aparece con esquinas más redondeadas (~8-10px), no tan redondeado como el 14px del RN.",
+   "original": "global.scss:180-189: `ion-button` dentro de `.card` — sin `--border-radius` propio, usa el default de Ionic ≈ 4px. Sin embargo, global.scss:197 `ion-thumbnail { --border-radius:14px }` aplica al thumbnail, no al botón. El `--border-radius:8px` solo aparece en `.cards ion-button` (global.scss:377). Para auth pages, el botón usa el default Ionic de ~4px o posiblemente el `--border-radius` de la clase del botón.",
+   "current": "LoginScreen.tsx styles.button: `borderRadius: 14` — más redondeado que el original",
+   "severity": "baja",
+   "fix": "mobile/src/screens/auth/LoginScreen.tsx — en `styles.button` cambiar `borderRadius: 14` a `borderRadius: 8` para aproximar el border-radius real del ion-button en auth pages. Mismo cambio en OtpScreen.tsx styles.resendButton."
+  }
+ ]
+}
