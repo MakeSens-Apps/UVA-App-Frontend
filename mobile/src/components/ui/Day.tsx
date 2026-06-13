@@ -78,11 +78,16 @@ export interface DayProps {
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
 const CIRCLE_SIZE_NORMAL = 40;
-const CIRCLE_SIZE_MINI = 28;
+// Original: calendar.component.scss .day.mini { width: 13.223px; height: 13.223px }
+const CIRCLE_SIZE_MINI = 13;
 const CIRCLE_SIZE_MOON = 36;
 
 const ICON_SIZE_NORMAL = 14;
-const ICON_SIZE_MINI = 10;
+// Original: .day.mini { font-size: 4.628px } → icon sized proportionally
+const ICON_SIZE_MINI = 5;
+// Original: ion-icon for custom SVG phase icons in moon calendar ~24px (ion-icon default for custom SVGs)
+// screen-07 shows icons ~24px occupying most of the 40px cell
+const ICON_SIZE_MOON = 24;
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
@@ -124,16 +129,21 @@ export function Day({
       ? CIRCLE_SIZE_MOON
       : CIRCLE_SIZE_NORMAL;
 
-  const iconSize = isMiniCalendar ? ICON_SIZE_MINI : ICON_SIZE_NORMAL;
+  // Original: moon calendar uses ~24px for custom SVG icons (ion-icon default size)
+  const iconSize = isMiniCalendar
+    ? ICON_SIZE_MINI
+    : isMoonCalendar
+      ? ICON_SIZE_MOON
+      : ICON_SIZE_NORMAL;
 
   // Zero-pad (exact spec: day < 10 ? '0'+day : day)
   const dayLabel = day < 10 ? `0${day}` : `${day}`;
 
-  // Background color per state
-  const bgColor = resolveBackground(state, theme);
+  // Background color per state — passes isMoonCalendar for .current.isMoonCalendar rule
+  const bgColor = resolveBackground(state, theme, isMoonCalendar);
 
-  // Text color
-  const textColor = resolveTextColor(state, theme);
+  // Text color — passes isMoonCalendar for white-on-dark rule
+  const textColor = resolveTextColor(state, theme, isMoonCalendar);
 
   // Whether to show the icon overlay
   const showIcon =
@@ -159,7 +169,8 @@ export function Day({
         styles.circle,
         { width: circleSize, height: circleSize, borderRadius: circleSize / 2 },
         { backgroundColor: bgColor },
-        state === 'today' && styles.circleBorderToday,
+        // Original: .current.isMoonCalendar { background: #1097AA; border: none } — no dashed border
+        state === 'today' && !isMoonCalendar && styles.circleBorderToday,
         state === 'incomplete' && styles.circleBorderIncomplete,
       ]}
       testID={`day-cell-${day}`}
@@ -215,6 +226,7 @@ function renderIcon(
 function resolveBackground(
   state: DayState,
   theme: ReturnType<typeof useTheme>['theme'],
+  isMoonCalendar = false,
 ): string {
   switch (state) {
     case 'complete':
@@ -222,7 +234,8 @@ function resolveBackground(
     case 'saveStreak':
       return '#1097AA'; // --Colors-Blue-600 (Ionic original — same as complete)
     case 'today':
-      return 'transparent'; // dashed border circle, no fill
+      // Original: .current.isMoonCalendar { background-color: var(--Colors-Blue-600, #1097AA); border: none }
+      return isMoonCalendar ? '#1097AA' : 'transparent'; // moon: solid teal; normal: dashed border circle, no fill
     case 'incomplete':
       return 'transparent'; // solid border circle, no fill
     case 'future':
@@ -238,6 +251,7 @@ function resolveBackground(
 function resolveTextColor(
   state: DayState,
   theme: ReturnType<typeof useTheme>['theme'],
+  isMoonCalendar = false,
 ): string {
   switch (state) {
     case 'complete':
@@ -245,16 +259,20 @@ function resolveTextColor(
     case 'saveStreak':
       return '#FFFFFF'; // white text on teal background
     case 'today':
-      return '#164551'; // --Colors-Blue-900
+      // Original: .current.isMoonCalendar { color: #fff } — white on teal fill
+      return isMoonCalendar ? '#FFFFFF' : '#164551'; // moon: white; normal: --Colors-Blue-900
     case 'incomplete':
       return '#164551'; // --Colors-Blue-900
     case 'future':
       return theme.colors.gray[400];
     case 'none':
-      return 'transparent';
+      // Original: .calendar.moon { color: white } — moon calendar all text is white
+      return isMoonCalendar ? '#FFFFFF' : 'transparent';
     case 'normal':
     default:
-      return '#164551'; // --Colors-Blue-900 (not gray/black)
+      // Original: .normal { color: var(--Colors-Blue-900) }
+      // BUT in moon calendar all text is white (container sets color:white)
+      return isMoonCalendar ? '#FFFFFF' : '#164551'; // moon: white; normal: --Colors-Blue-900
   }
 }
 
@@ -282,8 +300,9 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   dayTextMini: {
-    fontSize: 9,
-    lineHeight: 12,
+    // Original: calendar.component.scss .day.mini { font-size: 4.628px }
+    fontSize: 5,
+    lineHeight: 7,
   },
   iconWrapper: {
     position: 'absolute',

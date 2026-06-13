@@ -167,7 +167,7 @@ export function MoonCard({
       <View style={styles.card}>
         {/* Moon phase icon */}
         <View style={styles.iconWrapper}>
-          <PhaseIconComponent width={60} height={60} />
+          <PhaseIconComponent width={56} height={56} />
         </View>
 
         {/* Phase name text */}
@@ -236,9 +236,13 @@ export function MoonCard({
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 12,
+    // Original: moon-card.component.scss .card_moon { border-radius: 16px; margin-inline: 10px }
+    // + .card_moon_container { margin-block: 10px }
+    borderRadius: 16,
     overflow: 'hidden',
     position: 'relative',
+    marginHorizontal: 10,
+    marginVertical: 10,
   },
   card: {
     flexDirection: 'row',
@@ -247,14 +251,16 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   iconWrapper: {
-    width: 60,
-    height: 60,
+    // Original: .card_moon .moon { width: 56px; height: 56px }
+    width: 56,
+    height: 56,
     alignItems: 'center',
     justifyContent: 'center',
   },
   textWrapper: {
+    // Original: .card_text { gap: 10px }
     flex: 1,
-    gap: 2,
+    gap: 10,
   },
   subtitle: {
     fontSize: 14, // original: 14px

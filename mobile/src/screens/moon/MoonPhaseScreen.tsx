@@ -81,7 +81,7 @@ export function MoonPhaseScreen(): React.JSX.Element {
   const [phase, setPhase] = useState<LunarPhaseKey>('FULL_MOON');
   const [phaseName, setPhaseName] = useState<string>(LUNAR_PHASE_NAME['FULL_MOON']);
   const [phaseMoonDays, setPhaseMoonDays] = useState<DailyPhaseCalendar[]>([]);
-  const [moonEvents, setMoonEvents] = useState<Array<{ type: string; date: string }>>([]);
+  const [moonEvents, setMoonEvents] = useState<{ type: string; date: string }[]>([]);
 
   // ─── useFocusEffect: reload seed on focus (ionViewWillEnter equivalent) ────
   useFocusEffect(
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  // Original: .cards { display:flex; padding:10px 0; flex-direction:column; center; gap:10; radius:16; bg:Blue-800 }
+  // Original: .cards { display:flex; padding:10px 0; flex-direction:column; center; gap:10; radius:16; bg:Blue-800; align-self:stretch }
   cards: {
     borderRadius: 16,
     paddingVertical: 10,
@@ -269,6 +269,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     marginBottom: 16,
+    alignSelf: 'stretch',
   },
 
   // Original: .text_container { display:flex; width:90%; justify-content:space-between; align-items:flex-start }
