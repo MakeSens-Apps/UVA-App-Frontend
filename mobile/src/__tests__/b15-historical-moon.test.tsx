@@ -28,13 +28,13 @@ jest.mock('@/theme/ThemeProvider', () => ({
     theme: {
       colors: {
         blue: {
-          50: '#EDFEFE', 100: '#D1FBFC', 200: '#A9F5F8', 500: '#10BCCA',
+          50: '#EDFEFE', 100: '#D1FBFC', 200: '#A9F5F8', 300: '#6EEBF2', 500: '#10BCCA',
           600: '#1097AA', 700: '#14788A', 800: '#1A6270', 900: '#164551',
         },
-        orange: { 500: '#E58B24' },
-        green: { 500: '#69AB3C' },
+        orange: { 100: '#FBF0D9', 400: '#EBA84C', 500: '#E58B24' },
+        green: { 100: '#E3F2D5', 200: '#C8E6B0', 500: '#69AB3C' },
         white: '#FFFFFF',
-        gray: { 100: '#F5F5F5', 200: '#E5E5E5', 400: '#A3A3A3', 600: '#525252', 700: '#404040' },
+        gray: { 50: '#FAFAFA', 100: '#F5F5F5', 200: '#E5E5E5', 300: '#D4D4D4', 400: '#A3A3A3', 600: '#525252', 700: '#404040' },
         danger: '#E5245E',
       },
       semanticColors: {
@@ -70,6 +70,7 @@ jest.mock('@/assets/svg/icons/semilla.svg', () => 'SemillaIcon');
 jest.mock('@/assets/svg/icons/user-circle.svg', () => 'UserCircleIcon');
 jest.mock('@/assets/svg/icons/check.svg', () => 'CheckIcon');
 jest.mock('@/assets/svg/icons/checkSaveStreak.svg', () => 'CheckSaveStreakIcon');
+jest.mock('@/assets/svg/icons/fire.svg', () => 'FireIcon');
 jest.mock('@/assets/svg/moon/nueva.svg', () => 'NuevaMoon');
 jest.mock('@/assets/svg/moon/llena.svg', () => 'LlenaMoon');
 jest.mock('@/assets/svg/moon/cuarto_creciente.svg', () => 'CuartoCrecienteMoon');
@@ -352,7 +353,7 @@ jest.mock('@/domain/moon/moon-phase', () => ({
 // ─── Imports ──────────────────────────────────────────────────────────────────
 
 import React from 'react';
-import { render, waitFor } from '@testing-library/react-native';
+import { render, waitFor, fireEvent } from '@testing-library/react-native';
 
 import {
   transformData,
@@ -364,7 +365,10 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AppStackParamList } from '@/navigation/types';
 
 // We import the screen components after all mocks are set
-import { MeasurementDetailScreen } from '@/screens/historical/MeasurementDetailScreen';
+import {
+  MeasurementDetailScreen,
+  groupRemainingLazyMeasurements,
+} from '@/screens/historical/MeasurementDetailScreen';
 import { MoonPhaseScreen } from '@/screens/moon/MoonPhaseScreen';
 import { HistoricalScreen } from '@/screens/historical/HistoricalScreen';
 
@@ -663,6 +667,124 @@ describe('MeasurementDetailScreen — smoke tests', () => {
     await waitFor(() => {
       expect(getByText('Registros completados')).toBeTruthy();
     });
+  });
+});
+
+// ─── ════════════════════════════════════════════════════════════════════════ ───
+//     SECTION 4b — groupRemainingLazyMeasurements: value mapping (fix B15)
+// ─── ════════════════════════════════════════════════════════════════════════ ───
+
+describe('groupRemainingLazyMeasurements — value mapping', () => {
+  it('parses JSON string data into {id, value} entries grouped by task', () => {
+    const result = groupRemainingLazyMeasurements([], [
+      { data: JSON.stringify({ temperatura: 25, humedad: '82' }), task: 'task1' },
+    ]);
+    expect(result).toEqual({
+      task1: [
+        { id: 'temperatura', value: 25 },
+        { id: 'humedad', value: 82 },
+      ],
+    });
+  });
+
+  it('parses object (non-string) data and merges multiple rows per task', () => {
+    const result = groupRemainingLazyMeasurements([], [
+      { data: { temperatura_min: 24 }, task: 'task1' },
+      { data: { temperatura_max: 30 }, task: 'task1' },
+      { data: { lluvia: 5.5 }, task: 'task2' },
+    ]);
+    expect(result.task1).toEqual([
+      { id: 'temperatura_min', value: 24 },
+      { id: 'temperatura_max', value: 30 },
+    ]);
+    expect(result.task2).toEqual([{ id: 'lluvia', value: 5.5 }]);
+  });
+
+  it('ignores rows with null/undefined data', () => {
+    const result = groupRemainingLazyMeasurements([], [
+      { data: null, task: 'task1' },
+      { data: undefined, task: 'task1' },
+    ]);
+    expect(result).toEqual({});
+  });
+
+  it('groups rows without task under "unknown"', () => {
+    const result = groupRemainingLazyMeasurements([], [
+      { data: { temperatura: 20 }, task: null },
+    ]);
+    expect(result.unknown).toEqual([{ id: 'temperatura', value: 20 }]);
+  });
+});
+
+// ─── ════════════════════════════════════════════════════════════════════════ ───
+//     SECTION 4c — MeasurementDetailScreen: values, date with year, back button
+// ─── ════════════════════════════════════════════════════════════════════════ ───
+
+describe('MeasurementDetailScreen — values, date and header fixes', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetLastUserProgressPure.mockResolvedValue({ Seed: 8, Streak: 2, ts: new Date().toISOString() });
+    mockGetMeasurementsByDay.mockResolvedValue([]);
+  });
+
+  // Local-noon date avoids timezone flakiness (screen formats in local time)
+  const localNoonRoute = {
+    params: {
+      calendar: new Date(2026, 4, 2, 12).toISOString(), // sábado 2 de mayo, 2026
+      origin: 'historical' as const,
+    },
+  };
+
+  it('renders each measurement value with its unit (25°C)', async () => {
+    mockGetMeasurementsByDay.mockResolvedValue([
+      {
+        data: JSON.stringify({ temperatura: 25 }),
+        task: 'task1',
+        ts: new Date(2026, 4, 2, 10).toISOString(),
+        id: 'm1', type: 'RAW', uvaID: 'uva-1', logs: '{}',
+      },
+    ]);
+    const { getByText } = await render(
+      <MeasurementDetailScreen
+        route={localNoonRoute as any}
+        navigation={{} as any}
+      />,
+    );
+    await waitFor(() => {
+      // value (25) + unit (°C) from config join — was empty before the fix
+      expect(getByText('25°C')).toBeTruthy();
+      // sortName label rendered via RichText (mocked as plain text)
+      expect(getByText('<b>Tem</b>')).toBeTruthy();
+    });
+  });
+
+  it('renders the full date including the year (date-fns es, original format)', async () => {
+    const { getByText } = await render(
+      <MeasurementDetailScreen
+        route={localNoonRoute as any}
+        navigation={{} as any}
+      />,
+    );
+    await waitFor(() => {
+      // Original: format(date, "EEEE d 'de' MMMM, yyyy") → year present
+      expect(getByText('sábado 2 de mayo, 2026')).toBeTruthy();
+    });
+  });
+
+  it('shows the back button, hides the profile chip, and goes back on press', async () => {
+    const { getByTestId, queryByTestId } = await render(
+      <MeasurementDetailScreen
+        route={localNoonRoute as any}
+        navigation={{} as any}
+      />,
+    );
+    await waitFor(() => {
+      expect(getByTestId('header-back-btn')).toBeTruthy();
+    });
+    // Original passes [hasProfileButton]="false"
+    expect(queryByTestId('header-profile-btn')).toBeNull();
+    fireEvent.press(getByTestId('header-back-btn'));
+    expect(mockGoBack).toHaveBeenCalled();
   });
 });
 

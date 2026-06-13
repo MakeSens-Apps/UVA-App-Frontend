@@ -95,6 +95,14 @@ export const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     // Grant ALLOWED_ATTR to every tag (wildcard key '*')
     '*': ALLOWED_ATTR,
   },
+  // CRITICAL for RN/Hermes: sanitize-html's default (true) parses style
+  // attributes with postcss, which only works in a Node environment
+  // (sanitize-html issue #547). On-device the parse throws and the WHOLE
+  // style attribute is silently dropped — stripping every inline style
+  // (colors/weights of measurement sortName, guide HTML, etc.) while Jest
+  // (Node) keeps them. We don't use `allowedStyles`, so keeping the raw
+  // attribute is safe and mirrors the original DOMPurify behavior.
+  parseStyleAttributes: false,
   // Allow data URIs in src (mirrors DOMPurify default which allows them)
   allowedSchemes: ['http', 'https', 'data', 'file'],
   allowedSchemesByTag: {

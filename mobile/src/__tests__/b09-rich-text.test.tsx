@@ -63,7 +63,7 @@ import { ThemeProvider } from '../theme/ThemeProvider';
 // ─── Unit under test ──────────────────────────────────────────────────────────
 
 // eslint-disable-next-line import/first
-import { sanitizeRichHtml, ALLOWED_TAGS, ALLOWED_ATTR } from '../components/rich-text/sanitize';
+import { sanitizeRichHtml, ALLOWED_TAGS, ALLOWED_ATTR, SANITIZE_OPTIONS } from '../components/rich-text/sanitize';
 // eslint-disable-next-line import/first
 import { resolveVarToken, resolveVarTokensInHtml } from '../components/rich-text/varTokenResolver';
 // eslint-disable-next-line import/first
@@ -383,6 +383,12 @@ describe('sanitizeRichHtml — allowlist equivalence with DOMPurify', () => {
 
 // ─── REAL FIXTURE SANITIZATION TESTS ─────────────────────────────────────────
 
+describe('sanitizeRichHtml — Hermes compatibility', () => {
+  it('disables parseStyleAttributes (postcss is Node-only; on Hermes the style attr would be dropped)', () => {
+    expect(SANITIZE_OPTIONS.parseStyleAttributes).toBe(false);
+  });
+});
+
 describe('sanitizeRichHtml — real app fixtures', () => {
   it('processes guide HTML fixture without stripping content', () => {
     const result = sanitizeRichHtml(FIXTURE_GUIDE_HTML);
@@ -463,6 +469,16 @@ describe('resolveVarToken — CSS custom property resolution', () => {
   it('returns "inherit" for unknown token even with empty overrides', () => {
     expect(resolveVarToken('totally-made-up', {})).toBe('inherit');
   });
+
+  it('uses the CSS inline fallback for unknown tokens (var(--X, #hex))', () => {
+    // Backend sortName HTML: color: var(--Gray-700, #404040)
+    expect(resolveVarToken('Gray-700, #404040')).toBe('#404040');
+    expect(resolveVarToken('Colors-Green-500, #69ab3c')).toBe('#69AB3C'); // known name wins
+  });
+
+  it('known token takes precedence over the CSS inline fallback', () => {
+    expect(resolveVarToken('ion-color-uva_blue-500, #000000')).toBe('#10BCCA');
+  });
 });
 
 describe('resolveVarTokensInHtml — HTML var() replacement', () => {
@@ -514,6 +530,20 @@ describe('resolveVarTokensInHtml — HTML var() replacement', () => {
     const result = resolveVarTokensInHtml(input);
     expect(result).not.toContain('var(');
     expect(result).toContain('#10BCCA');
+  });
+
+  it('resolves real sortName HTML (var with fallback + literal colors survive)', () => {
+    // Real config: racimos/ANT025 measurementsRegistration.json sortName
+    const input =
+      '<span style="font-weight: 700; color: var(--Gray-700, #404040);">temperatura <span style="font-weight: 500; color: #f24a33"> min </span></span>';
+    const sanitized = sanitizeRichHtml(input);
+    // parseStyleAttributes must be disabled: postcss only works in Node and
+    // on Hermes the style attribute would be dropped entirely (issue #547)
+    expect(sanitized).toContain('style=');
+    expect(sanitized).toContain('#f24a33');
+    const resolved = resolveVarTokensInHtml(sanitized);
+    expect(resolved).not.toContain('var(');
+    expect(resolved).toContain('#404040');
   });
 });
 

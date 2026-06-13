@@ -200,6 +200,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minHeight: 44,
     gap: 8,
+    // Original .header { justify-content: space-between } (header.component.scss:5):
+    // with back+title (no chip) the title sits at the right edge — matches
+    // docs/evidence/historical/screen-12 (measurement detail).
+    justifyContent: 'space-between',
   },
   toolbarCenter: {
     justifyContent: 'center',
@@ -209,7 +213,8 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   title: {
-    flex: 1,
+    // Original .title is a plain <p> (no flex-grow); space-between positions it.
+    flexShrink: 1,
     fontSize: 18,
   },
   titleCenter: {

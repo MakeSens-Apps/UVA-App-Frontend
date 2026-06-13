@@ -396,7 +396,7 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
               <SemillaIcon width={20} height={20} color={theme.colors.blue[700]} />
               <Text style={[styles.tokenBody, { fontFamily: fontFamilyForWeight('400') }]}> a 40</Text>
               <SemillaIcon width={20} height={20} color={theme.colors.blue[700]} />
-              <ArrowRightIcon width={20} height={20} />
+              <ArrowRightIcon width={20} height={20} color={theme.colors.blue[500]} />
               <BroteIcon width={32} height={32} />
             </View>
             <Text style={[styles.tokenBody, { fontFamily: fontFamilyForWeight('400') }]}>De 11 a 40 semillas germina un <Text style={styles.tokenStrong}>brote</Text></Text>
@@ -409,7 +409,7 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
               <SemillaIcon width={20} height={20} color={theme.colors.blue[700]} />
               <Text style={[styles.tokenBody, { fontFamily: fontFamilyForWeight('400') }]}> a 63</Text>
               <SemillaIcon width={20} height={20} color={theme.colors.blue[700]} />
-              <ArrowRightIcon width={20} height={20} />
+              <ArrowRightIcon width={20} height={20} color={theme.colors.blue[500]} />
               <PlatulaIcon width={32} height={32} />
             </View>
             <Text style={[styles.tokenBody, { fontFamily: fontFamilyForWeight('400') }]}>De 41 a 63 semillas germina una <Text style={styles.tokenStrong}>plantula</Text></Text>
@@ -420,7 +420,7 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
             <View style={styles.germinationRow}>
               <Text style={[styles.tokenAmount, { color: theme.colors.blue[900] ?? theme.colors.blue[700], fontFamily: fontFamilyForWeight('600') }]}>mas de 63</Text>
               <SemillaIcon width={20} height={20} color={theme.colors.blue[700]} />
-              <ArrowRightIcon width={20} height={20} />
+              <ArrowRightIcon width={20} height={20} color={theme.colors.blue[500]} />
               <FlorIcon width={32} height={32} />
             </View>
             <Text style={[styles.tokenBody, { fontFamily: fontFamilyForWeight('400') }]}>más de 63 semillas germina una <Text style={styles.tokenStrong}>flor</Text></Text>

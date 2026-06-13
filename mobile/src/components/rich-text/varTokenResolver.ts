@@ -98,10 +98,18 @@ export function resolveVarToken(
   token: string,
   brandingOverrides: Record<string, string> = {},
 ): string {
+  // CSS allows an inline fallback: var(--token, <fallback>).
+  // The backend HTML uses it extensively (e.g. var(--Gray-700, #404040)).
+  // Split the token name from the fallback so unknown tokens resolve to the
+  // author's fallback value instead of 'inherit' (an invalid color in RN).
+  const commaIdx = token.indexOf(',');
+  const name = (commaIdx === -1 ? token : token.slice(0, commaIdx)).trim();
+  const cssFallback = commaIdx === -1 ? '' : token.slice(commaIdx + 1).trim();
+
   return (
-    brandingOverrides[token] ??
-    STATIC_VAR_FALLBACKS[token] ??
-    'inherit'
+    brandingOverrides[name] ??
+    STATIC_VAR_FALLBACKS[name] ??
+    (cssFallback || 'inherit')
   );
 }
 
