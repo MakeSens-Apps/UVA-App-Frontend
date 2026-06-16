@@ -70,15 +70,31 @@ function formatDayMonth(ts: number): string {
  * Mirrors Chart.js default linear scale behaviour: picks a step size
  * and generates 4-7 ticks.
  *
+ * When hardMin/hardMax are provided (from ymin/ymax props), the domain is
+ * clamped to those values — exactly as Chart.js does when you pass explicit
+ * `scales.y.min` / `scales.y.max`.  Ticks are still rounded to "nice"
+ * multiples but are filtered to stay within [hardMin, hardMax].
+ *
  * @param dataMin - minimum data value (or ymin prop)
  * @param dataMax - maximum data value (or ymax prop)
- * @returns array of tick values (ascending)
+ * @param hardMin - optional explicit lower bound (from ymin prop)
+ * @param hardMax - optional explicit upper bound (from ymax prop)
+ * @returns array of tick values (ascending), clamped to hard bounds when provided
  */
-function niceYTicks(dataMin: number, dataMax: number): number[] {
-  const range = dataMax - dataMin;
+function niceYTicks(
+  dataMin: number,
+  dataMax: number,
+  hardMin?: number,
+  hardMax?: number,
+): number[] {
+  // When hard bounds are provided, they define the domain (Chart.js behaviour).
+  const domainMin = hardMin !== undefined ? hardMin : dataMin;
+  const domainMax = hardMax !== undefined ? hardMax : dataMax;
+
+  const range = domainMax - domainMin;
   if (range === 0) {
     // Degenerate: single value — return ±2 around it
-    const base = Math.round(dataMin);
+    const base = Math.round(domainMin);
     return [base - 4, base - 2, base, base + 2, base + 4];
   }
 
@@ -89,14 +105,41 @@ function niceYTicks(dataMin: number, dataMax: number): number[] {
   const candidates = [1, 2, 2.5, 5, 10].map((c) => c * magnitude);
   const step = candidates.find((c) => c >= rawStep) ?? candidates[candidates.length - 1];
 
-  const tickMin = Math.floor(dataMin / step) * step;
-  const tickMax = Math.ceil(dataMax / step) * step;
+  // When hard bounds are provided, start ticks AT domainMin and end AT domainMax
+  // (Chart.js respects hard min/max exactly).
+  const tickMin = hardMin !== undefined
+    ? domainMin
+    : Math.floor(domainMin / step) * step;
+  const tickMax = hardMax !== undefined
+    ? domainMax
+    : Math.ceil(domainMax / step) * step;
 
   const ticks: number[] = [];
-  let t = tickMin;
-  while (t <= tickMax + step * 0.001) {
-    ticks.push(parseFloat(t.toFixed(10)));
+  // Always include the hard min bound as first tick
+  if (hardMin !== undefined) {
+    ticks.push(domainMin);
+  }
+  // Generate nice ticks between bounds
+  let t = Math.ceil(tickMin / step) * step;
+  while (t < tickMax - step * 0.001) {
+    const val = parseFloat(t.toFixed(10));
+    // Avoid duplicating the hard min already pushed
+    if (ticks.length === 0 || Math.abs(val - ticks[ticks.length - 1]) > step * 0.001) {
+      ticks.push(val);
+    }
     t += step;
+  }
+  // Always include the hard max bound as last tick
+  if (hardMax !== undefined) {
+    const val = parseFloat(domainMax.toFixed(10));
+    if (ticks.length === 0 || Math.abs(val - ticks[ticks.length - 1]) > step * 0.001) {
+      ticks.push(val);
+    }
+  } else {
+    const val = parseFloat(tickMax.toFixed(10));
+    if (ticks.length === 0 || Math.abs(val - ticks[ticks.length - 1]) > step * 0.001) {
+      ticks.push(val);
+    }
   }
   return ticks;
 }
@@ -295,13 +338,20 @@ function AreachartSvg({
   const rawYMin = ymin !== undefined ? ymin : Math.min(...allY);
   const rawYMax = ymax !== undefined ? ymax : Math.max(...allY);
 
-  // Compute nice Y ticks (same domain as Chart.js linear scale)
+  // Compute nice Y ticks.
+  // When ymin/ymax props are provided they act as Chart.js hard scale bounds:
+  // the Y domain is fixed to [ymin, ymax] and ticks are generated within it.
+  // When no hard bounds are given, niceYTicks auto-extends slightly (Chart.js
+  // default behaviour with no explicit min/max).
+  const hardMin = ymin !== undefined ? ymin : undefined;
+  const hardMax = ymax !== undefined ? ymax : undefined;
   const yTicks = useMemo(
-    () => niceYTicks(rawYMin, rawYMax),
-    [rawYMin, rawYMax],
+    () => niceYTicks(rawYMin, rawYMax, hardMin, hardMax),
+    [rawYMin, rawYMax, hardMin, hardMax],
   );
 
-  // Use nice tick bounds as the actual Y domain (Chart.js behaviour)
+  // Use tick bounds as the actual Y domain.
+  // If hard bounds were provided, the first/last tick IS the hard bound.
   const yDomainMin = yTicks[0];
   const yDomainMax = yTicks[yTicks.length - 1];
 
@@ -387,10 +437,14 @@ function AreachartSvg({
             <Stop offset="0" stopColor={areaFillColor} stopOpacity="0.8" />
             <Stop offset="1" stopColor={areaFillColor} stopOpacity="0.2" />
           </SvgLinearGradient>
+          {/* bandGrad: solid flat fill matching Chart.js backgroundColor: hexToRgba(background, 0.6).
+              The original does NOT use a gradient for the min/max band — it uses a solid colour at
+              0.6 opacity for the entire filled area between the max and min lines.  A top-to-bottom
+              gradient fading to 0.2 would make the band look thinner than it really is. */}
           {detailedMode && (
             <SvgLinearGradient id="bandGrad" x1="0" y1="0" x2="0" y2="1">
               <Stop offset="0" stopColor={areaFillColor} stopOpacity="0.6" />
-              <Stop offset="1" stopColor={areaFillColor} stopOpacity="0.2" />
+              <Stop offset="1" stopColor={areaFillColor} stopOpacity="0.6" />
             </SvgLinearGradient>
           )}
         </Defs>
