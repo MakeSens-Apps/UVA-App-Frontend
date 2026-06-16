@@ -87,6 +87,21 @@ import { EnvironmentalReport } from '@/components/environmental-report/Environme
 import { EnvironmentalReportService } from '@/domain/report/environmental-report';
 import type { ReportData } from '@/domain/report/environmental-report';
 
+// ─── Grid helpers ─────────────────────────────────────────────────────────────
+
+/**
+ * Splits an array into chunks of `size` for rendering explicit row Views.
+ * Avoids flexWrap+percentage width issues on RN web (atomic CSS bleed).
+ * Used for the year view 3-column mini-calendar grid.
+ */
+function chunkIntoRows<T>(arr: T[], size: number): T[][] {
+  const rows: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    rows.push(arr.slice(i, i + size));
+  }
+  return rows;
+}
+
 // ─── Month names (preserved from historical.model.ts) ─────────────────────────
 
 const monthsNames = [
@@ -978,28 +993,34 @@ export function HistoricalScreen(): React.JSX.Element {
               ))}
             </View>
 
-            {/* Mini calendars grid (3 per row) */}
-            <View style={styles.miniCalendarGrid}>
-              {completedTaskYear.map((register) => (
-                <TouchableOpacity
-                  key={register.mes}
-                  style={styles.miniCalendarCell}
-                  onPress={() => goToMonth(register.mes)}
-                >
-                  <View style={styles.miniCalendarInner}>
-                    <Calendar
-                      isMini
-                      hasTitle
-                      title={register.name}
-                      viewDate={register.date}
-                      daysComplete={register.daysComplete}
-                      daysIncomplete={register.daysIncomplete}
-                      daysSaveStreak={register.daysSaveStreak}
-                    />
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
+            {/* Mini calendars grid — 3 per row, 4 rows (12 months).
+                Original: ion-grid fixed → ion-col size="4" → 3 equal columns.
+                Using explicit row Views instead of flexWrap+percentage to avoid
+                RN-web atomic CSS bleed that causes percentage widths to resolve
+                against the wrong ancestor (screen width vs column width).     */}
+            {chunkIntoRows(completedTaskYear, 3).map((row, rowIndex) => (
+              <View key={rowIndex} style={styles.miniCalendarRow}>
+                {row.map((register) => (
+                  <TouchableOpacity
+                    key={register.mes}
+                    style={styles.miniCalendarCell}
+                    onPress={() => goToMonth(register.mes)}
+                  >
+                    <View style={styles.miniCalendarInner}>
+                      <Calendar
+                        isMini
+                        hasTitle
+                        title={register.name}
+                        viewDate={register.date}
+                        daysComplete={register.daysComplete}
+                        daysIncomplete={register.daysIncomplete}
+                        daysSaveStreak={register.daysSaveStreak}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ))}
           </View>
         )}
 
@@ -1180,16 +1201,16 @@ const styles = StyleSheet.create({
   yearNavBtn: { padding: 8 },
   yearNavText: { fontSize: 14 },
   currentYear: { fontSize: 20 },
-  miniCalendarGrid: {
+  // Row-based 3-column grid for mini-calendars (replaces flexWrap+percentage).
+  // Original: ion-grid fixed → ion-col size="4" (3 equal columns).
+  // Each row is an explicit flex row; each cell is flex:1 for equal sizing.
+  miniCalendarRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    // B15 FIX: use explicit marginHorizontal instead of padding on cells to prevent overflow
+    marginBottom: 6, // spacing between rows (original ion-col has some padding)
   },
   miniCalendarCell: {
-    // B15 BUG FIX: original uses ~13px day circles so mini-calendars fit 3-per-row.
-    // On 360px screen with 10px card padding: available = 340px, 3 cells = ~113px each.
-    // Using exact 33.33% causes rounding overlap; explicit 33% + overflow:hidden avoids it.
-    width: '33%',
+    // flex:1 in a 3-cell row = 1/3 each — avoids RN-web percentage width bleed.
+    flex: 1,
     padding: 3,
   },
   miniCalendarInner: {
@@ -1198,7 +1219,7 @@ const styles = StyleSheet.create({
     borderColor: '#E5E5E5', // --Colors-Gray-200
     borderRadius: 10, // Ionic: border-radius: 10px
     overflow: 'hidden',
-    // Contain the mini Calendar's day cells
+    padding: 4,
   },
   bottomPadding: { height: 80 },
   // B15-cierre: off-screen capture container

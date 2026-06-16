@@ -29,6 +29,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
+import type { ViewStyle } from 'react-native';
 
 import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';
@@ -98,6 +99,79 @@ export interface CalendarProps {
   phaseMoonDays?: { day: number; status: string }[];
   /** Callback when a day is pressed */
   onDayPress?: (day: CalendarDay | null) => void;
+}
+
+// ─── Inline grid styles (NOT in StyleSheet.create) ────────────────────────────
+// These constants are defined outside the component and outside StyleSheet to
+// avoid RN-web atomic CSS bleed. StyleSheet.create de-duplicates CSS values
+// by property, so two StyleSheet entries with the same CSS value share one
+// atomic class. When that class appears on both a parent and child element,
+// RNW can misapply it. Using plain object literals bypasses this system.
+//
+// Original: .calendar { display:grid; grid-template-columns:repeat(7,1fr); gap:2px }
+// Original: .calendar.mini { gap: 1.322px; padding: 0 }
+// Original: .day { height:40px; min-width:40px; ... margin:auto }
+// Original: .day.mini { width:13.223px; padding:4.298px 5.62px }
+
+// Normal-mode circle size (matches Day.tsx CIRCLE_SIZE_NORMAL = 40)
+const CIRCLE_NORMAL = 40;
+// Mini-mode circle size (matches Day.tsx CIRCLE_SIZE_MINI = 13)
+const CIRCLE_MINI = 13;
+
+const WEEK_ROW_STYLE: ViewStyle = {
+  flexDirection: 'row',
+  marginBottom: 2,
+  alignItems: 'center',
+  // Normal mode: TO uses flex:1, so this just centers rows vertically.
+};
+
+const WEEK_ROW_MINI_STYLE: ViewStyle = {
+  flexDirection: 'row',
+  marginBottom: 1.322,
+  alignItems: 'center',
+  // Mini mode: TOs have fixed 13px width. space-around distributes them
+  // evenly across the full weekRow width to match the original 7-column
+  // CSS grid behavior: grid-template-columns: repeat(7, 1fr).
+  justifyContent: 'space-around',
+};
+
+// Normal-mode cell: fixed width = circle size, centered content
+const DAY_CELL_STYLE: ViewStyle = {
+  width: CIRCLE_NORMAL,
+  alignItems: 'center',
+  justifyContent: 'center',
+  paddingVertical: 2,
+};
+
+// Mini-mode cell: fixed width = mini circle size, no padding
+// Original: .day.mini { width: 13.223px; ... }
+const DAY_CELL_MINI_STYLE: ViewStyle = {
+  width: CIRCLE_MINI,
+  alignItems: 'center',
+  justifyContent: 'center',
+  paddingVertical: 0,
+};
+
+// TouchableOpacity (TO) wrapper inherits the cell dimensions via inner View.
+// TO itself only needs flex:1 in normal mode so the weekRow stretches to full width.
+// In mini mode the TO uses a fixed-width inner View; no flex needed on TO.
+const TO_FLEX1_STYLE: ViewStyle = {
+  flex: 1,
+};
+
+// ─── Week chunker ─────────────────────────────────────────────────────────────
+
+/**
+ * Splits flat calendar day array into chunks of 7 (weeks).
+ * The last chunk may have fewer than 7 items (partial last week).
+ * Used instead of flexWrap+percentage-widths to avoid RN-web atomic CSS bleed.
+ */
+function chunkByWeek(days: CalendarDay[]): CalendarDay[][] {
+  const weeks: CalendarDay[][] = [];
+  for (let i = 0; i < days.length; i += 7) {
+    weeks.push(days.slice(i, i + 7));
+  }
+  return weeks;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -213,36 +287,56 @@ export function Calendar({
         </View>
       )}
 
-      {/* Original: .calendar.mini { gap: 1.322px; padding: 0 } */}
-      <View style={[styles.grid, isMini && styles.gridMini]}>
-        {calendarDays.map((dayData, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[styles.dayCell, isMini && styles.dayCellMini]}
-            onPress={() => onDayPress?.(dayData.date ? dayData : null)}
-            disabled={!dayData.date || !onDayPress}
-            testID={dayData.date ? `calendar-day-${dayData.dayOfMonth}` : `calendar-empty-${index}`}
-          >
-            {dayData.date === null ? (
-              // Empty placeholder cell
-              <Day day={0} isMiniCalendar={isMini} isMoonCalendar={typeCalendar === 'moon'} />
-            ) : (
-              <Day
-                day={dayData.dayOfMonth ?? 0}
-                state={dayData.state}
-                isMiniCalendar={isMini}
-                isMoonCalendar={typeCalendar === 'moon'}
-                customIcon={typeCalendar === 'moon' && !!dayData.icon}
-                icon={
-                  typeCalendar === 'moon' && dayData.icon
-                    ? (MOON_PHASE_SVG_ICONS[dayData.icon] ?? null)
-                    : null
-                }
-              />
-            )}
-          </TouchableOpacity>
-        ))}
-      </View>
+      {/* Calendar grid — rendered as explicit week rows (7 cells per row).
+          Inline styles are used for per-row and per-cell layout to avoid
+          RN-web atomic CSS bleed where StyleSheet.create classes with the
+          same CSS value share the same atomic class name and can appear on
+          unintended elements.
+          Original: .calendar { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px }
+          Mini:     .calendar.mini { gap: 1.322px; padding: 0 }               */}
+      {chunkByWeek(calendarDays).map((week, weekIndex) => (
+        <View
+          key={weekIndex}
+          style={isMini ? WEEK_ROW_MINI_STYLE : WEEK_ROW_STYLE}
+        >
+          {week.map((dayData, dayIndex) => (
+            /* Cell layout strategy for RN web compatibility:
+               - TouchableOpacity wraps an Animated.View in RNW, introducing
+                 an extra DOM layer. Styles applied to TO can shift to children.
+               - We use TO with `flex: 1` (inline, not StyleSheet) so each TO
+                 expands to 1/7 of the weekRow width.
+               - An inner View handles centering (alignItems/justifyContent).
+               - The Day circle renders inside at its fixed mini/normal size.        */
+            <TouchableOpacity
+              key={dayIndex}
+              style={isMini ? undefined : TO_FLEX1_STYLE}
+              onPress={() => onDayPress?.(dayData.date ? dayData : null)}
+              disabled={!dayData.date || !onDayPress}
+              testID={dayData.date ? `calendar-day-${dayData.dayOfMonth}` : `calendar-empty-${weekIndex * 7 + dayIndex}`}
+            >
+              <View style={isMini ? DAY_CELL_MINI_STYLE : DAY_CELL_STYLE}>
+                {dayData.date === null ? (
+                  // Empty placeholder cell
+                  <Day day={0} isMiniCalendar={isMini} isMoonCalendar={typeCalendar === 'moon'} />
+                ) : (
+                  <Day
+                    day={dayData.dayOfMonth ?? 0}
+                    state={dayData.state}
+                    isMiniCalendar={isMini}
+                    isMoonCalendar={typeCalendar === 'moon'}
+                    customIcon={typeCalendar === 'moon' && !!dayData.icon}
+                    icon={
+                      typeCalendar === 'moon' && dayData.icon
+                        ? (MOON_PHASE_SVG_ICONS[dayData.icon] ?? null)
+                        : null
+                    }
+                  />
+                )}
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      ))}
     </View>
   );
 }
@@ -287,26 +381,9 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: 12,
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-start',
-    alignItems: 'flex-start',
-  },
-  dayCell: {
-    width: `${100 / 7}%`,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 2,
-  },
-  // Original: .calendar.mini { gap: 1.322px; padding: 0 }
-  gridMini: {
-    gap: 1.322,
-  },
-  // Original: .day.mini { padding: 4.298px 5.62px } — no vertical padding on cell
-  dayCellMini: {
-    paddingVertical: 0,
-  },
+  // weekRow, weekRowMini, dayCell, dayCellMini are defined as plain object
+  // constants (WEEK_ROW_STYLE etc.) above, NOT in this StyleSheet, to avoid
+  // RN-web atomic CSS bleed. See comment near WEEK_ROW_STYLE.
 });
 
 export default Calendar;
