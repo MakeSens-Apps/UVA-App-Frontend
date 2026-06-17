@@ -68,8 +68,9 @@ jest.mock('victory-native', () => {
   const Area = () => React.createElement(View, { testID: 'victory-area' });
   const AreaRange = () => React.createElement(View, { testID: 'victory-area-range' });
   const Line = () => React.createElement(View, { testID: 'victory-line' });
+  const Bar = () => React.createElement(View, { testID: 'victory-bar' });
 
-  return { CartesianChart, Area, AreaRange, Line };
+  return { CartesianChart, Area, AreaRange, Line, Bar };
 });
 
 jest.mock('../data/storage/s3', () => ({
@@ -791,6 +792,31 @@ describe('Areachart (SPIKE victory-native) — render without crash', () => {
         />
       </Wrapper>,
     );
+    expect(getByTestId('areachart')).toBeTruthy();
+  });
+
+  it('renders rainfall data as bar chart (chartType="bar") without crash', async () => {
+    // Mirrors original areachart.component.ts:158 — chartType==='bar' for lluvia/Acu
+    const rainLabels = Array.from({ length: 31 }, (_, i) => {
+      const d = new Date(2026, 4, i + 1); // Mayo 2026
+      return d.toISOString().slice(0, 10);
+    });
+    const rainData = Array.from({ length: 31 }, (_, i) => (i % 3 === 0 ? 5 : 0));
+
+    const { getByTestId } = await render(
+      <Wrapper>
+        <Areachart
+          chartData={rainData}
+          chartLabels={rainLabels}
+          background="#10BCCA"
+          borderColor="#10BCCA"
+          ymin={0}
+          ymax={50}
+          chartType="bar"
+        />
+      </Wrapper>,
+    );
+    // Bar chart variant — still renders the areachart container
     expect(getByTestId('areachart')).toBeTruthy();
   });
 });

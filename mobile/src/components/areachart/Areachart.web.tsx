@@ -39,6 +39,7 @@ import Svg, {
   Stop,
   Polyline,
   Line,
+  Rect,
   Text as SvgText,
 } from 'react-native-svg';
 
@@ -188,6 +189,12 @@ export interface AreachartProps {
   chartMaxData?: number[];
   /** Chart height (default: 200) */
   height?: number;
+  /**
+   * Chart type: 'line' (area+line, default) or 'bar'.
+   * Mirrors original areachart.component.ts chartType Input.
+   * Use 'bar' for accumulated/rainfall (Acu) measurements.
+   */
+  chartType?: 'line' | 'bar';
 }
 
 // ─── Internal data shape ───────────────────────────────────────────────────────
@@ -254,6 +261,7 @@ export function Areachart({
   chartMinData = [],
   chartMaxData = [],
   height = 200,
+  chartType = 'line',
 }: AreachartProps): React.JSX.Element {
   const { width: windowWidth } = useWindowDimensions();
 
@@ -289,6 +297,7 @@ export function Areachart({
       ymax={ymax}
       xmin={xmin}
       xmax={xmax}
+      chartType={chartType}
     />
   );
 }
@@ -306,6 +315,7 @@ interface AreachartSvgProps {
   ymax?: number;
   xmin?: string;
   xmax?: string;
+  chartType?: 'line' | 'bar';
 }
 
 function AreachartSvg({
@@ -319,6 +329,7 @@ function AreachartSvg({
   ymax,
   xmin,
   xmax,
+  chartType = 'line',
 }: AreachartSvgProps): React.JSX.Element {
   // Plot area dimensions (inside the axis padding)
   const plotW = width - PAD_LEFT - PAD_RIGHT;
@@ -522,8 +533,32 @@ function AreachartSvg({
           );
         })}
 
-        {/* Chart area and line */}
-        {detailedMode && maxAreaPath ? (
+        {/* Chart area, line, or bars */}
+        {chartType === 'bar' ? (
+          // Bar chart mode — mirrors original Chart.js chartType==='bar' with solid fill.
+          // Original: gradient = this.borderColor (no gradient for bars).
+          // Bar width: plotW / (n * 1.5) gives visible gaps between bars (Chart.js default).
+          <>
+            {chartDatum.map((d) => {
+              const cx = mapX(d.x);
+              const barW = Math.max(2, plotW / (chartDatum.length * 1.5));
+              const barTop = mapY(Math.max(d.y, 0));
+              const barBottom = mapY(0);
+              const barH = Math.max(1, barBottom - barTop);
+              return (
+                <Rect
+                  key={`bar-${d.x}`}
+                  x={cx - barW / 2}
+                  y={barTop}
+                  width={barW}
+                  height={barH}
+                  fill={borderColor}
+                  opacity={0.85}
+                />
+              );
+            })}
+          </>
+        ) : detailedMode && maxAreaPath ? (
           <>
             {/* Min-max band */}
             <Path d={maxAreaPath} fill="url(#bandGrad)" />

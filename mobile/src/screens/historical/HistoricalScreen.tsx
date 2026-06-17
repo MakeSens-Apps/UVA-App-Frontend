@@ -902,6 +902,14 @@ export function HistoricalScreen(): React.JSX.Element {
                     xmin={chartState.xmin}
                     xmax={chartState.xmax}
                     height={220}
+                    chartType={
+                      // Original: measureSelected.graph.type controls Chart.js chartType.
+                      // areachart.component.ts:158 — if (this.chartType === 'bar') gradient = borderColor.
+                      // Lluvia/Acu uses graph.type='bar'; Tem/Hum use graph.type='line'.
+                      (measureSelected.graph?.type as 'line' | 'bar' | undefined) === 'bar'
+                        ? 'bar'
+                        : 'line'
+                    }
                   />
                 ) : null
               )}

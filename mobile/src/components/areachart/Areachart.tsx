@@ -45,11 +45,12 @@ import {
   Area,
   AreaRange,
   Line,
+  Bar,
 } from 'victory-native';
 import type { SkFont } from '@shopify/react-native-skia';
 import { useFont } from '@shopify/react-native-skia';
 import { format } from 'date-fns';
-import Svg, { Path, Defs, LinearGradient as SvgLinearGradient, Stop, Polyline } from 'react-native-svg';
+import Svg, { Path, Defs, LinearGradient as SvgLinearGradient, Stop, Polyline, Rect } from 'react-native-svg';
 
 // Font asset — loaded via useFont (Skia). Must be a static require so metro bundles it.
 // In test environments this may resolve to undefined; useFont handles that gracefully.
@@ -121,6 +122,12 @@ export interface AreachartProps {
   chartMaxData?: number[];
   /** Chart height (default: 200) */
   height?: number;
+  /**
+   * Chart type: 'line' (area+line, default) or 'bar'.
+   * Mirrors original areachart.component.ts chartType Input.
+   * Use 'bar' for accumulated/rainfall (Acu) measurements.
+   */
+  chartType?: 'line' | 'bar';
 }
 
 // ─── Web fallback component ────────────────────────────────────────────────────
@@ -147,6 +154,7 @@ interface AreachartWebProps {
   detailedMode: boolean;
   yDomain: [number, number] | undefined;
   xDomain: [number, number] | undefined;
+  chartType?: 'line' | 'bar';
 }
 
 function AreachartWeb({
@@ -158,6 +166,7 @@ function AreachartWeb({
   detailedMode,
   yDomain,
   xDomain,
+  chartType = 'line',
 }: AreachartWebProps): React.JSX.Element {
   const chartW = width - WEB_PAD_X * 2;
   const chartH = height - WEB_PAD_Y * 2;
@@ -190,24 +199,55 @@ function AreachartWeb({
     };
   }, [chartDatum, chartW, chartH, xMin, xRange, yMin, yRange]);
 
+  // Helpers for bar mode (computed inline — same domain values as above)
+  const mapXBar = (x: number) => WEB_PAD_X + ((x - xMin) / xRange) * chartW;
+  const mapYBar = (y: number) => WEB_PAD_Y + (1 - (y - yMin) / yRange) * chartH;
+  const barW = Math.max(2, chartW / (chartDatum.length * 1.5));
+  const baselineY = WEB_PAD_Y + chartH;
+
   return (
     <View style={[styles.container, { height, width }]} testID="areachart">
       <Svg width={width} height={height}>
-        <Defs>
-          <SvgLinearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={areaFillColor} stopOpacity="0.8" />
-            <Stop offset="1" stopColor={areaFillColor} stopOpacity="0.1" />
-          </SvgLinearGradient>
-        </Defs>
-        {/* Area fill */}
-        <Path d={areaPath} fill="url(#areaGrad)" />
-        {/* Border line */}
-        <Polyline
-          points={linePoints}
-          fill="none"
-          stroke={borderColor}
-          strokeWidth={2}
-        />
+        {chartType === 'bar' ? (
+          // Bar chart — mirrors original Chart.js chartType==='bar' with solid colour.
+          // Original: gradient = this.borderColor (no gradient for bars).
+          <>
+            {chartDatum.map((d) => {
+              const cx = mapXBar(d.x);
+              const barTop = mapYBar(Math.max(d.y, 0));
+              const barH = Math.max(1, baselineY - barTop);
+              return (
+                <Rect
+                  key={`bar-${d.x}`}
+                  x={cx - barW / 2}
+                  y={barTop}
+                  width={barW}
+                  height={barH}
+                  fill={borderColor}
+                  opacity={0.85}
+                />
+              );
+            })}
+          </>
+        ) : (
+          <>
+            <Defs>
+              <SvgLinearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor={areaFillColor} stopOpacity="0.8" />
+                <Stop offset="1" stopColor={areaFillColor} stopOpacity="0.1" />
+              </SvgLinearGradient>
+            </Defs>
+            {/* Area fill */}
+            <Path d={areaPath} fill="url(#areaGrad)" />
+            {/* Border line */}
+            <Polyline
+              points={linePoints}
+              fill="none"
+              stroke={borderColor}
+              strokeWidth={2}
+            />
+          </>
+        )}
       </Svg>
     </View>
   );
@@ -253,6 +293,7 @@ export function Areachart({
   chartMinData = [],
   chartMaxData = [],
   height = 200,
+  chartType = 'line',
 }: AreachartProps): React.JSX.Element {
   const { width: windowWidth } = useWindowDimensions();
 
@@ -310,6 +351,7 @@ export function Areachart({
         detailedMode={detailedMode}
         yDomain={yDomain}
         xDomain={xDomain}
+        chartType={chartType}
       />
     );
   }
@@ -349,7 +391,17 @@ export function Areachart({
           const pts = rawPoints as any;
           return (
           <>
-            {detailedMode && chartMinData.length > 0 && chartMaxData.length > 0 ? (
+            {chartType === 'bar' ? (
+              // Bar chart mode — mirrors original Chart.js chartType==='bar'.
+              // Original: gradient = this.borderColor (solid colour, no gradient for bars).
+              // victory-native Bar renders one bar per datum centred on its x value.
+              <Bar
+                points={pts.y}
+                chartBounds={chartBounds}
+                color={borderColor}
+                animate={{ type: 'timing', duration: 300 }}
+              />
+            ) : detailedMode && chartMinData.length > 0 && chartMaxData.length > 0 ? (
               <>
                 {/* Min-max band (background): AreaRange fills between yMin and yMax.
                     This mirrors the Chart.js original:
