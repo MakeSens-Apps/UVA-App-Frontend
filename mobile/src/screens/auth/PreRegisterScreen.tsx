@@ -25,10 +25,11 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -36,6 +37,10 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '@/navigation/types';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';
+// Original soft-teal background (global.scss %bg → background.svg). NOT a hard gradient.
+import BackgroundSvg from '@/assets/svg/background.svg';
+// Circular badge logo (logo_badge.svg = original logo.svg circle+icon, full-bleed rects removed).
+import LogoSvg from '@/assets/svg/logo_badge.svg';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,13 +53,14 @@ export function PreRegisterScreen({ navigation }: Props): React.JSX.Element {
   const [accepted, setAccepted] = useState(false);
 
   return (
-    <LinearGradient
-      colors={[theme.colors.blue[500], theme.colors.blue[700]]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 0, y: 1 }}
-      style={styles.gradient}
-      testID="pre-register-screen"
-    >
+    <View style={styles.gradient} testID="pre-register-screen">
+      {/* Background — original %bg uses background.svg (soft teal), NOT a hard gradient. */}
+      <BackgroundSvg
+        width="100%"
+        height="100%"
+        preserveAspectRatio="xMidYMid slice"
+        style={styles.background as StyleProp<ViewStyle>}
+      />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -66,13 +72,8 @@ export function PreRegisterScreen({ navigation }: Props): React.JSX.Element {
           end={{ x: 0, y: 1 }}
           style={styles.card}
         >
-          {/* Logo */}
-          <Image
-            source={require('@/assets/png/icon-only.png') as number}
-            style={styles.logo}
-            resizeMode="contain"
-            testID="logo-image"
-          />
+          {/* Logo — circular badge (logo.svg) */}
+          <LogoSvg width={70} height={70} testID="logo-image" />
 
           {/* Title — titleHTML="<h1>Hola 👋 es un gusto <br> tenerte aquí! </h1>" (pre-register.page.html:2) */}
           {/* h1: font-weight:600 (global.scss:119 .card-content_gradient h1) */}
@@ -157,12 +158,13 @@ export function PreRegisterScreen({ navigation }: Props): React.JSX.Element {
             </Text>
           </TouchableOpacity>
 
-          {/* Continuar button */}
+          {/* Continuar button — Ionic disabled = opacity:0.5 over the teal card → muted teal (not gray) */}
           <TouchableOpacity
             style={[
               styles.button,
               {
-                backgroundColor: accepted ? theme.colors.blue[700] : theme.colors.gray[300],
+                backgroundColor: theme.colors.blue[700],
+                opacity: accepted ? 1 : 0.5,
               },
             ]}
             onPress={() => navigation.navigate('Register')}
@@ -182,7 +184,7 @@ export function PreRegisterScreen({ navigation }: Props): React.JSX.Element {
           </TouchableOpacity>
         </LinearGradient>
       </ScrollView>
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -192,34 +194,29 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
+  background: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   scrollContent: {
     flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
+    // .container_explore padding:5vw (~18px on 360px)
+    padding: 18,
   },
   card: {
-    // LinearGradient replaces opaque white: see .card-content_gradient (global.scss:100-106)
+    // Frosted card: .card-content_gradient rgba(255,255,255,0.3)→0.8, radius:20 (global.scss:100-106).
     borderRadius: 20,
-    padding: 24,
+    padding: 20,
     width: '100%',
     maxWidth: 400,
     alignItems: 'center',
     gap: 16,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
     overflow: 'hidden',
-  },
-  logo: {
-    // ion-thumbnail: 70x70, --border-radius:14px, bg:#F5F5F5 (global.scss:195-199)
-    width: 70,
-    height: 70,
-    borderRadius: 14,
-    backgroundColor: '#F5F5F5',
-    marginBottom: 4,
   },
   title: {
     fontSize: 20,

@@ -32,12 +32,22 @@ import {
   Text,
   Image,
   StyleSheet,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';
 import { RichText } from '@/components/rich-text/RichText';
+// Original background.svg — soft teal (#4BC5BE base + blurred #10BCCA blob + 0.2 overlay,
+// blur 25px). global.scss %bg / .container_explore (bg_green / bg_blue). NOT a hard gradient.
+import BackgroundSvg from '@/assets/svg/background.svg';
+// Circular badge logo (logo_badge.svg): the 70x70 white-gradient circle (0.8→0.6) + teal
+// feather+chart icon from the original logo.svg, with its full-bleed background rects removed
+// (those are meant for the teal splash; on the card they'd render as a square box).
+// Matches the badge in docs/evidence/auth-login/screen-01-login-vacio.png.
+import LogoSvg from '@/assets/svg/logo_badge.svg';
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
@@ -92,130 +102,163 @@ export function ExploreContainer({
 }: ExploreContainerProps): React.JSX.Element {
   const { theme } = useTheme();
 
-  // Gradient colors: blue variant or green variant (matching original bg_blue/bg_green CSS classes)
-  const gradientColors = BgBlue
-    ? ([theme.colors.blue[700], theme.colors.blue[500]] as const)
-    : ([theme.colors.green[700], theme.colors.green[500]] as const);
-
   return (
-    <LinearGradient
-      colors={gradientColors}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 0, y: 1 }}
-      style={styles.gradient}
-      testID="explore-container"
-    >
-      <View style={styles.card}>
-        {/* Icon or default logo */}
-        {Icon ? (
-          <Image
-            source={{ uri: Icon }}
-            style={styles.icon}
-            resizeMode="contain"
-          />
-        ) : (
-          <Image
-            source={require('@/assets/png/icon-only.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-        )}
+    <View style={styles.root} testID="explore-container">
+      {/* Background — original %bg uses background.svg (soft teal), NOT a hard gradient.
+          global.scss:59-93 .container_explore.bg_green / .bg_blue. */}
+      <BackgroundSvg
+        width="100%"
+        height="100%"
+        preserveAspectRatio="xMidYMid slice"
+        style={styles.background as StyleProp<ViewStyle>}
+      />
+      {/* bg_blue variant overlays a translucent white wash (global.scss:87-92) */}
+      {BgBlue ? <View style={styles.blueWash} /> : null}
 
-        {/* Title (plain text or HTML) */}
-        {title ? (
-          <Text
-            style={[
-              styles.title,
-              {
-                fontFamily: fontFamilyForWeight('700'),
-                color: theme.colors.white,
-              },
-            ]}
-          >
-            {title}
-          </Text>
-        ) : titleHTML ? (
-          <RichText
-            html={titleHTML}
-            baseColor={theme.colors.white}
-            containerStyle={styles.titleHtmlContainer}
-          />
-        ) : null}
+      {/* Frosted card — .card-content_gradient: rgba(255,255,255,0.3)→rgba(255,255,255,0.8),
+          border-radius:20px (global.scss:100-106). Semi-transparent so the teal shows through. */}
+      <View style={styles.cardWrapper}>
+        <LinearGradient
+          colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.8)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.card}
+        >
+          {/* Icon or default circular badge logo (global.scss:195-203 thumbnail 70px) */}
+          {Icon ? (
+            <Image
+              source={{ uri: Icon }}
+              style={styles.icon}
+              resizeMode="contain"
+            />
+          ) : (
+            <LogoSvg width={70} height={70} />
+          )}
 
-        {/* Subtitle */}
-        {subTitle ? (
-          <Text
-            style={[
-              styles.subTitle,
-              {
-                fontFamily: fontFamilyForWeight('400'),
-                color: theme.colors.white,
-              },
-            ]}
-          >
-            {subTitle}
-          </Text>
-        ) : null}
+          {/* Title (plain text or HTML) — h1: 20px/600, blue[800] (global.scss:118-122) */}
+          {title ? (
+            <Text
+              style={[
+                styles.title,
+                {
+                  fontFamily: fontFamilyForWeight('600'),
+                  color: theme.colors.blue[800],
+                },
+              ]}
+            >
+              {title}
+            </Text>
+          ) : titleHTML ? (
+            <RichText
+              html={titleHTML}
+              baseColor={theme.colors.blue[800]}
+              containerStyle={styles.titleHtmlContainer}
+            />
+          ) : null}
 
-        {/* Message */}
-        {message ? (
-          <Text
-            style={[
-              styles.message,
-              {
-                fontFamily: fontFamilyForWeight('400'),
-                color: theme.colors.white,
-              },
-            ]}
-          >
-            {message}
-          </Text>
-        ) : null}
+          {/* Subtitle — .subtitle: 16px/700, gray[700] (global.scss:124-136) */}
+          {subTitle ? (
+            <Text
+              style={[
+                styles.subTitle,
+                {
+                  fontFamily: fontFamilyForWeight('700'),
+                  color: theme.colors.gray[700],
+                },
+              ]}
+            >
+              {subTitle}
+            </Text>
+          ) : null}
 
-        {/* Children slot */}
-        {children}
+          {/* Message — .message: 16px/500, gray[700] (global.scss:124-132) */}
+          {message ? (
+            <Text
+              style={[
+                styles.message,
+                {
+                  fontFamily: fontFamilyForWeight('500'),
+                  color: theme.colors.gray[700],
+                },
+              ]}
+            >
+              {message}
+            </Text>
+          ) : null}
+
+          {/* Children slot */}
+          {children}
+        </LinearGradient>
       </View>
-    </LinearGradient>
+    </View>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  gradient: {
-    flex: 1,
-  },
-  card: {
+  root: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
-    gap: 12,
+    // .container_explore padding:5vw (~18px on a 360px-wide device) — global.scss:77
+    padding: 18,
+  },
+  background: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  blueWash: {
+    // bg_blue ::before background: rgba(255,255,255,0.60) — global.scss:90
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255,255,255,0.60)',
+  },
+  cardWrapper: {
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+  },
+  card: {
+    // .card-content_gradient: border-radius:20px (global.scss:102). Semi-transparent frosted.
+    borderRadius: 20,
+    // .card @include align(20px) → padding + gap of 20px
+    padding: 20,
+    width: '100%',
+    alignItems: 'center',
+    gap: 20,
+    overflow: 'hidden',
   },
   icon: {
-    width: 80,
-    height: 80,
-  },
-  logo: {
-    width: 64,
-    height: 64,
+    // .icon height:70px (global.scss:201-203)
+    width: 70,
+    height: 70,
   },
   title: {
-    fontSize: 24,
+    // h1: 20px/600 (global.scss:118-119)
+    fontSize: 20,
     textAlign: 'center',
   },
   titleHtmlContainer: {
     alignSelf: 'center',
   },
   subTitle: {
+    // .subtitle: 16px, line-height 150% (global.scss:124-136)
     fontSize: 16,
     textAlign: 'center',
-    opacity: 0.9,
+    lineHeight: 24,
   },
   message: {
-    fontSize: 14,
+    // .message: 16px, line-height 150% (global.scss:124-132)
+    fontSize: 16,
     textAlign: 'center',
-    opacity: 0.8,
+    lineHeight: 24,
   },
 });
 

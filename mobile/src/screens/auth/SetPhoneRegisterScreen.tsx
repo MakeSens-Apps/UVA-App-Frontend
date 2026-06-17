@@ -27,13 +27,15 @@
 
 import React, { useState, useEffect } from 'react';
 import {
+  View,
   Text,
-  Image,
   TextInput,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   ScrollView,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -44,6 +46,10 @@ import { useConfirmModal } from '@/components/ui/ConfirmModal';
 import { SetupService } from '@/domain/setup/setup';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';
+// Original soft-teal background (global.scss %bg → background.svg). NOT a hard gradient.
+import BackgroundSvg from '@/assets/svg/background.svg';
+// Circular badge logo (logo_badge.svg = original logo.svg circle+icon, full-bleed rects removed).
+import LogoSvg from '@/assets/svg/logo_badge.svg';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -117,13 +123,14 @@ export function SetPhoneRegisterScreen({ navigation }: Props): React.JSX.Element
 
   return (
     <>
-      <LinearGradient
-        colors={[theme.colors.blue[500], theme.colors.blue[700]]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.gradient}
-        testID="set-phone-register-screen"
-      >
+      <View style={styles.gradient} testID="set-phone-register-screen">
+        {/* Background — original %bg uses background.svg (soft teal), NOT a hard gradient. */}
+        <BackgroundSvg
+          width="100%"
+          height="100%"
+          preserveAspectRatio="xMidYMid slice"
+          style={styles.background as StyleProp<ViewStyle>}
+        />
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -135,12 +142,8 @@ export function SetPhoneRegisterScreen({ navigation }: Props): React.JSX.Element
             end={{ x: 0, y: 1 }}
             style={styles.card}
           >
-            {/* Logo */}
-            <Image
-              source={require('@/assets/png/icon-only.png') as number}
-              style={styles.logo}
-              resizeMode="contain"
-            />
+            {/* Logo — circular badge (logo.svg) */}
+            <LogoSvg width={70} height={70} testID="logo-image" />
 
             {/* Title: "Número de teléfono" (set-phone-register.page.html:2) — h1 font-weight:600 (global.scss:119) */}
             <Text
@@ -209,12 +212,13 @@ export function SetPhoneRegisterScreen({ navigation }: Props): React.JSX.Element
               )}
             />
 
-            {/* Continuar button — disabled: gray[300] (#D4D4D4) same pattern as LoginScreen */}
+            {/* Continuar button — Ionic disabled = opacity:0.5 over the teal card → muted teal (not gray) */}
             <TouchableOpacity
               style={[
                 styles.button,
                 {
-                  backgroundColor: isValid ? theme.colors.blue[700] : theme.colors.gray[300],
+                  backgroundColor: theme.colors.blue[700],
+                  opacity: isValid || loading ? 1 : 0.5,
                 },
               ]}
               onPress={() => void onSubmit()}
@@ -238,7 +242,7 @@ export function SetPhoneRegisterScreen({ navigation }: Props): React.JSX.Element
             </TouchableOpacity>
           </LinearGradient>
         </ScrollView>
-      </LinearGradient>
+      </View>
 
       {confirmModal}
     </>
@@ -251,34 +255,29 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
+  background: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   scrollContent: {
     flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
+    // .container_explore padding:5vw (~18px on 360px)
+    padding: 18,
   },
   card: {
-    // LinearGradient replaces opaque white: see .card-content_gradient (global.scss:100-106)
+    // Frosted card: .card-content_gradient rgba(255,255,255,0.3)→0.8, radius:20 (global.scss:100-106).
     borderRadius: 20,
-    padding: 24,
+    padding: 20,
     width: '100%',
     maxWidth: 400,
     alignItems: 'center',
     gap: 12,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
     overflow: 'hidden',
-  },
-  logo: {
-    // ion-thumbnail: 70x70, --border-radius:14px, bg:#F5F5F5 (global.scss:195-199)
-    width: 70,
-    height: 70,
-    borderRadius: 14,
-    backgroundColor: '#F5F5F5',
-    marginBottom: 4,
   },
   title: {
     fontSize: 20,

@@ -50,11 +50,12 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  Image,
   TextInput,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -65,6 +66,11 @@ import { useConfirmModal } from '@/components/ui/ConfirmModal';
 import { SetupService } from '@/domain/setup/setup';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';
+// Original soft-teal background (global.scss %bg → background.svg). NOT a hard gradient.
+import BackgroundSvg from '@/assets/svg/background.svg';
+// Circular badge logo (logo_badge.svg = original logo.svg circle+icon, full-bleed rects removed)
+// — matches docs/evidence/auth-login/screen-01.
+import LogoSvg from '@/assets/svg/logo_badge.svg';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -167,13 +173,15 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
 
   return (
     <>
-      <LinearGradient
-        colors={[theme.colors.blue[500], theme.colors.blue[700]]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.gradient}
-        testID="login-screen"
-      >
+      <View style={styles.gradient} testID="login-screen">
+        {/* Background — original %bg uses background.svg (soft teal), NOT a hard gradient
+            (global.scss:59-93). */}
+        <BackgroundSvg
+          width="100%"
+          height="100%"
+          preserveAspectRatio="xMidYMid slice"
+          style={styles.background as StyleProp<ViewStyle>}
+        />
         {/* Card: LinearGradient rgba(255,255,255,0.3)→rgba(255,255,255,0.8) (global.scss:100-106 .card-content_gradient) */}
         <LinearGradient
           colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.8)']}
@@ -181,18 +189,14 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
           end={{ x: 0, y: 1 }}
           style={styles.card}
         >
-          {/* Logo — ion-thumbnail 70x70, border-radius:14 (explore-container / global.scss:195-199) */}
-          <Image
-            source={require('@/assets/png/icon-only.png') as number}
-            style={styles.logo}
-            resizeMode="contain"
-            testID="logo-image"
-          />
+          {/* Logo — circular badge (logo.svg): 70x70, white 0.8→0.6 circle, teal icon
+              (matches docs/evidence/auth-login/screen-01-login-vacio.png) */}
+          <LogoSvg width={70} height={70} testID="logo-image" />
 
           <Text
             style={[
               styles.title,
-              { fontFamily: fontFamilyForWeight('600'), color: theme.semanticColors.text },
+              { fontFamily: fontFamilyForWeight('600'), color: theme.colors.blue[800] },
             ]}
           >
             Hola de nuevo 👋
@@ -259,14 +263,15 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
             )}
           />
 
-          {/* Continuar button — disabled: gray[300] (#D4D4D4) so it doesn't bleed teal. Original Ionic
-               applies --background:rgba(var(--ion-color-uva_green-700-rgb),0.12) for disabled,
-               which renders as a grayish-neutral, not a saturated teal. */}
+          {/* Continuar button — color="uva_green-700" (#14788A). Ionic disabled applies opacity:0.5
+               to the whole button, so over the frosted teal card it reads as a muted teal
+               (measured ~#69B1B8 in screen-01), NOT neutral gray. */}
           <TouchableOpacity
             style={[
               styles.button,
               {
-                backgroundColor: isValid ? theme.colors.blue[700] : theme.colors.gray[300],
+                backgroundColor: theme.colors.blue[700],
+                opacity: isValid ? 1 : 0.5,
               },
             ]}
             onPress={onSubmit}
@@ -333,9 +338,9 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
             </TouchableOpacity>
           </View>
         </LinearGradient>
-      </LinearGradient>
+      </View>
 
-      {/* Confirm modals rendered outside LinearGradient so they overlay properly */}
+      {/* Confirm modals rendered outside the screen container so they overlay properly */}
       {confirmModal}
     </>
   );
@@ -351,29 +356,22 @@ const styles = StyleSheet.create({
     // 5vw on 360px device = 18px (global.scss .container_explore padding:5vw)
     padding: 18,
   },
+  background: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   card: {
-    // LinearGradient replaces opaque white: see .card-content_gradient (global.scss:100-106)
+    // Frosted card: .card-content_gradient rgba(255,255,255,0.3)→0.8, radius:20 (global.scss:100-106).
     borderRadius: 20,
-    padding: 24,
+    padding: 20,
     width: '100%',
     maxWidth: 400,
     alignItems: 'center',
     gap: 12,
-    // Shadow
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
     overflow: 'hidden',
-  },
-  logo: {
-    // ion-thumbnail: 70x70, --border-radius:14px, bg:#F5F5F5 (global.scss:195-199)
-    width: 70,
-    height: 70,
-    borderRadius: 14,
-    backgroundColor: '#F5F5F5',
-    marginBottom: 4,
   },
   title: {
     fontSize: 20,
