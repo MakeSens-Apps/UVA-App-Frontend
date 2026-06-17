@@ -51,26 +51,20 @@ import {
 } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { LinearGradient } from 'expo-linear-gradient';
-import type {
-  NativeStackScreenProps,
-  NativeStackNavigationProp,
-} from '@react-navigation/native-stack';
-import { useNavigation } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import type { AuthStackParamList, RootStackParamList } from '@/navigation/types';
+import type { AuthStackParamList } from '@/navigation/types';
 import { SetupService } from '@/domain/setup/setup';
 import { SetupRacimoService } from '@/domain/setup/setup-racimo';
 import { useConfigContext } from '@/state/ConfigContext';
 import { useSyncContext } from '@/state/SyncContext';
+import { useNavigationGate } from '@/navigation/useNavigationGate';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ProjectVinculation'>;
-
-// Root navigation type — needed to navigate to AppStack
-type RootNavProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface VinculationFormValues {
   code: string;
@@ -89,8 +83,9 @@ export function ProjectVinculationScreen({ navigation }: Props): React.JSX.Eleme
   const { configExists } = useConfigContext();
   const { waitForSync } = useSyncContext();
 
-  // Root navigation for navigating to the App stack
-  const rootNavigation = useNavigation<RootNavProp>();
+  // Cross-stack transition to the App stack (gate flip, not a reset to an
+  // unmounted route — see useNavigationGate / navigationGate).
+  const { goToApp } = useNavigationGate();
 
   const {
     control,
@@ -124,11 +119,8 @@ export function ProjectVinculationScreen({ navigation }: Props): React.JSX.Eleme
                 racimoCode: user.racimoLinkCode ?? '',
               });
             } else {
-              // Has UVA + config → go directly to home
-              rootNavigation.reset({
-                index: 0,
-                routes: [{ name: 'App' }],
-              });
+              // Has UVA + config → go directly to home (flip gate → App stack)
+              goToApp();
             }
           }
           return;

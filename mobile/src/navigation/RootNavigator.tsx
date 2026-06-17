@@ -29,7 +29,7 @@ import { AppStack } from './AppStack';
 import { SplashScreen } from '@/screens/splash/SplashScreen';
 import { useAuthGate } from './useAuthGate';
 import type { AuthGateDestination } from './useAuthGate';
-import { registerDevBypassSetter } from './devBypass';
+import { registerGateSetter } from './navigationGate';
 
 const Root = createNativeStackNavigator<RootStackParamList>();
 
@@ -57,10 +57,13 @@ export function RootNavigator(): React.JSX.Element {
   // B13a: removed DEV_GATE init to 'app' — real auth flow runs in all builds.
   const [destination, setDestination] = useState<AuthGateDestination | null>(null);
 
-  // Register bypass setter (used by DEV button in LoginScreen)
+  // Register the gate setter so any screen can request a cross-stack transition
+  // (Auth↔App) via navigationGate / useNavigationGate. This is the ONLY mechanism
+  // that re-mounts the correct stack — a `reset({ routes: [{ name: 'App' }] })`
+  // from inside the Auth stack is a silent no-op because 'App' is not mounted.
   useEffect(() => {
-    registerDevBypassSetter(setDestination);
-    return () => { registerDevBypassSetter(null); };
+    registerGateSetter(setDestination);
+    return () => { registerGateSetter(null); };
   }, [setDestination]);
 
   // ─── onReady: capture initial route name ─────────────────────────────────

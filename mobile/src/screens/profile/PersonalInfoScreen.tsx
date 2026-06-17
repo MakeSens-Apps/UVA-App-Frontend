@@ -56,6 +56,7 @@ import { UserDSService } from '@/data/datastore/user-ds';
 import { UvaDSService } from '@/data/datastore/uva-ds';
 import { authService } from '@/data/auth/auth';
 
+import { useNavigationGate } from '@/navigation/useNavigationGate';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';
 
@@ -92,6 +93,7 @@ interface LocationForm {
 
 export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
   const { theme } = useTheme();
+  const { goToAuth } = useNavigationGate();
 
   const [isEditable, setIsEditable] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -248,7 +250,9 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
       const ok = await authService.handleDeleteUser?.();
       if (ok) {
         deleteModal2Ref.current?.dismiss();
-        navigation.reset({ index: 0, routes: [{ name: 'Auth' as never }] });
+        // Flip the gate back to the Auth stack (the Auth stack is not mounted
+        // while in App, so a reset to { name: 'Auth' } would be a no-op).
+        goToAuth();
       } else {
         Alert.alert('Error', 'No se pudo borrar la cuenta');
       }
@@ -258,7 +262,7 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
     } finally {
       setIsLoading(false);
     }
-  }, [isInputValid, isLoading, navigation]);
+  }, [isInputValid, isLoading, goToAuth]);
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
 

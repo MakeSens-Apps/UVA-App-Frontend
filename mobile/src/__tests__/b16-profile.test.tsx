@@ -131,6 +131,14 @@ const mockNavigate = jest.fn();
 const mockGoBack = jest.fn();
 const mockReset = jest.fn();
 
+// Navigation gate mock — logout/delete now flip the gate (Auth↔App) instead of
+// resetting to a route that is not mounted in the current stack.
+const mockGoToApp = jest.fn();
+const mockGoToAuth = jest.fn();
+jest.mock('@/navigation/useNavigationGate', () => ({
+  useNavigationGate: () => ({ goToApp: mockGoToApp, goToAuth: mockGoToAuth }),
+}));
+
 jest.mock('@react-navigation/native', () => ({
   useFocusEffect: (cb: () => void | (() => void)) => {
     const React = require('react');
@@ -325,7 +333,7 @@ describe('ProfileScreen', () => {
     expect(getByTestId('logout-btn')).toBeTruthy();
   });
 
-  it('logout: calls signOut, clearSession, DataStore.clear, and navigation.reset', async () => {
+  it('logout: calls signOut, clearSession, DataStore.clear, and flips gate to Auth', async () => {
     const { DataStore } = require('@aws-amplify/datastore');
     const props = makeNavProps() as Parameters<typeof ProfileScreen>[0];
     const { getByTestId } = await render(
@@ -343,10 +351,13 @@ describe('ProfileScreen', () => {
       expect(mockSignOut).toHaveBeenCalled();
       expect(mockClearSession).toHaveBeenCalled();
       expect(DataStore.clear).toHaveBeenCalled();
-      expect(mockReset).toHaveBeenCalledWith(
-        expect.objectContaining({ index: 0 }),
-      );
+      // Auth stack is not mounted while in App → flip the gate instead of reset()
+      expect(mockGoToAuth).toHaveBeenCalledTimes(1);
     });
+    // The broken cross-stack reset must NOT be used
+    expect(mockReset).not.toHaveBeenCalledWith(
+      expect.objectContaining({ routes: [{ name: 'Auth' }] }),
+    );
   });
 
   it('dynamic branding logo: loads URI from ConfigContext.loadImage when branding.logo is set (fix coverage-audit #10)', async () => {

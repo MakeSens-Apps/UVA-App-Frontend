@@ -15,7 +15,11 @@
  *   - "¡Empecemos!"
  *   - Confetti gif
  *
- * Note: original navigates to 'app/tabs/home'. In RN we reset to App root.
+ * Note: original navigates to 'app/tabs/home'. In RN the App stack is mounted
+ * CONDITIONALLY by RootNavigator (Auth OR App, never both). A
+ * `reset({ routes: [{ name: 'App' }] })` from inside the Auth stack is a silent
+ * no-op (the 'App' route is not mounted) → the screen froze here. We flip the
+ * gate via useNavigationGate().goToApp() instead, which re-mounts the App stack.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -26,17 +30,13 @@ import {
   StyleSheet,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import type { RootStackParamList } from '@/navigation/types';
 import { useConfigContext } from '@/state/ConfigContext';
+import { useNavigationGate } from '@/navigation/useNavigationGate';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-type RootNavProp = NativeStackNavigationProp<RootStackParamList>;
 
 const REDIRECT_DELAY_MS = 3000;
 
@@ -47,7 +47,7 @@ export function RegisterCompletedScreen(): React.JSX.Element {
   const [brandingLogo, setBrandingLogo] = useState<string | null>(null);
 
   const { getConfigurationApp, loadImage } = useConfigContext();
-  const rootNavigation = useNavigation<RootNavProp>();
+  const { goToApp } = useNavigationGate();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -61,13 +61,11 @@ export function RegisterCompletedScreen(): React.JSX.Element {
         if (logoUri && !cancelled) setBrandingLogo(logoUri);
       }
 
-      // Auto-navigate to App stack after 3s
+      // Auto-transition to the App stack after 3s.
+      // Flip the gate (re-mounts App stack) instead of resetting to an unmounted route.
       timerRef.current = setTimeout(() => {
         if (!cancelled) {
-          rootNavigation.reset({
-            index: 0,
-            routes: [{ name: 'App' }],
-          });
+          goToApp();
         }
       }, REDIRECT_DELAY_MS);
     };

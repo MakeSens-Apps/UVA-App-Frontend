@@ -58,6 +58,7 @@ import type { BottomSheetRef } from '@/components/ui/BottomSheet';
 import { showToast } from '@/components/ui/Toast';
 import { useNotificationContext } from '@/state/notification/NotificationContext';
 import { useSessionContext } from '@/state/SessionContext';
+import { useNavigationGate } from '@/navigation/useNavigationGate';
 
 import { UserDSService } from '@/data/datastore/user-ds';
 import { UserProgressDSService } from '@/data/datastore/user-progress-ds';
@@ -104,6 +105,7 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
   const { unreadCount, updateUnreadCount } = useNotificationContext();
   const { clearSession } = useSessionContext();
   const { getConfigurationApp, loadImage } = useConfigContext();
+  const { goToAuth } = useNavigationGate();
 
   const [name, setName] = React.useState<string | undefined>(undefined);
   const [seed, setSeed] = React.useState<number | null | undefined>(undefined);
@@ -191,17 +193,16 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
       if (ok) {
         await clearSession();
         await DataStore.clear();
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Auth' as never }],
-        });
+        // Flip the gate back to the Auth stack. A reset to { name: 'Auth' }
+        // here is a no-op because the Auth stack is not mounted while in App.
+        goToAuth();
       }
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [clearSession, navigation, isLoading]);
+  }, [clearSession, goToAuth, isLoading]);
 
   // ─── Notification bell icon ────────────────────────────────────────────────
 
