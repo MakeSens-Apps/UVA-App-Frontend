@@ -67,6 +67,7 @@ import { UserProgressDSService } from '@/data/datastore/user-progress-ds';
 import type { CompletedTask } from '@/data/datastore/user-progress-ds';
 import { MoonPhaseService, LunarPhase } from '@/domain/moon/moon-phase';
 import { useConfigContext } from '@/state/ConfigContext';
+import { localRemindersService } from '@/native/notifications/LocalRemindersService';
 
 import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';
@@ -133,6 +134,27 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
     [],
   );
 
+  // ─── Notification scheduling (port of home.page.ts:182-188) ─────────────
+
+  /**
+   * Schedules daily notifications if notifications are enabled.
+   * Mirrors original setNotifications() called in ngOnInit (home.page.ts:182-188).
+   *
+   * Original:
+   *   async setNotifications(): Promise<void> {
+   *     const enableNotifications = await this.notificationService.getEnableNotifications();
+   *     if (enableNotifications) {
+   *       await this.notificationService.scheduleDailyNotifications();
+   *     }
+   *   }
+   */
+  async function setNotifications(): Promise<void> {
+    const enableNotifications = await localRemindersService.getEnableNotifications();
+    if (enableNotifications) {
+      await localRemindersService.scheduleDailyNotifications();
+    }
+  }
+
   // ─── Initial load (mirrors ngOnInit) ──────────────────────────────────
 
   useEffect(() => {
@@ -144,6 +166,9 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
         }
         // recalculateDailyProgress is idempotent — safe to call once on mount
         await UserProgressDSService.recalculateDailyProgress();
+        // Port of home.page.ts:149 — setNotifications() called in ngOnInit:
+        // schedules daily reminders if the user has notifications enabled.
+        await setNotifications();
       } catch (err) {
         console.error('HomeScreen init error:', err);
       }

@@ -212,6 +212,21 @@ jest.mock('@react-navigation/native', () => ({
   },
 }));
 
+// LocalRemindersService mock — tracks notification scheduling calls
+const mockGetEnableNotifications = jest.fn();
+const mockScheduleDailyNotifications = jest.fn();
+jest.mock('@/native/notifications/LocalRemindersService', () => ({
+  __esModule: true,
+  localRemindersService: {
+    getEnableNotifications: (...a: unknown[]) => mockGetEnableNotifications(...a),
+    scheduleDailyNotifications: (...a: unknown[]) => mockScheduleDailyNotifications(...a),
+  },
+  default: {
+    getEnableNotifications: (...a: unknown[]) => mockGetEnableNotifications(...a),
+    scheduleDailyNotifications: (...a: unknown[]) => mockScheduleDailyNotifications(...a),
+  },
+}));
+
 // ─── Import screens after mocks ───────────────────────────────────────────────
 
 import { LoginScreen } from '@/screens/auth/LoginScreen';
@@ -255,6 +270,8 @@ function resetMocks() {
   mockRecalculateDailyProgress.mockReset();
   mockGetCompleteTaskWeek.mockReset();
   mockGetConfigurationMeasurement.mockReset();
+  mockGetEnableNotifications.mockReset();
+  mockScheduleDailyNotifications.mockReset();
 
   mockCreateNewUser.mockResolvedValue(true);
   mockRecalculateDailyProgress.mockResolvedValue(null);
@@ -265,6 +282,8 @@ function resetMocks() {
     daysSaveStreak: [],
   });
   mockGetConfigurationMeasurement.mockResolvedValue(null);
+  mockGetEnableNotifications.mockResolvedValue(false);
+  mockScheduleDailyNotifications.mockResolvedValue(undefined);
 }
 
 // ─── LoginScreen tests ────────────────────────────────────────────────────────
@@ -667,5 +686,42 @@ describe('HomeScreen — germination modal trigger tests', () => {
     await waitFor(() => {
       expect(mockGetLastUserProgressPure).toHaveBeenCalled();
     });
+  });
+
+  // ─── Notification scheduling tests (fix: setNotifications ported from home.page.ts:149) ──
+
+  it('does NOT schedule notifications when getEnableNotifications returns false', async () => {
+    mockGetEnableNotifications.mockResolvedValue(false);
+    const nav = makeHomeNav();
+    await render(<HomeScreen navigation={nav as never} route={{} as never} />);
+
+    await waitFor(() => {
+      expect(mockGetEnableNotifications).toHaveBeenCalledTimes(1);
+    });
+    expect(mockScheduleDailyNotifications).not.toHaveBeenCalled();
+  });
+
+  it('schedules daily notifications on mount when notifications are enabled', async () => {
+    mockGetEnableNotifications.mockResolvedValue(true);
+    const nav = makeHomeNav();
+    await render(<HomeScreen navigation={nav as never} route={{} as never} />);
+
+    await waitFor(() => {
+      expect(mockGetEnableNotifications).toHaveBeenCalledTimes(1);
+      expect(mockScheduleDailyNotifications).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('getEnableNotifications is called exactly once per mount regardless of navigation focus', async () => {
+    // mirrors original ngOnInit — called ONCE, not on every ionViewWillEnter
+    mockGetEnableNotifications.mockResolvedValue(true);
+    const nav = makeHomeNav();
+    await render(<HomeScreen navigation={nav as never} route={{} as never} />);
+
+    await waitFor(() => {
+      expect(mockGetEnableNotifications).toHaveBeenCalledTimes(1);
+    });
+    // Ensure it's in mount effect (useEffect []), not focus effect (useFocusEffect)
+    expect(mockScheduleDailyNotifications).toHaveBeenCalledTimes(1);
   });
 });
