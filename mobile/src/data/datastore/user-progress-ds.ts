@@ -24,6 +24,10 @@ import { UserProgress } from '@/data/models';
 import SessionService from '@/data/session/session';
 import { GamificationAlertsService } from '@/domain/gamification/gamification-alerts';
 
+// Re-export SortDirection so callers do not need to import from @aws-amplify/datastore directly
+// (direct import triggers async-storage module loading in Jest test environments).
+export { SortDirection } from '@aws-amplify/datastore';
+
 export interface CompletedTask {
   daysComplete: number[];
   daysIncomplete: number[];

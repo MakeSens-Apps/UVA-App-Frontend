@@ -78,7 +78,10 @@ import {
   calculateOverallStats,
   calculateMeasurement,
   calculateDetailedMeasurement,
+  sum,
+  mean,
 } from '@/domain/aggregations/historical-aggregations';
+import type { HistoricalMeasurement } from '@/domain/aggregations/historical-aggregations';
 
 import type { Historical, MeasurementModel } from '@/data/models/configuration/measurements.model';
 import type { UserProgress } from '@/data/models';
@@ -250,6 +253,37 @@ function buildChartData(
   }
 }
 
+// ─── calculateValue (preserved from historical.page.ts:558-577) ───────────────
+
+/**
+ * Calculates the aggregate value for a measurement based on its aggregation function.
+ * Mirrors original `calculateValue` private method (historical.page.ts:558-577).
+ *
+ * For 'sum': returns sum of first measurementId series.
+ * For 'mean': returns mean of first and second measurementId series combined.
+ * Otherwise: returns undefined.
+ */
+function calculateValue(
+  measurement: Historical,
+  values: HistoricalMeasurement,
+): number | undefined {
+  switch (measurement.aggregationFunction) {
+    case 'sum':
+      return measurement.measurementIds.length > 0
+        ? sum(values[measurement.measurementIds[0]])
+        : undefined;
+    case 'mean':
+      return measurement.measurementIds.length > 1
+        ? mean(
+            values[measurement.measurementIds[0]],
+            values[measurement.measurementIds[1]],
+          )
+        : undefined;
+    default:
+      return undefined;
+  }
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 /**
@@ -326,7 +360,10 @@ export function HistoricalScreen(): React.JSX.Element {
         const config = await getConfigurationMeasurement();
         if (mounted) setMeasuresConfig(config);
         if (config?.historical && mounted) {
-          await initializeVariables(config.historical, 'month', mounted);
+          // Fix (b): pass current timeFrame instead of hardcoded 'month' so that
+          // year-view variables are built with the full-year dataset.
+          // Original: initializeVariables reads this.timeFrame (historical.page.ts:512).
+          await initializeVariables(config.historical, timeFrame, mounted);
         }
       } finally {
         if (mounted) setLoading(false);
@@ -399,19 +436,35 @@ export function HistoricalScreen(): React.JSX.Element {
 
       const transformedData = transformData(measurementValues);
 
+      // Fix (a): preserve existing `selected` flag so the highlighted variable does
+      // not reset when the user navigates months in chart mode.
+      // Fix (c): compute `value` with calculateValue (sum/mean) instead of hardcoding
+      // `undefined`. Mirrors original historical.page.ts:543-544.
       const newVariables = historicalData.map((measurement) => {
         const stats = calculateOverallStats(measurement, transformedData);
         return {
           ...measurement,
+          // `selected` is merged below via functional setVariables to read live state
           selected: false,
-          value: undefined,
+          // Original: value: this.calculateValue(measurement, transformedData)
+          value: calculateValue(measurement, transformedData),
           min: stats.min,
           max: stats.max,
           avg: stats.avg,
         };
       }) as Historical[];
 
-      if (mounted) setVariables(newVariables);
+      if (mounted) {
+        // Apply `selected` preservation: use functional setVariables to read the
+        // current state snapshot, then merge `selected` from existing variables.
+        // Original: existingVariable?.selected ?? false (historical.page.ts:543).
+        setVariables((prevVariables) =>
+          newVariables.map((newVar) => {
+            const existingVar = prevVariables.find((v) => v.name === newVar.name);
+            return { ...newVar, selected: existingVar?.selected ?? false };
+          }) as Historical[],
+        );
+      }
     },
     [currentMonthIndex, currentYearIndex],
   );

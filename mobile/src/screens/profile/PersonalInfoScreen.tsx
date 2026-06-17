@@ -96,6 +96,11 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
   const [isEditable, setIsEditable] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Per-field focus tracking — mirrors original handleFocus/handleBlur (personal-info.page.ts:296-323)
+  // Original applied/removed 'focused' CSS class (border-color:#10BCCA) via DOM manipulation.
+  // RN equivalent: track focused field key and apply borderColor per-field.
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+
   // Delete account state
   const [deleteConfirmationInput, setDeleteConfirmationInput] = useState('');
   const [isInputValid, setIsInputValid] = useState(false);
@@ -258,7 +263,20 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
   const fieldBg = isEditable ? theme.colors.white : theme.colors.gray[100];
-  const fieldBorderColor = isEditable ? theme.colors.blue[500] : theme.colors.gray[200];
+
+  /**
+   * Returns the border color for a given field key.
+   * Mirrors original handleFocus/handleBlur (personal-info.page.ts:296-323):
+   * when focused → border-color: #10BCCA; otherwise use edit-state default.
+   */
+  const getFieldBorderColor = useCallback(
+    (fieldKey: string, disabled?: boolean): string => {
+      if (disabled) return theme.colors.gray[200];
+      if (isEditable && focusedField === fieldKey) return theme.colors.blue[500];
+      return isEditable ? theme.colors.gray[300] : theme.colors.gray[200];
+    },
+    [isEditable, focusedField, theme.colors],
+  );
 
   // ─── Section label style ──────────────────────────────────────────────────
 
@@ -346,7 +364,7 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
                         styles.inputContainer,
                         {
                           backgroundColor: field.disabled ? theme.colors.gray[100] : fieldBg,
-                          borderColor: field.disabled ? theme.colors.gray[200] : fieldBorderColor,
+                          borderColor: getFieldBorderColor(field.key, field.disabled),
                         },
                       ]}
                     >
@@ -357,6 +375,8 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
                         ]}
                         value={f.value}
                         onChangeText={f.onChange}
+                        onFocus={() => setFocusedField(field.key)}
+                        onBlur={() => setFocusedField(null)}
                         placeholder={field.placeholder}
                         placeholderTextColor={theme.colors.gray[400]}
                         editable={!field.disabled && isEditable}
@@ -392,7 +412,7 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
                     <View
                       style={[
                         styles.inputContainer,
-                        { backgroundColor: fieldBg, borderColor: fieldBorderColor },
+                        { backgroundColor: fieldBg, borderColor: getFieldBorderColor(field.key) },
                       ]}
                     >
                       <TextInput
@@ -402,6 +422,8 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
                         ]}
                         value={f.value}
                         onChangeText={f.onChange}
+                        onFocus={() => setFocusedField(field.key)}
+                        onBlur={() => setFocusedField(null)}
                         placeholder={field.placeholder}
                         placeholderTextColor={theme.colors.gray[400]}
                         editable={isEditable}
@@ -431,7 +453,7 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
                     <View
                       style={[
                         styles.inputContainer,
-                        { backgroundColor: fieldBg, borderColor: fieldBorderColor },
+                        { backgroundColor: fieldBg, borderColor: getFieldBorderColor('latitude') },
                       ]}
                     >
                       <TextInput
@@ -442,6 +464,8 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
                         ]}
                         value={f.value}
                         onChangeText={f.onChange}
+                        onFocus={() => setFocusedField('latitude')}
+                        onBlur={() => setFocusedField(null)}
                         placeholder="70° 55' 30&quot;"
                         placeholderTextColor={theme.colors.gray[400]}
                         editable={isEditable}
@@ -467,7 +491,7 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
                     <View
                       style={[
                         styles.inputContainer,
-                        { backgroundColor: fieldBg, borderColor: fieldBorderColor },
+                        { backgroundColor: fieldBg, borderColor: getFieldBorderColor('longitude') },
                       ]}
                     >
                       <TextInput
@@ -478,6 +502,8 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
                         ]}
                         value={f.value}
                         onChangeText={f.onChange}
+                        onFocus={() => setFocusedField('longitude')}
+                        onBlur={() => setFocusedField(null)}
                         placeholder="90°"
                         placeholderTextColor={theme.colors.gray[400]}
                         editable={isEditable}
@@ -506,7 +532,7 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
                   <View
                     style={[
                       styles.inputContainer,
-                      { backgroundColor: fieldBg, borderColor: fieldBorderColor },
+                      { backgroundColor: fieldBg, borderColor: getFieldBorderColor('altitude') },
                     ]}
                   >
                     <TextInput
@@ -517,6 +543,8 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
                       ]}
                       value={f.value}
                       onChangeText={f.onChange}
+                      onFocus={() => setFocusedField('altitude')}
+                      onBlur={() => setFocusedField(null)}
                       placeholder="850 m"
                       placeholderTextColor={theme.colors.gray[400]}
                       editable={isEditable}

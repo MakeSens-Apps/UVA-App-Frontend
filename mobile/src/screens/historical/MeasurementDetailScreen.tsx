@@ -52,7 +52,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { format, isYesterday } from 'date-fns';
+import { format, isYesterday, isToday } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -67,7 +67,7 @@ import { useConfigContext } from '@/state/ConfigContext';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';
 
-import { UserProgressDSService } from '@/data/datastore/user-progress-ds';
+import { UserProgressDSService, SortDirection } from '@/data/datastore/user-progress-ds';
 import { MeasurementDSService } from '@/data/datastore/measurement-ds';
 import { GamificationService } from '@/domain/gamification/gamification';
 
@@ -282,9 +282,46 @@ export function MeasurementDetailScreen({ route }: Props): React.JSX.Element {
         const completedIds = new Set(completed.map((t) => t.id));
         const incomplete = allTasks.filter((t) => !completedIds.has(t.id ?? ''));
 
-        // Determine day state: if all tasks complete → 'complete', else 'incomplete'
+        // Determine day state: 'complete' | 'saveStreak' | 'today' | 'incomplete'
+        //
+        // Original: the day state is passed in via route params (date.state from the
+        // calendar). In RN the calendar only passes the ISO date string, so we re-derive
+        // the full state here to cover the saveStreak and today cases.
+        //
+        // Priority (mirrors original day.component.ts semantics):
+        //   1. today     — selected date is today AND some tasks are incomplete
+        //   2. saveStreak— day has SaveStreak=true in UserProgress (racha salvada)
+        //   3. complete  — all tasks done (no SaveStreak flag)
+        //   4. incomplete— some tasks missing
         const totalTasks = countTasks(configMeasurement);
-        const newState: DayState = completed.length >= totalTasks ? 'complete' : 'incomplete';
+        const isAllComplete = completed.length >= totalTasks;
+
+        let newState: DayState = isAllComplete ? 'complete' : 'incomplete';
+
+        // Check 'today' override: if the selected day is today and not all tasks complete
+        if (!isAllComplete && isToday(date)) {
+          newState = 'today';
+        }
+
+        // Check 'saveStreak' override: query UserProgress for this date and inspect the
+        // SaveStreak flag. Only applicable for complete days (racha was saved by spending seeds).
+        // Original: date.state is 'saveStreak' when evaluateCompletedTasks sets daysSaveStreak.
+        if (isAllComplete) {
+          try {
+            const dateKey = date.toLocaleDateString('en-CA'); // YYYY-MM-DD
+            const progressForDay = await UserProgressDSService.getUserProgress(
+              5,
+              SortDirection.DESCENDING,
+              dateKey,
+            );
+            const hasSaveStreak = progressForDay.some((p) => p.SaveStreak === true);
+            if (hasSaveStreak) {
+              newState = 'saveStreak';
+            }
+          } catch {
+            // Non-critical: fall back to 'complete' if the query fails
+          }
+        }
 
         if (mounted) {
           setTasksCompleted(completed);

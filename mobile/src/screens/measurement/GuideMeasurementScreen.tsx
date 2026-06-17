@@ -65,7 +65,7 @@ export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.
   const { theme } = useTheme();
   const { configMeasurement, loadImage } = useConfigContext();
 
-  const { taskId } = route.params;
+  const { taskId, guideKey: initialGuideKey } = route.params;
 
   const [guide, setGuide] = useState<Guide | null>(null);
   const [guideKey, setGuideKey] = useState<string | null>(null);
@@ -81,14 +81,25 @@ export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.
     const initGuide = async () => {
       if (!configMeasurement) return;
 
-      // Find the first guide for the task
-      let firstGuideKey: string | null = null;
-      if (taskId) {
-        const task = configMeasurement.tasks[taskId];
-        if (task && task.flows.length > 0) {
-          const flow = configMeasurement.flows[task.flows[0]];
-          if (flow && flow.guides.length > 0) {
-            firstGuideKey = flow.guides[0];
+      /*
+       * FIX (nextGuide chaining — audit #4 ALTA):
+       * When `guideKey` param is provided (from nextGuide chaining), load that guide directly.
+       * This mirrors original OpenGuide(_guide) param (register-measurement.page.ts:199-227)
+       * which accepts a specific guide key and opens it.
+       * Previously, the screen always loaded the first guide for the task and
+       * closeModal(true) only called goBack() without opening the next guide.
+       */
+      let firstGuideKey: string | null = initialGuideKey ?? null;
+
+      if (!firstGuideKey) {
+        // Find the first guide for the task (original auto-open logic)
+        if (taskId) {
+          const task = configMeasurement.tasks[taskId];
+          if (task && task.flows.length > 0) {
+            const flow = configMeasurement.flows[task.flows[0]];
+            if (flow && flow.guides.length > 0) {
+              firstGuideKey = flow.guides[0];
+            }
           }
         }
       }
@@ -136,23 +147,30 @@ export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.
     };
 
     void initGuide();
-  }, [configMeasurement, taskId, loadImage]);
+  }, [configMeasurement, taskId, loadImage, initialGuideKey]);
 
   // ─── closeModal (preserved from original) ──────────────────────────────────
 
   const closeModal = useCallback(
     (isButtonOk = false) => {
-      if (isButtonOk && guide?.nextGuide) {
-        // Signal to caller that there's a next guide to open
-        // React Navigation: we pass params back via callback / navigate
-        navigation.goBack();
-        // Note: callers chain guide opening via the navigate API
-        // nextGuide is returned via registered callback in caller
+      const nextGuideKey = (guide as (Guide & { nextGuide?: string }) | null)?.nextGuide;
+      if (isButtonOk && nextGuideKey) {
+        /*
+         * FIX (nextGuide chaining — audit #4 ALTA):
+         * Original (guide-measurement.component.ts:97-98) dismisses the current modal
+         * and caller's onDidDismiss (register-measurement.page.ts:219-224) recursively
+         * calls OpenGuide(nextGuide), creating a chain of guides.
+         *
+         * RN fix: instead of goBack() unconditionally, replace (push on top of current)
+         * with a new GuideMeasurement screen passing the next guideKey.
+         * This mirrors the recursive OpenGuide() chaining of the original.
+         */
+        navigation.replace('GuideMeasurement', { taskId, guideKey: nextGuideKey });
       } else {
         navigation.goBack();
       }
     },
-    [guide, navigation],
+    [guide, navigation, taskId],
   );
 
   // ─── Render ────────────────────────────────────────────────────────────────

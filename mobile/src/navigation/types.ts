@@ -65,12 +65,31 @@ export type AppStackParamList = {
   GuideMeasurement: {
     /** Task ID to guide (optional for modal-entry) */
     taskId?: string;
+    /**
+     * Specific guide key to open (for nextGuide chaining).
+     * When provided, the screen opens this guide instead of the first guide for the task.
+     * Mirrors original OpenGuide(_guide) param (register-measurement.page.ts:199).
+     * FIX: nextGuide chaining — audit finding #4 ALTA.
+     */
+    guideKey?: string;
   };
   RegisterMeasurement: {
     /** Task ID being registered */
     taskId: string;
     /** Display name of the measurement type */
     taskName?: string;
+    /**
+     * Specific flow ID to load (for multi-flow chaining via goToComplete).
+     * When provided, the screen loads this flow instead of tasks[taskId].flows[0].
+     * Mirrors original queryParams.flowId (register-measurement.page.ts:136-144).
+     * FIX: multi-flow loop bug — audit finding #1 CRÍTICA.
+     */
+    flowId?: string;
+    /**
+     * Whether to show the back button.
+     * false when entering an intermediate flow (mirrors original backButtom:false param).
+     */
+    hasBackButton?: boolean;
   };
   /** Historical sub-screens */
   MeasurementDetail: {

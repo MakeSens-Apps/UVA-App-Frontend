@@ -15,6 +15,13 @@ export interface Task {
   restrictions: Restrictions;
   flows: string[];
   id?: string;
+  /**
+   * List of flow IDs already completed for this task (from ITask.flowsComplete).
+   * Used by MeasurementScreen.goToRegister to find the first incomplete flow.
+   * Original: measurement.page.ts:397 — task.flowsComplete?.includes(flow).
+   * Mirrored from ITask.ts (src/app/Interfaces/ITask.ts:10).
+   */
+  flowsComplete?: string[];
 }
 
 interface Restrictions {

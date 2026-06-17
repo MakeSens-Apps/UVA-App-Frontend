@@ -111,7 +111,14 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
   const { theme } = useTheme();
   const { configMeasurement, countTasks, loadImage } = useConfigContext();
 
-  const { taskId, taskName } = route.params;
+  const {
+    taskId,
+    taskName,
+    /** flowId param — used to load a specific flow (multi-flow chaining fix) */
+    flowId: initialFlowId,
+    /** hasBackButton param — false for intermediate flows (mirrors backButtom:false) */
+    hasBackButton: initialHasBackButton,
+  } = route.params;
 
   // ─── State ─────────────────────────────────────────────────────────────────
   const [flow, setFlow] = useState<Flow | null>(null);
@@ -197,24 +204,37 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
       if (!configMeasurement) return;
       setTotalTask(countTasks(configMeasurement));
 
-      // Determine the first flow for this task
       const task = configMeasurement.tasks[taskId];
       if (!task) {
         setLoading(false);
         return;
       }
 
-      const firstFlowId = task.flows[0];
-      if (!firstFlowId) {
+      /*
+       * FIX (multi-flow goToComplete bug — audit #1 CRÍTICA):
+       * Original (register-measurement.page.ts:136-144) reads flowId from queryParams.
+       * RN previously always used task.flows[0], causing any task with multiple flows
+       * to loop back to flow1 after completing flow1 (goToComplete passed nextFlow as
+       * taskName which was ignored).
+       *
+       * Fix: use the route param `flowId` (initialFlowId) when provided.
+       * `isFirst` is true only for the first flow in the sequence.
+       * Mirrors original `backButtom !== 'false'` (register-measurement.page.ts:140).
+       */
+      const resolvedFlowId = initialFlowId ?? task.flows[0];
+      if (!resolvedFlowId) {
         setLoading(false);
         return;
       }
 
-      await loadFlowById(configMeasurement, firstFlowId, true);
+      // isFirst: show back button only for the first flow in the sequence
+      const isFirst = initialHasBackButton !== false && resolvedFlowId === task.flows[0];
+
+      await loadFlowById(configMeasurement, resolvedFlowId, isFirst);
     };
 
     void init();
-  }, [configMeasurement, taskId, loadFlowById, countTasks]);
+  }, [configMeasurement, taskId, loadFlowById, countTasks, initialFlowId, initialHasBackButton]);
 
   // ─── Digit input helpers ──────────────────────────────────────────────────
 
@@ -334,15 +354,33 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
     const result = validateRestriction(restrictionSpecs, allValues);
 
     if (!result.valid) {
-      // Mark the failed measurement
+      /*
+       * FIX (failedMeasurementIndex always 0 — audit #10 MEDIA):
+       * Original (register-measurement.page.ts:449-453) uses:
+       *   this.measurement?.findIndex(m => restriction.measurementIds.includes(m.id))
+       * i.e. it searches the current screen's measurements array for the first
+       * measurement whose id appears in the failing restriction's measurementIds.
+       *
+       * The engine returns the restriction-ids index, but to highlight the correct
+       * input on screen we need the index in the current screen's `measurements` array.
+       * Recalculate it here using the same logic as the original.
+       */
+      const failureRestriction = restrictionSpecs.find(
+        (r) => r.enabled && result.failureMessage === r.message,
+      );
+      const screenIndex = failureRestriction
+        ? measurements.findIndex(
+            (m) => m.id !== undefined && failureRestriction.measurementIds.includes(m.id as string),
+          )
+        : -1;
+      const failedIdx = screenIndex !== -1 ? screenIndex : (result.failedMeasurementIndex ?? 0);
+
       setMeasurements((prev) => {
         const next = [...prev];
-        if (result.failedMeasurementIndex !== undefined) {
-          const m = { ...next[result.failedMeasurementIndex] };
-          m.showRestrictionAlert = true;
-          m.textRestrictionAlert = result.failureMessage ?? '';
-          next[result.failedMeasurementIndex] = m;
-        }
+        const m = { ...next[failedIdx] };
+        m.showRestrictionAlert = true;
+        m.textRestrictionAlert = result.failureMessage ?? '';
+        next[failedIdx] = m;
         return next;
       });
       return false;
@@ -456,13 +494,19 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
   const goToComplete = useCallback(() => {
     setShowSavedModal(false);
     if (flow?.nextFlow) {
-      // Navigate to the next flow's RegisterMeasurement
-      // We pass the same taskId but the next screen must load the nextFlow
-      // Since RegisterMeasurement loads from task.flows[0], we need to navigate with nextFlow
-      // We use a workaround: push a new RegisterMeasurement with a note about nextFlow
+      /*
+       * FIX (multi-flow goToComplete — audit #1 CRÍTICA):
+       * Original (register-measurement.page.ts:534-552) navigates with flowId=this.flow.nextFlow.
+       * RN previously passed nextFlow as taskName which was ignored, causing the screen to always
+       * load tasks[taskId].flows[0] — an infinite loop for multi-flow tasks.
+       *
+       * Fix: pass flowId=flow.nextFlow so the next screen loads the correct flow.
+       * hasBackButton=false mirrors original backButtom:false (register-measurement.page.ts:543).
+       */
       navigation.push('RegisterMeasurement', {
         taskId,
-        taskName: flow.nextFlow, // temporarily pass nextFlow as taskName — screen ignores it
+        flowId: flow.nextFlow,
+        hasBackButton: false,
       });
     }
   }, [flow, navigation, taskId]);
@@ -503,11 +547,24 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
 
             {/* Measurements */}
             {measurements.map((item, measIdx) => {
-              const isOutOfRange =
+              /*
+               * FIX (partial-digit alert guard — audit #12 MEDIA):
+               * Original (register-measurement.page.html:49-63) guards the out-of-range alert
+               * with `item.value.toString().length === item.fields` — only shows alert when
+               * ALL digit fields are filled. RN was showing the alert with partial values
+               * (e.g. "2" when fields=2 expects "25").
+               *
+               * Fix: only show range alert when assembled value has filled ALL fields.
+               */
+              const allDigitsFilled =
                 item.value !== undefined &&
                 item.value !== null &&
-                item.range &&
-                (item.value < item.range.min || item.value > item.range.max);
+                item.fields !== undefined &&
+                item.value.toString().length === item.fields;
+              const isOutOfRange =
+                allDigitsFilled &&
+                item.range != null &&
+                (item.value! < item.range.min || item.value! > item.range.max);
               const showAlert = isOutOfRange || item.showRestrictionAlert;
               const errorMsg = getMessageError(item);
 

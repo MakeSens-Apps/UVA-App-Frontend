@@ -66,6 +66,7 @@ import { SetupService } from '@/domain/setup/setup';
 
 import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';
+import { useConfigContext } from '@/state/ConfigContext';
 
 // ─── Icons ─────────────────────────────────────────────────────────────────────
 
@@ -99,10 +100,13 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
   const { theme } = useTheme();
   const { unreadCount, updateUnreadCount } = useNotificationContext();
   const { clearSession } = useSessionContext();
+  const { getConfigurationApp, loadImage } = useConfigContext();
 
   const [name, setName] = React.useState<string | undefined>(undefined);
   const [seed, setSeed] = React.useState<number | null | undefined>(undefined);
   const [isLoading, setIsLoading] = React.useState(false);
+  // Dynamic branding logo — mirrors original profile.page.ts:145-151 (ngOnInit loadImage)
+  const [brandingLogoUri, setBrandingLogoUri] = React.useState<string | null>(null);
 
   const shareSheetRef = useRef<BottomSheetRef>(null);
 
@@ -113,16 +117,27 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
       let isMounted = true;
       void (async () => {
         try {
-          const [user, userProgress, notifications] = await Promise.all([
+          const [user, userProgress, notifications, configModel] = await Promise.all([
             UserDSService.getUser(),
             UserProgressDSService.getLastUserProgressPure(),
             GamificationService.getNotifications(),
+            getConfigurationApp(),
           ]);
           if (!isMounted) return;
           setName(user?.Name);
           setSeed(userProgress?.Seed ?? 0);
           const unread = notifications.filter((n) => n.data.isUnread).length;
           updateUnreadCount(unread);
+
+          // Dynamic branding logo — mirrors original profile.page.ts:145-151 (ngOnInit):
+          //   const img = await this.configuration.loadImage(configModel.branding.logo);
+          //   if (img) { this.logo = img; }
+          if (configModel?.branding?.logo) {
+            const img = await loadImage(configModel.branding.logo);
+            if (isMounted && img) {
+              setBrandingLogoUri(img);
+            }
+          }
         } catch (err) {
           console.error('ProfileScreen load error:', err);
         }
@@ -130,7 +145,7 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
       return () => {
         isMounted = false;
       };
-    }, [updateUnreadCount]),
+    }, [updateUnreadCount, getConfigurationApp, loadImage]),
   );
 
   // ─── Share actions (original shareOptions[]) ──────────────────────────────
@@ -406,10 +421,15 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
           </View>
         </View>
 
-        {/* Footer logo — Fundación Natura */}
+        {/* Footer logo — dynamic RACIMO branding logo (original profile.page.ts:145-151)
+            Falls back to static Fundación Natura asset when branding is not configured. */}
         <View style={styles.footerLogo}>
           <Image
-            source={require('@/assets/png/logo_Natura_Isagen.png')}
+            source={
+              brandingLogoUri
+                ? { uri: brandingLogoUri }
+                : require('@/assets/png/logo_Natura_Isagen.png')
+            }
             style={styles.logoImg}
             resizeMode="contain"
             testID="natura-logo"

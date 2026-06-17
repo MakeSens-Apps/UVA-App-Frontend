@@ -245,7 +245,10 @@ export function ConfigurationScreen({ navigation }: Props): React.JSX.Element {
           ? 'Notificaciones habilitadas correctamente'
           : 'Notificaciones deshabilitadas';
 
-        showToast({ message, type: value ? 'success' : 'info', duration: 2000 });
+        // Original uses presentSuccessToast() for BOTH enabled and disabled states.
+        // (configuration.page.ts:238: void this.presentSuccessToast(message))
+        // Using 'success' for both mirrors that behavior.
+        showToast({ message, type: 'success', duration: 2000 });
       } catch (err) {
         console.error('Error al cambiar notificaciones:', err);
         // Revert toggle state on error
@@ -717,9 +720,9 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     flex: 1,
-    // configuration.page.scss .header: justify-content:space-between + title in .user-info
-    // → title renders at the right side of the toolbar. Match with textAlign:'right'.
-    textAlign: 'right',
+    // configuration.page.html: ion-title renders centered in Ionic toolbar.
+    // Fix: original intent is centered (matches ProfileScreen/AlertsScreen pattern).
+    textAlign: 'center',
   },
   // Content (mirrors .profile-content)
   content: {

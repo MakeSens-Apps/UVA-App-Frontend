@@ -352,7 +352,12 @@ describe('notifications toggle — OFF', () => {
     });
   });
 
-  it('shows info toast when notifications are disabled', async () => {
+  it('shows SUCCESS toast when notifications are disabled (fix: moon-config coverage-audit — original uses presentSuccessToast for both states)', async () => {
+    // Bug fix: original configuration.page.ts:238 calls presentSuccessToast() for BOTH
+    // enabled and disabled states. RN was incorrectly using type:'info' for disabled.
+    // Fix: always use type:'success' for the toggle result.
+    // Original: configuration.page.ts:234-238: void this.presentSuccessToast(message)
+    //   → both 'habilitadas' and 'deshabilitadas' use the success toast color.
     mockSetEnableNotifications.mockResolvedValue(undefined);
 
     const { getByTestId } = await render(<ConfigurationScreen {...makeProps()} />);
@@ -364,8 +369,35 @@ describe('notifications toggle — OFF', () => {
 
     await waitFor(() => {
       expect(mockShowToast).toHaveBeenCalledWith(
-        expect.objectContaining({ message: 'Notificaciones deshabilitadas' }),
+        expect.objectContaining({
+          message: 'Notificaciones deshabilitadas',
+          type: 'success', // was 'info' before fix — mirrors original presentSuccessToast()
+        }),
       );
+    });
+  });
+
+  it('toast type for disabled notifications must NOT be "info" (was the bug pre-fix)', async () => {
+    // This test would FAIL before the fix (type was 'info') and PASS after (type is 'success').
+    mockSetEnableNotifications.mockResolvedValue(undefined);
+
+    const { getByTestId } = await render(<ConfigurationScreen {...makeProps()} />);
+    const toggle = getByTestId('notifications-toggle');
+
+    await act(async () => {
+      fireEvent(toggle, 'valueChange', false);
+    });
+
+    await waitFor(() => {
+      // Before fix: showToast was called with type:'info' — now it must NOT be 'info'
+      const calls = mockShowToast.mock.calls;
+      const disabledCall = calls.find(
+        (c: [{ message?: string; type?: string }]) =>
+          c[0]?.message === 'Notificaciones deshabilitadas',
+      );
+      expect(disabledCall).toBeDefined();
+      expect(disabledCall?.[0]?.type).not.toBe('info');
+      expect(disabledCall?.[0]?.type).toBe('success');
     });
   });
 });
@@ -646,6 +678,17 @@ describe('screen structure', () => {
   it('renders header with "Configuración" title', async () => {
     const { getByText } = await render(<ConfigurationScreen {...makeProps()} />);
     expect(getByText('Configuración')).toBeTruthy();
+  });
+
+  it('header title "Configuración" is centered (fix: coverage-audit BAJA — was textAlign:"right")', async () => {
+    // Original: ion-title in Ionic toolbar renders centered.
+    // Bug: RN had textAlign:'right'. Fix: textAlign:'center'.
+    const { getByText } = await render(<ConfigurationScreen {...makeProps()} />);
+    const titleEl = getByText('Configuración');
+    // The style prop should contain textAlign:'center'
+    const flatStyle = titleEl.props.style as Array<Record<string, unknown>>;
+    const merged = Object.assign({}, ...(Array.isArray(flatStyle) ? flatStyle : [flatStyle]));
+    expect(merged['textAlign']).toBe('center');
   });
 
   it('renders "Activar notificaciones" label', async () => {

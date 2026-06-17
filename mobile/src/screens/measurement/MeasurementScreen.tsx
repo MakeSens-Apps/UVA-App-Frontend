@@ -347,11 +347,22 @@ export function MeasurementScreen(): React.JSX.Element {
         return;
       }
       if (task.flows && task.flows.length > 0) {
-        // Navigate to first incomplete flow — simplified: always first flow
-        const flowId = task.flows[0];
+        /*
+         * FIX (multi-flow goToRegister — coverage-audit #1 CRÍTICA):
+         * Original (measurement.page.ts:395-407) uses:
+         *   task.flows.find(flow => !task.flowsComplete?.includes(flow))
+         * i.e. it finds the first flow NOT already completed.
+         * RN was always passing flows[0], even when flow1 was already complete,
+         * causing users to re-do flow1 instead of starting on flow2.
+         *
+         * Fix: replicate the original find logic.
+         */
+        const flowId = task.flows.find((flow) => !task.flowsComplete?.includes(flow))
+          ?? task.flows[0];
         navigation.navigate('RegisterMeasurement', {
           taskId: task.id ?? '',
           taskName: task.name,
+          flowId,
         });
       }
     },
