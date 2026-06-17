@@ -300,7 +300,6 @@ export function MeasurementScreen(): React.JSX.Element {
         return;
       }
 
-      setHasTaskComplete(true);
       const localCompleted: TaskCompleted[] = [];
       const grouped = groupRemainingLazyMeasurements(localCompleted, completedRaw);
       const groupedKeys = Object.keys(grouped);
@@ -310,7 +309,39 @@ export function MeasurementScreen(): React.JSX.Element {
         const indexTask = remainingTasks.findIndex((t) => t.id === taskId);
         if (indexTask < 0) return;
         const task = remainingTasks[indexTask];
-        if (!localCompleted.find((tc) => tc.id === taskId)) {
+        if (localCompleted.find((tc) => tc.id === taskId)) return;
+
+        /*
+         * BUG 2 / BUG 3 FIX — a task only counts as "completed" when EVERY measurement
+         * of EVERY flow has been saved. Saving only flow1 (máximos) of a multi-flow task
+         * (e.g. task1: flow1 máximos + flow2 mínimos) used to mark the whole task complete
+         * with partial data, and pressing the header back mid-flow left it counted as done.
+         *
+         * We compute the union of measurement IDs across all the task's flows (the full
+         * expected set) and compare it with the IDs actually saved today. If any are
+         * missing the task stays under "Registros sin completar" so the user can resume
+         * — `goToRegister` (via task.flowsComplete) picks the first incomplete flow.
+         */
+        const expectedIds = new Set<string>();
+        const completedFlows: string[] = [];
+        (task.flows ?? []).forEach((flowKey) => {
+          const flowCfg = configMeasurement.flows[flowKey];
+          if (!flowCfg) return;
+          const flowMeasIds = flowCfg.measurements ?? [];
+          flowMeasIds.forEach((id) => expectedIds.add(id));
+          // A flow is complete when ALL of its measurements are present in the saved data.
+          const savedIds = new Set(grouped[taskId].map((m) => m.id));
+          if (flowMeasIds.length > 0 && flowMeasIds.every((id) => savedIds.has(id))) {
+            completedFlows.push(flowKey);
+          }
+        });
+
+        const savedIdSet = new Set(grouped[taskId].map((m) => m.id));
+        const allFlowsComplete =
+          expectedIds.size > 0 &&
+          [...expectedIds].every((id) => savedIdSet.has(id));
+
+        if (allFlowsComplete) {
           const dataTask: TaskCompleted = { ...task, measurements: [] };
           grouped[taskId].forEach((measurement) => {
             const measurementData = configMeasurement.measurements[measurement.id];
@@ -324,8 +355,16 @@ export function MeasurementScreen(): React.JSX.Element {
           });
           localCompleted.push(dataTask);
           remainingTasks.splice(indexTask, 1);
+        } else {
+          // Partial: keep in "sin completar" with the flows already done annotated,
+          // so goToRegister resumes on the first incomplete flow (mirrors original
+          // task.flowsComplete — measurement.page.ts:396).
+          remainingTasks[indexTask] = { ...task, flowsComplete: completedFlows };
         }
       });
+
+      // A task is "complete" for the green section only if all its flows are done.
+      setHasTaskComplete(localCompleted.length > 0);
 
       // Remove any remaining tasks that are in completed
       const finalTasks = remainingTasks.filter(

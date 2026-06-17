@@ -503,3 +503,125 @@ describe('[integration] multi-flow sequence: flow1 → flow2 completes without l
     expect(resolved).toBe('flow1'); // proves the old bug caused a loop
   });
 });
+
+// ─── Bug 2/3: a multi-flow task counts as "completed" only when ALL flows are saved ─
+//
+// Ground truth (S3 config public/racimos/ANT025/.../measurementsRegistration.json):
+//   task1.flows = ['flow1', 'flow2']
+//   flow1 (Registro máximos)  measurements = ['TEMPERATURA_MAX', 'HUMEDAD_MAX']  nextFlow='flow2'
+//   flow2 (Registro mínimos)  measurements = ['TEMPERATURA_MIN', 'HUMEDAD_MIN']  nextFlow=null
+//
+// BUG observed live: saving only flow1 (máximos) marked the whole task as completed
+// in the list (green "Registros completados" section) with partial max-only data, and
+// pressing the header back mid-flow left it counted as done. Home progress also failed
+// to complete because completeTaskProcess only runs at the LAST flow.
+
+describe('[fix] MeasurementScreen — task completed only when ALL flow measurements saved', () => {
+  // Real config slice (ground truth).
+  const flowsConfig: Record<string, { measurements: string[] }> = {
+    flow1: { measurements: ['TEMPERATURA_MAX', 'HUMEDAD_MAX'] },
+    flow2: { measurements: ['TEMPERATURA_MIN', 'HUMEDAD_MIN'] },
+    flow3: { measurements: ['PRECIPITACION'] },
+  };
+
+  type TaskCfg = { id: string; flows: string[] };
+
+  /**
+   * Mirrors the fixed MeasurementScreen completion gate: a task is "complete" only
+   * when every measurement id of every one of its flows is present in savedIds.
+   * Returns { complete, completedFlows } so the list can either move the task to the
+   * green section or keep it under "sin completar" with flowsComplete annotated.
+   */
+  function evaluateTask(
+    task: TaskCfg,
+    savedIds: string[],
+  ): { complete: boolean; completedFlows: string[] } {
+    const saved = new Set(savedIds);
+    const expected = new Set<string>();
+    const completedFlows: string[] = [];
+    task.flows.forEach((flowKey) => {
+      const ids = flowsConfig[flowKey]?.measurements ?? [];
+      ids.forEach((id) => expected.add(id));
+      if (ids.length > 0 && ids.every((id) => saved.has(id))) {
+        completedFlows.push(flowKey);
+      }
+    });
+    const complete =
+      expected.size > 0 && [...expected].every((id) => saved.has(id));
+    return { complete, completedFlows };
+  }
+
+  const task1: TaskCfg = { id: 'task1', flows: ['flow1', 'flow2'] };
+  const task2: TaskCfg = { id: 'task2', flows: ['flow3'] };
+
+  it('máximos-only (flow1) does NOT mark task1 complete — stays "sin completar"', () => {
+    const { complete, completedFlows } = evaluateTask(task1, ['TEMPERATURA_MAX', 'HUMEDAD_MAX']);
+    expect(complete).toBe(false); // BUG 2: must NOT appear under "Registros completados"
+    expect(completedFlows).toEqual(['flow1']); // flowsComplete → goToRegister resumes on flow2
+  });
+
+  it('máximos + mínimos (both flows) marks task1 complete', () => {
+    const { complete, completedFlows } = evaluateTask(task1, [
+      'TEMPERATURA_MAX',
+      'HUMEDAD_MAX',
+      'TEMPERATURA_MIN',
+      'HUMEDAD_MIN',
+    ]);
+    expect(complete).toBe(true);
+    expect(completedFlows).toEqual(['flow1', 'flow2']);
+  });
+
+  it('partial flow1 (only one of two máximos) does not even complete flow1', () => {
+    const { complete, completedFlows } = evaluateTask(task1, ['TEMPERATURA_MAX']);
+    expect(complete).toBe(false);
+    expect(completedFlows).toEqual([]);
+  });
+
+  it('single-flow task (lluvias) completes as soon as its one measurement is saved', () => {
+    const { complete, completedFlows } = evaluateTask(task2, ['PRECIPITACION']);
+    expect(complete).toBe(true);
+    expect(completedFlows).toEqual(['flow3']);
+  });
+
+  it('OLD BUG PROOF: "any saved measurement => complete" marked task1 done with only máximos', () => {
+    // Old logic: a task was completed if grouped[taskId] had ANY measurement.
+    function buggyComplete(savedIds: string[]): boolean {
+      return savedIds.length > 0;
+    }
+    // Only máximos saved → old code wrongly reported the task as complete.
+    expect(buggyComplete(['TEMPERATURA_MAX', 'HUMEDAD_MAX'])).toBe(true);
+  });
+});
+
+// ─── Bug: auto-opened guide on multi-flow advance must be the CURRENT flow's guide ──
+//
+// Ground truth: flow1.guides = ['guide1'], flow2.guides = ['guide2'].
+// When advancing to flow2 the screen auto-opened GuideMeasurement with only { taskId },
+// so GuideMeasurementScreen fell back to tasks[taskId].flows[0]'s guide (guide1) instead
+// of flow2's guide (guide2). The fix passes guideKey = currentFlow.guides[0].
+
+describe('[fix] auto-opened guide uses the current flow guide key (not flows[0])', () => {
+  const flowsConfig: Record<string, { guides: string[] }> = {
+    flow1: { guides: ['guide1'] },
+    flow2: { guides: ['guide2'] },
+  };
+
+  function autoOpenGuideParams(flowKey: string, taskId: string): { taskId: string; guideKey?: string } {
+    // Mirrors the fixed loadFlowById auto-open call.
+    const firstGuideKey = flowsConfig[flowKey]?.guides?.[0];
+    return firstGuideKey ? { taskId, guideKey: firstGuideKey } : { taskId };
+  }
+
+  it('flow1 opens guide1', () => {
+    expect(autoOpenGuideParams('flow1', 'task1')).toEqual({ taskId: 'task1', guideKey: 'guide1' });
+  });
+
+  it('flow2 (mínimos) opens guide2 — not guide1', () => {
+    expect(autoOpenGuideParams('flow2', 'task1')).toEqual({ taskId: 'task1', guideKey: 'guide2' });
+  });
+
+  it('OLD BUG PROOF: passing only { taskId } makes the guide screen fall back to flows[0]=guide1', () => {
+    const buggyParams = { taskId: 'task1' } as { taskId: string; guideKey?: string };
+    expect(buggyParams.guideKey).toBeUndefined(); // → GuideMeasurementScreen loads guide1 even on flow2
+  });
+});

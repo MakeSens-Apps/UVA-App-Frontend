@@ -129,9 +129,21 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
   const [totalTask, setTotalTask] = useState(1);
   const [loading, setLoading] = useState(true);
 
-  // Modal states
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [showSavedModal, setShowSavedModal] = useState(false);
+  // Modal state — single <Modal> with a switchable stage.
+  //
+  // BUG 1 ROOT CAUSE (multi-flow máximos→mínimos didn't advance):
+  // The screen previously used TWO stacked RN <Modal> components (confirm + saved).
+  // On a real device you CANNOT reliably present a second <Modal> while the first is
+  // still dismissing — the confirm modal's dismiss animation swallows the saved modal,
+  // so the "Siguiente" button never appeared and the user got stuck on the máximos
+  // entry screen (and often re-saved → duplicate partial records, observed live).
+  //
+  // Fix: drive both phases from ONE <Modal> via `modalStage`. The modal stays mounted
+  // (visible while stage !== 'none') and only its INNER content switches from the
+  // "Verifica los datos" confirmation to the "{flow.name} guardados" saved view.
+  // No second Modal is ever mounted, so the "Siguiente" button always renders.
+  type ModalStage = 'none' | 'confirm' | 'saved';
+  const [modalStage, setModalStage] = useState<ModalStage>('none');
   const [saving, setSaving] = useState(false);
 
   // Input refs — Map<string, TextInput | null> keyed by "measIdx_digitIdx"
@@ -141,7 +153,7 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
   // ─── loadFlowById (declared before useEffect that calls it) ──────────────
 
   const loadFlowById = useCallback(
-    async (config: MeasurementModel, fId: string, isFirst: boolean) => {
+    async (config: MeasurementModel, fId: string, showBack: boolean) => {
       const flowData = config.flows[fId];
       if (!flowData) {
         setLoading(false);
@@ -150,7 +162,7 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
 
       setFlowId(fId);
       setFlow(flowData);
-      setHasBackButton(isFirst);
+      setHasBackButton(showBack);
 
       // Build measurements array (mirrors original ngOnInit queryParams.subscribe logic)
       const builtMeasurements: LocalMeasurement[] = await Promise.all(
@@ -181,11 +193,16 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
       // Check for guides
       if (flowData.guides.length > 0) {
         setHasGuide(true);
-        // Auto-open first guide (mirrors original showAutomatic logic)
+        // Auto-open the guide of THIS flow (mirrors original showAutomatic logic).
+        //
+        // FIX (wrong guide on multi-flow advance): the auto-open previously passed only
+        // { taskId }, so GuideMeasurementScreen fell back to tasks[taskId].flows[0]'s guide
+        // (guide1 = máximos) even when the screen had advanced to flow2 (mínimos → guide2).
+        // Pass the current flow's first guide key explicitly so the correct guide shows.
         const firstGuideKey = flowData.guides[0];
         if (config.guides[firstGuideKey]?.showAutomatic !== false) {
           setTimeout(() => {
-            navigation.navigate('GuideMeasurement', { taskId });
+            navigation.navigate('GuideMeasurement', { taskId, guideKey: firstGuideKey });
           }, 0);
         }
       } else {
@@ -227,10 +244,15 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
         return;
       }
 
-      // isFirst: show back button only for the first flow in the sequence
-      const isFirst = initialHasBackButton !== false && resolvedFlowId === task.flows[0];
+      // Back button visibility mirrors the original EXACTLY:
+      //   hasBackButtom = params.backButtom !== 'false'   (register-measurement.page.ts:140)
+      // i.e. show the back button UNLESS hasBackButton was explicitly passed as false
+      // (only the in-session "Siguiente" push sets hasBackButton:false). It does NOT
+      // depend on whether the flow is flows[0] — so a flow2 resumed from the list
+      // (goToRegister, no param) keeps its back button, just like the original.
+      const showBack = initialHasBackButton !== false;
 
-      await loadFlowById(configMeasurement, resolvedFlowId, isFirst);
+      await loadFlowById(configMeasurement, resolvedFlowId, showBack);
     };
 
     void init();
@@ -414,20 +436,24 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
     }
 
     // 4. Open confirmation modal
-    setShowConfirmModal(true);
+    setModalStage('confirm');
   }, [measurements, flow, runValidateRestriction]);
 
   // ─── goToNextFlowOrSavePreference (declared before confirmSave that calls it) ─
 
   const goToNextFlowOrSavePreference = useCallback(async () => {
     if (!flow?.nextFlow) {
-      // No next flow → save done.
-      // The "saved" modal is already visible (shown unconditionally in confirmSave,
-      // mirroring original OpenModalRegisterOk=true at register-measurement.page.ts:345).
+      // No next flow → this was the LAST flow of the task.
+      // The "saved" stage is already visible (set in confirmSave), mirroring the
+      // original OpenModalRegisterOk=true at register-measurement.page.ts:345.
+      // completeTaskProcess runs ONLY here (no nextFlow) — this is what advances the
+      // Home progress bar (userProgress.completedTasks). For multi-flow tasks it must
+      // NOT run after an intermediate flow, otherwise the task would be counted as
+      // complete with partial data (BUG 2 / BUG 3).
       await Preferences.remove({ key: LAST_MEASUREMENT_VALUES_KEY });
 
       setTimeout(async () => {
-        setShowSavedModal(false);
+        setModalStage('none');
         try {
           await GamificationService.completeTaskProcess(totalTask);
         } catch (err) {
@@ -471,19 +497,6 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
         {} as Record<string, number>,
       );
 
-      /*
-       * FIX (BUG 1 — multi-flow advance max→min — audit CRÍTICA):
-       * Original (register-measurement.page.ts:345) sets `OpenModalRegisterOk = true`
-       * UNCONDITIONALLY before addMeasurement, so the "saved" modal is ALWAYS shown.
-       * RN previously only opened it inside the no-nextFlow branch of
-       * goToNextFlowOrSavePreference → for a flow WITH nextFlow the modal never
-       * appeared, the "Siguiente" button never rendered, and the user stayed stuck
-       * on the máximos view. Show it here unconditionally to match the original:
-       *   - with nextFlow → modal stays open showing "Siguiente" (goToComplete)
-       *   - without nextFlow → goToNextFlowOrSavePreference auto-closes it after 2s
-       */
-      setShowSavedModal(true);
-
       await MeasurementDSService.addMeasurement(
         'RAW',
         measurementData,
@@ -492,11 +505,20 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
         taskId,
       );
 
-      setShowConfirmModal(false);
+      /*
+       * FIX (BUG 1 — multi-flow advance max→min — audit CRÍTICA):
+       * Original (register-measurement.page.ts:345) sets `OpenModalRegisterOk = true`
+       * UNCONDITIONALLY after addMeasurement, so the "saved" view is ALWAYS shown.
+       * Switch the SAME modal from 'confirm' to 'saved' (no second <Modal> is mounted,
+       * so on a real device the "Siguiente" button always renders):
+       *   - with nextFlow → stage stays 'saved' showing "Siguiente" (goToComplete)
+       *   - without nextFlow → goToNextFlowOrSavePreference closes it after 2s
+       */
+      setModalStage('saved');
       await goToNextFlowOrSavePreference();
     } catch (err) {
-      // Roll back the optimistic "saved" modal if persistence failed.
-      setShowSavedModal(false);
+      // Roll back to the confirm stage if persistence failed so the user can retry.
+      setModalStage('confirm');
       console.error('RegisterMeasurementScreen ~ confirmSave error:', err);
     } finally {
       setSaving(false);
@@ -506,7 +528,7 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
   // ─── goToComplete (from saved modal Siguiente button) ─────────────────────
 
   const goToComplete = useCallback(() => {
-    setShowSavedModal(false);
+    setModalStage('none');
     if (flow?.nextFlow) {
       /*
        * FIX (multi-flow goToComplete — audit #1 CRÍTICA):
@@ -528,8 +550,14 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
   // ─── OpenGuide ────────────────────────────────────────────────────────────
 
   const openGuide = useCallback(() => {
-    navigation.navigate('GuideMeasurement', { taskId });
-  }, [navigation, taskId]);
+    // Open the guide of the CURRENT flow (not always flows[0]'s guide).
+    // Mirrors original OpenGuide(flow.guides[0]) — register-measurement.page.html:69.
+    const currentGuideKey = flow?.guides?.[0];
+    navigation.navigate(
+      'GuideMeasurement',
+      currentGuideKey ? { taskId, guideKey: currentGuideKey } : { taskId },
+    );
+  }, [navigation, taskId, flow]);
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
@@ -710,135 +738,136 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
         <View style={styles.bottomPadding} />
       </ScrollView>
 
-      {/* Confirmation modal — "Verifica los datos 🧐"
-          BUG 2 FIX: original <ion-modal id="modal_confirmation" class="custom-modal_confirmation">
-          is a CENTERED modal (ion-modal default + --height:auto, .wrapper margin-inline:10px),
-          NOT a bottom-sheet. Render as a vertically-centered card over a blurred backdrop. */}
+      {/* SINGLE modal — confirmation ("Verifica los datos 🧐") and saved
+          ("{flow.name} guardados") phases share ONE <Modal>, switched by `modalStage`.
+          See the BUG 1 ROOT CAUSE note on the modalStage state: two stacked <Modal>s
+          do not transition reliably on a real device, which is what broke the
+          máximos→mínimos advance. With one modal the "Siguiente" button always renders.
+
+          BUG 6: original <ion-modal id="modal_confirmation"> is a CENTERED modal
+          (ion-modal default + --height:auto, .wrapper margin-inline:10px), NOT a
+          bottom-sheet. Render as a vertically-centered card over a blurred backdrop. */}
       <Modal
-        visible={showConfirmModal}
+        visible={modalStage !== 'none'}
         transparent
         animationType="fade"
         statusBarTranslucent
-        onRequestClose={() => setShowConfirmModal(false)}
-        testID="confirm-modal"
+        onRequestClose={() => {
+          // Hardware back closes only the confirmation phase (matches ion-modal backdrop
+          // dismiss). The saved phase must be advanced via "Siguiente"/auto-navigate.
+          if (modalStage === 'confirm') setModalStage('none');
+        }}
+        testID={modalStage === 'saved' ? 'saved-modal' : 'confirm-modal'}
       >
         {/* BlurView replaces solid overlay — mirrors backdrop-filter:blur(20px) */}
         <BlurView intensity={80} tint="light" style={styles.modalBackdropCentered}>
-          <ScrollView
-            style={styles.modalScroll}
-            contentContainerStyle={styles.modalScrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-          <View style={[styles.modalCard, { backgroundColor: theme.colors.white }]}>
-            <Text
-              style={[
-                styles.modalTitle,
-                { fontFamily: fontFamilyForWeight('700'), color: theme.semanticColors.text },
-              ]}
-            >
-              Verifica los datos 🧐
-            </Text>
-
-            {/* Measurement summary */}
-            {measurements.map((item, measIdx) => (
-              <View
-                key={item.id ?? measIdx}
+          {modalStage === 'saved' ? (
+            // ── Saved phase ───────────────────────────────────────────────────
+            <View style={[styles.savedCard, { backgroundColor: theme.colors.white }]}>
+              <Text
                 style={[
-                  styles.measurementCard,
-                  {
-                    backgroundColor: item.style?.backgroundColor?.colorHex ?? theme.colors.white,
-                    borderColor: item.style?.borderColor?.colorHex ?? theme.colors.blue[200] ?? '#BFDBFE',
-                  },
+                  styles.savedTitle,
+                  { fontFamily: fontFamilyForWeight('600'), color: theme.semanticColors.text },
                 ]}
               >
-                <View style={styles.measurementHeader}>
-                  {item.name ? (
-                    <RichText html={item.name} inline baseFontSize={14} />
-                  ) : null}
-                </View>
-                <View style={styles.digitContainer}>
+                {flow?.name} guardados
+              </Text>
+
+              {/* If there's a next flow, show "Siguiente" button (multi-flow advance) */}
+              {flow?.nextFlow ? (
+                <TouchableOpacity
+                  style={[styles.saveButton, { backgroundColor: theme.colors.blue[600], marginTop: 16 }]}
+                  onPress={goToComplete}
+                  testID="next-flow-button"
+                >
                   <Text
                     style={[
-                      styles.valueDisplay,
-                      { fontFamily: fontFamilyForWeight('600'), color: theme.semanticColors.text },
+                      styles.saveButtonText,
+                      { fontFamily: fontFamilyForWeight('600'), color: theme.colors.white },
                     ]}
                   >
-                    {item.value ?? '--'}
+                    Siguiente
                   </Text>
-                  <Text
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          ) : (
+            // ── Confirmation phase ────────────────────────────────────────────
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.modalScrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={[styles.modalCard, { backgroundColor: theme.colors.white }]}>
+                <Text
+                  style={[
+                    styles.modalTitle,
+                    { fontFamily: fontFamilyForWeight('700'), color: theme.semanticColors.text },
+                  ]}
+                >
+                  Verifica los datos 🧐
+                </Text>
+
+                {/* Measurement summary */}
+                {measurements.map((item, measIdx) => (
+                  <View
+                    key={item.id ?? measIdx}
                     style={[
-                      styles.unitText,
-                      { fontFamily: fontFamilyForWeight('400'), color: theme.semanticColors.textSecondary },
+                      styles.measurementCard,
+                      {
+                        backgroundColor: item.style?.backgroundColor?.colorHex ?? theme.colors.white,
+                        borderColor: item.style?.borderColor?.colorHex ?? theme.colors.blue[200] ?? '#BFDBFE',
+                      },
                     ]}
                   >
-                    {item.unit}
-                  </Text>
-                </View>
+                    <View style={styles.measurementHeader}>
+                      {item.name ? (
+                        <RichText html={item.name} inline baseFontSize={14} />
+                      ) : null}
+                    </View>
+                    <View style={styles.digitContainer}>
+                      <Text
+                        style={[
+                          styles.valueDisplay,
+                          { fontFamily: fontFamilyForWeight('600'), color: theme.semanticColors.text },
+                        ]}
+                      >
+                        {item.value ?? '--'}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.unitText,
+                          { fontFamily: fontFamilyForWeight('400'), color: theme.semanticColors.textSecondary },
+                        ]}
+                      >
+                        {item.unit}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+
+                <TouchableOpacity
+                  style={[styles.saveButton, { backgroundColor: theme.colors.blue[600] }]}
+                  onPress={() => void confirmSave()}
+                  disabled={saving}
+                  testID="confirm-save-button"
+                >
+                  {saving ? (
+                    <ActivityIndicator color={theme.colors.white} />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.saveButtonText,
+                        { fontFamily: fontFamilyForWeight('600'), color: theme.colors.white },
+                      ]}
+                    >
+                      Guardar registro
+                    </Text>
+                  )}
+                </TouchableOpacity>
               </View>
-            ))}
-
-            <TouchableOpacity
-              style={[styles.saveButton, { backgroundColor: theme.colors.blue[600] }]}
-              onPress={() => void confirmSave()}
-              disabled={saving}
-              testID="confirm-save-button"
-            >
-              {saving ? (
-                <ActivityIndicator color={theme.colors.white} />
-              ) : (
-                <Text
-                  style={[
-                    styles.saveButtonText,
-                    { fontFamily: fontFamilyForWeight('600'), color: theme.colors.white },
-                  ]}
-                >
-                  Guardar registro
-                </Text>
-              )}
-            </TouchableOpacity>
-
-          </View>
-          </ScrollView>
-        </BlurView>
-      </Modal>
-
-      {/* Saved modal — "flow.name guardados" */}
-      <Modal
-        visible={showSavedModal}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        testID="saved-modal"
-      >
-        <BlurView intensity={80} tint="light" style={styles.modalBackdropCentered}>
-          <View style={[styles.savedCard, { backgroundColor: theme.colors.white }]}>
-            <Text
-              style={[
-                styles.savedTitle,
-                { fontFamily: fontFamilyForWeight('600'), color: theme.semanticColors.text },
-              ]}
-            >
-              {flow?.name} guardados
-            </Text>
-
-            {/* If there's a next flow, show "Siguiente" button */}
-            {flow?.nextFlow ? (
-              <TouchableOpacity
-                style={[styles.saveButton, { backgroundColor: theme.colors.blue[600], marginTop: 16 }]}
-                onPress={goToComplete}
-                testID="next-flow-button"
-              >
-                <Text
-                  style={[
-                    styles.saveButtonText,
-                    { fontFamily: fontFamilyForWeight('600'), color: theme.colors.white },
-                  ]}
-                >
-                  Siguiente
-                </Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
+            </ScrollView>
+          )}
         </BlurView>
       </Modal>
     </View>
