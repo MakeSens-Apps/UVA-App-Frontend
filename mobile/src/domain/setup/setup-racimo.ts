@@ -16,9 +16,14 @@
  * UVA ID format: UVA_<racimoLinkCode>_<zero-padded 5-digit sequence>
  * - First UVA: UVA_<code>_00000
  * - Subsequent: extracts last 5 digits from lastUVA id, increments by 1
+ *
+ * Fix (remediación setup-auth #18):
+ *   - Uses exported sessionService singleton from session.ts (session.ts:137)
+ *     instead of creating a new instance, to avoid multiple SessionService
+ *     instances pointing to the same backing store (setup-racimo.service.ts divergence).
  */
 
-import SessionService from '@/data/session/session';
+import { sessionService } from '@/data/session/session';
 import { racimoAPIService } from '@/data/api/racimo-api';
 import { uvaAPIService } from '@/data/api/uva-api';
 import type {
@@ -32,9 +37,6 @@ export enum ModelSortDirection {
   ASC = 'ASC',
   DESC = 'DESC',
 }
-
-// ─── Singleton session ────────────────────────────────────────────────────────
-const sessionService = new SessionService();
 
 // ─── Pure UVA ID generation (testable) ───────────────────────────────────────
 

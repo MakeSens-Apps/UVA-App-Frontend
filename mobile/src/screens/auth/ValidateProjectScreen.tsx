@@ -119,7 +119,9 @@ export function ValidateProjectScreen({ route, navigation }: Props): React.JSX.E
   const cancelTimer = (): void => {
     cancelledRef.current = true;
     if (timerRef.current) clearTimeout(timerRef.current);
-    navigation.navigate('Login');
+    // Original: routerLink="/register/project-vinculation" (validate-project.page.html:8)
+    // Cancel returns to project-vinculation, not Login
+    navigation.navigate('ProjectVinculation');
   };
 
   return (

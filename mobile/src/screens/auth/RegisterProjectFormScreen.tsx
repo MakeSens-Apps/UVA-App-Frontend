@@ -89,8 +89,10 @@ export function RegisterProjectFormScreen({ navigation }: Props): React.JSX.Elem
         const logoUri = await loadImage(config.branding.logo);
         if (logoUri && !cancelled) setBrandingLogo(logoUri);
 
-        // Build field list from fieldsUVA
-        const fieldList = Object.values(config.fieldsUVA).filter((f) => f.enabled);
+        // Build field list from fieldsUVA — include ALL fields as in original (no enabled filter)
+        // Original buildForm() at register-project-form.page.ts:91-99 iterates
+        // Object.keys(configModel.fieldsUVA) without any .filter() on enabled.
+        const fieldList = Object.values(config.fieldsUVA);
         setFields(fieldList);
 
         // Init field state

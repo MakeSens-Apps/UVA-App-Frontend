@@ -13,21 +13,24 @@
  */
 
 // Mock session service (avoid native storage)
-// Must mock as ESM default class constructor since setup-racimo does `new SessionService()` at module level
+// setup-racimo now uses the exported sessionService singleton (fix #18, remediación setup-auth).
+// Provide both default (class) and named (singleton) exports to support both patterns.
 jest.mock('@/data/session/session', () => {
+  const mockInstance = {
+    getInfo: jest.fn().mockResolvedValue({
+      racimoID: 'racimo-001',
+      userID: 'user-001',
+      uvaID: 'UVA_ABC_00001',
+      racimoLinkCode: 'ABC',
+      racimoName: 'Test RACIMO',
+      racimoConfiguration: '{}',
+    }),
+    setInfoField: jest.fn().mockResolvedValue(undefined),
+  };
   return {
     __esModule: true,
-    default: jest.fn().mockImplementation(() => ({
-      getInfo: jest.fn().mockResolvedValue({
-        racimoID: 'racimo-001',
-        userID: 'user-001',
-        uvaID: 'UVA_ABC_00001',
-        racimoLinkCode: 'ABC',
-        racimoName: 'Test RACIMO',
-        racimoConfiguration: '{}',
-      }),
-      setInfoField: jest.fn().mockResolvedValue(undefined),
-    })),
+    default: jest.fn().mockImplementation(() => mockInstance),
+    sessionService: mockInstance,
   };
 });
 

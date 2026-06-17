@@ -6,10 +6,10 @@
  *
  * Preserved logic (portability-matrix §4.4):
  *   - Form validation: required, minLength(10), maxLength(10)
- *   - Modal confirmation texts (literal from original):
+ *   - Modal confirmation texts (literal from original login.page.ts:104-106):
  *       content: "¿Es correcto este número de teléfono: <strong>{phone}</strong>?"
- *       textCancelButton: "No, Editar"
- *       textOkButton: "Sí, Continuar"
+ *       textCancelButton: "No, editar"   (lowercase — original uses 'editar' not 'Editar')
+ *       textOkButton: "Sí, continuar"    (lowercase — original uses 'continuar' not 'Continuar')
  *   - Post-signIn branch:
  *       isSignedIn (test user / no MFA) → createNewUser + navigate to ProjectVinculation
  *       !isSignedIn (MFA SMS challenge) → navigate to OTP
@@ -124,8 +124,8 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
   async function abrirModal(phone: string): Promise<void> {
     const result = await showConfirm({
       content: `<p> ¿Es correcto este número de teléfono: <strong> ${phone} </strong>? </p>`,
-      textCancelButton: 'No, Editar',
-      textOkButton: 'Sí, Continuar',
+      textCancelButton: 'No, editar',
+      textOkButton: 'Sí, continuar',
     });
 
     if (result !== 'OK') return;

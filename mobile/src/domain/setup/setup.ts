@@ -15,10 +15,15 @@
  *
  * Plan B07: "setup.service + setup-racimo.service como módulos
  *            (id secuencial UVA_<code>_<NNNNN> con test)"
+ *
+ * Fix (remediación setup-auth #18):
+ *   - Uses exported sessionService singleton from session.ts (session.ts:137)
+ *     instead of creating a new instance, to avoid multiple SessionService
+ *     instances pointing to the same backing store (setup.service.ts:29 divergence).
  */
 
 import { authService } from '@/data/auth/auth';
-import SessionService from '@/data/session/session';
+import { sessionService } from '@/data/session/session';
 import { userAPIService } from '@/data/api/user-api';
 import { userProgressAPIService } from '@/data/api/user-progress-api';
 import type { AuthResponse } from '@/data/auth/auth';
@@ -27,10 +32,6 @@ import type { Session } from '@/data/models/session.model';
 
 // Re-export for convenience
 export type { AuthResponse };
-
-// ─── Singleton session ────────────────────────────────────────────────────────
-// SessionService is a class instance (B05)
-const sessionService = new SessionService();
 
 // ─── SetupService ─────────────────────────────────────────────────────────────
 

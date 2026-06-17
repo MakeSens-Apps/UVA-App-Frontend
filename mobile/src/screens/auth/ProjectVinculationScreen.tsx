@@ -18,6 +18,13 @@
  *   - Uses useSyncContext().waitForSync() (replaces SyncMonitorDSService.waitForSyncDataStore())
  *   - Uses useConfigContext().configExists()
  *
+ * Fixes applied (remediación setup-auth):
+ *   - Subtitle now uses personalized message with user name and WhatsApp reference,
+ *     matching original: "{{user?.name}}, por último ingresa el código de invitación
+ *     enviado a tu Whatsapp del proyecto al que quieres pertenecer."
+ *     (coverage-audit auth-register / ProjectVinculationScreen — PARCIAL)
+ *   - Placeholder restored to "Ejemplo: ISA234" (original project-vinculation.page.html:15)
+ *
  * Visual ref: docs/evidence/register/screen-10 to screen-13
  *   - screen-10: empty, button disabled, "Salir" link
  *   - screen-11: code 3 chars — button disabled
@@ -44,7 +51,10 @@ import {
 } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { LinearGradient } from 'expo-linear-gradient';
-import type { NativeStackScreenProps, NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type {
+  NativeStackScreenProps,
+  NativeStackNavigationProp,
+} from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 
 import type { AuthStackParamList, RootStackParamList } from '@/navigation/types';
@@ -73,6 +83,8 @@ export function ProjectVinculationScreen({ navigation }: Props): React.JSX.Eleme
   const [showError, setShowError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  // Personalized message: user name from session (original: {{user?.name}})
+  const [userName, setUserName] = useState('');
 
   const { configExists } = useConfigContext();
   const { waitForSync } = useSyncContext();
@@ -96,6 +108,9 @@ export function ProjectVinculationScreen({ navigation }: Props): React.JSX.Eleme
 
     const init = async (): Promise<void> => {
       const user = await SetupService.getParametersUser();
+      // Store user name for personalized message (original: user?.name)
+      if (!cancelled) setUserName(user.name ?? '');
+
       if (user.userID) {
         const hasUVA = await SetupRacimoService.getUVA(user.userID);
         if (hasUVA) {
@@ -227,6 +242,11 @@ export function ProjectVinculationScreen({ navigation }: Props): React.JSX.Eleme
             Vinculate al proyecto
           </Text>
 
+          {/*
+           * Personalized message — original: "{{user?.name}}, por último ingresa el código
+           * de invitación enviado a tu Whatsapp del proyecto al que quieres pertenecer."
+           * (project-vinculation.page.html:3)
+           */}
           <Text
             style={[
               styles.subtitle,
@@ -235,8 +255,11 @@ export function ProjectVinculationScreen({ navigation }: Props): React.JSX.Eleme
                 color: theme.colors.gray[700],
               },
             ]}
+            testID="vinculation-subtitle"
           >
-            Ingresa el código de 6 caracteres de tu proyecto.
+            {userName
+              ? `${userName}, por último ingresa el código de invitación enviado a tu Whatsapp del proyecto al que quieres pertenecer.`
+              : 'Por último ingresa el código de invitación enviado a tu Whatsapp del proyecto al que quieres pertenecer.'}
           </Text>
 
           {/* Code input */}
@@ -250,7 +273,7 @@ export function ProjectVinculationScreen({ navigation }: Props): React.JSX.Eleme
                 },
               ]}
             >
-              Código del proyecto
+              Código de invitación
             </Text>
             <Controller
               control={control}
@@ -269,7 +292,7 @@ export function ProjectVinculationScreen({ navigation }: Props): React.JSX.Eleme
                       fontFamily: fontFamilyForWeight('400'),
                     },
                   ]}
-                  placeholder="XXXXXX"
+                  placeholder="Ejemplo: ISA234"
                   placeholderTextColor={theme.colors.gray[400]}
                   autoCapitalize="characters"
                   maxLength={6}
