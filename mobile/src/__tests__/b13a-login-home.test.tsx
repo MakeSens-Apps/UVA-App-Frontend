@@ -59,9 +59,11 @@ jest.mock('react-native-svg', () => ({
   G: 'G',
 }));
 
-// SVG icon mocks
+// SVG icon mocks — must include all SVGs imported by HomeScreen (including germination icons)
 jest.mock('@/assets/svg/icons/arrow-right.svg', () => 'ArrowRightIcon');
 jest.mock('@/assets/svg/icons/semilla.svg', () => 'SemillaIcon');
+jest.mock('@/assets/svg/icons/platula.svg', () => 'PlatulaIcon');
+jest.mock('@/assets/svg/icons/flor.svg', () => 'FlorIcon');
 jest.mock('@/assets/svg/icons/user-circle.svg', () => 'UserCircleIcon');
 
 // BottomSheet mock (for HomeScreen modals)

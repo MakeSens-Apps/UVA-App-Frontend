@@ -46,7 +46,16 @@ import {
   TouchableOpacity,
   StyleSheet,
   Pressable,
+  Image,
 } from 'react-native';
+
+// ─── SVG icon imports (static — Metro requires no dynamic paths) ──────────────
+// Original home.page.html uses ion-icon src="semilla.svg", brote.svg, platula.svg, flor.svg,
+// arrow-right.svg inline inside modals. Emoji replacements are NOT pixel-perfect.
+import SemillaIcon from '@/assets/svg/icons/semilla.svg';
+import PlatulaIcon from '@/assets/svg/icons/platula.svg';
+import FlorIcon from '@/assets/svg/icons/flor.svg';
+import ArrowRightIcon from '@/assets/svg/icons/arrow-right.svg';
 import { useFocusEffect } from '@react-navigation/native';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
@@ -328,17 +337,21 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
         {/* Progress + seeds card */}
         <View style={[styles.card, styles.cardMarginTop, { backgroundColor: theme.colors.white }]}>
           <View style={styles.cardHeader}>
-            <Text
-              style={[
-                styles.cardTitle,
-                {
-                  fontFamily: fontFamilyForWeight('700'),
-                  color: theme.semanticColors.text,
-                },
-              ]}
-            >
-              {'Registra y gana: +2 🌰'}
-            </Text>
+            {/* Original home.page.html:39-41: "Registra y gana: +2<ion-icon src=\"semilla.svg\">" */}
+            <View style={styles.cardTitleRow}>
+              <Text
+                style={[
+                  styles.cardTitle,
+                  {
+                    fontFamily: fontFamilyForWeight('700'),
+                    color: theme.semanticColors.text,
+                  },
+                ]}
+              >
+                {'Registra y gana: +2'}
+              </Text>
+              <SemillaIcon width={16} height={16} />
+            </View>
             <TouchableOpacity
               onPress={() => openModal(modalTokenRef)}
               testID="modal-token-trigger"
@@ -492,20 +505,33 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
           testID="modal-token"
         >
           {/* Each seed rule in white card (screen-07 ionic: 4 tarjetas blancas separadas) */}
+          {/* Original home.page.html:185-219: h1 shows number + semilla.svg SVG icon (NOT emoji) */}
           <View style={styles.tokenCard}>
-            <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>+2 🌰</Text>
+            {/* +2 <semilla.svg> — original: "+2<ion-icon src="semilla.svg">" */}
+            <View style={styles.seedCountRow}>
+              <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>+2</Text>
+              <SemillaIcon width={24} height={24} />
+            </View>
             <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
               Cada día que cumplas <Text style={{ fontFamily: fontFamilyForWeight('700') }}>con todos tus registros</Text> ganas dos semillas.
             </Text>
           </View>
           <View style={styles.tokenCard}>
-            <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>+1 🌰</Text>
+            {/* +1 <semilla.svg> — original: "+1<ion-icon src="semilla.svg">" */}
+            <View style={styles.seedCountRow}>
+              <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>+1</Text>
+              <SemillaIcon width={24} height={24} />
+            </View>
             <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
               Los días que <Text style={{ fontFamily: fontFamilyForWeight('700') }}>cumplas con algunos</Text> registros ganas una semilla.
             </Text>
           </View>
           <View style={styles.tokenCard}>
-            <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>5 🌰</Text>
+            {/* 5 <semilla.svg> — original: "5" shown via date_incomplete_to_done.svg illustration */}
+            <View style={styles.seedCountRow}>
+              <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>5</Text>
+              <SemillaIcon width={24} height={24} />
+            </View>
             {/* Original: home.page.scss #modal_token .icon_arrow { font-size:18px }
                 screen-07: third card shows "03 → [03✓]" — Day(incomplete) → arrow → Day(complete)
                 Visually illustrates the streak-recovery mechanism */}
@@ -519,7 +545,11 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
             </Text>
           </View>
           <View style={styles.tokenCard}>
-            <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>+3 🌰</Text>
+            {/* +3 <semilla.svg> — original: "+3<ion-icon src="semilla.svg">" */}
+            <View style={styles.seedCountRow}>
+              <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>+3</Text>
+              <SemillaIcon width={24} height={24} />
+            </View>
             <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
               Si cumples <Text style={{ fontFamily: fontFamilyForWeight('700') }}>con 7 días de racha</Text> ganas <Text style={{ fontFamily: fontFamilyForWeight('700') }}>3 semillas adicionales.</Text>
             </Text>
@@ -567,10 +597,24 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
           </Text>
 
           {/* Each germination range in white card (screen-08 ionic: 4 tarjetas blancas individuales) */}
-          {/* testID on inner Text so existing tests can read text via .children */}
-          {/* 11 a 40 → brote */}
+          {/* Original home.page.html:265-315: semilla.svg + arrow-right.svg + brote/platula/flor SVG */}
+          {/* testID on description Text so existing tests can read text via .children */}
+
+          {/* 11 a 40 → brote — original: "11<semilla> a 40<semilla><arrow><brote>" */}
           <View style={styles.tokenCard}>
-            <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>11 🌰 a 40 🌰 → 🌱</Text>
+            <View style={styles.germinationRow}>
+              <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>11</Text>
+              <SemillaIcon width={20} height={20} />
+              <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>{' a 40'}</Text>
+              <SemillaIcon width={20} height={20} />
+              <ArrowRightIcon width={18} height={18} />
+              {/* brote uses PNG (same as AchievementScreen: original also uses brote1.png) */}
+              <Image
+                source={require('@/assets/png/profile/brote1.png')}
+                style={styles.germinationStageIcon}
+                resizeMode="contain"
+              />
+            </View>
             <Text
               style={[styles.modalText, { color: theme.semanticColors.text }]}
               testID="germination-brote"
@@ -579,9 +623,16 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
             </Text>
           </View>
 
-          {/* 41 a 63 → plántula */}
+          {/* 41 a 63 → plántula — original: "41<semilla> a 63<semilla><arrow><platula>" */}
           <View style={styles.tokenCard}>
-            <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>41 🌰 a 63 🌰 → 🌿</Text>
+            <View style={styles.germinationRow}>
+              <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>41</Text>
+              <SemillaIcon width={20} height={20} />
+              <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>{' a 63'}</Text>
+              <SemillaIcon width={20} height={20} />
+              <ArrowRightIcon width={18} height={18} />
+              <PlatulaIcon width={32} height={32} />
+            </View>
             <Text
               style={[styles.modalText, { color: theme.semanticColors.text }]}
               testID="germination-plantula"
@@ -590,9 +641,14 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
             </Text>
           </View>
 
-          {/* más de 63 → flor */}
+          {/* más de 63 → flor — original: "mas de 63<semilla><arrow><flor>" */}
           <View style={styles.tokenCard}>
-            <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>mas de 63 🌰 → 🌸</Text>
+            <View style={styles.germinationRow}>
+              <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>{'mas de 63'}</Text>
+              <SemillaIcon width={20} height={20} />
+              <ArrowRightIcon width={18} height={18} />
+              <FlorIcon width={32} height={32} />
+            </View>
             <Text
               style={[styles.modalText, { color: theme.semanticColors.text }]}
               testID="germination-flor"
@@ -601,9 +657,14 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
             </Text>
           </View>
 
-          {/* 0 a 10 → nada */}
+          {/* 0 a 10 → nada — original: "0<semilla> a 10<semilla>" (no stage icon) */}
           <View style={styles.tokenCard}>
-            <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>0 🌰 a 10 🌰</Text>
+            <View style={styles.germinationRow}>
+              <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>0</Text>
+              <SemillaIcon width={20} height={20} />
+              <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>{' a 10'}</Text>
+              <SemillaIcon width={20} height={20} />
+            </View>
             <Text
               style={[styles.modalText, { color: theme.semanticColors.text }]}
               testID="germination-nada"
@@ -735,9 +796,36 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginVertical: 4,
   },
-  germinationRow: {
+  // card title row: "Registra y gana: +2 <semilla.svg>"
+  // Original: ion-card-title .title_series = text inline with semilla.svg icon
+  cardTitleRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    gap: 4,
+    flex: 1,
+  },
+  // Inline row for seed count display: "+2 <semilla.svg>" inside tokenCard header
+  // Original: h1 { +2<ion-icon src="semilla.svg"> } in modal_token
+  seedCountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  // Row for germination range display: "11 <semilla> a 40 <semilla> → <brote>"
+  // Original: h1 { 11<semilla> a 40<semilla><arrow><brote> } in modal_token_2 (home.page.html:266-275)
+  germinationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    flexWrap: 'wrap',
+    marginBottom: 4,
+  },
+  // Stage icon in germination row (brote PNG / platula.svg / flor.svg)
+  germinationStageIcon: {
+    width: 32,
+    height: 32,
   },
   // modal_Days state rows (screen-05: Day circle + label side by side)
   modalStateRow: {
