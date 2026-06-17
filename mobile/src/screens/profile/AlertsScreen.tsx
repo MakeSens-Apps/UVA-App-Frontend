@@ -211,9 +211,15 @@ export function AlertsScreen({ navigation }: Props): React.JSX.Element {
       switch (item.type) {
         case 'seeds': return '#c9680e';        // icon-bg-accent / uva_orange-500-shade
         case 'streak':
-          if (item.subtype === 'streak_lost') return '#737373'; // icon-bg-muted / Gray-700
-          return '#0d8f9a';                    // icon-bg-primary / uva_green-700
-        case 'achievement': return '#0d8f9a';  // icon-bg-primary / uva_green-700
+          // Fix: alerts.page.scss maps subtypes to different SCSS classes with different colors.
+          // streak_recovered → icon-bg-primary → color: var(--ion-color-uva_green-700) = #14788A
+          // streak_recovery  → icon-bg-yellow  → color: var(--Colors-Blue-900) = #164551
+          // streak_lost      → icon-bg-muted   → color: var(--Colors-Gray-700) = #737373
+          if (item.subtype === 'streak_recovered') return '#14788A'; // uva_green-700
+          if (item.subtype === 'streak_recovery') return '#164551';  // Colors-Blue-900
+          if (item.subtype === 'streak_lost') return '#737373';      // Colors-Gray-700
+          return '#14788A';                    // default streak → uva_green-700
+        case 'achievement': return '#14788A';  // icon-bg-primary / uva_green-700
         case 'bonus': return '#164551';        // icon-bg-yellow / Colors-Blue-900
         default: return '#737373';             // icon-bg-muted / Colors-Gray-700
       }
