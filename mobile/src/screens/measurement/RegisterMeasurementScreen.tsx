@@ -421,11 +421,10 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
 
   const goToNextFlowOrSavePreference = useCallback(async () => {
     if (!flow?.nextFlow) {
-      // No next flow → save done
+      // No next flow → save done.
+      // The "saved" modal is already visible (shown unconditionally in confirmSave,
+      // mirroring original OpenModalRegisterOk=true at register-measurement.page.ts:345).
       await Preferences.remove({ key: LAST_MEASUREMENT_VALUES_KEY });
-
-      // Show "saved" modal for 2s
-      setShowSavedModal(true);
 
       setTimeout(async () => {
         setShowSavedModal(false);
@@ -472,6 +471,19 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
         {} as Record<string, number>,
       );
 
+      /*
+       * FIX (BUG 1 — multi-flow advance max→min — audit CRÍTICA):
+       * Original (register-measurement.page.ts:345) sets `OpenModalRegisterOk = true`
+       * UNCONDITIONALLY before addMeasurement, so the "saved" modal is ALWAYS shown.
+       * RN previously only opened it inside the no-nextFlow branch of
+       * goToNextFlowOrSavePreference → for a flow WITH nextFlow the modal never
+       * appeared, the "Siguiente" button never rendered, and the user stayed stuck
+       * on the máximos view. Show it here unconditionally to match the original:
+       *   - with nextFlow → modal stays open showing "Siguiente" (goToComplete)
+       *   - without nextFlow → goToNextFlowOrSavePreference auto-closes it after 2s
+       */
+      setShowSavedModal(true);
+
       await MeasurementDSService.addMeasurement(
         'RAW',
         measurementData,
@@ -483,6 +495,8 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
       setShowConfirmModal(false);
       await goToNextFlowOrSavePreference();
     } catch (err) {
+      // Roll back the optimistic "saved" modal if persistence failed.
+      setShowSavedModal(false);
       console.error('RegisterMeasurementScreen ~ confirmSave error:', err);
     } finally {
       setSaving(false);
@@ -696,17 +710,25 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
         <View style={styles.bottomPadding} />
       </ScrollView>
 
-      {/* Confirmation modal — "Verifica los datos" */}
+      {/* Confirmation modal — "Verifica los datos 🧐"
+          BUG 2 FIX: original <ion-modal id="modal_confirmation" class="custom-modal_confirmation">
+          is a CENTERED modal (ion-modal default + --height:auto, .wrapper margin-inline:10px),
+          NOT a bottom-sheet. Render as a vertically-centered card over a blurred backdrop. */}
       <Modal
         visible={showConfirmModal}
         transparent
-        animationType="slide"
+        animationType="fade"
         statusBarTranslucent
         onRequestClose={() => setShowConfirmModal(false)}
         testID="confirm-modal"
       >
         {/* BlurView replaces solid overlay — mirrors backdrop-filter:blur(20px) */}
-        <BlurView intensity={80} tint="light" style={styles.modalBackdrop}>
+        <BlurView intensity={80} tint="light" style={styles.modalBackdropCentered}>
+          <ScrollView
+            style={styles.modalScroll}
+            contentContainerStyle={styles.modalScrollContent}
+            showsVerticalScrollIndicator={false}
+          >
           <View style={[styles.modalCard, { backgroundColor: theme.colors.white }]}>
             <Text
               style={[
@@ -776,6 +798,7 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
             </TouchableOpacity>
 
           </View>
+          </ScrollView>
         </BlurView>
       </Modal>
 
@@ -787,7 +810,7 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
         statusBarTranslucent
         testID="saved-modal"
       >
-        <BlurView intensity={80} tint="light" style={styles.modalBackdrop}>
+        <BlurView intensity={80} tint="light" style={styles.modalBackdropCentered}>
           <View style={[styles.savedCard, { backgroundColor: theme.colors.white }]}>
             <Text
               style={[
@@ -916,16 +939,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   // Modal styles
-  // BlurView replaces solid overlay — backdrop-filter:blur(20px) from original SCSS
-  modalBackdrop: {
+  // BlurView replaces solid overlay — backdrop-filter:blur(20px) from original SCSS.
+  // BUG 2 FIX: confirmation + saved modals are CENTERED (ion-modal default),
+  // not anchored to the bottom. Center both vertically and horizontally.
+  modalBackdropCentered: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // ScrollView wrapper keeps the centered card scrollable + vertically centered
+  // when its content is taller than the viewport (e.g. two measurement cards).
+  modalScroll: {
+    width: '100%',
+  },
+  modalScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalCard: {
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    // .wrapper { margin-inline: 10px } → horizontal margin; full rounded card (not bottom-sheet)
+    borderRadius: 16,
     padding: 20,
-    maxHeight: '90%',
+    marginHorizontal: 10,
+    width: '95%',
+    maxWidth: 400,
+    alignSelf: 'center',
   },
   modalTitle: {
     fontSize: 18,
@@ -933,9 +972,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   savedCard: {
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    // ion-modal#modal_register_ok: --width 95%, --max-width 400px, border-radius 10px
+    // .modal_saved: border 1px Gray-200, centered column
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
     padding: 32,
+    width: '95%',
+    maxWidth: 400,
     alignItems: 'center',
   },
   savedTitle: {

@@ -384,12 +384,19 @@ jest.mock('@react-navigation/native', () => ({
   useRoute: () => ({ params: {} }),
 }));
 
+// expo-blur mock — BlurView renders as a plain View so its children are queryable
+jest.mock('expo-blur', () => {
+  const { View } = require('react-native');
+  return { BlurView: View };
+});
+
 import React from 'react';
 import { render, fireEvent, act, waitFor } from '@testing-library/react-native';
 
 // ─── Screen imports (static — dynamic import not supported without --experimental-vm-modules) ──
 import { MeasurementScreen } from '@/screens/measurement/MeasurementScreen';
 import { HistoricalScreen } from '@/screens/historical/HistoricalScreen';
+import { RegisterMeasurementScreen } from '@/screens/measurement/RegisterMeasurementScreen';
 
 // ─── Import domain functions (no mocks needed — pure) ────────────────────────
 
@@ -890,5 +897,131 @@ describe('HistoricalScreen — component smoke test', () => {
     await waitFor(() => {
       expect(getByText('7 Registros')).toBeTruthy();
     });
+  });
+});
+
+// ─── ════════════════════════════════════════════════════════════════════════ ───
+//     SECTION 7 — RegisterMeasurementScreen: multi-flow advance (max → min)
+//     BUG 1 regression test (audit CRÍTICA)
+// ─── ════════════════════════════════════════════════════════════════════════ ───
+
+describe('RegisterMeasurementScreen — multi-flow advance (BUG 1)', () => {
+  // Minimal stub matching NativeStackScreenProps consumed by the screen.
+  function makeProps(flowId: string) {
+    const navigation = {
+      navigate: mockNavigate,
+      goBack: mockGoBack,
+      push: mockPush,
+    };
+    const route = {
+      params: { taskId: 'task1', taskName: 'Temperatura y Humedad', flowId },
+    };
+    return { navigation, route } as unknown as React.ComponentProps<
+      typeof RegisterMeasurementScreen
+    >;
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockAddMeasurement.mockResolvedValue(undefined);
+  });
+
+  it('flow WITH nextFlow: save → shows saved modal with "Siguiente" → goToComplete pushes flowId=nextFlow', async () => {
+    const { navigation, route } = makeProps('flow1'); // flow1.nextFlow === 'flow2'
+    const { getByTestId, queryByText, getByText } = await render(
+      <RegisterMeasurementScreen navigation={navigation} route={route} />,
+    );
+
+    // Wait for the flow to load (digit inputs appear).
+    await waitFor(() => {
+      expect(getByTestId('digit-input-0-0')).toBeTruthy();
+    });
+
+    // Enter the two digits of temperatura → 25 (within range 10..45).
+    await act(async () => {
+      fireEvent.changeText(getByTestId('digit-input-0-0'), '2');
+      fireEvent.changeText(getByTestId('digit-input-0-1'), '5');
+    });
+
+    // Tap "Guardar registro" on the page → opens confirmation modal.
+    await act(async () => {
+      fireEvent.press(getByTestId('save-button'));
+    });
+
+    // Confirm save inside the confirmation modal.
+    await act(async () => {
+      fireEvent.press(getByTestId('confirm-save-button'));
+    });
+
+    // addMeasurement must have been called once.
+    await waitFor(() => {
+      expect(mockAddMeasurement).toHaveBeenCalledTimes(1);
+    });
+
+    // BUG 1: the saved modal must appear with the "Siguiente" button (flow has nextFlow).
+    await waitFor(() => {
+      expect(queryByText('Siguiente')).toBeTruthy();
+    });
+    expect(getByText('Temperatura guardados')).toBeTruthy();
+
+    // Tap "Siguiente" → must navigate to the NEXT flow (flow2 = mínimos), not loop back.
+    await act(async () => {
+      fireEvent.press(getByTestId('next-flow-button'));
+    });
+
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    expect(mockPush).toHaveBeenCalledWith(
+      'RegisterMeasurement',
+      expect.objectContaining({
+        taskId: 'task1',
+        flowId: 'flow2',
+        hasBackButton: false,
+      }),
+    );
+  });
+
+  it('flow WITHOUT nextFlow: save → shows saved modal then auto-navigates to Measurement tab (no "Siguiente")', async () => {
+    jest.useFakeTimers();
+    try {
+      const { navigation, route } = makeProps('flow2'); // flow2.nextFlow === null
+      const { getByTestId, queryByText } = await render(
+        <RegisterMeasurementScreen navigation={navigation} route={route} />,
+      );
+
+      await waitFor(() => {
+        expect(getByTestId('digit-input-0-0')).toBeTruthy();
+      });
+
+      // Enter humedad → 60 (within range 20..100).
+      await act(async () => {
+        fireEvent.changeText(getByTestId('digit-input-0-0'), '6');
+        fireEvent.changeText(getByTestId('digit-input-0-1'), '0');
+      });
+
+      await act(async () => {
+        fireEvent.press(getByTestId('save-button'));
+      });
+      await act(async () => {
+        fireEvent.press(getByTestId('confirm-save-button'));
+      });
+
+      await waitFor(() => {
+        expect(mockAddMeasurement).toHaveBeenCalledTimes(1);
+      });
+
+      // Saved modal shown, but NO "Siguiente" button (no nextFlow).
+      expect(queryByText('Humedad guardados')).toBeTruthy();
+      expect(queryByText('Siguiente')).toBeNull();
+
+      // After the 2s timeout it navigates back to the Measurement tab.
+      await act(async () => {
+        jest.advanceTimersByTime(2000);
+      });
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith('AppTabs', { screen: 'Measurement' });
+      });
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });
