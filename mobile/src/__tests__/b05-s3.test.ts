@@ -4,28 +4,44 @@
  *   1. listFiles: returns Item[] with path/size (processStorageList)
  *   2. getFile JSON: body.text() + JSON.parse → {type:'JSON', content: object}
  *   3. getFile TXT: body.text() → {type:'TXT', content: string}
- *   4. getFile binary (png): body.text() → {type:'BASE64', content: string, extension: 'png'}
+ *   4. getFile binary (png): getUrl()+downloadAsync()+readAsStringAsync(Base64)
+ *      → {type:'BASE64', content: validBase64, extension: 'png'} (R-26 fix)
  *   5. getFile unsupported extension → {success:false}
  *   6. listFiles error → {success:false, error.mensage set}
  *   7. S3Response type discriminant works
+ *   8. Binary path DOES NOT call body.text() (would produce garbled UTF-8)
  */
 
 /* eslint-disable import/first */
-// Mock @aws-amplify/storage
-jest.mock('@aws-amplify/storage', () => {
-  return {
-    list: jest.fn(),
-    downloadData: jest.fn(),
-    StorageError: class StorageError extends Error {
-      constructor(message: string, name: string) {
-        super(message);
-        this.name = name;
-      }
-    },
-  };
-});
 
-import { list, downloadData } from '@aws-amplify/storage';
+// A minimal valid 1x1 PNG encoded as base64 (verifies base64 correctness)
+const VALID_PNG_BASE64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
+// Mock expo-file-system/legacy BEFORE importing s3.ts (R-26 fix deps)
+jest.mock('expo-file-system/legacy', () => ({
+  cacheDirectory: 'file:///cache/',
+  EncodingType: { Base64: 'base64', UTF8: 'utf8' },
+  downloadAsync: jest.fn(),
+  readAsStringAsync: jest.fn(),
+  deleteAsync: jest.fn(),
+}));
+
+// Mock @aws-amplify/storage (includes getUrl for the binary branch fix)
+jest.mock('@aws-amplify/storage', () => ({
+  list: jest.fn(),
+  downloadData: jest.fn(),
+  getUrl: jest.fn(),
+  StorageError: class StorageError extends Error {
+    constructor(message: string, name: string) {
+      super(message);
+      this.name = name;
+    }
+  },
+}));
+
+import * as ExpoFileSystem from 'expo-file-system/legacy';
+import { list, downloadData, getUrl } from '@aws-amplify/storage';
 import S3Service, { s3Service } from '@/data/storage/s3';
 
 beforeEach(() => {
@@ -126,31 +142,61 @@ describe('B05 — S3Service', () => {
     });
   });
 
-  describe('getFile — binary branch (no Blob/btoa)', () => {
-    it('returns BASE64 type for .png (no Blob)', async () => {
-      // Simulate body.text() returning some string (base64 or raw)
-      (downloadData as jest.Mock).mockReturnValueOnce(
-        makeDownloadResult('iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB=='),
-      );
+  // ─── R-26 fix: binary branch uses getUrl+downloadAsync, NOT body.text() ─────
+  describe('getFile — binary branch (R-26 fix: getUrl+downloadAsync+readAsStringAsync)', () => {
+    beforeEach(() => {
+      (getUrl as jest.Mock).mockResolvedValue({
+        url: { href: 'https://s3.amazonaws.com/bucket/logo.png?X-Amz-Signature=abc' },
+      });
+      (ExpoFileSystem.downloadAsync as jest.Mock).mockResolvedValue({
+        uri: 'file:///cache/tmp_s3_1_png',
+        status: 200,
+      });
+      (ExpoFileSystem.readAsStringAsync as jest.Mock).mockResolvedValue(VALID_PNG_BASE64);
+      (ExpoFileSystem.deleteAsync as jest.Mock).mockResolvedValue(undefined);
+    });
 
+    it('returns valid BASE64 for .png — uses getUrl+downloadAsync, NOT body.text()', async () => {
       const svc = new S3Service();
-      const result = await svc.getFile(
-        'public/racimos/CODE01/branding/logo.png',
-      );
+      const result = await svc.getFile('public/racimos/CODE01/branding/logo.png');
 
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.type).toBe('BASE64');
         if (result.data.type === 'BASE64') {
           expect(result.data.extension).toBe('png');
-          expect(result.data.content).toBeTruthy();
+          // Content must be the base64 from readAsStringAsync, NOT garbled UTF-8 from body.text()
+          expect(result.data.content).toBe(VALID_PNG_BASE64);
         }
       }
+
+      // Must call getUrl (pre-signed URL) — NOT downloadData (which uses body.text())
+      expect(getUrl).toHaveBeenCalledWith({
+        path: 'public/racimos/CODE01/branding/logo.png',
+        options: { expiresIn: 60 },
+      });
+      expect(ExpoFileSystem.downloadAsync).toHaveBeenCalled();
+      expect(ExpoFileSystem.readAsStringAsync).toHaveBeenCalledWith(
+        expect.stringContaining('file:///cache/'),
+        { encoding: 'base64' },
+      );
+      // downloadData MUST NOT be called for binary files (body.text() produces corrupted data)
+      expect(downloadData).not.toHaveBeenCalled();
     });
 
-    it('returns BASE64 type for .jpg', async () => {
-      (downloadData as jest.Mock).mockReturnValueOnce(
-        makeDownloadResult('/9j/4AAQSkZJRgAB=='),
+    it('cleans up temp file after reading base64', async () => {
+      const svc = new S3Service();
+      await svc.getFile('public/racimos/CODE01/branding/logo.png');
+
+      expect(ExpoFileSystem.deleteAsync).toHaveBeenCalledWith(
+        expect.stringContaining('file:///cache/'),
+        { idempotent: true },
+      );
+    });
+
+    it('returns valid BASE64 for .jpg', async () => {
+      (ExpoFileSystem.readAsStringAsync as jest.Mock).mockResolvedValueOnce(
+        '/9j/4AAQSkZJRgABAQEASABIAAD/2Q==',
       );
       const svc = new S3Service();
       const result = await svc.getFile('public/racimos/CODE01/branding/img.jpg');
@@ -160,14 +206,40 @@ describe('B05 — S3Service', () => {
         expect(result.data.type).toBe('BASE64');
         if (result.data.type === 'BASE64') {
           expect(result.data.extension).toBe('jpg');
+          expect(result.data.content).toBe('/9j/4AAQSkZJRgABAQEASABIAAD/2Q==');
         }
+      }
+    });
+
+    it('returns error when getUrl throws', async () => {
+      (getUrl as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
+
+      const svc = new S3Service();
+      const result = await svc.getFile('public/racimos/CODE01/branding/logo.png');
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.mensage).toBeTruthy();
+      }
+    });
+
+    it('returns error when downloadAsync fails', async () => {
+      (ExpoFileSystem.downloadAsync as jest.Mock).mockRejectedValueOnce(
+        new Error('Download failed'),
+      );
+
+      const svc = new S3Service();
+      const result = await svc.getFile('public/racimos/CODE01/branding/logo.png');
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.mensage).toBeTruthy();
       }
     });
   });
 
   describe('getFile — unsupported extension', () => {
     it('returns error for unknown file type', async () => {
-      // downloadData not called for unsupported
       const svc = new S3Service();
       const result = await svc.getFile('public/racimos/CODE01/data.csv');
 
@@ -203,7 +275,6 @@ describe('B05 — S3Service', () => {
       const result = await svc.listFiles('public/racimos/A');
 
       if (result.success) {
-        // TypeScript should narrow here
         const items = result.data;
         expect(Array.isArray(items)).toBe(true);
       }
