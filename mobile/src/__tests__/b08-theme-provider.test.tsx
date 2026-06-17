@@ -118,7 +118,7 @@ describe('ThemeProvider', () => {
     expect(captured!.fontsLoaded).toBe(true);
   });
 
-  it('merges HEX branding overrides from configColors', async () => {
+  it('merges HEX branding overrides from configColors into brandingOverrides AND token tree', async () => {
     const colorsJson: ColorsModel = {
       'Colors-Blue-500': { value: '#ABCDEF', group: 'brand', type: 'HEX' },
     };
@@ -138,11 +138,14 @@ describe('ThemeProvider', () => {
     );
 
     await waitFor(() => {
+      // brandingOverrides still carries the raw override (for varTokenResolver)
       expect(captured!.theme.brandingOverrides['Colors-Blue-500']).toBe('#ABCDEF');
+      // R-05 fix: theme.colors.blue[500] is now ALSO updated with the RACIMO color
+      expect(captured!.theme.colors.blue[500]).toBe('#ABCDEF');
     });
   });
 
-  it('converts RGB branding overrides to rgb() string', async () => {
+  it('converts RGB branding overrides to rgb() string in both brandingOverrides and token tree', async () => {
     const colorsJson: ColorsModel = {
       'Colors-Green-500': { value: [105, 171, 60], group: 'brand', type: 'RGB' },
     };
@@ -163,6 +166,8 @@ describe('ThemeProvider', () => {
 
     await waitFor(() => {
       expect(captured!.theme.brandingOverrides['Colors-Green-500']).toBe('rgb(105, 171, 60)');
+      // R-05 fix: token tree also reflects the RGB color as an rgb() string
+      expect(captured!.theme.colors.green[500]).toBe('rgb(105, 171, 60)');
     });
   });
 

@@ -35,7 +35,9 @@ import type { ColorsModel } from '@/data/models/configuration/colors.model';
 import { useConfigContext } from '@/state/ConfigContext';
 import {
   baseTheme,
+  applyOverrideToColors,
   MONTSERRAT_FONTS,
+  type MutableColors,
   type RuntimeTheme,
 } from '@/theme/theme';
 
@@ -79,14 +81,40 @@ function colorsModelToOverrides(model: ColorsModel): Record<string, string> {
 }
 
 /**
- * Builds the RuntimeTheme by merging base theme with RACIMO branding overrides.
- * The base tokens (colors, spacing, radius, typography, shadows) are unchanged;
- * brandingOverrides is set to the flat override map for use by components
- * that need to resolve a CSS-var-derived key (e.g. gráficas).
+ * Builds the RuntimeTheme by merging RACIMO branding overrides INTO the token tree.
+ *
+ * Deep-clones baseTheme.colors into a MutableColors object, then applies every
+ * override whose CSS-var key maps to a known token path (via applyOverrideToColors).
+ * Screens that read `theme.colors.blue[500]` etc. will therefore see the RACIMO
+ * color without any code changes on their side.
+ *
+ * `brandingOverrides` is also preserved as-is for varTokenResolver / RichText,
+ * which resolve CSS-var names directly.
+ *
+ * Reference: configuration-app.service.ts:273-285 (applyColors → setProperty).
  */
 function buildRuntimeTheme(overrides: Record<string, string>): RuntimeTheme {
+  // Deep-clone the base color scales into mutable nested objects so the
+  // `as const` base is never mutated.
+  const mergedColors: MutableColors = {
+    blue:      { ...baseTheme.colors.blue },
+    orange:    { ...baseTheme.colors.orange },
+    green:     { ...baseTheme.colors.green },
+    gray:      { ...baseTheme.colors.gray },
+    danger:    baseTheme.colors.danger,
+    gray900Alt: baseTheme.colors.gray900Alt,
+    white:     baseTheme.colors.white,
+    black:     baseTheme.colors.black,
+  };
+
+  // Apply each RACIMO override to the matching token slot.
+  for (const [key, value] of Object.entries(overrides)) {
+    applyOverrideToColors(key, value, mergedColors);
+  }
+
   return {
     ...baseTheme,
+    colors: mergedColors,
     brandingOverrides: overrides,
   };
 }

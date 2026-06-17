@@ -113,6 +113,92 @@ export const colors = {
 
 export type Colors = typeof colors;
 
+/**
+ * Writable version of the Colors type — used by buildRuntimeTheme to allow
+ * merging RACIMO branding overrides into the token tree at runtime without
+ * mutating the `as const` base object.
+ *
+ * All nested scale objects become mutable string maps; scalar tokens are mutable strings.
+ * This is the shape that `RuntimeTheme.colors` will carry.
+ */
+export type MutableColors = {
+  blue:      Record<number, string>;
+  orange:    Record<number, string>;
+  green:     Record<number, string>;
+  gray:      Record<number, string>;
+  danger:    string;
+  gray900Alt: string;
+  white:     string;
+  black:     string;
+};
+
+// ─── CSS-var-name → token path resolver ──────────────────────────────────────
+
+/**
+ * Applies a single RACIMO branding override (from colors.json) into a
+ * mutable clone of the RN colors tree.
+ *
+ * Mapping rules (derived from src/theme/variables.scss):
+ *
+ *   CSS var key                      → RN token
+ *   ─────────────────────────────────────────────
+ *   Colors-Blue-{N}                  → colors.blue[N]
+ *   Colors-Green-{N}                 → colors.green[N]
+ *   Colors-Orange-{N}                → colors.orange[N]
+ *   Colors-Gray-{N}                  → colors.gray[N]
+ *   Colors-Danger                    → colors.danger
+ *   ion-color-uva_blue-500           → colors.blue[500]
+ *   ion-color-uva_blue-600           → colors.blue[600]
+ *   ion-color-uva_green-500          → colors.green[500]
+ *   ion-color-uva_green-700          → colors.blue[700]  (alias — documented in theme.ts)
+ *   ion-color-uva_orange-500         → colors.orange[500]
+ *
+ * Keys that do not match any token are silently skipped (they still land in
+ * brandingOverrides for RichText/varTokenResolver use).
+ *
+ * @param key   - colors.json key (same as CSS var name without '--')
+ * @param value - resolved color string (HEX '#rrggbb' or 'rgb(r,g,b)')
+ * @param target - mutable clone of the colors object to patch in-place
+ */
+export function applyOverrideToColors(
+  key: string,
+  value: string,
+  target: MutableColors,
+): void {
+  // ── Colors-{Scale}-{N} ───────────────────────────────────────────────────
+  const paletteMatch = key.match(/^Colors-([A-Za-z]+)-(\d+)$/);
+  if (paletteMatch) {
+    const scale = paletteMatch[1].toLowerCase();
+    const step  = Number(paletteMatch[2]);
+    if (scale === 'blue'   && scale in target) { (target.blue   as Record<number, string>)[step] = value; return; }
+    if (scale === 'green'  && scale in target) { (target.green  as Record<number, string>)[step] = value; return; }
+    if (scale === 'orange' && scale in target) { (target.orange as Record<number, string>)[step] = value; return; }
+    if (scale === 'gray'   && scale in target) { (target.gray   as Record<number, string>)[step] = value; return; }
+    return;
+  }
+
+  // ── Colors-Danger ────────────────────────────────────────────────────────
+  if (key === 'Colors-Danger') {
+    target.danger = value;
+    return;
+  }
+
+  // ── ion-color-uva_* ──────────────────────────────────────────────────────
+  const ionMatch = key.match(/^ion-color-uva_(blue|green|orange)-(\d+)$/);
+  if (ionMatch) {
+    const ionScale = ionMatch[1];
+    const ionStep  = Number(ionMatch[2]);
+    if (ionScale === 'blue')   { (target.blue   as Record<number, string>)[ionStep] = value; return; }
+    if (ionScale === 'orange') { (target.orange as Record<number, string>)[ionStep] = value; return; }
+    if (ionScale === 'green') {
+      // Special case: uva_green-700 is actually blue (documented alias in theme.ts / R-42)
+      if (ionStep === 700) { (target.blue as Record<number, string>)[700] = value; return; }
+      (target.green as Record<number, string>)[ionStep] = value;
+      return;
+    }
+  }
+}
+
 // ─── Semantic aliases (Ionic/Angular usage → RN usage) ───────────────────────
 
 /**
@@ -382,9 +468,17 @@ export type BaseTheme = typeof baseTheme;
 
 /**
  * Runtime theme shape — extends the base with the merged RACIMO overrides.
- * The `brandingOverrides` field stores the raw colors.json keys for reference.
+ *
+ * `colors` is widened to `MutableColors` so the runtime theme can carry a
+ * patched palette without violating the `as const` constraint of baseTheme.
+ * All other tokens are inherited unchanged from BaseTheme.
+ *
+ * `brandingOverrides` stores the raw colors.json keys for use by components
+ * that resolve CSS var names directly (e.g. varTokenResolver / RichText).
  */
-export interface RuntimeTheme extends BaseTheme {
+export interface RuntimeTheme extends Omit<BaseTheme, 'colors'> {
+  /** Merged color palette: base tokens + RACIMO branding overrides applied. */
+  colors: MutableColors;
   /** Flat overrides from colors.json keyed by CSS-var-derived name. */
   brandingOverrides: Record<string, string>;
 }

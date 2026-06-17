@@ -33,7 +33,8 @@ import CalendarIcon from '@/assets/svg/icons/calendar.svg';
 import HomeIcon from '@/assets/svg/icons/home.svg';
 
 import type { AppTabsParamList, HomeStackParamList } from './types';
-import { colors, fontFamilyForWeight } from '@/theme/theme';
+import { fontFamilyForWeight } from '@/theme/theme';
+import { useTheme } from '@/theme/ThemeProvider';
 
 import { HomeScreen } from '@/screens/home/HomeScreen';
 import { MoonPhaseScreen } from '@/screens/moon/MoonPhaseScreen';
@@ -91,20 +92,29 @@ const SVG_TAB_ICONS: Record<SvgTabIcon, React.ElementType> = {
 };
 
 function UvaTabBar({ state, descriptors, navigation }: BottomTabBarProps): React.JSX.Element {
+  // Migrated from static `colors` import to useTheme() so RACIMO branding
+  // overrides propagate to the tab bar at runtime (fix R-05).
+  const { theme } = useTheme();
+
   // Only render the 3 visible tabs; Profile is excluded (not present in TAB_CONFIG)
   const visibleRoutes = state.routes.filter(
     (r) => TAB_CONFIG[r.name] !== undefined,
   );
 
   return (
-    <View style={tabBarStyles.container} testID="tab-bar">
+    <View
+      style={[tabBarStyles.container, { backgroundColor: theme.colors.blue[500] }]}
+      testID="tab-bar"
+    >
       {visibleRoutes.map((route) => {
         const cfg = TAB_CONFIG[route.name];
         if (!cfg) return null;
 
         const isFocused = state.index === state.routes.indexOf(route);
         // active: --Colors-Blue-700 (#14788A); inactive: --Colors-Gray-50 (#FAFAFA)
-        const tintColor = isFocused ? colors.blue[700] : colors.gray[50];
+        const tintColor = isFocused
+          ? (theme.colors.blue[700] as string)
+          : (theme.colors.gray[50] as string);
 
         const onPress = () => {
           const event = navigation.emit({
@@ -136,7 +146,7 @@ function UvaTabBar({ state, descriptors, navigation }: BottomTabBarProps): React
             <View
               style={[
                 tabBarStyles.pill,
-                isFocused && tabBarStyles.pillActive,
+                isFocused && { backgroundColor: theme.colors.blue[200] as string },
               ]}
             >
               {/* Original: ion-icon width=20px height=20px (global.scss:322-325) */}
@@ -208,8 +218,8 @@ export function AppTabs(): React.JSX.Element {
 const tabBarStyles = StyleSheet.create({
   container: {
     // ion-tab-bar: background:#10BCCA, height:82px (global.scss:304, 306)
+    // backgroundColor is applied dynamically via inline style (R-05 branding fix).
     flexDirection: 'row',
-    backgroundColor: colors.blue[500],
     height: 82,
     alignItems: 'center',
     paddingHorizontal: 8,
@@ -230,11 +240,6 @@ const tabBarStyles = StyleSheet.create({
     borderRadius: 14,
     height: 56,
     gap: 2,
-  },
-  pillActive: {
-    // .tab-selected: border-radius:14, background:--Colors-Blue-200 (#A9F5F8), height:56
-    // global.scss:327-331
-    backgroundColor: colors.blue[200],
   },
   label: {
     fontSize: 11,

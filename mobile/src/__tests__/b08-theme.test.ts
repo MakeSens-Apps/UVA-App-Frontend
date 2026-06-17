@@ -16,6 +16,8 @@ import {
   fontFamilyForWeight,
   lineHeightFor,
   MONTSERRAT_FONTS,
+  applyOverrideToColors,
+  type MutableColors,
 } from '../theme/theme';
 
 // ─── Color tokens ─────────────────────────────────────────────────────────────
@@ -244,5 +246,140 @@ describe('baseTheme snapshot', () => {
     expect(baseTheme).toHaveProperty('radius');
     expect(baseTheme).toHaveProperty('typography');
     expect(baseTheme).toHaveProperty('shadows');
+  });
+});
+
+// ─── applyOverrideToColors — R-05 branding merge ─────────────────────────────
+
+/**
+ * Helper: create a fresh mutable clone of the base colors for each test.
+ * Avoids cross-test contamination.
+ */
+function freshColors(): MutableColors {
+  return {
+    blue:      { ...colors.blue },
+    orange:    { ...colors.orange },
+    green:     { ...colors.green },
+    gray:      { ...colors.gray },
+    danger:    colors.danger,
+    gray900Alt: colors.gray900Alt,
+    white:     colors.white,
+    black:     colors.black,
+  };
+}
+
+describe('applyOverrideToColors (R-05 theming fix)', () => {
+  // ── Colors-{Scale}-{N} ──────────────────────────────────────────────────
+
+  it('merges Colors-Blue-500 (HEX) into blue[500]', () => {
+    const target = freshColors();
+    applyOverrideToColors('Colors-Blue-500', '#FF0000', target);
+    expect(target.blue[500]).toBe('#FF0000');
+  });
+
+  it('merges Colors-Green-500 (RGB string) into green[500]', () => {
+    const target = freshColors();
+    applyOverrideToColors('Colors-Green-500', 'rgb(105, 171, 60)', target);
+    expect(target.green[500]).toBe('rgb(105, 171, 60)');
+  });
+
+  it('merges Colors-Orange-500 into orange[500]', () => {
+    const target = freshColors();
+    applyOverrideToColors('Colors-Orange-500', '#FF8800', target);
+    expect(target.orange[500]).toBe('#FF8800');
+  });
+
+  it('merges Colors-Gray-50 into gray[50]', () => {
+    const target = freshColors();
+    applyOverrideToColors('Colors-Gray-50', '#F0F0F0', target);
+    expect(target.gray[50]).toBe('#F0F0F0');
+  });
+
+  it('merges Colors-Blue-200 (active pill color) into blue[200]', () => {
+    const target = freshColors();
+    applyOverrideToColors('Colors-Blue-200', '#AABBCC', target);
+    expect(target.blue[200]).toBe('#AABBCC');
+  });
+
+  it('merges Colors-Blue-700 into blue[700]', () => {
+    const target = freshColors();
+    applyOverrideToColors('Colors-Blue-700', '#113344', target);
+    expect(target.blue[700]).toBe('#113344');
+  });
+
+  it('merges Colors-Danger into danger', () => {
+    const target = freshColors();
+    applyOverrideToColors('Colors-Danger', '#CC0000', target);
+    expect(target.danger).toBe('#CC0000');
+  });
+
+  // ── ion-color-uva_* ──────────────────────────────────────────────────────
+
+  it('merges ion-color-uva_blue-500 into blue[500]', () => {
+    const target = freshColors();
+    applyOverrideToColors('ion-color-uva_blue-500', '#AABBCC', target);
+    expect(target.blue[500]).toBe('#AABBCC');
+  });
+
+  it('merges ion-color-uva_blue-600 into blue[600]', () => {
+    const target = freshColors();
+    applyOverrideToColors('ion-color-uva_blue-600', '#112233', target);
+    expect(target.blue[600]).toBe('#112233');
+  });
+
+  it('merges ion-color-uva_green-500 into green[500]', () => {
+    const target = freshColors();
+    applyOverrideToColors('ion-color-uva_green-500', '#44AA22', target);
+    expect(target.green[500]).toBe('#44AA22');
+  });
+
+  it('merges ion-color-uva_green-700 into blue[700] (documented blue alias)', () => {
+    // Special case: uva_green-700 is actually a blue color (R-42 / theme.ts note)
+    const target = freshColors();
+    applyOverrideToColors('ion-color-uva_green-700', '#224455', target);
+    expect(target.blue[700]).toBe('#224455');
+    // green[700] should NOT be affected
+    expect(target.green[700]).toBe(colors.green[700]);
+  });
+
+  it('merges ion-color-uva_orange-500 into orange[500]', () => {
+    const target = freshColors();
+    applyOverrideToColors('ion-color-uva_orange-500', '#DDAA00', target);
+    expect(target.orange[500]).toBe('#DDAA00');
+  });
+
+  // ── Unknown keys ─────────────────────────────────────────────────────────
+
+  it('silently ignores unknown keys (does not throw, does not mutate)', () => {
+    const target = freshColors();
+    const before = { ...target.blue };
+    expect(() => {
+      applyOverrideToColors('ion-color-primary-contrast', '#FFFFFF', target);
+      applyOverrideToColors('totally-unknown-key', '#123456', target);
+      applyOverrideToColors('Colors-Purple-500', '#9900FF', target);
+    }).not.toThrow();
+    // blue scale should be unchanged
+    expect(target.blue).toEqual(before);
+  });
+
+  // ── Non-mutation of base ──────────────────────────────────────────────────
+
+  it('does NOT mutate baseTheme.colors (only the cloned target)', () => {
+    const target = freshColors();
+    applyOverrideToColors('Colors-Blue-500', '#DEADBEEF', target);
+    // The baseTheme.colors.blue[500] must remain the original value
+    expect(colors.blue[500]).toBe('#10BCCA');
+    expect(baseTheme.colors.blue[500]).toBe('#10BCCA');
+  });
+
+  // ── Without overrides (base values) ──────────────────────────────────────
+
+  it('cloned colors without any override equal the base palette', () => {
+    const target = freshColors();
+    expect(target.blue[500]).toBe(colors.blue[500]);
+    expect(target.green[500]).toBe(colors.green[500]);
+    expect(target.orange[500]).toBe(colors.orange[500]);
+    expect(target.gray[50]).toBe(colors.gray[50]);
+    expect(target.danger).toBe(colors.danger);
   });
 });
