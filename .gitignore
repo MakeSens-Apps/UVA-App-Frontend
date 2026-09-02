@@ -239,3 +239,7 @@ amplifytools.xcconfig
 .secret-*
 **.sample
 #amplify-do-not-edit-end
+
+# Copias que crea el CLI de Amplify al hacer pull/push.
+# Fuera del bloque #amplify-do-not-edit para que el CLI no las borre.
+amplify-backup*/
