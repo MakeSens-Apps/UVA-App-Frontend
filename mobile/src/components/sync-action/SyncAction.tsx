@@ -85,7 +85,18 @@ export function SyncAction({
   const { theme } = useTheme();
 
   return (
-    <View style={styles.container} testID="sync-action">
+    // .content-items (sync-action.component.scss:1-5): the whole block lives inside a
+    // light-gray rounded card, title included (docs/evidence/profile/screen-14 — D8).
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.colors.gray[100],
+          borderColor: theme.colors.gray[100],
+        },
+      ]}
+      testID="sync-action"
+    >
       {/* Title */}
       <Text
         style={[
@@ -150,36 +161,29 @@ export function SyncAction({
         style={[
           styles.button,
           {
-            backgroundColor: isInfoPending
-              ? theme.colors.blue[600]
-              : theme.colors.gray[200],
+            // Ionic renders a disabled ion-button as the same color at opacity .5 —
+            // in screen-14 "Actualizar configuraciones" is a washed-out teal, not gray.
+            backgroundColor: theme.colors.blue[600],
+            opacity: isInfoPending ? 1 : 0.5,
           },
         ]}
         onPress={onClickSync}
         disabled={!isInfoPending}
         testID="sync-action-btn"
       >
-        <CloudIcon
-          width={18}
-          height={18}
-          color={isInfoPending ? theme.colors.white : theme.colors.gray[400]}
-        />
+        <CloudIcon width={18} height={18} color={theme.colors.white} />
         <Text
           style={[
             styles.buttonText,
             {
               fontFamily: fontFamilyForWeight('600'),
-              color: isInfoPending ? theme.colors.white : theme.colors.gray[400],
+              color: theme.colors.white,
             },
           ]}
         >
           {buttonText}
         </Text>
-        <RefreshIcon
-          width={18}
-          height={18}
-          color={isInfoPending ? theme.colors.white : theme.colors.gray[400]}
-        />
+        <RefreshIcon width={18} height={18} color={theme.colors.white} />
       </TouchableOpacity>
     </View>
   );
@@ -189,7 +193,10 @@ export function SyncAction({
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
+    // .content-items: padding 10, 1px border, radius 8 (sync-action.component.scss:1-5)
+    padding: 10,
+    borderWidth: 1,
+    borderRadius: 8,
     gap: 8,
   },
   title: {

@@ -46,7 +46,10 @@ jest.mock('@/theme/ThemeProvider', () => ({
   }),
 }));
 
+// Keep the real `colors` export: ExploreContainer → RichText → varTokenResolver
+// reads colors.blue at module load, so a partial mock crashes the suite.
 jest.mock('@/theme/theme', () => ({
+  ...jest.requireActual('@/theme/theme'),
   fontFamilyForWeight: (w: string) => `Montserrat-${w}`,
 }));
 
@@ -200,45 +203,22 @@ import { ProjectVinculationScreen } from '@/screens/auth/ProjectVinculationScree
 import { RegisterProjectFormScreen } from '@/screens/auth/RegisterProjectFormScreen';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BUG #19: LoginScreen modal capitalization
-// Original: 'No, editar' / 'Sí, continuar' (login.page.ts:104-106)
-// Was:      'No, Editar' / 'Sí, Continuar' (wrong capitalization)
+// BUG #19 (REVERTED): LoginScreen phone-confirmation modal capitalization
+//
+// The June logic audit lowercased these labels because login.page.ts:103-104 has
+// 'No, editar' / 'Sí, continuar'. That read the TypeScript literal, not the screen:
+// alert.component.scss:16-19 declares `ion-button { text-transform: capitalize }`,
+// so the original ALWAYS renders "No, Editar" / "Sí, Continuar" — see
+// docs/evidence/auth-login/screen-04 and docs/evidence/register/screen-17
+// (device review 166-239, D18). RN's ConfirmModal has no cascading text-transform,
+// so the capitalization belongs in the strings the screen passes.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('Bug #19 — LoginScreen modal capitalization (original: login.page.ts:104-106)', () => {
+describe('LoginScreen phone-confirmation modal — labels as rendered by the original', () => {
   beforeEach(resetAllMocks);
 
-  it('shows "No, editar" (lowercase) not "No, Editar" in phone confirmation modal', async () => {
-    // Show modal when user submits
+  async function submitValidPhone() {
     mockShow.mockResolvedValue('CANCEL');
-
-    const nav = { navigate: mockNavigate, goBack: mockGoBack, reset: mockReset };
-    const { getByTestId } = await render(
-      <LoginScreen navigation={nav as never} route={{} as never} />,
-    );
-
-    // Enter valid phone and submit
-    await act(async () => {
-      fireEvent.changeText(getByTestId('phone-input'), '3001234567');
-    });
-
-    await act(async () => {
-      fireEvent.press(getByTestId('submit-button'));
-    });
-
-    await waitFor(() => {
-      expect(mockShow).toHaveBeenCalledWith(
-        expect.objectContaining({
-          textCancelButton: 'No, editar',
-          textOkButton: 'Sí, continuar',
-        }),
-      );
-    });
-  });
-
-  it('does NOT pass "No, Editar" or "Sí, Continuar" (capitalized versions should not appear)', async () => {
-    mockShow.mockResolvedValue('CANCEL');
-
     const nav = { navigate: mockNavigate, goBack: mockGoBack, reset: mockReset };
     const { getByTestId } = await render(
       <LoginScreen navigation={nav as never} route={{} as never} />,
@@ -247,18 +227,30 @@ describe('Bug #19 — LoginScreen modal capitalization (original: login.page.ts:
     await act(async () => {
       fireEvent.changeText(getByTestId('phone-input'), '3001234567');
     });
-
     await act(async () => {
       fireEvent.press(getByTestId('submit-button'));
     });
-
     await waitFor(() => {
       expect(mockShow).toHaveBeenCalled();
     });
+  }
+
+  it('passes "No, Editar" / "Sí, Continuar" (ion-button text-transform: capitalize)', async () => {
+    await submitValidPhone();
+
+    expect(mockShow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        textCancelButton: 'No, Editar',
+        textOkButton: 'Sí, Continuar',
+      }),
+    );
+  });
+
+  it('dims the backdrop strongly (original darkens the page — device D12)', async () => {
+    await submitValidPhone();
 
     const callArgs = mockShow.mock.calls[0]?.[0] as Record<string, string>;
-    expect(callArgs.textCancelButton).not.toBe('No, Editar');
-    expect(callArgs.textOkButton).not.toBe('Sí, Continuar');
+    expect(callArgs.backdropDim).toBe('strong');
   });
 });
 

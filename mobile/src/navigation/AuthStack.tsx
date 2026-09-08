@@ -4,14 +4,23 @@
  * Native stack navigator for unauthenticated flows.
  * All routes from AuthStackParamList.
  *
+ * Initial route:
+ *   RootNavigator passes `initialParams={{ initialRoute: 'ProjectVinculation' }}`
+ *   when the auth gate resolves to 'validate-project' (original
+ *   checkUserAuthentication → router.navigate(['/project-vinculation'])).
+ *   This stack used to hard-code initialRouteName="Login" and ignore that param,
+ *   so a half-registered user landed on Login instead of the vinculation step.
+ *
  * Portability matrix: Sistema de rutas/navegación → Auth stack → B12
  * Risks: R-15, R-30
  */
 
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import type { AuthStackParamList } from './types';
+import type { AuthStackParamList, RootStackParamList } from './types';
+import { resolveAuthInitialRoute } from './authInitialRoute';
 
 import { LoginScreen } from '@/screens/auth/LoginScreen';
 import { OtpScreen } from '@/screens/auth/OtpScreen';
@@ -28,10 +37,15 @@ import { RegisterSuccessScreen } from '@/screens/auth/RegisterSuccessScreen';
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
-export function AuthStack(): React.JSX.Element {
+/** Props when mounted by RootNavigator; all optional so tests can render <AuthStack /> */
+type AuthStackProps = Partial<NativeStackScreenProps<RootStackParamList, 'Auth'>>;
+
+export function AuthStack({ route }: AuthStackProps = {}): React.JSX.Element {
+  const initialRouteName = resolveAuthInitialRoute(route?.params);
+
   return (
     <Stack.Navigator
-      initialRouteName="Login"
+      initialRouteName={initialRouteName}
       screenOptions={{
         headerShown: false,
         animation: 'slide_from_right',

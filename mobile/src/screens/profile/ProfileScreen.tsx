@@ -48,10 +48,8 @@ import { DataStore } from '@aws-amplify/datastore';
 import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
 
-import type { CompositeScreenProps } from '@react-navigation/native';
-import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { AppTabsParamList, AppStackParamList } from '@/navigation/types';
+import type { AppStackParamList } from '@/navigation/types';
 
 import { UvaBottomSheet } from '@/components/ui/BottomSheet';
 import type { BottomSheetRef } from '@/components/ui/BottomSheet';
@@ -72,6 +70,9 @@ import { useConfigContext } from '@/state/ConfigContext';
 // ─── Icons ─────────────────────────────────────────────────────────────────────
 
 import { Ionicons } from '@expo/vector-icons';
+import { Header } from '@/components/header';
+import { AppIcon } from '@/components/icons/AppIcons';
+import type { AppIconName } from '@/components/icons/AppIcons';
 import SemillaIcon from '@/assets/svg/icons/semilla.svg';
 import ContentCopyIcon from '@/assets/svg/icons/content_copy.svg';
 import MoreHorizIcon from '@/assets/svg/icons/more_horiz.svg';
@@ -86,10 +87,7 @@ const logopImg = require('@/assets/png/social/logop.jpg') as number;
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
-type Props = CompositeScreenProps<
-  BottomTabScreenProps<AppTabsParamList, 'Profile'>,
-  NativeStackScreenProps<AppStackParamList>
->;
+type Props = NativeStackScreenProps<AppStackParamList, 'Profile'>;
 
 // ─── App link (original) ───────────────────────────────────────────────────────
 
@@ -254,27 +252,27 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
     () => [
       {
         label: 'Información personal',
-        icon: require('@/assets/png/profile/Arrow-forward.png'),
+        icon: 'profile/arrow-forward' as AppIconName,
         onPress: () => navigation.navigate('PersonalInfo'),
       },
       {
         label: 'Tus logros',
-        icon: require('@/assets/png/profile/Medal.png'),
+        icon: 'profile/Medal' as AppIconName,
         onPress: () => navigation.navigate('Achievement'),
       },
       {
         label: 'Configuración',
-        icon: require('@/assets/png/profile/Options.png'),
+        icon: 'profile/Options' as AppIconName,
         onPress: () => navigation.navigate('Configuration'),
       },
       {
         label: 'Comparte la aplicación',
-        icon: require('@/assets/png/profile/Share-social.png'),
+        icon: 'profile/share-social' as AppIconName,
         onPress: openShareSheet,
       },
       {
         label: 'Soporte documental',
-        icon: require('@/assets/png/profile/Open.png'),
+        icon: 'profile/Open' as AppIconName,
         onPress: () => void Linking.openURL('https://docs.makesens.co/ayuda-uva'),
       },
     ],
@@ -283,48 +281,32 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
 
   return (
     <View style={styles.root}>
-      {/* Header — toolbar azul teal */}
-      <View
-        style={[
-          styles.headerBar,
-          { backgroundColor: theme.colors.blue[500] },
-        ]}
-      >
-        <TouchableOpacity
-          style={styles.headerBtn}
-          onPress={() => navigation.goBack()}
-          testID="profile-back-btn"
-        >
-          {/* ion-icon name='arrow-back-outline' size 24 color #FFFFFF (divergence 3) */}
-          <Ionicons name="arrow-back-outline" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-        <Text
-          style={[
-            styles.headerTitle,
-            { fontFamily: fontFamilyForWeight('600') },
-          ]}
-        >
-          Perfil
-        </Text>
-        <TouchableOpacity
-          style={styles.headerBtn}
-          onPress={() => navigation.navigate('Alerts')}
-          testID="profile-notifications-btn"
-        >
-          {/* ion-icon name='notifications'/'notifications-outline' (divergence 1) */}
-          <Ionicons
-            name={hasUnread ? 'notifications' : 'notifications-outline'}
-            size={24}
-            color="#FFFFFF"
-          />
-          {hasUnread && (
-            <View
-              style={styles.badge}
-              testID="notification-badge"
+      {/* Header — shared Header component: it is the ONLY place that applies the
+          status-bar inset (useSafeAreaInsets().top). Painting a local toolbar here
+          is what put the back arrow / bell at clock height (device F-14, D1, D-02). */}
+      <Header
+        title="Perfil"
+        hasBackButton
+        hasProfileButton={false}
+        onBackPress={() => navigation.goBack()}
+        rightAction={
+          <TouchableOpacity
+            style={styles.headerBtn}
+            onPress={() => navigation.navigate('Alerts')}
+            testID="profile-notifications-btn"
+          >
+            {/* ion-icon name='notifications'/'notifications-outline' (divergence 1) */}
+            <Ionicons
+              name={hasUnread ? 'notifications' : 'notifications-outline'}
+              size={24}
+              color="#FFFFFF"
             />
-          )}
-        </TouchableOpacity>
-      </View>
+            {hasUnread && (
+              <View style={styles.badge} testID="notification-badge" />
+            )}
+          </TouchableOpacity>
+        }
+      />
 
       {/* Content */}
       <ScrollView
@@ -342,6 +324,9 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
             <Image
               source={require('@/assets/png/user-circle.png')}
               style={styles.avatar}
+              /* Android fades images in over 300 ms by default; on first entry the
+                 avatar read as an almost-invisible circle (device D-16). */
+              fadeDuration={0}
               testID="profile-avatar"
             />
             <Text
@@ -406,11 +391,10 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
                 >
                   {item.label}
                 </Text>
-                <Image
-                  source={item.icon}
-                  style={styles.menuIcon}
-                  resizeMode="contain"
-                />
+                {/* Original: <ion-icon src="…/profile/<name>.svg"> — the SVG carries its
+                    own fill (#92949C). The flattened PNGs used before rendered almost
+                    invisible on device (D-17). */}
+                <AppIcon name={item.icon} width={20} height={20} />
               </TouchableOpacity>
             ))}
           </View>
@@ -437,11 +421,8 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
               >
                 Cerrar sesión
               </Text>
-              <Image
-                source={require('@/assets/png/profile/logout.png')}
-                style={styles.logoutIcon}
-                resizeMode="contain"
-              />
+              {/* logout.svg: stroke #10BCCA (profile/logout.svg) */}
+              <AppIcon name="profile/logout" width={18} height={18} />
             </TouchableOpacity>
           </View>
         </View>
@@ -457,6 +438,7 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
             }
             style={styles.logoImg}
             resizeMode="contain"
+            fadeDuration={0}
             testID="natura-logo"
           />
         </View>
@@ -523,25 +505,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F5',
   },
-  // Header bar (ion-toolbar color="uva_blue-500")
-  headerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 10,
-    paddingVertical: 16,
-  },
   headerBtn: {
     padding: 4,
     minWidth: 36,
     alignItems: 'center',
     position: 'relative',
-  },
-  headerTitle: {
-    fontSize: 18,
-    color: '#FAFAFA',
-    flex: 1,
-    textAlign: 'center',
   },
   badge: {
     position: 'absolute',
@@ -602,6 +570,9 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 16,
     color: '#404040',
+    // .status-item is 35 px tall in the original (6+6 padding + the 16 px Roboto
+    // line box). Without an explicit lineHeight RN rendered a ~28 dp chip (D-20).
+    lineHeight: 23,
   },
   seedCount: {
     fontFamily: 'Montserrat-Bold',
@@ -626,11 +597,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#404040',
   },
-  menuIcon: {
-    width: 20,
-    height: 20,
-    tintColor: '#9E9E9E',
-  },
   // Logout button (outline, 50% width)
   logoutWrapper: {
     width: '50%',
@@ -647,11 +613,6 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 14,
     lineHeight: 21,
-  },
-  logoutIcon: {
-    width: 18,
-    height: 18,
-    tintColor: '#10BCCA',
   },
   // Footer logo
   footerLogo: {

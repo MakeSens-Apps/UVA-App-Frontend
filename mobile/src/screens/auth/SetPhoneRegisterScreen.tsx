@@ -10,8 +10,10 @@
  *   - Modal confirmation before signUp
  *   - Modal texts (literal):
  *       content: "¿Es correcto este número de teléfono: <strong>{phone}</strong>?"
- *       textCancelButton: "No, editar"
- *       textOkButton: "Sí, continuar"
+ *       textCancelButton: "No, Editar"
+ *       textOkButton: "Sí, Continuar"
+ *     (alert.component.scss:16-19 `text-transform: capitalize` —
+ *      docs/evidence/register/screen-17, device D18)
  *   - On confirm: SetupService.signUp('+57' + phone) → navigate to Otp (register, phone)
  *
  * Visual ref: docs/evidence/register/screen-07 to screen-09, screen-17
@@ -90,8 +92,9 @@ export function SetPhoneRegisterScreen({ navigation }: Props): React.JSX.Element
     const phone = getValues('phone');
     const result = await showConfirm({
       content: `<p> ¿Es correcto este número de teléfono: <strong> ${phone} </strong>? </p>`,
-      textCancelButton: 'No, editar',
-      textOkButton: 'Sí, continuar',
+      textCancelButton: 'No, Editar',
+      textOkButton: 'Sí, Continuar',
+      backdropDim: 'strong',
     });
 
     if (result !== 'OK') return;

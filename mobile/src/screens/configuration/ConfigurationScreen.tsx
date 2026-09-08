@@ -83,6 +83,7 @@ import { localRemindersService } from '@/native/notifications/LocalRemindersServ
 import type { SystemStatus, NotificationState } from '@/native/notifications/LocalRemindersService';
 
 import { MoonPhaseService } from '@/domain/moon/moon-phase';
+import { Header } from '@/components/header';
 import ChevronDownIcon from '@/assets/svg/icons/chevron-down.svg';
 
 import type { AppStackParamList } from '@/navigation/types';
@@ -377,27 +378,16 @@ export function ConfigurationScreen({ navigation }: Props): React.JSX.Element {
 
   return (
     <View style={[styles.root, { backgroundColor: theme.colors.white }]} testID="configuration-screen">
-      {/* Header */}
-      <View
-        style={[styles.header, { backgroundColor: theme.colors.blue[500] }]}
-        testID="configuration-header"
-      >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-          testID="configuration-back-btn"
-        >
-          <Text style={[styles.backIcon, { color: theme.colors.white }]}>‹</Text>
-        </TouchableOpacity>
-        <Text
-          style={[
-            styles.headerTitle,
-            { fontFamily: fontFamilyForWeight('600'), color: theme.colors.white },
-          ]}
-        >
-          Configuración
-        </Text>
-      </View>
+      {/* Header — shared Header. Replaces a local toolbar that hard-coded
+          paddingTop:44 and drew a "‹" chevron; configuration.page.html:6 uses
+          `arrow-back-outline` like every other page (device D9), and back + title
+          alone right-aligns the title (docs/evidence/profile/screen-14). */}
+      <Header
+        title="Configuración"
+        hasBackButton
+        hasProfileButton={false}
+        onBackPress={() => navigation.goBack()}
+      />
 
       <ScrollView
         style={[styles.content, { backgroundColor: theme.colors.white }]}
@@ -480,7 +470,7 @@ export function ConfigurationScreen({ navigation }: Props): React.JSX.Element {
                     <View
                       style={[
                         styles.statusChip,
-                        { backgroundColor: getStatusChipBg(), borderColor: getStatusChipColor() },
+                        { backgroundColor: getStatusChipBg() },
                       ]}
                       testID="notification-status-chip"
                     >
@@ -708,30 +698,6 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
-  // Header (mirrors configuration.page.scss .header)
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 16,
-    paddingTop: 44, // safe area approximation (Header component uses useSafeAreaInsets)
-  },
-  backButton: {
-    padding: 4,
-    marginRight: 4,
-  },
-  backIcon: {
-    fontSize: 32,
-    lineHeight: 32,
-    fontWeight: '300',
-  },
-  headerTitle: {
-    fontSize: 18,
-    flex: 1,
-    // configuration.page.html: ion-title renders centered in Ionic toolbar.
-    // Fix: original intent is centered (matches ProfileScreen/AlertsScreen pattern).
-    textAlign: 'center',
-  },
   // Content (mirrors .profile-content)
   content: {
     flex: 1,
@@ -800,11 +766,11 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
   },
   // Status chip
+  // ion-chip: filled pill, no border (docs/evidence/profile/screen-14 — device D7)
   statusChip: {
-    borderWidth: 1,
     borderRadius: 16,
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 5,
   },
   statusChipText: {
     fontSize: 14,

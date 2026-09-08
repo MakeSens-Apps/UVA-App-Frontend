@@ -425,7 +425,7 @@ export function MeasurementScreen(): React.JSX.Element {
         title="Registros climáticos"
         seed={userProgress?.Seed}
         hasProfileButton
-        onProfilePress={() => navigation.navigate('AppTabs', { screen: 'Profile' })}
+        onProfilePress={() => navigation.navigate('Profile')}
       />
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>

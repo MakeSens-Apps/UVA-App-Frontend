@@ -53,6 +53,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
+import { ExploreContainer } from '@/components/explore-container/ExploreContainer';
 import type { AuthStackParamList } from '@/navigation/types';
 import { SetupService } from '@/domain/setup/setup';
 import { SetupRacimoService } from '@/domain/setup/setup-racimo';
@@ -159,44 +160,34 @@ export function ProjectVinculationScreen({ navigation }: Props): React.JSX.Eleme
   // ─── Render: initializing spinner ────────────────────────────────────────
 
   if (initializing) {
+    // Same loader card as validate-project (app-explore-container + loader.gif +
+    // solid "Cancelar"). `styles.gradient` is only { flex: 1 }, so the plain <View>
+    // used before pinned an opaque full-width panel to the top of the screen, over
+    // the status bar (device D3, frames 225–239).
     return (
-      <LinearGradient
-        colors={[theme.colors.blue[500], theme.colors.blue[700]]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.gradient}
-        testID="project-vinculation-initializing"
-      >
-        <View style={styles.card}>
+      <View style={styles.gradient} testID="project-vinculation-initializing">
+        <ExploreContainer title="Vinculando al proyecto">
           <Image
-            source={require('@/assets/png/icon-only.png') as number}
-            style={styles.logo}
+            source={require('@/assets/gifs/loader.gif') as number}
+            style={styles.loader}
             resizeMode="contain"
           />
-          <Text
-            style={[
-              styles.title,
-              {
-                fontFamily: fontFamilyForWeight('700'),
-                color: theme.colors.blue[800],
-              },
-            ]}
+          <TouchableOpacity
+            style={[styles.cancelButton, { backgroundColor: theme.colors.blue[700] }]}
+            onPress={() => navigation.navigate('Login')}
+            testID="cancel-init"
           >
-            Vinculando al proyecto
-          </Text>
-          <ActivityIndicator color={theme.colors.blue[500]} size="large" />
-          <TouchableOpacity onPress={() => navigation.navigate('Login')} testID="cancel-init">
             <Text
               style={[
-                styles.salirText,
-                { fontFamily: fontFamilyForWeight('600'), color: theme.colors.blue[800] },
+                styles.cancelButtonText,
+                { fontFamily: fontFamilyForWeight('500') },
               ]}
             >
               Cancelar
             </Text>
           </TouchableOpacity>
-        </View>
-      </LinearGradient>
+        </ExploreContainer>
+      </View>
     );
   }
 
@@ -379,6 +370,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
+  },
+  loader: {
+    // .loader { width: 78px } (global.scss:191)
+    width: 78,
+    height: 78,
+  },
+  cancelButton: {
+    // ion-button inside .card: width 100%, max-width 300, height 44 (global.scss:181-188)
+    width: '100%',
+    maxWidth: 300,
+    height: 44,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    color: '#FFFFFF',
   },
   card: {
     backgroundColor: '#FFFFFF',

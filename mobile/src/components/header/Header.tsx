@@ -82,6 +82,14 @@ export interface HeaderProps {
    * Replaces goToProfile() — navigation is handled by the caller (R-29).
    */
   onProfilePress?: () => void;
+  /**
+   * Optional trailing slot (ion-buttons slot="end" in the per-page headers of
+   * profile.page.html / alerts.page.html). Rendered where the user chip would
+   * be, so pages that own a bell / settings action reuse THIS header (and its
+   * status-bar inset) instead of painting their own toolbar (device F-14, D1, D-02).
+   * Ignored when `hasProfileButton` is true — the original never shows both.
+   */
+  rightAction?: React.ReactNode;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -109,6 +117,7 @@ export function Header({
   hasCenterTitle = false,
   onBackPress,
   onProfilePress,
+  rightAction,
 }: HeaderProps): React.JSX.Element {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -183,6 +192,9 @@ export function Header({
             <UserCircleIcon width={40} height={40} color={theme.colors.blue[700]} />
           </TouchableOpacity>
         )}
+
+        {/* Trailing slot — ion-buttons slot="end" (profile/alerts per-page headers) */}
+        {!hasProfileButton && rightAction ? rightAction : null}
       </View>
     </View>
   );

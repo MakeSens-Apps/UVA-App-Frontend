@@ -44,7 +44,6 @@ export type AppTabsParamList = {
     /** Pre-selected calendar date (ISO string). Optional. */
     selectedDate?: string;
   };
-  Profile: undefined;
 };
 
 // ─── App stack (authenticated) ────────────────────────────────────────────────
@@ -55,6 +54,13 @@ export type AppTabsParamList = {
  */
 export type AppStackParamList = {
   AppTabs: NavigatorScreenParams<AppTabsParamList>;
+  /**
+   * Profile — pushed page OUTSIDE the tab bar.
+   * Original app.routes.ts declares `/profile` at the ROOT level (line 95), not
+   * under `/app/tabs`, so the tab bar is not rendered on it
+   * (docs/evidence/profile/screen-01, screen-02 — device D2 / D-18).
+   */
+  Profile: undefined;
   /** Profile sub-screens */
   PersonalInfo: undefined;
   Achievement: undefined;
@@ -145,7 +151,18 @@ export type AuthStackParamList = {
  * This is the top-level param list consumed by NavigationContainer.
  */
 export type RootStackParamList = {
-  Auth: NavigatorScreenParams<AuthStackParamList>;
+  /**
+   * `initialRoute` mirrors the original checkUserAuthentication() destinations:
+   * 'validate-project' makes the Auth stack START on ProjectVinculation instead of
+   * Login (app.routes.ts / RootNavigator), so there is no Login page underneath and
+   * back does not walk into it.
+   */
+  Auth:
+    | (NavigatorScreenParams<AuthStackParamList> & {
+        initialRoute?: keyof AuthStackParamList;
+      })
+    | { initialRoute?: keyof AuthStackParamList }
+    | undefined;
   App: NavigatorScreenParams<AppStackParamList>;
 };
 

@@ -86,10 +86,14 @@ jest.mock('@gorhom/bottom-sheet', () => {
   const { View } = require('react-native');
   const MockBottomSheet = React.forwardRef(
     (
-      { children }: { children: React.ReactNode },
+      {
+        children,
+        index,
+      }: { children: React.ReactNode; index?: number },
       ref: React.Ref<{ snapToIndex: (i: number) => void; close: () => void }>,
     ) => {
-      const [open, setOpen] = React.useState(false);
+      // Sheets mount already open (index=0) inside their host Modal (D-13).
+      const [open, setOpen] = React.useState((index ?? -1) >= 0);
       React.useImperativeHandle(ref, () => ({
         snapToIndex: () => setOpen(true),
         close: () => setOpen(false),
@@ -406,6 +410,32 @@ describe('ProfileScreen', () => {
       expect(queryByTestId('notification-badge')).toBeTruthy();
     });
   });
+
+  it('clears the bell badge once every notification is read (device D14)', async () => {
+    // The badge is driven by NotificationContext.unreadCount, which ProfileScreen
+    // recomputes on every focus from GamificationService.getNotifications().
+    mockGetNotifications.mockResolvedValue([
+      {
+        id: 'n1',
+        type: 'seeds',
+        subtype: 'first_task',
+        data: { title: 'Test', description: 'Test desc', isUnread: false },
+        timestamp: '17/6/2026',
+        isUnclean: false,
+      },
+    ]);
+    const props = makeNavProps() as Parameters<typeof ProfileScreen>[0];
+    const { queryByTestId } = await render(
+      <Wrapper>
+        <ProfileScreen {...props} />
+      </Wrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockGetNotifications).toHaveBeenCalled();
+    });
+    expect(queryByTestId('notification-badge')).toBeNull();
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -628,6 +658,48 @@ describe('AchievementScreen — achievements reset on re-enter', () => {
     expect(result[1].icon).toBe('flor');
   });
 
+  it('no muestra copy de estado vacío inventado (device D-13)', async () => {
+    // achievement.page.html:16-20 only has the *ngFor grid — the original never
+    // renders an "Aún no tienes logros…" message, and RN flashed one while
+    // getMilestones() was still pending.
+    mockGetMilestones.mockResolvedValue([]);
+    const props = makeNavProps() as Parameters<typeof AchievementScreen>[0];
+    const { queryByText } = await render(
+      <Wrapper>
+        <AchievementScreen {...props} />
+      </Wrapper>,
+    );
+
+    expect(queryByText(/Aún no tienes logros/)).toBeNull();
+    await waitFor(() => {
+      expect(mockGetMilestones).toHaveBeenCalled();
+    });
+    expect(queryByText(/Aún no tienes logros/)).toBeNull();
+  });
+
+  it('los sheets no están montados hasta pulsar "¿Dudas?" (ion-modal [isOpen] — device D-05)', async () => {
+    // Both @gorhom sheets used to stay mounted, leaving a white strip with the
+    // drag handle and the "<" / "×" row peeking above the system nav bar and
+    // covering the "¿Dudas?" pill.
+    mockGetMilestones.mockResolvedValue([]);
+    const props = makeNavProps() as Parameters<typeof AchievementScreen>[0];
+    const { getByTestId, queryByTestId } = await render(
+      <Wrapper>
+        <AchievementScreen {...props} />
+      </Wrapper>,
+    );
+
+    expect(queryByTestId('bottom-sheet')).toBeNull();
+
+    await act(async () => {
+      fireEvent.press(getByTestId('dudas-fab'));
+    });
+
+    await waitFor(() => {
+      expect(queryByTestId('siguiente-btn')).toBeTruthy();
+    });
+  });
+
   it('FAB ¿Dudas? es visible', async () => {
     mockGetMilestones.mockResolvedValue([]);
     const props = makeNavProps() as Parameters<typeof AchievementScreen>[0];
@@ -696,6 +768,28 @@ describe('AlertsScreen — markAsRead decrements unreadCount', () => {
     });
 
     expect(mockMarkNotificationAsRead).toHaveBeenCalledWith('n1');
+  });
+
+  it('removes the unread slot after marking as read (original *ngIf — device D20)', async () => {
+    // alerts.page.html:31 wraps `.unread-indicator` in *ngIf="notification.data.isUnread",
+    // so once read the 12 px slot disappears and the card content shifts left.
+    const props = makeNavProps() as Parameters<typeof AlertsScreen>[0];
+    const { findByTestId, queryAllByTestId } = await render(
+      <Wrapper>
+        <AlertsScreen {...props} />
+      </Wrapper>,
+    );
+
+    const item = await findByTestId('notification-item-n1');
+    expect(queryAllByTestId('unread-dot')).toHaveLength(2);
+
+    await act(async () => {
+      fireEvent.press(item);
+    });
+
+    await waitFor(() => {
+      expect(queryAllByTestId('unread-dot')).toHaveLength(1);
+    });
   });
 
   it('markAsRead: decrementa unreadCount via NotificationContext', async () => {

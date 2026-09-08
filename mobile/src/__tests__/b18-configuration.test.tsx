@@ -665,7 +665,9 @@ describe('collapsible notification status panel', () => {
 describe('back navigation', () => {
   it('calls navigation.goBack() when back button is pressed', async () => {
     const { getByTestId } = await render(<ConfigurationScreen {...makeProps()} />);
-    fireEvent.press(getByTestId('configuration-back-btn'));
+    // The screen now uses the shared <Header/> (which owns the status-bar inset),
+            // so the back button carries Header's testID.
+    fireEvent.press(getByTestId('header-back-btn'));
     expect(mockGoBack).toHaveBeenCalled();
   });
 });
@@ -680,15 +682,16 @@ describe('screen structure', () => {
     expect(getByText('Configuración')).toBeTruthy();
   });
 
-  it('header title "Configuración" is centered (fix: coverage-audit BAJA — was textAlign:"right")', async () => {
-    // Original: ion-title in Ionic toolbar renders centered.
-    // Bug: RN had textAlign:'right'. Fix: textAlign:'center'.
+  it('header title "Configuración" is NOT force-centered (original right-aligns it)', async () => {
+    // configuration.page.html:3-12 renders `.header { justify-content: space-between }`
+    // with only a back button before the title, so the title sits at the RIGHT edge —
+    // see docs/evidence/profile/screen-14 and device review D-18 (091-165).
+    // The earlier `textAlign:'center'` was an audit assumption, not the original.
     const { getByText } = await render(<ConfigurationScreen {...makeProps()} />);
     const titleEl = getByText('Configuración');
-    // The style prop should contain textAlign:'center'
     const flatStyle = titleEl.props.style as Array<Record<string, unknown>>;
     const merged = Object.assign({}, ...(Array.isArray(flatStyle) ? flatStyle : [flatStyle]));
-    expect(merged['textAlign']).toBe('center');
+    expect(merged['textAlign']).toBeUndefined();
   });
 
   it('renders "Activar notificaciones" label', async () => {

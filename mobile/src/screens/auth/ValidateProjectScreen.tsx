@@ -22,8 +22,12 @@
  *   - Gets racimoCode from route.params.racimoCode
  *   - Loads racimoName from session after getRACIMOByID if needed
  *
- * Visual ref: docs/evidence/register/screen-14
- *   - Loader screen: logo, text "Vinculando al proyecto", spinner, "Cancelar" button
+ * Visual ref: docs/evidence/register/screen-14 + docs/evidence/auth-login/screen-05
+ *   The original is `<app-explore-container title="Vinculando al proyecto">` with a
+ *   loader.gif and a solid uva_green-700 "Cancelar" button
+ *   (validate-project.page.html:1-9), i.e. the SAME frosted card as the login screen:
+ *   centered vertically, ~90 % wide, white 0.3→0.8 gradient, radius 20, circular badge.
+ *   RN previously painted an opaque white card of its own (device D3).
  *
  * Navigation:
  *   Success → ProjectVinculationDone { racimoCode, racimoName? }
@@ -32,16 +36,14 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View,
   Text,
   Image,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
+import { ExploreContainer } from '@/components/explore-container/ExploreContainer';
 import type { AuthStackParamList } from '@/navigation/types';
 import { MoonPhaseService } from '@/domain/moon/moon-phase';
 import { SetupService } from '@/domain/setup/setup';
@@ -125,97 +127,54 @@ export function ValidateProjectScreen({ route, navigation }: Props): React.JSX.E
   };
 
   return (
-    <LinearGradient
-      colors={[theme.colors.blue[500], theme.colors.blue[700]]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 0, y: 1 }}
-      style={styles.gradient}
-      testID="validate-project-screen"
-    >
-      <View style={styles.card}>
-        {/* Logo */}
-        <Image
-          source={require('@/assets/png/icon-only.png') as number}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+    <ExploreContainer title={statusMessage}>
+      {/* .loader { width: 78px } (global.scss:191-193) — loader.gif, not a spinner */}
+      <Image
+        source={require('@/assets/gifs/loader.gif') as number}
+        style={styles.loader}
+        resizeMode="contain"
+        testID="loading-spinner"
+      />
 
-        {/* Status text */}
+      {/* ion-button expand="block" color="uva_green-700" (validate-project.page.html:3-8) */}
+      <TouchableOpacity
+        style={[styles.cancelButton, { backgroundColor: theme.colors.blue[700] }]}
+        onPress={cancelTimer}
+        testID="cancel-button"
+      >
         <Text
           style={[
-            styles.statusText,
-            {
-              fontFamily: fontFamilyForWeight('600'),
-              color: theme.colors.blue[800],
-            },
+            styles.cancelText,
+            { fontFamily: fontFamilyForWeight('500') },
           ]}
-          testID="status-text"
         >
-          {statusMessage}
+          Cancelar
         </Text>
-
-        {/* Spinner */}
-        <ActivityIndicator
-          color={theme.colors.blue[500]}
-          size="large"
-          testID="loading-spinner"
-        />
-
-        {/* Cancelar button */}
-        <TouchableOpacity onPress={cancelTimer} testID="cancel-button">
-          <Text
-            style={[
-              styles.cancelText,
-              {
-                fontFamily: fontFamilyForWeight('500'),
-                color: theme.colors.gray[600],
-              },
-            ]}
-          >
-            Cancelar
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </LinearGradient>
+      </TouchableOpacity>
+    </ExploreContainer>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  gradient: {
-    flex: 1,
+  loader: {
+    // .loader { width: 78px } (global.scss:191)
+    width: 78,
+    height: 78,
+  },
+  cancelButton: {
+    // ion-button inside .card: width 100%, max-width 300, height 44 (global.scss:181-188)
+    width: '100%',
+    maxWidth: 300,
+    height: 44,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 32,
-    width: '100%',
-    maxWidth: 360,
-    alignItems: 'center',
-    gap: 20,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-  },
-  logo: {
-    width: 70,
-    height: 70,
-    borderRadius: 14,
-  },
-  statusText: {
-    fontSize: 18,
-    textAlign: 'center',
   },
   cancelText: {
-    fontSize: 14,
-    textDecorationLine: 'underline',
-    marginTop: 4,
+    fontSize: 16,
+    color: '#FFFFFF',
   },
 });
 

@@ -40,18 +40,19 @@ import {
   Pressable,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AppStackParamList } from '@/navigation/types';
+
+import { Header } from '@/components/header';
 
 import { useNotificationContext } from '@/state/notification/NotificationContext';
 import { GamificationService } from '@/domain/gamification/gamification';
 import type { GamificationNotification } from '@/domain/gamification/gamification-alerts-types';
 
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';
 
-import ArrowRightIcon from '@/assets/svg/icons/arrow-right.svg';
 import SettingsOutlineIcon from '@/assets/svg/icons/settings-outline.svg';
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
@@ -109,7 +110,7 @@ function getNotificationIconBg(notification: GamificationNotification): string {
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export function AlertsScreen({ navigation }: Props): React.JSX.Element {
-  const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const { updateUnreadCount } = useNotificationContext();
 
   const [notifications, setNotifications] = React.useState<GamificationNotification[]>([]);
@@ -231,12 +232,13 @@ export function AlertsScreen({ navigation }: Props): React.JSX.Element {
         onPress={() => void markAsRead(item)}
         testID={`notification-item-${item.id}`}
       >
-        {/* Unread indicator dot */}
-        <View style={styles.unreadIndicator}>
-          {item.data.isUnread && (
+        {/* Unread indicator dot — alerts.page.html:31 wraps it in *ngIf, so the whole
+            12 px slot disappears once read and the content shifts left (device D-20). */}
+        {item.data.isUnread && (
+          <View style={styles.unreadIndicator}>
             <View style={styles.unreadDot} testID="unread-dot" />
-          )}
-        </View>
+          </View>
+        )}
 
         {/* Icon circle — Ionicons SVG (matches original ion-icon) */}
         <View style={[styles.notifIconCircle, { backgroundColor: iconBg }]}>
@@ -278,38 +280,22 @@ export function AlertsScreen({ navigation }: Props): React.JSX.Element {
 
   return (
     <View style={styles.root}>
-      {/* Header */}
-      <View
-        style={[styles.headerBar, { backgroundColor: theme.colors.blue[500] }]}
-      >
-        <TouchableOpacity
-          style={styles.headerBtn}
-          onPress={() => navigation.goBack()}
-          testID="alerts-back-btn"
-        >
-          <ArrowRightIcon
-            width={24}
-            height={24}
-            color="#FFFFFF"
-            style={styles.backIcon}
-          />
-        </TouchableOpacity>
-        <Text
-          style={[
-            styles.headerTitle,
-            { fontFamily: fontFamilyForWeight('600') },
-          ]}
-        >
-          Notificaciones
-        </Text>
-        <TouchableOpacity
-          style={styles.headerBtn}
-          onPress={() => navigation.navigate('Configuration')}
-          testID="alerts-settings-btn"
-        >
-          <SettingsOutlineIcon width={24} height={24} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
+      {/* Header — shared Header (status-bar inset + arrow-back-outline, device D-02). */}
+      <Header
+        title="Notificaciones"
+        hasBackButton
+        hasProfileButton={false}
+        onBackPress={() => navigation.goBack()}
+        rightAction={
+          <TouchableOpacity
+            style={styles.headerBtn}
+            onPress={() => navigation.navigate('Configuration')}
+            testID="alerts-settings-btn"
+          >
+            <SettingsOutlineIcon width={24} height={24} color="#FFFFFF" />
+          </TouchableOpacity>
+        }
+      />
 
       {/* Notifications list */}
       <View style={styles.listWrapper}>
@@ -320,6 +306,7 @@ export function AlertsScreen({ navigation }: Props): React.JSX.Element {
           ListEmptyComponent={renderEmpty}
           contentContainerStyle={[
             styles.listContent,
+            { paddingBottom: styles.listContent.paddingBottom + insets.bottom },
             notifications.length === 0 && styles.listContentEmpty,
           ]}
           showsVerticalScrollIndicator={false}
@@ -328,7 +315,12 @@ export function AlertsScreen({ navigation }: Props): React.JSX.Element {
 
         {/* Delete All FAB — visible solo cuando hay notificaciones */}
         {notifications.length > 0 && (
-          <View style={styles.deleteAllContainer}>
+          <View
+            style={[
+              styles.deleteAllContainer,
+              { bottom: styles.deleteAllContainer.bottom + insets.bottom },
+            ]}
+          >
             <TouchableOpacity
               style={styles.deleteAllButton}
               onPress={() => void deleteAll()}
@@ -348,16 +340,7 @@ export function AlertsScreen({ navigation }: Props): React.JSX.Element {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  headerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 10,
-    paddingVertical: 16,
-  },
   headerBtn: { padding: 4, minWidth: 36, alignItems: 'center' },
-  backIcon: { transform: [{ scaleX: -1 }] },
-  headerTitle: { fontSize: 18, color: '#FAFAFA', flex: 1, textAlign: 'center' },
   listWrapper: { flex: 1, backgroundColor: '#FFFFFF' },
   listContent: {
     padding: 8,
@@ -384,7 +367,6 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.1)',
-    marginBottom: 8,
   },
   // Unread indicator
   unreadIndicator: {

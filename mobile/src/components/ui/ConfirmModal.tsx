@@ -34,6 +34,7 @@ import {
   Text,
   StyleSheet,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 
 import { RichText } from '@/components/rich-text/RichText';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -63,6 +64,17 @@ export interface ConfirmModalProps {
    * Defaults to 'uva_blue-500'.
    */
   colorBtn?: string;
+  /**
+   * Backdrop (scrim) strength.
+   *
+   * 'default' (omitted) keeps the light scrim every existing caller renders today —
+   * the measurement modals rely on the page staying readable behind the card.
+   *
+   * 'strong' darkens and blurs the page, which is what the original does behind the
+   * phone-confirmation modal of the auth flow
+   * (docs/evidence/auth-login/screen-04, docs/evidence/register/screen-17 — device D12).
+   */
+  backdropDim?: 'default' | 'strong';
   /** Invoked when the user taps OK or CANCEL. */
   onResult: (result: ConfirmModalResult) => void;
 }
@@ -115,6 +127,7 @@ export function ConfirmModal({
   reverseButton = false,
   bordersInCancelBtn = true,
   colorBtn = 'uva_blue-500',
+  backdropDim = 'default',
   onResult,
 }: ConfirmModalProps): React.JSX.Element {
   const { theme } = useTheme();
@@ -164,7 +177,16 @@ export function ConfirmModal({
       statusBarTranslucent
       onRequestClose={handleCancel}
     >
-      <View style={styles.backdrop}>
+      <View
+        style={
+          backdropDim === 'strong'
+            ? [styles.backdrop, styles.backdropStrong]
+            : styles.backdrop
+        }
+      >
+        {backdropDim === 'strong' ? (
+          <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+        ) : null}
         <View style={styles.card}>
           {/* HTML body rendered by RichText (B09) */}
           <View style={styles.contentContainer}>
@@ -199,6 +221,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
+  },
+  backdropStrong: {
+    // Auth phone-confirmation modal: the original darkens the whole page
+    // (docs/evidence/auth-login/screen-04) — device D12.
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
   card: {
     backgroundColor: '#FFFFFF',

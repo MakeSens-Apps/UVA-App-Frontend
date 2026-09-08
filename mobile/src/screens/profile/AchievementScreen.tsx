@@ -28,7 +28,7 @@
  * Bug fix §4.4: achievements array SE LIMPIA en cada useFocusEffect antes del push.
  */
 
-import React, { useRef, useCallback, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -39,8 +39,11 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AppStackParamList } from '@/navigation/types';
+
+import { Header } from '@/components/header';
 
 import { UvaBottomSheet } from '@/components/ui/BottomSheet';
 import type { BottomSheetRef } from '@/components/ui/BottomSheet';
@@ -59,7 +62,6 @@ import PlatulaIcon from '@/assets/svg/icons/platula.svg';
 import FlorIcon from '@/assets/svg/icons/flor.svg';
 import ArrowRightIcon from '@/assets/svg/icons/arrow-right.svg';
 import DateIncompleteToDoneIcon from '@/assets/svg/icons/date_incomplete_to_done.svg';
-// ArrowRightIcon is used mirrored (scaleX: -1) as back button
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -77,27 +79,44 @@ function AchievementIcon({ icon }: { icon: Achievement['icon'] }): React.JSX.Ele
     return (
       <Image
         source={require('@/assets/png/profile/brote1.png')}
-        style={{ width: 52, height: 52 }}
+        style={styles.achievementImg}
         resizeMode="contain"
+        fadeDuration={0}
       />
     );
   }
   if (icon === 'plantula') {
-    return <PlatulaIcon width={52} height={52} />;
+    return <PlatulaIcon width={53} height={52} />;
   }
-  return <FlorIcon width={52} height={52} />;
+  return <FlorIcon width={53} height={52} />;
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export function AchievementScreen({ navigation }: Props): React.JSX.Element {
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
 
   // BUG FIX §4.4: array SE RESETEA antes de cargar (evita acumulación en re-enter)
   const [achievements, setAchievements] = useState<Achievement[]>([]);
+  // The original renders the (empty) grid straight away — it has no empty-state copy.
+  // Gate the grid on `loaded` so nothing flashes before getMilestones() resolves
+  // (device D-13: an invented "Aún no tienes logros…" appeared for ~1 s).
+  const [loaded, setLoaded] = useState(false);
 
-  const modalTokenARef = useRef<BottomSheetRef>(null);
-  const modalTokenBRef = useRef<BottomSheetRef>(null);
+  /**
+   * Which sheet is mounted, mirroring the original `modals` record + `[isOpen]`
+   * (achievement.page.html:19-24, 96-102): ion-modal only exists in the DOM while
+   * open. Keeping both @gorhom sheets permanently mounted left a white strip with
+   * the drag handle and the "<" / "×" row peeking above the system nav bar, which
+   * also covered the "¿Dudas?" pill (device D-05 / F-13).
+   */
+  const [openSheet, setOpenSheet] = useState<'a' | 'b' | null>(null);
+
+  /** Callback ref: present the sheet as soon as it mounts (ion-modal [isOpen]=true). */
+  const presentOnMount = useCallback((instance: BottomSheetRef | null) => {
+    if (instance) instance.present();
+  }, []);
 
   // ─── Focus: load achievements (reset array first) ─────────────────────────
 
@@ -105,6 +124,7 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
     useCallback(() => {
       // CRITICAL: limpiar antes de cargar para evitar duplicados en re-enter
       setAchievements([]);
+      setLoaded(false);
 
       void (async () => {
         try {
@@ -126,6 +146,8 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
           setAchievements(newAchievements);
         } catch (err) {
           console.error('AchievementScreen load error:', err);
+        } finally {
+          setLoaded(true);
         }
       })();
     }, []),
@@ -133,49 +155,23 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
 
   // ─── Modal helpers ────────────────────────────────────────────────────────
 
-  const openModal = useCallback((ref: React.RefObject<BottomSheetRef | null>) => {
-    ref.current?.present();
+  /** onCloseAndOpen(current, next) — achievement.page.ts:105-113 (300 ms handover). */
+  const closeAndOpen = useCallback((next: 'a' | 'b') => {
+    setOpenSheet(null);
+    setTimeout(() => setOpenSheet(next), 300);
   }, []);
-
-  const closeAndOpen = useCallback(
-    (
-      currentRef: React.RefObject<BottomSheetRef | null>,
-      nextRef: React.RefObject<BottomSheetRef | null>,
-    ) => {
-      currentRef.current?.dismiss();
-      setTimeout(() => nextRef.current?.present(), 300);
-    },
-    [],
-  );
 
   return (
     <View style={styles.root}>
-      {/* Header */}
-      <View
-        style={[styles.headerBar, { backgroundColor: theme.colors.blue[500] }]}
-      >
-        <TouchableOpacity
-          style={styles.headerBtn}
-          onPress={() => navigation.goBack()}
-          testID="achievement-back-btn"
-        >
-          <ArrowRightIcon
-            width={24}
-            height={24}
-            color="#FFFFFF"
-            style={styles.backIcon}
-          />
-        </TouchableOpacity>
-        <Text
-          style={[
-            styles.headerTitle,
-            { fontFamily: fontFamilyForWeight('600') },
-          ]}
-        >
-          Tus logros
-        </Text>
-        <View style={styles.headerBtn} />
-      </View>
+      {/* Header — shared Header: applies the status-bar inset (device F-14 / D-02).
+          Back + title only ⇒ space-between right-aligns the title, like the original
+          (docs/evidence/profile/screen-09 — device D-18). */}
+      <Header
+        title="Tus logros"
+        hasBackButton
+        hasProfileButton={false}
+        onBackPress={() => navigation.goBack()}
+      />
 
       {/* Content — background verde claro con patrón (achievement.page.scss .content) */}
       <ImageBackground
@@ -184,38 +180,35 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
         imageStyle={styles.contentBgImage}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollInner}
+          contentContainerStyle={[
+            styles.scrollInner,
+            { paddingBottom: styles.scrollInner.paddingBottom + insets.bottom },
+          ]}
           showsVerticalScrollIndicator={false}
         >
-          {/* Achievements grid — 4 cols */}
+          {/* Achievements grid — 4 cols.
+              The original has NO empty state: it simply renders an empty grid while
+              getMilestones() resolves (device D-13). */}
           <View style={styles.achievementsContainer} testID="achievements-grid">
-            {achievements.length === 0 && (
-              <Text
-                style={[
-                  styles.emptyText,
-                  { fontFamily: fontFamilyForWeight('400'), color: theme.colors.gray[500] },
-                ]}
-              >
-                Aún no tienes logros. ¡Completa registros para ganarlos!
-              </Text>
-            )}
-            {achievements.map((item, index) => (
-              <View key={index} style={styles.achievementItem} testID="achievement-item">
-                <AchievementIcon icon={item.icon} />
-              </View>
-            ))}
+            {loaded &&
+              achievements.map((item, index) => (
+                <View key={index} style={styles.achievementItem} testID="achievement-item">
+                  <AchievementIcon icon={item.icon} />
+                </View>
+              ))}
           </View>
         </ScrollView>
 
-        {/* FAB "¿Dudas?" — esquina inferior derecha */}
+        {/* FAB "¿Dudas?" — esquina inferior derecha (.floating-button, achievement.page.scss:36-56) */}
         <TouchableOpacity
           style={[
             styles.fab,
             {
               backgroundColor: theme.colors.blue[600],
+              bottom: styles.fab.bottom + insets.bottom,
             },
           ]}
-          onPress={() => openModal(modalTokenARef)}
+          onPress={() => setOpenSheet('a')}
           testID="dudas-fab"
         >
           <Text
@@ -229,11 +222,13 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
         </TouchableOpacity>
       </ImageBackground>
 
-      {/* modal_token_a — explicación de semillas */}
+      {/* modal_token_a — explicación de semillas ([isOpen]="modals['modal_token_a']") */}
+      {openSheet === 'a' && (
       <UvaBottomSheet
-        ref={modalTokenARef}
+        ref={presentOnMount}
         snapPoints={['75%']}
         enablePanDownToClose
+        onDismiss={() => setOpenSheet((prev) => (prev === 'a' ? null : prev))}
       >
         <View style={styles.modalContent}>
           {/* +2 semillas */}
@@ -349,7 +344,7 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
               styles.modalButton,
               { backgroundColor: theme.colors.blue[600] },
             ]}
-            onPress={() => closeAndOpen(modalTokenARef, modalTokenBRef)}
+            onPress={() => closeAndOpen('b')}
             testID="siguiente-btn"
           >
             <Text
@@ -363,18 +358,21 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
           </TouchableOpacity>
         </View>
       </UvaBottomSheet>
+      )}
 
-      {/* modal_token_b — germinación mensual */}
+      {/* modal_token_b — germinación mensual ([isOpen]="modals['modal_token_b']") */}
+      {openSheet === 'b' && (
       <UvaBottomSheet
-        ref={modalTokenBRef}
+        ref={presentOnMount}
         snapPoints={['80%']}
         enablePanDownToClose
+        onDismiss={() => setOpenSheet((prev) => (prev === 'b' ? null : prev))}
       >
         <View style={styles.modalContent}>
           {/* Header row: back + close */}
           <View style={styles.tokenBHeader}>
             <TouchableOpacity
-              onPress={() => closeAndOpen(modalTokenBRef, modalTokenARef)}
+              onPress={() => closeAndOpen('a')}
               style={styles.tokenBHeaderBtn}
               testID="back-to-token-a"
             >
@@ -385,7 +383,7 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
                 styles.tokenBCloseBtn,
                 { backgroundColor: theme.colors.blue[600] },
               ]}
-              onPress={() => modalTokenBRef.current?.dismiss()}
+              onPress={() => setOpenSheet(null)}
               testID="close-modal-token-b"
             >
               <Text style={[styles.tokenBCloseBtnText, { fontFamily: fontFamilyForWeight('600') }]}>×</Text>
@@ -468,7 +466,7 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
               styles.modalButton,
               { backgroundColor: theme.colors.blue[600] },
             ]}
-            onPress={() => modalTokenBRef.current?.dismiss()}
+            onPress={() => setOpenSheet(null)}
             testID="entendido-btn"
           >
             <Text
@@ -482,6 +480,7 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
           </TouchableOpacity>
         </View>
       </UvaBottomSheet>
+      )}
     </View>
   );
 }
@@ -490,16 +489,6 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  headerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 10,
-    paddingVertical: 16,
-  },
-  headerBtn: { padding: 4, minWidth: 36, alignItems: 'center' },
-  backIcon: { transform: [{ scaleX: -1 }] },
-  headerTitle: { fontSize: 18, color: '#FAFAFA', flex: 1, textAlign: 'center' },
   contentWrapper: {
     flex: 1,
   },
@@ -507,7 +496,6 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   scrollInner: { padding: 16, paddingBottom: 80 },
-  emptyText: { textAlign: 'center', fontSize: 14, marginTop: 40 },
   // Grid 4 columns
   achievementsContainer: {
     flexDirection: 'row',
@@ -519,7 +507,10 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 14,
-    backgroundColor: 'rgba(242,249,236,0.7)',
+    // .achievement-item background: rgba(242,249,236,.7) composited over back.png.
+    // In RN the translucent fill rendered a second, darker layer under the sprite
+    // (device D-14); the original reads as a flat #eaf5df tile.
+    backgroundColor: '#EAF5DF',
     justifyContent: 'center',
     alignItems: 'center',
     // shadow

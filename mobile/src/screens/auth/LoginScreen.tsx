@@ -6,10 +6,15 @@
  *
  * Preserved logic (portability-matrix §4.4):
  *   - Form validation: required, minLength(10), maxLength(10)
- *   - Modal confirmation texts (literal from original login.page.ts:104-106):
+ *   - Modal confirmation texts (login.page.ts:102-105) as the user SEES them:
  *       content: "¿Es correcto este número de teléfono: <strong>{phone}</strong>?"
- *       textCancelButton: "No, editar"   (lowercase — original uses 'editar' not 'Editar')
- *       textOkButton: "Sí, continuar"    (lowercase — original uses 'continuar' not 'Continuar')
+ *       textCancelButton: "No, Editar"
+ *       textOkButton: "Sí, Continuar"
+ *     The Angular literals are lowercase, but alert.component.scss:16-19 applies
+ *     `ion-button { text-transform: capitalize }`, so the rendered labels are
+ *     capitalized — docs/evidence/auth-login/screen-04 and
+ *     docs/evidence/register/screen-17 (device D18). RN's ConfirmModal has no
+ *     cascading text-transform, so the capitalization lives in the strings.
  *   - Post-signIn branch:
  *       isSignedIn (test user / no MFA) → createNewUser + navigate to ProjectVinculation
  *       !isSignedIn (MFA SMS challenge) → navigate to OTP
@@ -17,7 +22,7 @@
  *   - openModalNoRegister texts (literal):
  *       content: "El número <strong>{phone}</strong> no se encuentra registrado. ¿Quieres registrarte?"
  *       textCancelButton: "No"
- *       textOkButton: "Sí, registrame"
+ *       textOkButton: "Sí, Registrame" (same capitalize rule)
  *   - isTestUser('+57' + phone) skips OTP (already encoded in auth.SignIn → isSignedIn=true)
  *   - SetupService.signIn/createNewUser used (NOT direct authService)
  *
@@ -53,7 +58,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -112,7 +116,8 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
     const result = await showConfirm({
       content: `<p> El número <strong> ${phone} </strong> no se encuentra registrado. </p><h3>¿Quieres registrarte?</h3>`,
       textCancelButton: 'No',
-      textOkButton: 'Sí, registrame',
+      textOkButton: 'Sí, Registrame',
+      backdropDim: 'strong',
     });
 
     if (result === 'OK') {
@@ -130,8 +135,9 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
   async function abrirModal(phone: string): Promise<void> {
     const result = await showConfirm({
       content: `<p> ¿Es correcto este número de teléfono: <strong> ${phone} </strong>? </p>`,
-      textCancelButton: 'No, editar',
-      textOkButton: 'Sí, continuar',
+      textCancelButton: 'No, Editar',
+      textOkButton: 'Sí, Continuar',
+      backdropDim: 'strong',
     });
 
     if (result !== 'OK') return;
@@ -285,18 +291,17 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
             testID="submit-button"
             accessibilityRole="button"
           >
-            {loading ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <Text
-                style={[
-                  styles.buttonText,
-                  { fontFamily: fontFamilyForWeight('600') },
-                ]}
-              >
-                Continuar
-              </Text>
-            )}
+            {/* No spinner: login.page.html:16-22 is a plain ion-button whose only
+                state is [disabled]="form.invalid" (device D17). `loading` still
+                blocks a second tap but never changes the label. */}
+            <Text
+              style={[
+                styles.buttonText,
+                { fontFamily: fontFamilyForWeight('600') },
+              ]}
+            >
+              Continuar
+            </Text>
           </TouchableOpacity>
 
           {/* Help text — login.page.html:25-27, font-size:14px */}

@@ -17,6 +17,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { AppStackParamList } from './types';
 import { AppTabs } from './AppTabs';
 
+import { ProfileScreen } from '@/screens/profile/ProfileScreen';
 import { PersonalInfoScreen } from '@/screens/profile/PersonalInfoScreen';
 import { AchievementScreen } from '@/screens/profile/AchievementScreen';
 import { AlertsScreen } from '@/screens/profile/AlertsScreen';
@@ -38,6 +39,13 @@ export function AppStack(): React.JSX.Element {
     >
       {/* Root: bottom tabs */}
       <Stack.Screen name="AppTabs" component={AppTabs} />
+
+      {/* Profile — pushed page WITHOUT the tab bar.
+          Original app.routes.ts:95 declares `/profile` at the root level, not under
+          `/app/tabs`, so no ion-tabs shell is rendered underneath it
+          (docs/evidence/profile/screen-01, screen-02: the page background runs all the
+          way down to the ISAGEN + Fundación Natura logos). Device D2 / D-18. */}
+      <Stack.Screen name="Profile" component={ProfileScreen} />
 
       {/* Profile sub-screens */}
       <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} />

@@ -1,7 +1,7 @@
 /**
  * B12 — AppTabs
  *
- * Bottom tab navigator (3 visible tabs; Profile hidden — accessible from Header chip).
+ * Bottom tab navigator (3 tabs — exactly the 3 ion-tab-buttons of the original).
  * Tab icons use @expo/vector-icons Ionicons (replaces addIcons, R-47).
  *
  * Tab structure:
@@ -10,7 +10,10 @@
  *       MoonPhase (hidden — navigated to from Home)
  *   - Measurement tab
  *   - Historical tab
- *   - Profile (hidden from tab bar — accessed via Header chip → AppStack)
+ *
+ * Profile is NOT a tab: the original declares `/profile` at the root of
+ * app.routes.ts (outside `/app/tabs`), so it is a pushed page with no tab bar.
+ * It lives in AppStack — see navigation/AppStack.tsx (device D2 / D-18).
  *
  * Visual parity (global.scss):
  *   - background: --Colors-Blue-500 (#10BCCA)          global.scss:304
@@ -35,7 +38,6 @@ import { MoonPhaseScreen } from '@/screens/moon/MoonPhaseScreen';
 import { DevGateScreen } from '@/screens/dev/DevGateScreen';
 import { MeasurementScreen } from '@/screens/measurement/MeasurementScreen';
 import { HistoricalScreen } from '@/screens/historical/HistoricalScreen';
-import { ProfileScreen } from '@/screens/profile/ProfileScreen';
 
 // ─── HomeStack (Home + hidden MoonPhase) ──────────────────────────────────────
 
@@ -80,17 +82,6 @@ export function AppTabs(): React.JSX.Element {
         name="Historical"
         component={HistoricalScreen}
         options={{ title: 'Historial' }}
-      />
-      {/*
-       * Profile is hidden from the tab bar (accessed via Header chip).
-       * Original Ionic has only 3 ion-tab-buttons (home / measurement / historical).
-       * We keep the Screen registered for navigation but exclude it from UvaTabBar
-       * by omitting it from TAB_CONFIG.
-       */}
-      <Tabs.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{ title: 'Perfil' }}
       />
     </Tabs.Navigator>
   );

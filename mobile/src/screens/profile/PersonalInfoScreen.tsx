@@ -46,6 +46,9 @@ import {
 } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { Header } from '@/components/header';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AppStackParamList } from '@/navigation/types';
 
@@ -65,7 +68,6 @@ import { fontFamilyForWeight } from '@/theme/theme';
 // NOT as Image source via require().
 import TrashIcon from '@/assets/svg/icons/profile/trash.svg';
 import PencilIcon from '@/assets/svg/icons/profile/pencil.svg';
-import ArrowRightIcon from '@/assets/svg/icons/arrow-right.svg';
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
@@ -92,6 +94,9 @@ interface LocationForm {
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
+  // Edge-to-edge (targetSdk 36): the sticky footer sits at the window bottom, i.e.
+  // UNDER the Android system nav bar — "Editar datos" was half hidden (device D5/D-03).
+  const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { goToAuth } = useNavigationGate();
 
@@ -272,7 +277,9 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
-  const fieldBg = isEditable ? theme.colors.white : theme.colors.gray[100];
+  // personal-info.page.scss ion-item: background #E5E5E5 read-only, white while focused.
+  // gray[100] (#F5F5F5) made the field indistinguishable from the gray form card.
+  const fieldBg = isEditable ? theme.colors.white : theme.colors.gray[200];
 
   /**
    * Returns the border color for a given field key.
@@ -300,39 +307,22 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
 
   return (
     <View style={styles.root}>
-      {/* Header */}
-      <View
-        style={[styles.headerBar, { backgroundColor: theme.colors.blue[500] }]}
-      >
-        <TouchableOpacity
-          style={styles.headerBtn}
-          onPress={() => navigation.goBack()}
-          testID="personal-info-back-btn"
-        >
-          <ArrowRightIcon
-            width={24}
-            height={24}
-            color="#FFFFFF"
-            style={styles.backIcon}
-          />
-        </TouchableOpacity>
-        <Text
-          style={[
-            styles.headerTitle,
-            { fontFamily: fontFamilyForWeight('600') },
-          ]}
-        >
-          Información personal
-        </Text>
-        <View style={styles.headerBtn} />
-      </View>
+      {/* Header — shared Header: status-bar inset + arrow-back-outline. Back + title
+          only ⇒ the title sits at the right edge, like docs/evidence/profile/screen-04
+          (device D-02 / D-18). */}
+      <Header
+        title="Información personal"
+        hasBackButton
+        hasProfileButton={false}
+        onBackPress={() => navigation.goBack()}
+      />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          style={[styles.scrollContent, { backgroundColor: theme.colors.gray[100] }]}
+          style={[styles.scrollContent, { backgroundColor: theme.colors.white }]}
           contentContainerStyle={styles.scrollInner}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -348,8 +338,12 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
               />
             </View>
 
-            {/* Datos personales section */}
+            {/* Datos personales section — the fields live inside a gray card:
+                personal-info.page.scss `form { padding:10px; border:1px solid
+                var(--Colors-Gray-100); background: var(--Colors-Gray-100);
+                border-radius:8px }` (docs/evidence/profile/screen-04). */}
             <Text style={sectionLabelStyle}>Datos personales</Text>
+            <View style={styles.formGroup}>
             {([
               { key: 'userName' as const, label: 'Nombres', placeholder: '[Nombres del monitor]', disabled: false },
               { key: 'userLastName' as const, label: 'Apellidos', placeholder: '[Apellidos del monitor]', disabled: false },
@@ -399,8 +393,11 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
               </View>
             ))}
 
+            </View>
+
             {/* Datos de ubicación section */}
             <Text style={sectionLabelStyle}>Datos de ubicación</Text>
+            <View style={styles.formGroup}>
             {([
               { key: 'finca' as const, label: 'Nombre de la finca', placeholder: '[Nombre de la finca]' },
               { key: 'vereda' as const, label: 'Nombre de la vereda', placeholder: '[Nombre de la vereda]' },
@@ -565,12 +562,15 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
               />
             </View>
 
-            {/* Otras acciones section */}
+            </View>
+
+            {/* Otras acciones section — personal-info.page.html:106 uses
+                `.form-title.color-n` = #404040 (gray), NOT orange (device 166-239). */}
             <Text
               style={[
                 styles.sectionLabel,
                 {
-                  color: theme.colors.orange[500],
+                  color: theme.colors.gray[700],
                   fontFamily: fontFamilyForWeight('600'),
                 },
               ]}
@@ -594,15 +594,19 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
             </TouchableOpacity>
           </View>
 
-          {/* Spacer for footer */}
-          <View style={{ height: 80 }} />
+          {/* Spacer for the sticky footer (+ system nav bar) */}
+          <View style={{ height: 80 + insets.bottom }} />
         </ScrollView>
 
         {/* Sticky footer — "Editar datos" / "Guardar cambios" */}
         <View
           style={[
             styles.footer,
-            { backgroundColor: theme.colors.white, borderTopColor: theme.colors.gray[200] },
+            {
+              backgroundColor: theme.colors.white,
+              borderTopColor: theme.colors.gray[200],
+              paddingBottom: styles.footer.padding + insets.bottom,
+            },
           ]}
         >
           <TouchableOpacity
@@ -821,13 +825,21 @@ const styles = StyleSheet.create({
   },
   scrollContent: { flex: 1 },
   scrollInner: { padding: 10, paddingBottom: 16 },
+  // .profile-card (personal-info.page.scss:30-37): radius only — NO white panel and
+  // NO border; the page itself is white and the forms are the gray cards.
   profileCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
+    padding: 10,
+    gap: 16,
+  },
+  // <form> (personal-info.page.scss:105-110)
+  formGroup: {
+    padding: 10,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
-    padding: 12,
-    gap: 12,
+    borderColor: '#F5F5F5',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    gap: 16,
   },
   profileHeader: { alignItems: 'center', paddingVertical: 8 },
   avatar: { width: 95, height: 95, borderRadius: 47.5 },
@@ -836,10 +848,11 @@ const styles = StyleSheet.create({
   fieldLabel: { fontSize: 13, color: '#404040' },
   inputContainer: {
     borderWidth: 1,
-    borderRadius: 8,
+    // ion-item: height 48, border-radius 10 (personal-info.page.scss:140-144)
+    borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    minHeight: 44,
+    minHeight: 48,
     justifyContent: 'center',
   },
   input: { fontSize: 14, padding: 0 },
@@ -849,7 +862,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  deleteLinkText: { fontSize: 14, color: '#E5245E' },
+  // .delete-button ion-label color: #CA514A (personal-info.page.scss:206)
+  deleteLinkText: { fontSize: 14, color: '#CA514A' },
   trashIcon: { width: 18, height: 18 },
   footer: {
     position: 'absolute',

@@ -58,6 +58,9 @@ void SplashScreenExpo.preventAutoHideAsync().catch(() => {
 
 const poweredByLogo = require('@/assets/png/Powered_by.png') as number;
 
+/** .leaf-icon rendered size; the circular clip radius is half of it. */
+const LEAF_SIZE = 160;
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface SplashScreenProps {
@@ -196,9 +199,15 @@ export function SplashScreen({ onAuthResolved }: SplashScreenProps): React.JSX.E
        */}
       <BlurView intensity={40} style={styles.blurOverlay} tint="light" />
 
-      {/* Leaf / UVA logo — animates from top */}
+      {/* Leaf / UVA logo — animates from top.
+          logo.svg bakes a full-bleed #4BC5BE rect behind the round badge; the original
+          hides it with `.leaf-icon { border-radius: 50% }` (splash-animation.page.scss:28-31).
+          Without the circular clip the splash showed a teal SQUARE that did not match
+          the blurred background (device D-42). */}
       <Animated.View style={[styles.leafWrapper, leafStyle]}>
-        <LeafSvg width={160} height={160} />
+        <View style={styles.leafClip}>
+          <LeafSvg width={LEAF_SIZE} height={LEAF_SIZE} />
+        </View>
       </Animated.View>
 
       {/* Bottom area: powered by + makesens logo */}
@@ -219,6 +228,13 @@ export function SplashScreen({ onAuthResolved }: SplashScreenProps): React.JSX.E
 }
 
 const styles = StyleSheet.create({
+  // .leaf-icon { border-radius: 50% } — clips logo.svg's baked square background
+  leafClip: {
+    width: LEAF_SIZE,
+    height: LEAF_SIZE,
+    borderRadius: LEAF_SIZE / 2,
+    overflow: 'hidden',
+  },
   container: {
     flex: 1,
     // No backgroundColor — BackgroundSvg provides the background (parity with original)

@@ -808,7 +808,7 @@ export function HistoricalScreen(): React.JSX.Element {
         title="Historial de registros"
         seed={userProgress?.Seed}
         hasProfileButton
-        onProfilePress={() => navigation.navigate('AppTabs', { screen: 'Profile' })}
+        onProfilePress={() => navigation.navigate('Profile')}
       />
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>

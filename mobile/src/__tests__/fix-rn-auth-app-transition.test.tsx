@@ -89,7 +89,10 @@ jest.mock('@/theme/ThemeProvider', () => ({
   }),
 }));
 
+// Keep the real `colors` export: ExploreContainer → RichText → varTokenResolver
+// reads colors.blue at module load, so a partial mock crashes the suite.
 jest.mock('@/theme/theme', () => ({
+  ...jest.requireActual('@/theme/theme'),
   fontFamilyForWeight: (w: string) => `Montserrat-${w}`,
 }));
 
