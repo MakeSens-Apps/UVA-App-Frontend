@@ -126,6 +126,44 @@ export AMPLIFY_ENV="develop"
 ./scripts/amplify-pull.sh
 ```
 
+## 📱 Identidad de la App en Google Play
+
+> ⚠️ La ficha original `com.makesens.uvaapp` fue **cerrada por Google** por falta de
+> actualizaciones durante 6 meses. Ese `applicationId` quedó quemado: no se puede
+> reutilizar ni existe ruta de actualización para los usuarios instalados.
+
+| Dato | Valor |
+|---|---|
+| `applicationId` actual | `com.makesens.appuva` |
+| `applicationId` anterior (quemado) | `com.makesens.uvaapp` |
+| ID de organización en Play Console | `4727280100437498477` |
+| Consola | <https://play.google.com/console/u/0/developers/4727280100437498477> |
+
+### Firma
+
+El keystore (`android/keys/keystore.jks`) **no está atado a un package ni a una
+organización**: es solo un par de llaves. El mismo keystore firma la ficha nueva sin
+cambios. Alias y contraseñas se inyectan desde secrets del CI vía `signing.properties`
+(ver `signingConfigs.release` en `android/app/build.gradle`), nunca desde el repo.
+
+Al ser una ficha nueva, Play fija su llave de firma en la **primera subida**. Verificar
+que los secrets del keystore sigan accesibles tras el cambio de organización.
+
+### Dónde vive el package
+
+Cambiar el `applicationId` implica tocar estos archivos en conjunto:
+
+- `android/app/build.gradle` — `namespace` y `applicationId`
+- `android/app/src/main/AndroidManifest.xml` — atributo `package`
+- `android/app/src/main/res/values/strings.xml` — `package_name` y `custom_url_scheme`
+- `android/app/src/main/java/com/makesens/appuva/MainActivity.java` — declaración `package` (y la ruta del archivo)
+- `capacitor.config.ts` — `appId`
+
+> La subida a Play es **manual**: el pipeline solo genera el AAB firmado y lo publica
+> como artifact de GitHub Actions. No hay integración con la Play Developer API.
+
+---
+
 ## 🚀 Comandos Rápidos
 
 ### Compilar Bundle para Play Store

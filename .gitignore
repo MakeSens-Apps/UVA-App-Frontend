@@ -98,6 +98,7 @@ core/www/
 core/test-results/
 core/playwright-report/
 .playwright/
+.playwright-cli/
 
 # ground truths generated outside of docker should not be committed to the repo
 core/**/*-snapshots/*
@@ -240,4 +241,6 @@ amplifytools.xcconfig
 #amplify-do-not-edit-end
 
 
-.playwright-cli/
+# Copias que crea el CLI de Amplify al hacer pull/push.
+# Fuera del bloque #amplify-do-not-edit para que el CLI no las borre.
+amplify-backup*/
