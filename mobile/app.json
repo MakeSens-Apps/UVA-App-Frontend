@@ -2,7 +2,7 @@
   "expo": {
     "name": "UVA App",
     "slug": "uva-app",
-    "version": "2.1.7",
+    "version": "2.2.10",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,8 +15,8 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.makesens.uvaapp",
-      "versionCode": 8,
+      "package": "com.makesens.appuva",
+      "versionCode": 178830097,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -44,7 +44,7 @@
           "android": {
             "minSdkVersion": 24,
             "compileSdkVersion": 36,
-            "targetSdkVersion": 35
+            "targetSdkVersion": 36
           }
         }
       ],

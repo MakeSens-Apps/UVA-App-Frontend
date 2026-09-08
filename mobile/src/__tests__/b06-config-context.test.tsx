@@ -261,7 +261,7 @@ describe('B06 — ConfigContext', () => {
 
   it('loadImage returns file:// URI (no Blob, no convertFileSrc)', async () => {
     const mockUri =
-      'file:///data/user/0/com.makesens.uvaapp/files/public/racimos/RACIMO01/logo.png';
+      'file:///data/user/0/com.makesens.appuva/files/public/racimos/RACIMO01/logo.png';
     mockGetFileUri.mockResolvedValueOnce({
       success: true,
       data: { uri: mockUri },

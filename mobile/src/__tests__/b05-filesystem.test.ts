@@ -19,8 +19,8 @@ const mockFSState = {
 };
 
 jest.mock('expo-file-system/legacy', () => ({
-  documentDirectory: 'file:///data/user/0/com.makesens.uvaapp/files/',
-  cacheDirectory: 'file:///data/user/0/com.makesens.uvaapp/cache/',
+  documentDirectory: 'file:///data/user/0/com.makesens.appuva/files/',
+  cacheDirectory: 'file:///data/user/0/com.makesens.appuva/cache/',
   EncodingType: {
     UTF8: 'utf8',
     Base64: 'base64',
@@ -173,7 +173,7 @@ describe('B05 — FileSystemService', () => {
       const svc = new FileSystemService();
       // Write a file first via mock
       mockFSState.files.set(
-        'file:///data/user/0/com.makesens.uvaapp/files/config.json',
+        'file:///data/user/0/com.makesens.appuva/files/config.json',
         '{"key":"val"}',
       );
 
@@ -195,7 +195,7 @@ describe('B05 — FileSystemService', () => {
     it('uses base64 encoding when code64=true', async () => {
       const svc = new FileSystemService();
       mockFSState.files.set(
-        'file:///data/user/0/com.makesens.uvaapp/files/img.png',
+        'file:///data/user/0/com.makesens.appuva/files/img.png',
         'dGVzdA==',
       );
       await svc.readFile('img.png', Directory.Data, true);
@@ -238,7 +238,7 @@ describe('B05 — FileSystemService', () => {
     it('calls deleteAsync and returns success', async () => {
       const svc = new FileSystemService();
       mockFSState.files.set(
-        'file:///data/user/0/com.makesens.uvaapp/files/old.json',
+        'file:///data/user/0/com.makesens.appuva/files/old.json',
         'data',
       );
       const result = await svc.deleteFile('old.json', Directory.Data);
@@ -268,7 +268,7 @@ describe('B05 — FileSystemService', () => {
     it('returns true when file exists', async () => {
       const svc = new FileSystemService();
       mockFSState.files.set(
-        'file:///data/user/0/com.makesens.uvaapp/files/exists.json',
+        'file:///data/user/0/com.makesens.appuva/files/exists.json',
         'data',
       );
       const exists = await svc.fileExists('exists.json', Directory.Data);

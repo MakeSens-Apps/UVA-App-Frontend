@@ -93,10 +93,12 @@ type Props = CompositeScreenProps<
 // ─── App link (original) ───────────────────────────────────────────────────────
 
 // NOTE: The original Angular profile.page.ts used 'com.makesens.uva' (incorrect).
-// The real applicationId in app.json / build.gradle is 'com.makesens.uvaapp'.
+// The real applicationId in app.json / build.gradle is 'com.makesens.appuva'
+// (the previous 'com.makesens.uvaapp' listing was closed by Google; that
+// applicationId is burned and cannot be reused).
 // The user requested this corrected URL explicitly.
 const APP_LINK =
-  'https://play.google.com/store/apps/details?id=com.makesens.uvaapp&hl=en';
+  'https://play.google.com/store/apps/details?id=com.makesens.appuva&hl=en';
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
