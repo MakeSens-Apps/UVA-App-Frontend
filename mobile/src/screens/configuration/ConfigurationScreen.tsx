@@ -86,6 +86,7 @@ import { MoonPhaseService } from '@/domain/moon/moon-phase';
 import ChevronDownIcon from '@/assets/svg/icons/chevron-down.svg';
 
 import type { AppStackParamList } from '@/navigation/types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
@@ -127,6 +128,10 @@ const DEFAULT_NOTIFICATION_STATE: NotificationState = {
  */
 export function ConfigurationScreen({ navigation }: Props): React.JSX.Element {
   const { theme } = useTheme();
+  // Edge-to-edge (targetSdk 36 / RN 0.85): this screen is a full-screen stack route
+  // with no tab bar underneath, so its scroll content ends flush with the window
+  // bottom — i.e. UNDER the Android system navigation bar. Pad by the bottom inset.
+  const insets = useSafeAreaInsets();
   const { networkStatus, synchronizedData } = useSyncContext();
   const { downLoadData, loadBranding } = useConfigContext();
 
@@ -396,7 +401,10 @@ export function ConfigurationScreen({ navigation }: Props): React.JSX.Element {
 
       <ScrollView
         style={[styles.content, { backgroundColor: theme.colors.white }]}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={[
+          styles.contentContainer,
+          { paddingBottom: styles.contentContainer.paddingBottom + insets.bottom },
+        ]}
         testID="configuration-scroll"
       >
         <View style={styles.profileCard}>

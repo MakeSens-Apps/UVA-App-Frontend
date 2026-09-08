@@ -34,6 +34,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { AppStackParamList } from '@/navigation/types';
@@ -41,13 +42,35 @@ import { RichText } from '@/components/rich-text/RichText';
 import { useConfigContext } from '@/state/ConfigContext';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';
-import { Preferences } from '@/data/storage/preferences';
+import { ConfigIcon } from './ConfigIcon';
 
 import type { Guide } from '@/data/models/configuration/measurements.model';
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
 type Props = NativeStackScreenProps<AppStackParamList, 'GuideMeasurement'>;
+
+// ─── Layout constants ─────────────────────────────────────────────────────────
+
+/**
+ * Height of the screen Header left visible above the guide sheet, matching the
+ * original ion-modal sheet (screen-03): Header paddingTop 8 + toolbar minHeight
+ * 44 (components/header/Header.tsx). Added on top of the status-bar inset.
+ */
+export const GUIDE_HEADER_GAP = 52;
+
+/**
+ * Backdrop opacity of the ion-modal sheet (Ionic MD `--backdrop-opacity: 0.32`).
+ * D-29: the original DOES dim what stays visible above the sheet — the page
+ * header reads washed-out in docs/evidence/measurement/screen-03.
+ */
+export const GUIDE_BACKDROP_OPACITY = 0.32;
+
+/**
+ * Fallback aspect ratio for the guide image before its natural size is known.
+ * screen-03: the image box is 320×~314 inside a 360dp sheet.
+ */
+const GUIDE_IMAGE_FALLBACK_ASPECT = 320 / 314;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -63,17 +86,49 @@ type Props = NativeStackScreenProps<AppStackParamList, 'GuideMeasurement'>;
  */
 export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.Element {
   const { theme } = useTheme();
+  // Edge-to-edge (targetSdk 36 / RN 0.85): this screen is a full-screen stack route
+  // with no tab bar underneath, so its scroll content ends flush with the window
+  // bottom — i.e. UNDER the Android system navigation bar. Pad by the bottom inset.
+  const insets = useSafeAreaInsets();
   const { configMeasurement, loadImage } = useConfigContext();
+
+  /*
+   * DEVICE BUG F-11 (Redmi Note 10S, Android 13, edge-to-edge / targetSdk 36):
+   * the guide filled the whole window, so its close button sat UNDER the status
+   * bar and was practically untappable.
+   *
+   * The original is an ion-modal sheet (`initialBreakpoint: 1`,
+   * register-measurement.page.ts:199-227) presented over the register page, so
+   * the page header stays visible above it and the X sits clearly below the
+   * status bar — docs/evidence/measurement/screen-03-guide-flow1-step1.png.
+   *
+   * `sheetTop` reproduces that: status-bar inset + the Header height
+   * (paddingTop 8 + toolbar minHeight 44, header/Header.tsx). Everything inside
+   * the sheet — the absolutely positioned X included — is therefore laid out
+   * below the system bar at any density. The BOTTOM inset is deliberately NOT
+   * touched here (owned by the safe-area pass).
+   */
+  const sheetTop = insets.top + GUIDE_HEADER_GAP;
 
   const { taskId, guideKey: initialGuideKey } = route.params;
 
   const [guide, setGuide] = useState<Guide | null>(null);
-  const [guideKey, setGuideKey] = useState<string | null>(null);
   const [imgUri, setImgUri] = useState<string | null>(null);
   const [iconUri, setIconUri] = useState<string | null>(null);
   const [isArrayText, setIsArrayText] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [showAutomatic, setShowAutomatic] = useState(true);
+  const [imgAspect, setImgAspect] = useState<number>(GUIDE_IMAGE_FALLBACK_ASPECT);
+  /*
+   * D-28 — "Mostrar automaticamente."
+   * The original checkbox (guide-measurement.component.html:39-47) has NO binding
+   * at all: no [checked], no ngModel, no (ionChange). It therefore renders
+   * UNCHECKED on every open and persists nothing — `showAutomatic` is forced to
+   * `true` in code before the guide is opened anyway
+   * (register-measurement.page.ts:174). RN shipped it pre-checked AND wrote a
+   * Preferences key that nothing ever read. Both are gone: local state only,
+   * starting unchecked, exactly like the original.
+   */
+  const [showAutomatic, setShowAutomatic] = useState(false);
 
   // ─── Load guide data ───────────────────────────────────────────────────────
 
@@ -121,7 +176,6 @@ export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.
         return;
       }
 
-      setGuideKey(firstGuideKey);
       setGuide(guideData);
       setIsArrayText(Array.isArray(guideData.text));
 
@@ -175,17 +229,50 @@ export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
+  /**
+   * Stage shared by every state: the dimming backdrop (D-29) over the strip of
+   * page left visible above the sheet, then the sheet itself.
+   */
+  const withBackdrop = (children: React.ReactNode) => (
+    <View style={styles.root} testID="guide-root">
+      {/* ion-modal backdrop; tapping it dismisses, like `backdropDismiss: true`
+          (register-measurement.page.ts:212). */}
+      <Pressable
+        style={[styles.backdrop, { opacity: GUIDE_BACKDROP_OPACITY }]}
+        onPress={() => closeModal(false)}
+        testID="guide-backdrop"
+        accessibilityRole="button"
+        accessibilityLabel="Cerrar guía"
+      />
+      {children}
+    </View>
+  );
+
   if (loading) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.gray[50] }]}>
+    return withBackdrop(
+      <View
+        style={[
+          styles.loadingContainer,
+          styles.sheet,
+          { marginTop: sheetTop, backgroundColor: theme.colors.gray[50] },
+        ]}
+        testID="guide-sheet"
+      >
         <ActivityIndicator color={theme.colors.blue[500]} size="large" />
-      </View>
+      </View>,
     );
   }
 
   if (!guide) {
-    return (
-      <View style={[styles.container, { backgroundColor: theme.colors.gray[50] }]}>
+    return withBackdrop(
+      <View
+        style={[
+          styles.container,
+          styles.sheet,
+          { marginTop: sheetTop, backgroundColor: theme.colors.gray[50] },
+        ]}
+        testID="guide-sheet"
+      >
         <Text
           style={[
             styles.errorText,
@@ -202,155 +289,234 @@ export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.
             Cerrar
           </Text>
         </TouchableOpacity>
-      </View>
+      </View>,
     );
   }
 
   // Button label: "Siguiente" if there is a nextGuide, "Entendido" otherwise
   const buttonLabel = (guide as Guide & { nextGuide?: string }).nextGuide ? 'Siguiente' : 'Entendido';
 
-  const handleShowAutomaticChange = async (value: boolean) => {
-    setShowAutomatic(value);
-    await Preferences.set({ key: `guide_showAutomatic_${guideKey}`, value: String(value) });
-  };
+  const guideIcon = (guide as Guide & {
+    icon?: { enable?: boolean; colorHex?: string };
+  }).icon;
+  const guideColor = guideIcon?.colorHex ?? theme.colors.blue[700];
 
-  return (
-    <View style={[styles.container, { backgroundColor: theme.colors.gray[50] }]}>
-      {/* Close button — .btn_close: absolute top-right, teal #10BCCA bg, 38px, borderRadius 4
-          Original: ion-button with ion-icon name="close" (Ionicons vectorial icon) */}
-      <TouchableOpacity
-        style={[styles.btnClose, { backgroundColor: theme.colors.blue[500] }]}
-        onPress={() => closeModal(false)}
-        testID="guide-btn-close"
+  return withBackdrop(
+    <>
+      <View
+        style={[
+          styles.container,
+          styles.sheet,
+          { marginTop: sheetTop, backgroundColor: theme.colors.gray[50] },
+        ]}
+        testID="guide-sheet"
       >
-        <Ionicons name="close" size={20} color={theme.colors.white} />
-      </TouchableOpacity>
+        {/* D-14/D-29 — sheet drag handle. Ionic renders `.modal-handle` for every
+            breakpoint sheet: 36×4, absolute at top 5, centred, step-350 grey. */}
+        <View style={styles.dragHandle} testID="guide-drag-handle" />
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Guide image — 70% width, height 260 */}
-        {imgUri ? (
-          <Image
-            source={{ uri: imgUri }}
-            style={styles.guideImage}
-            resizeMode="contain"
-            testID="guide-image"
-          />
-        ) : null}
+        {/* Close button — .btn_close: absolute top-right, teal #10BCCA bg, 38px, borderRadius 4
+            Original: ion-button with ion-icon name="close" (Ionicons vectorial icon).
+            `top: 10` is now relative to the sheet, which already starts below the
+            status bar + header (see sheetTop above) — device bug F-11. */}
+        <TouchableOpacity
+          style={[styles.btnClose, { backgroundColor: theme.colors.blue[500] }]}
+          onPress={() => closeModal(false)}
+          testID="guide-btn-close"
+        >
+          <Ionicons name="close" size={20} color={theme.colors.white} />
+        </TouchableOpacity>
 
-        {/* Guide icon image */}
-        {iconUri ? (
-          <Image
-            source={{ uri: iconUri }}
-            style={styles.iconImage}
-            resizeMode="contain"
-            testID="guide-icon"
-          />
-        ) : null}
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Guide image — `<ion-img>` inside `.guide { padding: 10px 20px 30px }`:
+              full content width, natural aspect ratio (D-27). */}
+          {imgUri ? (
+            <Image
+              source={{ uri: imgUri }}
+              style={[styles.guideImage, { aspectRatio: imgAspect }]}
+              resizeMode="contain"
+              /* The decoded size is the only reliable source for the natural
+                 aspect ratio of an S3 asset; until it arrives the sheet uses the
+                 measured ratio of the reference capture. */
+              onLoad={(event) => {
+                const source = event.nativeEvent?.source;
+                if (source?.width && source?.height) {
+                  setImgAspect(source.width / source.height);
+                }
+              }}
+              testID="guide-image"
+            />
+          ) : null}
 
-        {/* Guide title — original [ngStyle]="{ color: guide.icon.colorHex }" — guide-measurement.html:10
-            Falls back to blue[700] when colorHex is not configured */}
-        {guide.name ? (
-          <Text
-            style={[
-              styles.guideTitle,
-              {
-                fontFamily: fontFamilyForWeight('700'),
-                color: (guide as Guide & { icon?: { colorHex?: string } }).icon?.colorHex ?? theme.colors.blue[700],
-              },
-            ]}
-          >
-            {guide.name}
-          </Text>
-        ) : null}
-
-        {/* Guide text — array or HTML */}
-        {isArrayText ? (
-          <View style={styles.arrayTextContainer}>
-            {(guide.text as unknown as string[]).map((textItem, idx) => (
+          {/* Guide title row — `.title { display:flex; justify-content:space-between }`
+              (guide-measurement.component.scss:14-31): the name on the left and the
+              24×24 `guide.icon` on the right, both painted with `icon.colorHex`
+              (↑ green for máximos, ↓ red for mínimos — D-26). The icon used to be
+              rendered as a separate 64×64 centred <Image>, which additionally could
+              never paint because the RACIMO icons are SVG (see ConfigIcon). */}
+          {guide.name ? (
+            <View style={styles.titleRow} testID="guide-title-row">
               <Text
-                key={idx}
                 style={[
-                  styles.arrayTextItem,
-                  { fontFamily: fontFamilyForWeight('400'), color: theme.semanticColors.text },
+                  styles.guideTitle,
+                  { fontFamily: fontFamilyForWeight('700'), color: guideColor },
                 ]}
               >
-                {textItem}
+                {guide.name}
               </Text>
-            ))}
-          </View>
-        ) : (
-          <RichText html={guide.text as string} baseFontSize={15} />
-        )}
+              {guideIcon?.enable !== false && iconUri ? (
+                <ConfigIcon
+                  uri={iconUri}
+                  size={24}
+                  color={guideIcon?.colorHex}
+                  testID="guide-icon"
+                />
+              ) : null}
+            </View>
+          ) : null}
 
-        {/* Checkbox "Mostrar automáticamente"
-            Original: <ion-checkbox> with border-radius:4px, color=uva_blue-600
-            guide-measurement.component.scss:62-64 and guide-measurement.component.html:39-47 */}
-        <Pressable
-          style={styles.checkboxRow}
-          onPress={() => void handleShowAutomaticChange(!showAutomatic)}
-          testID="guide-show-automatic"
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: showAutomatic }}
-        >
-          <View
-            style={[
-              styles.checkboxBox,
-              showAutomatic
-                ? { backgroundColor: theme.colors.blue[600], borderColor: theme.colors.blue[600] }
-                : { borderColor: theme.colors.blue[600] },
-            ]}
-          >
-            {showAutomatic ? (
-              <Ionicons name="checkmark" size={14} color={theme.colors.white} />
-            ) : null}
-          </View>
-          <Text
-            style={[
-              styles.checkboxLabel,
-              { fontFamily: fontFamilyForWeight('500'), color: theme.colors.gray[700] },
-            ]}
-          >
-            Mostrar automáticamente
-          </Text>
-        </Pressable>
-      </ScrollView>
+          {/* Guide text — array or HTML */}
+          {isArrayText ? (
+            <View style={styles.arrayTextContainer}>
+              {(guide.text as unknown as string[]).map((textItem, idx) => (
+                <Text
+                  key={idx}
+                  style={[
+                    styles.arrayTextItem,
+                    { fontFamily: fontFamilyForWeight('400'), color: theme.semanticColors.text },
+                  ]}
+                >
+                  {textItem}
+                </Text>
+              ))}
+            </View>
+          ) : (
+            <RichText html={guide.text as string} baseFontSize={15} />
+          )}
 
-      {/* Action buttons */}
-      <View style={[styles.buttonsContainer, { borderTopColor: theme.semanticColors.border }]}>
-        <TouchableOpacity
-          style={[styles.btnPrimary, { backgroundColor: theme.colors.blue[600] }]}
-          onPress={() => closeModal(true)}
-          testID="guide-btn-ok"
-        >
-          <Text
-            style={[
-              styles.btnPrimaryText,
-              { fontFamily: fontFamilyForWeight('600'), color: theme.colors.white },
-            ]}
+          {/* Checkbox "Mostrar automaticamente."
+              Original: <ion-checkbox> with border-radius:4px, color=uva_blue-600, and
+              the label written WITHOUT the accent and WITH a full stop
+              (guide-measurement.component.html:45). It starts unchecked — D-28. */}
+          <Pressable
+            style={styles.checkboxRow}
+            onPress={() => setShowAutomatic((v) => !v)}
+            testID="guide-show-automatic"
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: showAutomatic }}
           >
-            {buttonLabel}
-          </Text>
-        </TouchableOpacity>
+            <View
+              style={[
+                styles.checkboxBox,
+                showAutomatic
+                  ? { backgroundColor: theme.colors.blue[600], borderColor: theme.colors.blue[600] }
+                  : { borderColor: theme.colors.blue[600] },
+              ]}
+              testID="guide-show-automatic-box"
+            >
+              {showAutomatic ? (
+                <Ionicons name="checkmark" size={14} color={theme.colors.white} />
+              ) : null}
+            </View>
+            <Text
+              style={[
+                styles.checkboxLabel,
+                { fontFamily: fontFamilyForWeight('500'), color: theme.colors.gray[700] },
+              ]}
+            >
+              Mostrar automaticamente.
+            </Text>
+          </Pressable>
+        </ScrollView>
+
+        {/* Action buttons.
+            D-25: on an edge-to-edge device (targetSdk 36) this container ends flush
+            with the window bottom, i.e. UNDER the Android navigation bar, so
+            "Entendido" was unreachable (frames 056 / 065). Pad by the bottom inset —
+            the TOP offset (sheetTop) is untouched. */}
+        <View
+          style={[
+            styles.buttonsContainer,
+            { paddingBottom: styles.buttonsContainer.paddingBottom + insets.bottom },
+          ]}
+          testID="guide-buttons"
+        >
+          <TouchableOpacity
+            style={[styles.btnPrimary, { backgroundColor: theme.colors.blue[600] }]}
+            onPress={() => closeModal(true)}
+            testID="guide-btn-ok"
+          >
+            <Text
+              style={[
+                styles.btnPrimaryText,
+                { fontFamily: fontFamilyForWeight('500'), color: theme.colors.white },
+              ]}
+            >
+              {buttonLabel}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </>,
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  /** Transparent stage: backdrop + sheet (the route itself is presented modally). */
+  root: {
+    flex: 1,
+  },
+  /** ion-modal backdrop over the strip of page left visible above the sheet. */
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#000000',
+  },
   container: {
     flex: 1,
   },
+  /**
+   * Sheet chrome shared by the loading / error / content states.
+   * `marginTop` is applied inline (depends on the runtime status-bar inset);
+   * the rounded top corners mirror the ion-modal sheet of the original.
+   */
+  sheet: {
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+    overflow: 'hidden',
+  },
   scroll: { flex: 1 },
+  /**
+   * `.guide { padding: 10px 20px 30px 20px; gap: 20px }`
+   * (guide-measurement.component.scss:3-9). The close button is absolutely
+   * positioned in the original too, so it does NOT push the content down — it
+   * overlaps the top-right corner of the image, exactly as in screen-03.
+   */
   scrollContent: {
-    padding: 20,
-    paddingTop: 54, // leave room for the absolute close button
-    paddingBottom: 16,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 0,
+    gap: 20,
+  },
+  // Ionic `.modal-handle`: 36×4, top 5, centred, --ion-color-step-350.
+  dragHandle: {
+    position: 'absolute',
+    top: 5,
+    alignSelf: 'center',
+    width: 36,
+    height: 4,
+    borderRadius: 8,
+    backgroundColor: '#C0C0BE',
+    zIndex: 10,
   },
   loadingContainer: {
     flex: 1,
@@ -370,22 +536,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // 70% width, height 260 (60% of screen width, centered)
+  /**
+   * D-27 — `<ion-img>` is a block image at width:100% of `.guide`'s content box
+   * (320dp on a 360dp sheet) whose height follows the natural aspect ratio.
+   * `aspectRatio` is supplied at render time from Image.getSize.
+   */
   guideImage: {
-    width: '70%',
-    height: 260,
-    marginBottom: 16,
-    alignSelf: 'center',
+    width: '100%',
+    alignSelf: 'stretch',
   },
+  // `.title { display:flex; justify-content:space-between; align-items:center; width:100% }`
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    gap: 8,
+  },
+  // `.title p`: 16px / 700, line-height 150%
   guideTitle: {
     fontSize: 16,
-    marginBottom: 8,
-  },
-  iconImage: {
-    width: 64,
-    height: 64,
-    marginBottom: 12,
-    alignSelf: 'center',
+    lineHeight: 24,
+    flexShrink: 1,
   },
   arrayTextContainer: {
     gap: 8,
@@ -394,11 +566,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
+  // `.ion-align-self-start` wrapper — the row hugs the left edge (html:39-47).
   checkboxRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'flex-start',
     gap: 8,
-    marginTop: 16,
   },
   // ion-checkbox::part(container) { border-radius: 4px; border-color: #1097aa }
   // guide-measurement.component.scss:62-64
@@ -414,18 +587,27 @@ const styles = StyleSheet.create({
     // ion-checkbox::part(label): 14px, 500, color Gray-700 — guide-measurement.component.scss:67-74
     fontSize: 14,
   },
+  /**
+   * `.container_button { width: 100% }` inside `.guide`: no separator rule, the
+   * sheet's 20dp side padding, the 20dp flex gap above it and the sheet's 30dp
+   * bottom padding (guide-measurement.component.scss:3-9, 38-40).
+   * `paddingBottom` MUST stay a number — the render adds `insets.bottom` to it.
+   */
   buttonsContainer: {
-    padding: 16,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 30,
     gap: 8,
   },
+  // ion-button (MD, expand="block"): full width, 36dp tall, 8dp radius, weight 500.
   btnPrimary: {
     borderRadius: 8,
-    paddingVertical: 14,
+    height: 36,
+    justifyContent: 'center',
     alignItems: 'center',
   },
   btnPrimaryText: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#FFFFFF',
   },
   errorText: {

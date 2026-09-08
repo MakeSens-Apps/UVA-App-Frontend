@@ -78,8 +78,11 @@ export function MoonPhaseScreen(): React.JSX.Element {
   // ─── State ─────────────────────────────────────────────────────────────────
   const [seed, setSeed] = useState<number | null>(null);
   const [month] = useState<string>(meses[new Date().getMonth()]);
-  const [phase, setPhase] = useState<LunarPhaseKey>('FULL_MOON');
-  const [phaseName, setPhaseName] = useState<string>(LUNAR_PHASE_NAME['FULL_MOON']);
+  // `null` (not a hard-coded phase) until MoonPhaseService answers: seeding with
+  // 'FULL_MOON' painted "Luna llena" for ~2s on every entry before the real phase
+  // replaced it (D-08 / D-11 / D-13). MoonCard renders a neutral placeholder for null.
+  const [phase, setPhase] = useState<LunarPhaseKey | null>(null);
+  const [phaseName, setPhaseName] = useState<string | undefined>(undefined);
   const [phaseMoonDays, setPhaseMoonDays] = useState<DailyPhaseCalendar[]>([]);
   const [moonEvents, setMoonEvents] = useState<{ type: string; date: string }[]>([]);
 

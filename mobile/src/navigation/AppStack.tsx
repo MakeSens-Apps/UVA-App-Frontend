@@ -47,7 +47,23 @@ export function AppStack(): React.JSX.Element {
       <Stack.Screen name="SyncAction" component={ConfigurationScreen} />
 
       {/* Measurement sub-screens */}
-      <Stack.Screen name="GuideMeasurement" component={GuideMeasurementScreen} />
+      {/* GuideMeasurement is the original's ion-modal sheet
+          (register-measurement.page.ts:199-227 — initialBreakpoint: 1,
+          breakpoints: [0, 1]), presented OVER the register page so its header
+          stays visible above the sheet — docs/evidence/measurement/screen-03.
+          `transparentModal` reproduces that; the sheet itself offsets its top by
+          the status-bar inset + header height (device bug F-11: the close button
+          used to sit under the status bar). `replace` still works from a
+          transparent modal, so the nextGuide chain is unaffected. */}
+      <Stack.Screen
+        name="GuideMeasurement"
+        component={GuideMeasurementScreen}
+        options={{
+          presentation: 'transparentModal',
+          animation: 'slide_from_bottom',
+          contentStyle: { backgroundColor: 'transparent' },
+        }}
+      />
       <Stack.Screen name="RegisterMeasurement" component={RegisterMeasurementScreen} />
 
       {/* Historical sub-screens */}

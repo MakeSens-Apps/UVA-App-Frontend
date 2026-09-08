@@ -46,6 +46,7 @@ import Notion from '@/assets/svg/icons/notion.svg';
 import Platula from '@/assets/svg/icons/platula.svg';
 import Refresh from '@/assets/svg/icons/refresh.svg';
 import Semilla from '@/assets/svg/icons/semilla.svg';
+import ShareOutline from '@/assets/svg/icons/share-outline.svg';
 import SwitchHorizontal from '@/assets/svg/icons/switch-horizontal.svg';
 import UserCircle from '@/assets/svg/icons/user-circle.svg';
 import Whatapp from '@/assets/svg/icons/whatapp.svg';
@@ -101,6 +102,7 @@ export const APP_ICON_NAMES = [
   'platula',
   'refresh',
   'semilla',
+  'share-outline',
   'switch-horizontal',
   'user-circle',
   'whatapp',
@@ -155,6 +157,7 @@ const ICON_MAP: Record<AppIconName, SvgComponent> = {
   platula: Platula,
   refresh: Refresh,
   semilla: Semilla,
+  'share-outline': ShareOutline,
   'switch-horizontal': SwitchHorizontal,
   'user-circle': UserCircle,
   whatapp: Whatapp,

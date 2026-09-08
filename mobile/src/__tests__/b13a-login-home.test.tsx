@@ -72,10 +72,16 @@ jest.mock('@gorhom/bottom-sheet', () => {
   const { View } = require('react-native');
   const MockBottomSheet = React.forwardRef(
     (
-      { children, onClose }: { children: React.ReactNode; onClose?: () => void },
+      {
+        children,
+        onClose,
+        index,
+      }: { children: React.ReactNode; onClose?: () => void; index?: number },
       ref: React.Ref<{ snapToIndex: (i: number) => void; close: () => void }>,
     ) => {
-      const [open, setOpen] = React.useState(false);
+      // The sheets mount already open (index=0) inside their host Modal (D-13), so the
+      // mock must honour `index` as well as the imperative snapToIndex/close pair.
+      const [open, setOpen] = React.useState((index ?? -1) >= 0);
       React.useImperativeHandle(ref, () => ({
         snapToIndex: () => setOpen(true),
         close: () => {

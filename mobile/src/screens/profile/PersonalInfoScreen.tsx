@@ -210,7 +210,13 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
         await UserDSService.updateUser({
           name: pValues.userName,
           lastName: pValues.userLastName,
-          email: pValues.userEmail,
+          // Original parity (personal-info.page.ts:185,232): the form value is
+          // `user?.Email || undefined`, so an empty email is sent as undefined.
+          // The RN form keeps '' so the TextInput stays controlled, which made us
+          // send Email: '' → DataStore rejects it ("Field Email should be of type
+          // AWSEmail") and the whole save (name + lastName too) is lost for users
+          // without an email. Normalize back to undefined here.
+          email: pValues.userEmail || undefined,
         });
         const fields: Record<string, string> = {
           farmName: lValues.finca ?? '',

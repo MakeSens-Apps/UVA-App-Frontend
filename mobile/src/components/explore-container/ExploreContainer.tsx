@@ -105,7 +105,12 @@ export function ExploreContainer({
   return (
     <View style={styles.root} testID="explore-container">
       {/* Background — original %bg uses background.svg (soft teal), NOT a hard gradient.
-          global.scss:59-93 .container_explore.bg_green / .bg_blue. */}
+          global.scss:59-93 .container_explore.bg_green / .bg_blue.
+          IMPORTANT: this must stay a direct child of `root`, which has NO padding.
+          `width/height: '100%'` on an absolutely-positioned child resolves against the
+          parent's CONTENT box, so any padding on the parent left the SVG short of the
+          screen edges (a ~18dp gutter showed through on the right). The 5vw padding now
+          lives on the inner `content` wrapper instead. */}
       <BackgroundSvg
         width="100%"
         height="100%"
@@ -115,6 +120,7 @@ export function ExploreContainer({
       {/* bg_blue variant overlays a translucent white wash (global.scss:87-92) */}
       {BgBlue ? <View style={styles.blueWash} /> : null}
 
+      <View style={styles.content}>
       {/* Frosted card — .card-content_gradient: rgba(255,255,255,0.3)→rgba(255,255,255,0.8),
           border-radius:20px (global.scss:100-106). Semi-transparent so the teal shows through. */}
       <View style={styles.cardWrapper}>
@@ -190,6 +196,7 @@ export function ExploreContainer({
           {children}
         </LinearGradient>
       </View>
+      </View>
     </View>
   );
 }
@@ -198,6 +205,14 @@ export function ExploreContainer({
 
 const styles = StyleSheet.create({
   root: {
+    // No padding here — the absolutely-positioned BackgroundSvg is a child of this
+    // view and its '100%' size resolves against this view's content box.
+    flex: 1,
+    // Safety net for edge-to-edge: matches background.svg's own base fill, so no
+    // window background can ever show through at a seam.
+    backgroundColor: '#4BC5BE',
+  },
+  content: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',

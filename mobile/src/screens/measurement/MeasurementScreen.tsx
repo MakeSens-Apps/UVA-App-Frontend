@@ -146,7 +146,7 @@ function groupRemainingLazyMeasurements(
 
 // ─── Helper: hasRestrictionTimeTask (preserved from original) ─────────────────
 
-function hasRestrictionTimeTask(task: Task): boolean {
+export function hasRestrictionTimeTask(task: Task): boolean {
   if (task.restrictions.activeTime.enabled) {
     const [startH, startM] = task.restrictions.activeTime.start.split(':');
     const [endH, endM] = task.restrictions.activeTime.end.split(':');
@@ -165,10 +165,9 @@ function hasRestrictionTimeTask(task: Task): boolean {
 
 // ─── Helper: getTextRestrictionTime (preserved from original) ─────────────────
 
-function getTextRestrictionTime(task: Task): string {
+export function getTextRestrictionTime(task: Task): string {
   if (task.restrictions.activeTime.enabled) {
     const [startH, startM] = task.restrictions.activeTime.start.split(':');
-    const [, endH, endM] = ['', ...task.restrictions.activeTime.end.split(':')];
     const dateStart = add(startOfToday(), {
       hours: Number(startH),
       minutes: Number(startM),
@@ -475,30 +474,40 @@ export function MeasurementScreen(): React.JSX.Element {
         {/* Incomplete tasks */}
         {tasks.length > 0 && (
           <View style={styles.section}>
-            <Text
-              style={[
-                styles.sectionTitle,
-                { fontFamily: fontFamilyForWeight('700'), color: theme.colors.blue[800] },
-              ]}
-            >
-              Registros sin completar
-            </Text>
-            {/* measurement_incomplete: white bg, no border, borderRadius 16 */}
+            {/* measurement_incomplete: white bg, no border, borderRadius 16, padding 10, gap 10.
+                D-22: the "Registros sin completar" heading is the FIRST CHILD of this card
+                (measurement.page.html:39-40), not a label floating above it. */}
             <View style={styles.groupIncomplete}>
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { fontFamily: fontFamilyForWeight('700'), color: theme.colors.blue[800] },
+                ]}
+              >
+                Registros sin completar
+              </Text>
               {tasks.map((task) => {
                 const restricted = hasRestrictionTimeTask(task);
                 const phone = session?.phone ?? '';
                 const isTest = isTestUser(phone);
-                const isDisabled = restricted && !isTest;
+                /*
+                 * DEVICE BUG (frame 054): at 08:16 the tasks labelled "Disponible hasta
+                 * las 08:00" still looked ENABLED. The time comparison itself is a 1:1
+                 * port of the original (hasRestrictionTimeTask above) — the divergence
+                 * was purely visual: RN greyed the row out on `restricted && !isTestUser`,
+                 * while the original applies the `.disable` class on the restriction
+                 * ALONE (measurement.page.html:47-50 → `[ngClass]="{disable:
+                 * hasRestrictionTimeTask(task)}"`). Only NAVIGATION is bypassed for test
+                 * users (goToRegister / measurement.page.ts:388-394), never the styling,
+                 * and the test user 3000000002 is exactly who ran the device session.
+                 */
+                const canNavigate = !restricted || isTest;
                 return (
                   <TouchableOpacity
                     key={task.id}
-                    style={[
-                      styles.taskRow,
-                      isDisabled && styles.taskRowDisabled,
-                    ]}
+                    style={styles.taskRow}
                     onPress={() => goToRegister(task)}
-                    activeOpacity={isDisabled ? 0.5 : 0.8}
+                    activeOpacity={canNavigate ? 0.8 : 1}
                     testID={`task-row-${task.id}`}
                   >
                     {restricted && (
@@ -517,15 +526,26 @@ export function MeasurementScreen(): React.JSX.Element {
                       <View
                         style={[
                           styles.checkbox,
-                          {
-                            borderColor: isDisabled
-                              ? theme.colors.gray[300]
-                              : theme.colors.blue[500],
-                          },
+                          // ion-checkbox::part(container) { border-color: --Colors-Gray-400 }
+                          // measurement.page.scss:108-111 — the box is NOT recoloured by
+                          // the restriction, only the label text is.
+                          { borderColor: theme.colors.gray[400] },
                         ]}
+                        testID={`task-checkbox-${task.id}`}
                       />
-                      {/* ion-checkbox::part(label) { font-size: 18px } — measurement.page.scss:114 */}
-                      <RichText html={task.name} inline baseFontSize={18} />
+                      {/* .measurement_result_title: 14px / 500, --Gray-700 #404040
+                          (global.scss:466-474); `.disable` swaps it for --Colors-Gray-400
+                          (measurement.page.scss:96-100). D-23: RN used 18px — the size of
+                          ion-checkbox's LABEL part, which this text is not (the name is
+                          plain interpolation next to a slot="start" checkbox). */}
+                      <RichText
+                        html={task.name}
+                        inline
+                        baseFontSize={14}
+                        baseColor={
+                          restricted ? theme.colors.gray[400] : theme.colors.gray[700]
+                        }
+                      />
                     </View>
                   </TouchableOpacity>
                 );
@@ -537,16 +557,17 @@ export function MeasurementScreen(): React.JSX.Element {
         {/* Completed tasks */}
         {hasTaskComplete && tasksCompleted.length > 0 && (
           <View style={styles.section}>
-            <Text
-              style={[
-                styles.sectionTitle,
-                { fontFamily: fontFamilyForWeight('700'), color: theme.colors.blue[800] },
-              ]}
-            >
-              Registros completados
-            </Text>
-            {/* measurement_complete: green-100 bg, green-200 border, borderRadius 16 */}
+            {/* measurement_complete: green-100 bg, green-200 border, borderRadius 16.
+                D-22: heading INSIDE the card (measurement.page.html:64-65). */}
             <View style={styles.groupComplete}>
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { fontFamily: fontFamilyForWeight('700'), color: theme.colors.blue[800] },
+                ]}
+              >
+                Registros completados
+              </Text>
               {tasksCompleted.map((task) => (
                 <View
                   key={task.id}
@@ -560,8 +581,13 @@ export function MeasurementScreen(): React.JSX.Element {
                         { backgroundColor: theme.colors.blue[500] },
                       ]}
                     />
-                    {/* ion-checkbox::part(label) { font-size: 18px } — measurement.page.scss:114 */}
-                    <RichText html={task.name} inline baseFontSize={18} />
+                    {/* .measurement_result_title: 14px / 500, --Gray-700 — global.scss:466-474 */}
+                    <RichText
+                      html={task.name}
+                      inline
+                      baseFontSize={14}
+                      baseColor={theme.colors.gray[700]}
+                    />
                   </View>
                   {/* Measurements list */}
                   <View style={styles.measurementsContainer}>
@@ -728,32 +754,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bonusText: { fontSize: 18 },
-  // .measurement { padding: 10px } — global.scss:434-442
-  section: { paddingHorizontal: 10, paddingVertical: 10, marginBottom: 8 },
-  sectionTitle: { fontSize: 16, marginBottom: 8 },
-  // measurement_incomplete: white bg, no border
+  // .measurement { padding: 10px } — global.scss:434-437
+  section: { padding: 10 },
+  // .measurement .title: 16px / 700, --Colors-Blue-800, line-height 150% — global.scss:438-443
+  sectionTitle: { fontSize: 16, lineHeight: 24 },
+  // %measurment + .measurement_incomplete: white bg, no border, borderRadius 16,
+  // padding 10, gap 10, marginBottom 10 — global.scss:423-433 / 451-454
   groupIncomplete: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 10,
+    gap: 10,
+    marginBottom: 10,
   },
-  // measurement_complete: green-100 bg + green-200 border
+  // measurement_complete: green-100 bg + green-200 border — global.scss:445-449
   groupComplete: {
     backgroundColor: '#E3F2D5',
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#C8E6B0',
     padding: 10,
+    gap: 10,
+    marginBottom: 10,
   },
   taskRow: {
-    // measurement_result: gray-50 bg, borderRadius 16
+    // .measurement_result: gray-50 bg, borderRadius 16, padding 10, gap 10 — global.scss:456-465
     borderRadius: 16,
     backgroundColor: '#FAFAFA',
     padding: 10,
-    marginBottom: 8,
+    gap: 10,
   },
-  taskRowDisabled: { opacity: 0.6 },
-  taskRowInner: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  taskRowInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   // ion-checkbox::part(container) { border-radius: 4px } — measurement.page.scss:108-111
   checkbox: {
     width: 20,
@@ -766,18 +797,20 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 4,
   },
-  taskName: { fontSize: 14, flex: 1 },
-  // .restrictionTime chip: orange-100 bg, orange-800 text, italic, borderRadius 8
+  // .restrictionTime chip: orange-100 bg, orange-800 text, italic, borderRadius 8,
+  // padding 4px 10px, 12px/500, line-height 150% — measurement.page.scss:80-95
+  // D-24: an explicit lineHeight keeps the box at the original 26dp; without it the
+  // platform line box inflated the chip.
   restrictionChip: {
     backgroundColor: '#FBF0D9',
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
     alignSelf: 'flex-start',
-    marginBottom: 4,
   },
   restrictionText: {
     fontSize: 12,
+    lineHeight: 18,
     color: '#8E481E',
     fontStyle: 'italic',
   },

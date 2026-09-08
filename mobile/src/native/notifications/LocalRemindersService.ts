@@ -165,7 +165,10 @@ class LocalRemindersService {
         content: {
           title: 'Recordatorio de registro',
           body: '¡Es hora de registrar tus mediciones ambientales! Temperatura, humedad y lluvia te esperan.',
-          sound: 'default',
+          // expo-notifications: `true` = the OS default sound. The string 'default'
+          // is treated as a CUSTOM sound FILENAME and throws at runtime:
+          // "Custom sound 'default' not found in native app".
+          sound: true,
           // Android-specific
           priority: Notifications.AndroidNotificationPriority.HIGH,
         },
@@ -183,7 +186,8 @@ class LocalRemindersService {
         content: {
           title: 'Recordatorio de registro',
           body: '¡Hora de registrar tus mediciones ambientales! No olvides temperatura, humedad y lluvia.',
-          sound: 'default',
+          // `true` = OS default sound (see morning reminder above).
+          sound: true,
           priority: Notifications.AndroidNotificationPriority.HIGH,
         },
         trigger: {
@@ -280,7 +284,14 @@ class LocalRemindersService {
       await Notifications.setNotificationChannelAsync(NOTIFICATION_CHANNEL_ID, {
         name: 'Recordatorios de Medición',
         importance: AndroidImportance.HIGH,
-        sound: 'default',
+        // Channel sound: OMITTED on purpose = Android's DEFAULT_NOTIFICATION_URI.
+        // Passing the string 'default' made NotificationChannelManagerModule look for
+        // a bundled sound asset named "default" and log
+        // "Custom sound 'default' not found in native app".
+        // NOTE: `sound: null` is NOT equivalent — for a channel it means "no sound"
+        // (AndroidXNotificationsChannelManager.createSoundUriFromArguments), which
+        // would silently disable the reminder tone. Omitting the key keeps the
+        // original behavior (audible default sound).
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#488AFF',
         enableLights: true,

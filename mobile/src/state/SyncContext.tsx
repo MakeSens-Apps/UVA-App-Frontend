@@ -164,7 +164,18 @@ export function SyncProvider({ children }: SyncProviderProps): React.JSX.Element
 
     const unsubscribeAuth = Hub.listen('auth', (hubData) => {
       if (hubData.payload.event === 'signedOut') {
-        void DataStore.clear();
+        // Original parity: sync-monitor-ds.service.ts:72-75 also clears here, and
+        // ProfileScreen.handleLogout clears explicitly. Both run concurrently, so
+        // one of them can hit DataStore mid-teardown ("Cannot read property 'clear'
+        // of undefined"). Keep BOTH calls (order unchanged) but never leave an
+        // unhandled rejection behind.
+        void (async () => {
+          try {
+            await DataStore.clear();
+          } catch (clearErr) {
+            console.warn('DataStore.clear on signedOut failed (already cleared?):', clearErr);
+          }
+        })();
         setState(STATE_SYNC_DS.NOINIT);
         setNetworkStatus(false);
       }

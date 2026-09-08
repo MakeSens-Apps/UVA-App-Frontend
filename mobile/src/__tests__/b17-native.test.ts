@@ -345,6 +345,25 @@ describe('scheduleDailyNotifications', () => {
     expect((calls[1][0] as any).trigger.hour).toBe(19);
   });
 
+  // Regression: expo-notifications treats a STRING `sound` as a custom sound
+  // FILENAME. Passing 'default' made the native module log
+  // "Custom sound 'default' not found in native app". The boolean `true` is the
+  // documented way to ask for the OS default sound.
+  it('uses sound: true (not the string "default") for both notifications', async () => {
+    PreferencesMock.get.mockResolvedValue({ value: null });
+
+    await localRemindersService.scheduleDailyNotifications();
+
+    const calls = NotificationsMock.scheduleNotificationAsync.mock.calls;
+    expect(calls).toHaveLength(2);
+
+    for (const call of calls) {
+      const { sound } = (call[0] as any).content;
+      expect(sound).toBe(true);
+      expect(typeof sound).not.toBe('string');
+    }
+  });
+
   it('saves programmed flag to Preferences after scheduling', async () => {
     PreferencesMock.get.mockResolvedValue({ value: null });
 
@@ -384,6 +403,28 @@ describe('scheduleDailyNotifications', () => {
     await localRemindersService.scheduleDailyNotifications();
 
     expect(NotificationsMock.scheduleNotificationAsync).not.toHaveBeenCalled();
+  });
+});
+
+// =============================================================================
+// 3b. createNotificationChannels — default channel sound
+// =============================================================================
+
+describe('createNotificationChannels', () => {
+  // Regression: the Android channel manager resolves a STRING `sound` as a bundled
+  // sound-asset filename, so `sound: 'default'` produced
+  // "Custom sound 'default' not found in native app".
+  //
+  // Omitting the key is what yields Settings.System.DEFAULT_NOTIFICATION_URI.
+  // `sound: null` is NOT equivalent — for a channel it means "no sound at all".
+  it('omits `sound` so the channel keeps the OS default notification sound', async () => {
+    await localRemindersService.createNotificationChannels();
+
+    expect(NotificationsMock.setNotificationChannelAsync).toHaveBeenCalledTimes(1);
+
+    const [, options] = NotificationsMock.setNotificationChannelAsync.mock.calls[0];
+    expect(Object.prototype.hasOwnProperty.call(options, 'sound')).toBe(false);
+    expect((options as any).sound).toBeUndefined();
   });
 });
 

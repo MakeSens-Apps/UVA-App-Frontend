@@ -75,6 +75,7 @@ import { Ionicons } from '@expo/vector-icons';
 import SemillaIcon from '@/assets/svg/icons/semilla.svg';
 import ContentCopyIcon from '@/assets/svg/icons/content_copy.svg';
 import MoreHorizIcon from '@/assets/svg/icons/more_horiz.svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Social icons: SVGs use xlink:href with embedded bitmaps (not supported by
 // react-native-svg). Use extracted PNG assets instead. (Divergence 12 — audit-round1)
@@ -104,6 +105,10 @@ const APP_LINK =
 
 export function ProfileScreen({ navigation }: Props): React.JSX.Element {
   const { theme } = useTheme();
+  // Edge-to-edge (targetSdk 36 / RN 0.85): this screen is a full-screen stack route
+  // with no tab bar underneath, so its scroll content ends flush with the window
+  // bottom — i.e. UNDER the Android system navigation bar. Pad by the bottom inset.
+  const insets = useSafeAreaInsets();
   const { unreadCount, updateUnreadCount } = useNotificationContext();
   const { clearSession } = useSessionContext();
   const { getConfigurationApp, loadImage } = useConfigContext();
@@ -194,7 +199,18 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
       const ok = await SetupService.signOut();
       if (ok) {
         await clearSession();
-        await DataStore.clear();
+        // Device bug: SetupService.signOut() emits Hub 'auth'/'signedOut', and
+        // SyncContext's listener fires its OWN DataStore.clear() concurrently
+        // (same double-clear as the original: profile.page.ts:237 +
+        // sync-monitor-ds.service.ts:72-75). Whichever loses the race throws
+        // "Cannot read property 'clear' of undefined" inside DataStore.
+        // Swallow it here so the rejection is handled AND the logout completes
+        // (goToAuth below must run even if the clear already happened).
+        try {
+          await DataStore.clear();
+        } catch (clearErr) {
+          console.warn('DataStore.clear during logout failed (already cleared?):', clearErr);
+        }
         // Flip the gate back to the Auth stack. A reset to { name: 'Auth' }
         // here is a no-op because the Auth stack is not mounted while in App.
         goToAuth();
@@ -313,7 +329,10 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
       {/* Content */}
       <ScrollView
         style={[styles.scrollContent, { backgroundColor: theme.colors.gray[100] }]}
-        contentContainerStyle={styles.scrollInner}
+        contentContainerStyle={[
+          styles.scrollInner,
+          { paddingBottom: styles.scrollInner.paddingBottom + insets.bottom },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Profile card — white rounded card */}

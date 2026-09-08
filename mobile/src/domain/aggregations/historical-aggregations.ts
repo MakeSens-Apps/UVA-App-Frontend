@@ -56,32 +56,74 @@ export type DetailedMeasurementEntry = Record<string, DailyStats>;
 // ─── Functions ───────────────────────────────────────────────────────────────
 
 /**
+ * Raw `Measurement.data` as it can reach the aggregation layer.
+ *
+ * The model field is `AWSJSON`, so DataStore normally returns it already
+ * deserialized (`castInstanceType` in @aws-amplify/datastore parses AWSJSON
+ * strings when instantiating the model).  Some adapters / code paths hand over
+ * the raw JSON string instead, so both shapes are accepted here.
+ */
+export type RawMeasurementData = Record<string, number> | string | null | undefined;
+
+/**
+ * Normalizes `Measurement.data` to a plain object.
+ *
+ * The original (`historical.page.ts:637`) only accepted objects
+ * (`typeof data === 'object'`) because Angular's DataStore always handed one
+ * over.  In RN the same field arrives as a JSON string through some code
+ * paths, which silently dropped the record from the aggregation while the
+ * chart path (which did parse it) kept it — cards and chart disagreed.
+ * Parsing here keeps ONE input shape for every caller.
+ *
+ * @param {RawMeasurementData} data - raw `Measurement.data`.
+ * @returns {Record<string, number> | null} parsed data, or null when unusable.
+ */
+export function parseMeasurementData(
+  data: RawMeasurementData,
+): Record<string, number> | null {
+  if (!data) return null;
+  if (typeof data === 'object') return data;
+  if (typeof data === 'string') {
+    try {
+      const parsed: unknown = JSON.parse(data);
+      return parsed && typeof parsed === 'object'
+        ? (parsed as Record<string, number>)
+        : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
  * Transforms raw Measurement records into a HistoricalMeasurement map.
  * Groups values by measurementId (the `data` keys) and sorts each list by timestamp.
  *
  * Input shape (Amplify DataStore Measurement):
- *   { data: Record<string, number>, ts: string, ... }
+ *   { data: Record<string, number> | string (AWSJSON), ts: string, ... }
  *
  * Output shape:
  *   { [measurementId]: [{ [ts]: value }, ...] }
  *
- * @param {Array<{ data?: Record<string, number> | null; ts: string }>} initialData
+ * @param {{ data?: RawMeasurementData; ts: string }[]} initialData
  * @returns {HistoricalMeasurement}
  */
 export function transformData(
-  initialData: Array<{ data?: Record<string, number> | null; ts: string }>,
+  initialData: { data?: RawMeasurementData; ts: string }[],
 ): HistoricalMeasurement {
   const result: HistoricalMeasurement = {};
 
   for (const record of initialData) {
-    const { data, ts } = record;
+    const { ts } = record;
+    const data = parseMeasurementData(record.data);
 
-    if (data && typeof data === 'object') {
+    if (data) {
       for (const [key] of Object.entries(data)) {
         if (!result[key]) {
           result[key] = [];
         }
-        result[key].push({ [ts]: (data as Record<string, number>)[key] });
+        result[key].push({ [ts]: data[key] });
       }
     }
   }

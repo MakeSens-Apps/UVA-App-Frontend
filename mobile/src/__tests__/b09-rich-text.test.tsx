@@ -702,3 +702,85 @@ describe('RichText component — render without crash', () => {
     expect(toJSON()).toMatchSnapshot();
   });
 });
+
+// ─── DEVICE REGRESSION F-09 — real RACIMO fragments render bold + colored ────
+//
+// Evidence: docs/evidence/device-findings-2026-09-07.md (F-09), frames
+// docs/evidence/device-2026-09-07/{005-192141,009-192156}.png versus the
+// originals docs/evidence/measurement/{screen-03-guide-flow1-step1,
+// screen-06-register-form-flow1-filled}.png.
+//
+// These fixtures are VERBATIM from the device at
+// files/public/racimos/ANT025/measurementRegistration/measurementsRegistration.json.
+// The whole config expresses emphasis as `style="font-weight: 700"` — never as
+// <b> — so this is the shape that must come out bold and colored.
+
+/** flows.flow1.text — register-form subtitle. */
+const REAL_FLOW1_TEXT =
+  '<p style="font-size: 16px; line-height: 150%; font-weight: 400; color: var(--Gray-600, #525252);">' +
+  'Registros de <span style="font-weight: 700"> temperatura </span> y ' +
+  '<span style="font-weight: 700"> humedad </span> ' +
+  '<span style="font-weight: 700; color: var(--Colors-Green-500, #69ab3c)">máxima</span></p>';
+
+/** measurements.TEMPERATURA_MAX.name — orange card label. */
+const REAL_TEMPERATURA_MAX_NAME =
+  '<span style="font-size: 16px; line-height: 150%; font-weight: 700; color: var(--Colors-Orange-500, #e58b24);">' +
+  'Temperatura <span style="color: var(--Gray-600, #525252)"> máxima </span></span>';
+
+/** Collects every `style` object found in a rendered RNTL JSON tree. */
+function collectStyles(
+  node: unknown,
+  acc: Record<string, unknown>[] = [],
+): Record<string, unknown>[] {
+  if (!node || typeof node !== 'object') return acc;
+  if (Array.isArray(node)) {
+    node.forEach((child) => collectStyles(child, acc));
+    return acc;
+  }
+  const n = node as { props?: { style?: unknown }; children?: unknown };
+  const style = n.props?.style;
+  if (Array.isArray(style)) {
+    style.forEach((s) => {
+      if (s && typeof s === 'object') acc.push(s as Record<string, unknown>);
+    });
+  } else if (style && typeof style === 'object') {
+    acc.push(style as Record<string, unknown>);
+  }
+  collectStyles(n.children, acc);
+  return acc;
+}
+
+describe('RichText — F-09 device regression (inline styles on native)', () => {
+  it('renders the register subtitle with Montserrat-Bold and the resolved green', async () => {
+    const { toJSON } = await render(
+      <Wrapper>
+        <RichText html={REAL_FLOW1_TEXT} baseFontSize={15} />
+      </Wrapper>,
+    );
+    const styles = collectStyles(toJSON());
+
+    // Bold arrives as a FAMILY, not as fontWeight: Android does not synthesize
+    // weights for custom expo-font asset families.
+    expect(styles.some((s) => s.fontFamily === 'Montserrat-Bold')).toBe(true);
+    expect(
+      styles.some((s) => s.fontWeight !== undefined && s.fontWeight !== 'normal'),
+    ).toBe(false);
+
+    // Inline colors must be applied (this is what was lost on device).
+    expect(styles.some((s) => s.color === '#69AB3C')).toBe(true);
+    expect(styles.some((s) => s.color === '#525252')).toBe(true);
+  });
+
+  it('renders the "Temperatura máxima" label with Montserrat-Bold and the resolved orange', async () => {
+    const { toJSON } = await render(
+      <Wrapper>
+        <RichText html={REAL_TEMPERATURA_MAX_NAME} inline baseFontSize={14} />
+      </Wrapper>,
+    );
+    const styles = collectStyles(toJSON());
+
+    expect(styles.some((s) => s.fontFamily === 'Montserrat-Bold')).toBe(true);
+    expect(styles.some((s) => s.color === '#E58B24')).toBe(true);
+    expect(styles.some((s) => s.color === '#525252')).toBe(true);
+  });
+});

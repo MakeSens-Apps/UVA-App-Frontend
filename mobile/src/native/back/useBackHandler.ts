@@ -6,26 +6,37 @@
  *
  * Replaces:
  *   this.platform.backButton.subscribeWithPriority(10, ...) → BackHandler.addEventListener
- *   window.history.back() → navigation.goBack()
+ *   window.history.back() → return false (React Navigation's own BackHandler pops)
  *   App.minimizeApp() (Capacitor, not available in RN) → NativeModules.AppMinimize or
  *     BackHandler.exitApp() fallback with deviation documented below.
  *
  * IMPORTANT — Back behavior:
  *   - Screen name IS in ROUTES_TO_MINIMIZE → call minimizeApp() (moves app to background)
- *   - Screen name NOT in ROUTES_TO_MINIMIZE → navigation.goBack()
+ *     and return true (consume the event, nothing navigates).
+ *   - Screen name NOT in ROUTES_TO_MINIMIZE → return false so React Navigation's own
+ *     back handler performs the goBack (equivalent to window.history.back()).
+ *
+ * DEVICE BUG (Redmi Note 10S / Android 13) — root cause of "back on Home shows a
+ * register screen":
+ *   This hook used to read the route via useNavigationState(), which requires a
+ *   navigation context, so it could only be called from inside a screen. As a result
+ *   it was NEVER mounted anywhere in the app (dead code) and the hardware back button
+ *   fell through to Android's default behavior (the Activity is finished; on relaunch
+ *   the splash → auth gate can land the user back in the Auth/register stack).
+ *
+ *   The original Ionic app registers the handler ONCE, globally, in AppComponent's
+ *   constructor (app.component.ts → appMinimizeService.initializeBackButtonHandler()).
+ *   To reproduce that, the hook now takes a route-name getter instead of relying on a
+ *   navigation context, so RootNavigator can mount it once for BOTH stacks using the
+ *   NavigationContainer ref (see RootNavigator.tsx). The container ref's
+ *   getCurrentRoute() already resolves the focused LEAF route across nested navigators
+ *   (Root → App → AppTabs → HomeStack → Home), which the previous hand-rolled state
+ *   walk did not do reliably.
  *
  * MINIMIZE STRATEGY (decision per plan.md B17, pregunta abierta #7):
  *   React Native's BackHandler.exitApp() CLOSES the app (not minimizes).
- *   True minimize requires moveTaskToBack(true) via a native Android module.
- *
- *   This hook tries NativeModules.AppMinimize.minimize() (a lightweight native
- *   module that wraps Activity.moveTaskToBack(true) — see useAppMinimize.ts).
- *   If the native module is absent (emulator without CNG build, or non-Android),
- *   it falls back to BackHandler.exitApp() with a logged deviation.
- *
- *   The integrator MUST verify that the CNG prebuild includes the AppMinimize
- *   native module (see notes in StructuredOutput). Without it, the fallback
- *   closes instead of minimizing — which is noted as a deviation.
+ *   True minimize requires moveTaskToBack(true) via a native Android module
+ *   (mobile/modules/app-minimize/ — see useAppMinimize.ts).
  *
  * Portability matrix: app-minimize.service.ts → useBackHandler
  * Risks: R-14, R-07
@@ -33,62 +44,87 @@
 
 import { useEffect } from 'react';
 import { BackHandler } from 'react-native';
-import { useNavigationState } from '@react-navigation/native';
+import type { NavigationState, PartialState } from '@react-navigation/native';
 
 import { ROUTES_TO_MINIMIZE } from '@/native/minimize/routesToMinimize';
 import { minimizeApp } from '@/native/minimize/useAppMinimize';
 
+type AnyNavState = NavigationState | PartialState<NavigationState> | undefined;
+
 /**
- * Registers a hardware back button handler for Android.
+ * Resolves the focused LEAF route name from a (possibly nested) navigation state.
  *
- * Must be called inside a NavigationContainer context so that
- * useNavigationState can read the current route.
+ * Mirrors React Navigation's findFocusedRoute: descends through every nested
+ * navigator until it reaches a route without its own state.
  *
- * Returns true from the handler (prevents default back behavior)
- * in all cases — either minimize or goBack is performed explicitly.
+ * Root → 'App' → 'AppTabs' → 'HomeStack' → 'Home'  ⇒ returns 'Home'
+ *
+ * Exported for tests and for callers that only have a raw state object.
+ */
+export function resolveLeafRouteName(state: AnyNavState): string {
+  let current = state;
+  let name = '';
+
+  while (current && current.routes && current.routes.length > 0) {
+    const index = current.index ?? current.routes.length - 1;
+    const route = current.routes[index];
+    if (!route) break;
+    name = route.name;
+    current = route.state as AnyNavState;
+  }
+
+  return name;
+}
+
+/**
+ * Decides what the hardware back button should do for a given leaf route name.
+ *
+ * @returns true when the event was consumed (app minimized), false to let
+ *          React Navigation handle the back navigation.
+ */
+export function handleHardwareBackPress(currentRouteName: string): boolean {
+  if (ROUTES_TO_MINIMIZE.has(currentRouteName)) {
+    // Root screen → minimize (move to background), never navigate.
+    minimizeApp();
+    return true; // consume the event
+  }
+  // Inner screen → let React Navigation's own BackHandler perform goBack().
+  return false;
+}
+
+/**
+ * Registers the global hardware back button handler (Android).
+ *
+ * Mount ONCE, as high in the tree as possible (RootNavigator), mirroring the
+ * original's single registration in AppComponent.
+ *
+ * @param getCurrentRouteName - returns the currently focused LEAF route name.
+ *        Pass a stable callback (useCallback) — the listener is re-registered
+ *        whenever this identity changes.
+ * @param resubscribeKey - opaque value; when it changes the listener is removed and
+ *        re-added. RN's BackHandler is LIFO (the LAST registered handler runs FIRST),
+ *        and React Navigation's NavigationContainer registers its own handler on mount.
+ *        Passing the gate `destination` here re-registers ours AFTER the container
+ *        remounts, so a root route always minimizes instead of React Navigation
+ *        silently switching tabs (e.g. back on the 'Measurement' tab).
  *
  * Usage:
- *   // In a component that lives inside NavigationContainer:
- *   useBackHandler();
+ *   const getRoute = useCallback(
+ *     () => navigationRef.current?.getCurrentRoute()?.name ?? '',
+ *     [],
+ *   );
+ *   useBackHandler(getRoute, destination);
  */
-export function useBackHandler(): void {
-  // getCurrentRoute from React Navigation state
-  const currentRouteName = useNavigationState(
-    (state) => {
-      // Walk the nested state to find the leaf route name
-      let s = state;
-      while (s.routes[s.index]?.state) {
-        const nested = s.routes[s.index].state;
-        if (nested) {
-          s = nested as typeof state;
-        } else {
-          break;
-        }
-      }
-      return s.routes[s.index]?.name ?? '';
-    },
-  );
-
+export function useBackHandler(
+  getCurrentRouteName: () => string,
+  resubscribeKey?: unknown,
+): void {
   useEffect(() => {
-    const handler = (): boolean => {
-      if (ROUTES_TO_MINIMIZE.has(currentRouteName)) {
-        // Root screen → minimize (move to background)
-        minimizeApp();
-      } else {
-        // Inner screen → standard back navigation
-        // React Navigation's built-in back handler will fire next
-        // (BackHandler priority: our handler returns true, preventing default,
-        //  so we must also invoke goBack manually here — but we don't have
-        //  navigation ref access at this level. Instead, return false to let
-        //  React Navigation's own BackHandler handle it).
-        return false;
-      }
-      return true; // consume the event
-    };
+    const handler = (): boolean => handleHardwareBackPress(getCurrentRouteName());
 
     const subscription = BackHandler.addEventListener('hardwareBackPress', handler);
     return () => subscription.remove();
-  }, [currentRouteName]);
+  }, [getCurrentRouteName, resubscribeKey]);
 }
 
 export default useBackHandler;

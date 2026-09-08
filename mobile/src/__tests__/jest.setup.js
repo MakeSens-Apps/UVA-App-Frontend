@@ -25,3 +25,8 @@ jest.mock('@react-native-community/netinfo', () => ({
   addEventListener: jest.fn(() => () => {}),
   fetch: jest.fn(() => Promise.resolve({ isConnected: true, type: 'wifi' })),
 }));
+
+// react-native-gesture-handler: official jest setup. Required since the bottom sheets
+// host themselves in a full-window RN Modal (D-13) with a nested GestureHandlerRootView,
+// which calls RNGestureHandlerModule.install() at render time.
+require('react-native-gesture-handler/jestSetup');

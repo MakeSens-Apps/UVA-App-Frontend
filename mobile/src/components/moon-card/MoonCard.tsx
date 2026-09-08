@@ -92,6 +92,9 @@ const DEFAULT_PHASE: LunarPhaseKey = 'NEW_MOON';
 // moon-card.component.scss background is always dark (gray-700 or blue-800),
 // so text must always be light regardless of global theme.
 
+// Intrinsic size of assets/svg/moon/eclipses_card_home.svg (340 x 88).
+const ECLIPSES_ASPECT_RATIO = 340 / 88;
+
 const MOON_CARD_TITLE_COLOR = '#FFFFFF'; // always white on dark bg
 const MOON_CARD_SUBTITLE_COLOR = '#D4D4D4'; // --Colors-Gray-300
 const MOON_CARD_ARROW_COLOR = '#FFFFFF'; // always white on dark bg
@@ -101,10 +104,16 @@ const MOON_CARD_ARROW_COLOR = '#FFFFFF'; // always white on dark bg
 export interface MoonCardProps {
   /**
    * The lunar phase key.
-   * BUG FIX (§4.4): when phase is falsy, 'NEW_MOON' is used as fallback
+   * BUG FIX (§4.4): when phase is `undefined`, 'NEW_MOON' is used as fallback
    * for BOTH the name AND the icon (original bug: fallback only applied to _phase).
+   *
+   * `null` means "not resolved yet" and is NOT the same as `undefined`: the card renders
+   * a neutral placeholder (no moon image, no phase name) instead of committing to a
+   * phase the screen has not loaded. Screens seeded their state with a hard-coded phase
+   * and showed it for ~2s on every entry to Home before the real one arrived (D-08 /
+   * D-11 / D-13 "flash Luna llena"); they now seed with `null`.
    */
-  phase?: LunarPhaseKey;
+  phase?: LunarPhaseKey | null;
   /** Background variant: 'gray' (default) or 'green' */
   background?: 'gray' | 'green';
   /**
@@ -134,6 +143,10 @@ export function MoonCard({
 }: MoonCardProps): React.JSX.Element {
   const { theme } = useTheme();
 
+  // `phase === null` → still loading: render the card chrome with a neutral disc and no
+  // phase name, so the user never sees a wrong phase flash before the real one lands.
+  const isPending = phase === null;
+
   // BUG FIX (§4.4): use resolved fallback consistently for both name and icon
   // Original bug: `this._phase = _phase ? _phase : 'NEW_MOON'` but then
   // `this.phaseName = LUNAR_PHASE_NAME[_phase]` (uses param, not resolved)
@@ -141,7 +154,9 @@ export function MoonCard({
   const resolvedPhase: LunarPhaseKey = phase ?? DEFAULT_PHASE;
 
   // Phase name: caller override takes precedence; else derived from resolvedPhase
-  const phaseName: string = phaseNameProp ?? LUNAR_PHASE_NAME[resolvedPhase];
+  const phaseName: string = isPending
+    ? ''
+    : (phaseNameProp ?? LUNAR_PHASE_NAME[resolvedPhase]);
 
   // Moon phase image source (PNG — SVGs have xlink:href that react-native-svg cannot render)
   const moonPhaseImage = MOON_PHASE_IMAGES[resolvedPhase];
@@ -161,12 +176,18 @@ export function MoonCard({
       <View style={styles.card}>
         {/* Moon phase icon */}
         <View style={styles.iconWrapper}>
-          {/* Moon phase PNG image (circular, 55px — original ion-img) */}
-          <Image
-            source={moonPhaseImage}
-            style={styles.moonImage}
-            resizeMode="cover"
-          />
+          {isPending ? (
+            // Neutral placeholder — same footprint as the real image so nothing jumps
+            // when the phase resolves (D-08 / D-11 / D-13).
+            <View style={styles.moonPlaceholder} testID="moon-card-placeholder" />
+          ) : (
+            /* Moon phase PNG image (circular, 55px — original ion-img) */
+            <Image
+              source={moonPhaseImage}
+              style={styles.moonImage}
+              resizeMode="cover"
+            />
+          )}
         </View>
 
         {/* Phase name text */}
@@ -224,7 +245,7 @@ export function MoonCard({
         <EclipsesIcon
           width="100%"
           height="100%"
-          preserveAspectRatio="xMidYMid slice"
+          preserveAspectRatio="xMinYMid meet"
         />
       </View>
     </View>
@@ -263,6 +284,13 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
   },
+  // Same 56px disc, neutral fill, shown only while the phase is still loading.
+  moonPlaceholder: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
   textWrapper: {
     // Original: .card_text { gap: 10px }
     flex: 1,
@@ -279,15 +307,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   eclipsesWrapper: {
-    // Original: .eclipses — absolute, top 0, height 100%, margin-inline 16px
-    // (16px relative to the outer container that includes the card's 10px side
-    // margins → 6px inside the card itself). Full opacity — the SVG's own
-    // white dots + blur filters provide the subtle look.
+    // Original: .eclipses — absolute, top 0, height 100%, margin-inline 16px, and
+    // `width: auto`, so the 340x88 artwork scales by HEIGHT and is anchored at its LEFT
+    // edge (16px from the container = 6px inside the card, which carries margin-inline 10).
+    // The previous `left/right: 6` + `xMidYMid slice` CENTRED the artwork instead: as soon
+    // as the scaled width exceeded the card, every star drifted left and the 2px star at
+    // x=117 landed on top of the "Fase lunar" label (D-11). Pinning left + aspectRatio
+    // reproduces the original geometry.
     position: 'absolute',
     top: 0,
     bottom: 0,
     left: 6,
-    right: 6,
+    aspectRatio: ECLIPSES_ASPECT_RATIO,
     // BUG FIX: pointer-events:none in style (not prop) so react-native-web
     // correctly applies the CSS property and the overlay never intercepts taps.
     pointerEvents: 'none',

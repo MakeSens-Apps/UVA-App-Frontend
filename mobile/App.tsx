@@ -64,8 +64,10 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 // eslint-disable-next-line import/first
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+// D-08: ToastHost mounts react-native-toast-message with the ion-toast styling
+// (solid full-width bar, white regular text, bottom safe-area offset).
 // eslint-disable-next-line import/first
-import Toast from 'react-native-toast-message';
+import { ToastHost } from '@/components/ui/Toast';
 
 // ─── B06 Context providers ───────────────────────────────────────────────────
 // eslint-disable-next-line import/first
@@ -95,7 +97,7 @@ export default function App() {
               <ThemeProvider>
                 <NotificationProvider>
                   <RootNavigator />
-                  <Toast />
+                  <ToastHost />
                   <StatusBar style="auto" />
                 </NotificationProvider>
               </ThemeProvider>

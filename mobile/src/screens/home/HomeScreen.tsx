@@ -27,13 +27,19 @@
  * Visual parity fixes (home feature audit):
  *   - dateHeader: color blue[900] (#164551), textAlign:'center', fontWeight:'700'
  *     removed textTransform:'capitalize' (original only capitalizes "Hoy")
- *   - modal_Days: replaced Unicode symbols with Day components showing actual state colors
- *   - modal_Days_question: added mini calendar example + "Tienes 2 Días de racha 😌" title
- *   - modal_token: each rule in white card (tokenCard style — screen-07 reference)
- *   - modal_token_2: each range in white card (tokenCard style — screen-08 reference)
+ *   - modal_Days: the three states use the original 40x40 assets (date_check /
+ *     date_incomplete / date_current .svg) inside one white `.container_text` card
+ *   - modal_Days_question: FIXED illustrative week (02..08) with its title inside the
+ *     light-cyan panel + the inline `date_incomplete` badge in the closing sentence
+ *   - modal_token: paragraph first, big "+N 🌰" below, both centred (screen-07)
+ *   - modal_token_2: intro paragraph in its own white card, descriptions centred (screen-08)
+ *
+ * Device review (docs/evidence/device-2026-09-07): D-01, D-03, D-04, D-05, D-06(colour),
+ * D-09, D-10, D-11, D-12, D-13, D-14, D-15 and D6 (progress race) are addressed here.
  *
  * Uses B07 getLastUserProgressPure (NOT legacy getLastUserProgress with side-effects).
- * recalculateDailyProgress is called once from onMount (mirrors ngOnInit timing).
+ * recalculateDailyProgress runs at the START of the focus effect and is awaited before the
+ * read, mirroring the original ionViewWillEnter → getLastUserProgress() ordering (D6).
  *
  * Risks: R-18, R-12, R-28, R-15
  */
@@ -56,6 +62,15 @@ import SemillaIcon from '@/assets/svg/icons/semilla.svg';
 import PlatulaIcon from '@/assets/svg/icons/platula.svg';
 import FlorIcon from '@/assets/svg/icons/flor.svg';
 import ArrowRightIcon from '@/assets/svg/icons/arrow-right.svg';
+// D-03: the original ⓘ is `information-circle.svg` — a FILLED dark-teal disc with a white
+// "i" — not a text glyph. D-09/D-10/D-15: modal_Days and modal_token reuse the same day
+// artwork as the original (date_check / date_incomplete / date_current /
+// date_incomplete_to_done), all pure-vector SVGs.
+import InformationCircleIcon from '@/assets/svg/icons/information-circle.svg';
+import DateCheckIcon from '@/assets/svg/icons/date_check.svg';
+import DateIncompleteIcon from '@/assets/svg/icons/date_incomplete.svg';
+import DateCurrentIcon from '@/assets/svg/icons/date_current.svg';
+import DateIncompleteToDoneIcon from '@/assets/svg/icons/date_incomplete_to_done.svg';
 import { useFocusEffect } from '@react-navigation/native';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
@@ -63,6 +78,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { HomeStackParamList } from '@/navigation/types';
 import type { CalendarDay } from '@/components/calendar/calendarLogic';
+import type { DayState } from '@/components/ui/Day';
 
 import { Header } from '@/components/header/Header';
 import { Calendar } from '@/components/calendar/Calendar';
@@ -82,6 +98,38 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';
 
 import type { UserProgress } from '@/data/models';
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+// semilla.svg is 23x31 — keep the aspect ratio at every size so the seed is not squashed.
+const SEED_ICON_W = 16;
+const SEED_ICON_H = 22;
+const SEED_ICON_MED_W = 20;
+const SEED_ICON_MED_H = 27;
+const SEED_ICON_BIG_W = 24;
+const SEED_ICON_BIG_H = 32;
+
+// Original: calendar.component.html renders these initials for every calendar.
+const EXAMPLE_DAY_HEADERS = ['D', 'L', 'M', 'M', 'J', 'V', 'S'] as const;
+
+/**
+ * The FIXED week drawn inside modal_Days_question.
+ *
+ * The original is a static illustration (`assets/images/calendar_example.svg`) that always
+ * shows 02 completo, 03 incompleto, 04 y 05 completos, 06 por registrar, 07 y 08 sin
+ * registro — that is what makes the "¿Por qué solo dos días?" explanation work. RN was
+ * rendering the user's real current week instead (D-10), so the example contradicted the
+ * text. Hard-coded here for the same reason the original hard-codes its SVG.
+ */
+const STREAK_EXAMPLE_WEEK: { day: number; state: DayState }[] = [
+  { day: 2, state: 'complete' },
+  { day: 3, state: 'incomplete' },
+  { day: 4, state: 'complete' },
+  { day: 5, state: 'complete' },
+  { day: 6, state: 'today' },
+  { day: 7, state: 'future' },
+  { day: 8, state: 'future' },
+];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -104,7 +152,10 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
   const [userProgress, setUserProgress] = useState<UserProgress | undefined | null>(undefined);
   const [totalTask, setTotalTask] = useState(1);
   const [completeTask, setCompleteTask] = useState<CompletedTask | undefined>(undefined);
-  const [phase, setPhase] = useState<LunarPhase>(LunarPhase.FULL_MOON);
+  // `null` = not resolved yet. Seeding the state with FULL_MOON made MoonCard paint
+  // "Luna llena" for ~2s on every entry to Home before the real phase arrived
+  // (D-08 / D-11 / D-13); MoonCard renders a neutral placeholder for null.
+  const [phase, setPhase] = useState<LunarPhase | null>(null);
 
   /** Formatted date string (Spanish), e.g. " lunes 11 de junio" */
   const today = format(new Date(), " EEEE dd 'de' MMMM", { locale: es });
@@ -173,8 +224,6 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
         if (configMeasurement) {
           setTotalTask(countTasks(configMeasurement));
         }
-        // recalculateDailyProgress is idempotent — safe to call once on mount
-        await UserProgressDSService.recalculateDailyProgress();
         // Port of home.page.ts:149 — setNotifications() called in ngOnInit:
         // schedules daily reminders if the user has notifications enabled.
         await setNotifications();
@@ -193,6 +242,17 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
 
       void (async () => {
         try {
+          // D6 — Inicio showed "1 de 3" while Registrar showed "0 de 3" for the same day.
+          // The original calls getLastUserProgress() from ionViewWillEnter, i.e. it ROLLS
+          // THE DAY OVER and then reads. RN had split that in two: recalculateDailyProgress()
+          // ran from the mount effect while the focus effect read straight away, so the read
+          // could win the race and return YESTERDAY's row — whose completedTasks is the
+          // count Home then displayed, while MeasurementScreen counts today's measurements
+          // (measurement.page.html:17 → `tasksCompleted.length`). Rolling over first, on
+          // every focus, restores the original ordering and also handles a midnight
+          // rollover while the app stays open. It is a no-op once today's row exists.
+          await UserProgressDSService.recalculateDailyProgress();
+
           // getLastUserProgressPure: pure read, no side-effects (R-28)
           const up = await UserProgressDSService.getLastUserProgressPure();
           if (mounted) setUserProgress(up);
@@ -226,12 +286,16 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
     (day: CalendarDay | null) => {
       if (!day || day.state === 'future') return;
       // AppStack is 2 levels up: Home → HomeStack tab → AppTabs → AppStack
+      // `CalendarDay` exposes the day number as `dayOfMonth` (calendarLogic.ts:52);
+      // reading `day.day` produced `new Date(y, m, undefined)` → Invalid Date. The week
+      // strip always belongs to the current month, matching the original queryParams.
       navigation.getParent()?.getParent()?.navigate('MeasurementDetail', {
-        calendar: new Date(
-          new Date().getFullYear(),
-          new Date().getMonth(),
-          day.day,
-        ).toISOString(),
+        calendar: (day.date ??
+          new Date(
+            new Date().getFullYear(),
+            new Date().getMonth(),
+            day.dayOfMonth ?? 1,
+          )).toISOString(),
         origin: 'home' as const,
       });
     },
@@ -246,6 +310,7 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
   const goToMoonCalendar = useCallback(() => {
     navigation.navigate('MoonPhase');
   }, [navigation]);
+
 
   // ─── Render ───────────────────────────────────────────────────────────
 
@@ -286,15 +351,25 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
           {`Hoy,${today}`}
         </Text>
 
-        {/* Streak + weekly calendar card */}
-        <View style={[styles.card, { backgroundColor: theme.colors.white }]}>
+        {/* Streak + weekly calendar card — global.scss `.cards` */}
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: theme.colors.gray[50],
+              borderColor: theme.colors.gray[200],
+            },
+          ]}
+          testID="home-card-streak"
+        >
           <View style={styles.cardHeader}>
             <Text
               style={[
                 styles.cardTitle,
+                styles.cardTitleFlex,
                 {
                   fontFamily: fontFamilyForWeight('700'),
-                  color: theme.semanticColors.text,
+                  color: theme.colors.blue[800],
                 },
               ]}
               testID="streak-label"
@@ -307,18 +382,33 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
               accessibilityRole="button"
               accessibilityLabel="Información sobre los días de racha"
             >
-              <Text style={[styles.infoIcon, { color: theme.colors.blue[500] }]}>ⓘ</Text>
+              {/* D-03 — original `<ion-icon src="information-circle.svg">`: a FILLED dark
+                  teal disc with a white "i", 25x25 (`.cards ion-card-header ion-icon`). */}
+              <InformationCircleIcon width={25} height={25} />
             </TouchableOpacity>
           </View>
 
-          <Calendar
-            calendarView="week"
-            hasHeader
-            daysComplete={completeTask?.daysComplete ?? []}
-            daysIncomplete={completeTask?.daysIncomplete ?? []}
-            daysSaveStreak={completeTask?.daysSaveStreak ?? []}
-            onDayPress={goToDetail}
-          />
+          {/* D-01 — original `.calendar_content`: white panel with a 1px Gray-200 border
+              and radius 10, sitting on the grey card (calendar.component.scss:23-27). */}
+          <View
+            style={[
+              styles.innerPanel,
+              {
+                backgroundColor: theme.colors.white,
+                borderColor: theme.colors.gray[200],
+              },
+            ]}
+            testID="home-calendar-panel"
+          >
+            <Calendar
+              calendarView="week"
+              hasHeader
+              daysComplete={completeTask?.daysComplete ?? []}
+              daysIncomplete={completeTask?.daysIncomplete ?? []}
+              daysSaveStreak={completeTask?.daysSaveStreak ?? []}
+              onDayPress={goToDetail}
+            />
+          </View>
 
           <TouchableOpacity
             style={[styles.button, { backgroundColor: theme.colors.blue[600] }]}
@@ -328,29 +418,46 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
             }}
             testID="ver-historial-btn"
           >
-            <Text style={[styles.buttonText, { fontFamily: fontFamilyForWeight('600') }]}>
-              Ver historial →
+            {/* Original: `<ion-button>Ver historial <ion-icon name="arrow-forward-outline"
+                slot="end">` — regular weight label + a separate, larger arrow glyph (D-05). */}
+            <Text style={[styles.buttonText, { fontFamily: fontFamilyForWeight('500') }]}>
+              Ver historial
+            </Text>
+            <Text style={[styles.buttonArrow, { fontFamily: fontFamilyForWeight('400') }]}>
+              →
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Progress + seeds card */}
-        <View style={[styles.card, styles.cardMarginTop, { backgroundColor: theme.colors.white }]}>
+        <View
+          style={[
+            styles.card,
+            styles.cardMarginTop,
+            {
+              backgroundColor: theme.colors.gray[50],
+              borderColor: theme.colors.gray[200],
+            },
+          ]}
+          testID="home-card-seeds"
+        >
           <View style={styles.cardHeader}>
-            {/* Original home.page.html:39-41: "Registra y gana: +2<ion-icon src=\"semilla.svg\">" */}
+            {/* Original home.page.html:39-41: "Registra y gana: +2<ion-icon src=\"semilla.svg\">"
+                — the seed sits immediately after the "+2", inside the title (D-04). */}
             <View style={styles.cardTitleRow}>
               <Text
                 style={[
                   styles.cardTitle,
                   {
                     fontFamily: fontFamilyForWeight('700'),
-                    color: theme.semanticColors.text,
+                    color: theme.colors.blue[800],
                   },
                 ]}
+                testID="seeds-label"
               >
                 {'Registra y gana: +2'}
               </Text>
-              <SemillaIcon width={16} height={16} />
+              <SemillaIcon width={SEED_ICON_W} height={SEED_ICON_H} />
             </View>
             <TouchableOpacity
               onPress={() => openModal(modalTokenRef)}
@@ -358,16 +465,17 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
               accessibilityRole="button"
               accessibilityLabel="Información sobre semillas"
             >
-              <Text style={[styles.infoIcon, { color: theme.colors.blue[500] }]}>ⓘ</Text>
+              <InformationCircleIcon width={25} height={25} />
             </TouchableOpacity>
           </View>
 
-          {/* naked=true: ProgressBar is inside a white card — skip its own white container
-              to avoid the visible "double-box" effect (divergence #12 in home audit) */}
+          {/* D-01 — the ProgressBar's own white panel IS the inner box of the original
+              (`progress-bar.component.scss .progress_container { background:#fff; radius:14 }`).
+              It was suppressed with `naked` while the card itself was white; now the card is
+              grey (`.cards` = Gray-50 + Gray-200 border) so the panel must be visible. */}
           <ProgressBar
             currentProgress={completedTasksValue}
             totalProgress={totalTask}
-            naked
           />
 
           <TouchableOpacity
@@ -378,7 +486,7 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
             }}
             testID="completar-registros-btn"
           >
-            <Text style={[styles.buttonText, { fontFamily: fontFamilyForWeight('600') }]}>
+            <Text style={[styles.buttonText, { fontFamily: fontFamilyForWeight('500') }]}>
               Completar registros
             </Text>
           </TouchableOpacity>
@@ -397,49 +505,64 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
 
       {/* ─── Bottom Sheet Modals ─────────────────────────────────────────── */}
 
-      {/* modal_Days — "Los días tienen estos estados" */}
+      {/* modal_Days — "Los días tienen estos estados" (docs/evidence/home/screen-05) */}
       <UvaFullBottomSheet
         ref={modalDaysRef}
+        contentStyle={styles.sheetSurface}
         onDismiss={() => {/* handled by gesture */}}
       >
         <View style={styles.modalContent} testID="modal-days">
-          <Text style={[styles.modalText, { fontFamily: fontFamilyForWeight('700'), color: theme.semanticColors.text }]}>
-            Los días tienen estos estados:{' '}
-          </Text>
-          {/* Visual calendar-state rows: Day components matching screen-05 ionic reference */}
-          <View style={styles.modalStateRow}>
-            <Day day={4} state="complete" />
-            <Text style={[styles.modalText, { color: theme.semanticColors.text, flex: 1 }]}>
-              Registros del día <Text style={{ fontFamily: fontFamilyForWeight('700') }}>completos</Text>
+          {/* Original: a single `.container_text` white card holds the heading and the
+              three state rows (home.page.html:77-100). */}
+          <View style={styles.textCard}>
+            <Text
+              style={[
+                styles.modalText,
+                styles.modalTextStrong,
+                { color: theme.colors.blue[900] },
+              ]}
+            >
+              Los días tienen estos estados:{' '}
             </Text>
-          </View>
-          <View style={styles.modalStateRow}>
-            <Day day={3} state="incomplete" />
-            <Text style={[styles.modalText, { color: theme.semanticColors.text, flex: 1 }]}>
-              Registros del día <Text style={{ fontFamily: fontFamilyForWeight('700') }}>incompletos</Text>
-            </Text>
-          </View>
-          <View style={styles.modalStateRow}>
-            <Day day={6} state="today" />
-            <Text style={[styles.modalText, { color: theme.semanticColors.text, flex: 1 }]}>
-              Día <Text style={{ fontFamily: fontFamilyForWeight('700') }}>por registrar.</Text>
-            </Text>
+            {/* The three glyphs are the original assets (date_check / date_incomplete /
+                date_current .svg, 40x40 per `.modal_Days p ion-icon`), not re-drawn cells. */}
+            <View style={styles.modalStateRow}>
+              <DateCheckIcon width={40} height={40} />
+              <Text style={[styles.modalText, styles.modalTextFlex, { color: theme.colors.blue[900] }]}>
+                Registros del día{' '}
+                <Text style={styles.modalTextStrong}>completos</Text>
+              </Text>
+            </View>
+            <View style={styles.modalStateRow}>
+              <DateIncompleteIcon width={40} height={40} />
+              <Text style={[styles.modalText, styles.modalTextFlex, { color: theme.colors.blue[900] }]}>
+                Registros del día{' '}
+                <Text style={styles.modalTextStrong}>incompletos</Text>
+              </Text>
+            </View>
+            <View style={styles.modalStateRow}>
+              <DateCurrentIcon width={40} height={40} />
+              <Text style={[styles.modalText, styles.modalTextFlex, { color: theme.colors.blue[900] }]}>
+                Día <Text style={styles.modalTextStrong}>por registrar.</Text>
+              </Text>
+            </View>
           </View>
           <TouchableOpacity
-            style={[styles.button, { backgroundColor: theme.colors.blue[600], marginTop: 16 }]}
+            style={[styles.button, { backgroundColor: theme.colors.blue[600] }]}
             onPress={() => closeAndOpen(modalDaysRef, modalDaysQuestionRef)}
             testID="modal-days-siguiente"
           >
-            <Text style={[styles.buttonText, { fontFamily: fontFamilyForWeight('600') }]}>
+            <Text style={[styles.buttonText, { fontFamily: fontFamilyForWeight('500') }]}>
               Siguiente
             </Text>
           </TouchableOpacity>
         </View>
       </UvaFullBottomSheet>
 
-      {/* modal_Days_question — "En el siguiente ejemplo..." */}
+      {/* modal_Days_question — "En el siguiente ejemplo…" (docs/evidence/home/screen-06) */}
       <UvaFullBottomSheet
         ref={modalDaysQuestionRef}
+        contentStyle={styles.sheetSurface}
         onDismiss={() => {/* handled by gesture */}}
       >
         <View style={styles.modalContent} testID="modal-days-question">
@@ -449,54 +572,99 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
               testID="modal-days-question-back"
               accessibilityRole="button"
             >
-              <Text style={[styles.backArrow, { color: theme.semanticColors.text }]}>←</Text>
+              <Text style={[styles.backArrow, { color: theme.colors.blue[900] }]}>←</Text>
             </Pressable>
+            {/* D-12 — original `<ion-button color="uva_blue-600"><ion-icon name="close">`:
+                white ✕ on a filled rounded teal square, 36px wide. */}
             <Pressable
               onPress={() => dismissModal(modalDaysQuestionRef)}
               testID="modal-days-question-close"
               accessibilityRole="button"
+              accessibilityLabel="Cerrar"
+              style={[styles.closeSquare, { backgroundColor: theme.colors.blue[600] }]}
             >
-              <Text style={[styles.closeBtn, { color: theme.colors.blue[600] }]}>✕</Text>
+              <Text style={styles.closeSquareText}>✕</Text>
             </Pressable>
           </View>
-          {/* screen-06 ionic: "Tienes 2 Días de racha 😌" title above mini calendar
-              Original: .date-header { font-size:16px, font-weight:700 } used as heading reference */}
-          <Text style={[styles.modalHeading, { color: theme.semanticColors.text }]}>
-            Tienes 2 Días de racha 😌
-          </Text>
-          <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
-            En el siguiente <Text style={{ fontFamily: fontFamilyForWeight('700') }}>ejemplo</Text> se muestran dos días de racha:
-          </Text>
-          {/* Mini calendar example (screen-06: 02 azul, 03 outline, 04/05 azul, 06 dashed, 07/08 gris) */}
-          <View style={styles.miniCalendarWrapper}>
-            <Calendar
-              calendarView="week"
-              isMini
-              hasHeader={false}
-              daysComplete={[2, 4, 5]}
-              daysIncomplete={[3]}
-              daysSaveStreak={[]}
-              viewDate={new Date(new Date().getFullYear(), new Date().getMonth(), 6)}
-            />
+
+          <View style={styles.textCard}>
+            <Text style={[styles.modalText, { color: theme.colors.blue[900] }]}>
+              En el siguiente <Text style={styles.modalTextStrong}>ejemplo</Text> se
+              muestran dos días de racha:
+            </Text>
+
+            {/* D-10 — the original is a FIXED illustration (assets/images/calendar_example.svg):
+                a light-cyan panel whose title sits INSIDE it and whose week is always
+                02✓ / 03 incompleto / 04✓ / 05✓ / 06 por registrar / 07 / 08. The RN version
+                was painting the user's REAL current week instead. Redrawn here with Day
+                cells because the original SVG embeds a base64 bitmap through
+                `<pattern><use xlink:href>`, which react-native-svg cannot rasterise. */}
+            <View style={styles.exampleCard} testID="streak-example">
+              <Text
+                style={[
+                  styles.exampleTitle,
+                  {
+                    fontFamily: fontFamilyForWeight('700'),
+                    color: theme.colors.blue[800],
+                  },
+                ]}
+              >
+                Tienes 2 Días de racha 😌
+              </Text>
+              <View style={styles.exampleHeaderRow}>
+                {EXAMPLE_DAY_HEADERS.map((label, idx) => (
+                  <View key={`${label}-${idx}`} style={styles.exampleCell}>
+                    <Text
+                      style={[
+                        styles.exampleHeaderText,
+                        {
+                          fontFamily: fontFamilyForWeight('400'),
+                          color: theme.colors.gray[400],
+                        },
+                      ]}
+                    >
+                      {label}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+              <View style={styles.exampleWeekRow}>
+                {STREAK_EXAMPLE_WEEK.map(({ day, state }) => (
+                  <View key={day} style={styles.exampleCell}>
+                    <Day day={day} state={state} />
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* D-11 — the original keeps the `date_incomplete.svg` badge INLINE in the
+                sentence (`.modal_Days_question ion-icon { font-size: 26px }`). */}
+            <Text style={[styles.modalText, { color: theme.colors.blue[900] }]}>
+              <Text style={styles.modalTextStrong}>¿Por qué solo dos días? </Text>
+              A pesar de haber 3 días completos, el día{' '}
+              <View style={styles.inlineBadge}>
+                <DateIncompleteIcon width={26} height={26} />
+              </View>{' '}
+              está incompleto y rompe con la secuencia.
+            </Text>
           </View>
-          <Text style={[styles.modalText, { color: theme.semanticColors.text, marginTop: 8 }]}>
-            <Text style={{ fontFamily: fontFamilyForWeight('700') }}>¿Por qué solo dos días?</Text> A pesar de haber 3 días completos, el día incompleto rompe con la secuencia.
-          </Text>
+
           <TouchableOpacity
-            style={[styles.button, { backgroundColor: theme.colors.blue[600], marginTop: 16 }]}
+            style={[styles.button, { backgroundColor: theme.colors.blue[600] }]}
             onPress={() => dismissModal(modalDaysQuestionRef)}
             testID="modal-days-question-entendido"
           >
-            <Text style={[styles.buttonText, { fontFamily: fontFamilyForWeight('600') }]}>
+            <Text style={[styles.buttonText, { fontFamily: fontFamilyForWeight('500') }]}>
               Entendido
             </Text>
           </TouchableOpacity>
         </View>
       </UvaFullBottomSheet>
 
-      {/* modal_token — "+2 semillas por día completo..." */}
+      {/* modal_token — semillas (docs/evidence/home/screen-07) */}
       <UvaFullBottomSheet
         ref={modalTokenRef}
+        contentStyle={styles.sheetSurface}
         onDismiss={() => {/* handled by gesture */}}
       >
         <ScrollView
@@ -504,71 +672,75 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
           contentContainerStyle={styles.modalContent}
           testID="modal-token"
         >
-          {/* Each seed rule in white card (screen-07 ionic: 4 tarjetas blancas separadas) */}
-          {/* Original home.page.html:185-219: h1 shows number + semilla.svg SVG icon (NOT emoji) */}
+          {/* D-09 — original order inside every `.container_text`: the explanatory <p>
+              FIRST and the big `<h1>+N 🌰</h1>` BELOW it, both centred. There is no
+              "5 🌰" heading on the third card: the original shows the
+              `date_incomplete_to_done.svg` illustration between its two paragraphs. */}
           <View style={styles.tokenCard}>
-            {/* +2 <semilla.svg> — original: "+2<ion-icon src="semilla.svg">" */}
-            <View style={styles.seedCountRow}>
-              <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>+2</Text>
-              <SemillaIcon width={24} height={24} />
-            </View>
-            <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
-              Cada día que cumplas <Text style={{ fontFamily: fontFamilyForWeight('700') }}>con todos tus registros</Text> ganas dos semillas.
+            <Text style={[styles.modalTextCentered, { color: theme.colors.blue[900] }]}>
+              Cada día que cumplas{' '}
+              <Text style={styles.modalTextStrong}>con todos tus registros</Text> ganas dos
+              semillas.
             </Text>
-          </View>
-          <View style={styles.tokenCard}>
-            {/* +1 <semilla.svg> — original: "+1<ion-icon src="semilla.svg">" */}
             <View style={styles.seedCountRow}>
-              <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>+1</Text>
-              <SemillaIcon width={24} height={24} />
+              <Text style={[styles.modalBig, { color: theme.colors.blue[900] }]}>+2</Text>
+              <SemillaIcon width={SEED_ICON_BIG_W} height={SEED_ICON_BIG_H} />
             </View>
-            <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
-              Los días que <Text style={{ fontFamily: fontFamilyForWeight('700') }}>cumplas con algunos</Text> registros ganas una semilla.
+          </View>
+
+          <View style={styles.tokenCard}>
+            <Text style={[styles.modalTextCentered, { color: theme.colors.blue[900] }]}>
+              Los días que{' '}
+              <Text style={styles.modalTextStrong}>cumplas con algunos</Text> registros
+              ganas una semilla.
             </Text>
-          </View>
-          <View style={styles.tokenCard}>
-            {/* 5 <semilla.svg> — original: "5" shown via date_incomplete_to_done.svg illustration */}
             <View style={styles.seedCountRow}>
-              <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>5</Text>
-              <SemillaIcon width={24} height={24} />
+              <Text style={[styles.modalBig, { color: theme.colors.blue[900] }]}>+1</Text>
+              <SemillaIcon width={SEED_ICON_BIG_W} height={SEED_ICON_BIG_H} />
             </View>
-            {/* Original: home.page.scss #modal_token .icon_arrow { font-size:18px }
-                screen-07: third card shows "03 → [03✓]" — Day(incomplete) → arrow → Day(complete)
-                Visually illustrates the streak-recovery mechanism */}
+          </View>
+
+          <View style={styles.tokenCard}>
+            <Text style={[styles.modalTextCentered, { color: theme.colors.blue[900] }]}>
+              Con estas semillas podrás recuperar tu racha.
+            </Text>
+            {/* Original `<h1><ion-img src="date_incomplete_to_done.svg">`, 126x40 */}
             <View style={styles.streakRecoveryRow}>
-              <Day day={3} state="incomplete" />
-              <Text style={[styles.streakArrow, { color: theme.semanticColors.text }]}>→</Text>
-              <Day day={3} state="complete" />
+              <DateIncompleteToDoneIcon width={126} height={40} />
             </View>
-            <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
-              Con estas semillas podrás recuperar tu racha. Para recuperar un día incompleto, <Text style={{ fontFamily: fontFamilyForWeight('700') }}>debes pagar 5 semillas.</Text>
+            <Text style={[styles.modalTextCentered, { color: theme.colors.blue[900] }]}>
+              Para recuperar un día incompleto,{' '}
+              <Text style={styles.modalTextStrong}>debes pagar 5 semillas.</Text>
             </Text>
           </View>
+
           <View style={styles.tokenCard}>
-            {/* +3 <semilla.svg> — original: "+3<ion-icon src="semilla.svg">" */}
-            <View style={styles.seedCountRow}>
-              <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>+3</Text>
-              <SemillaIcon width={24} height={24} />
-            </View>
-            <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
-              Si cumples <Text style={{ fontFamily: fontFamilyForWeight('700') }}>con 7 días de racha</Text> ganas <Text style={{ fontFamily: fontFamilyForWeight('700') }}>3 semillas adicionales.</Text>
+            <Text style={[styles.modalTextCentered, { color: theme.colors.blue[900] }]}>
+              Si cumples <Text style={styles.modalTextStrong}>con 7 días de racha </Text>
+              ganas <Text style={styles.modalTextStrong}>3 semillas adicionales.</Text>
             </Text>
+            <View style={styles.seedCountRow}>
+              <Text style={[styles.modalBig, { color: theme.colors.blue[900] }]}>+3</Text>
+              <SemillaIcon width={SEED_ICON_BIG_W} height={SEED_ICON_BIG_H} />
+            </View>
           </View>
+
           <TouchableOpacity
-            style={[styles.button, { backgroundColor: theme.colors.blue[600], marginTop: 16 }]}
+            style={[styles.button, { backgroundColor: theme.colors.blue[600] }]}
             onPress={() => closeAndOpen(modalTokenRef, modalToken2Ref)}
             testID="modal-token-siguiente"
           >
-            <Text style={[styles.buttonText, { fontFamily: fontFamilyForWeight('600') }]}>
+            <Text style={[styles.buttonText, { fontFamily: fontFamilyForWeight('500') }]}>
               Siguiente
             </Text>
           </TouchableOpacity>
         </ScrollView>
       </UvaFullBottomSheet>
 
-      {/* modal_token_2 — "Al finalizar el mes la cantidad de tus semillas germinará..." */}
+      {/* modal_token_2 — germinación (docs/evidence/home/screen-08) */}
       <UvaFullBottomSheet
         ref={modalToken2Ref}
+        contentStyle={styles.sheetSurface}
         onDismiss={() => {/* handled by gesture */}}
       >
         <View style={styles.modalNavRow}>
@@ -577,14 +749,16 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
             testID="modal-token2-back"
             accessibilityRole="button"
           >
-            <Text style={[styles.backArrow, { color: theme.semanticColors.text }]}>←</Text>
+            <Text style={[styles.backArrow, { color: theme.colors.blue[900] }]}>←</Text>
           </Pressable>
           <Pressable
             onPress={() => dismissModal(modalToken2Ref)}
             testID="modal-token2-close"
             accessibilityRole="button"
+            accessibilityLabel="Cerrar"
+            style={[styles.closeSquare, { backgroundColor: theme.colors.blue[600] }]}
           >
-            <Text style={[styles.closeBtn, { color: theme.colors.blue[600] }]}>✕</Text>
+            <Text style={styles.closeSquareText}>✕</Text>
           </Pressable>
         </View>
         <ScrollView
@@ -592,23 +766,29 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
           contentContainerStyle={styles.modalContent}
           testID="modal-token-2"
         >
-          <Text style={[styles.modalText, { color: theme.semanticColors.text }]}>
-            Al finalizar el <Text style={{ fontFamily: fontFamilyForWeight('700') }}>mes</Text> la cantidad de tus semillas <Text style={{ fontFamily: fontFamilyForWeight('700') }}>germinará</Text> de esta manera:
-          </Text>
+          {/* D-15 — the intro paragraph is its own `.container_text` white card in the
+              original, and every range description is centred. */}
+          <View style={styles.tokenCard}>
+            <Text style={[styles.modalTextCentered, { color: theme.colors.blue[900] }]}>
+              Al finalizar el <Text style={styles.modalTextStrong}>mes</Text> la cantidad
+              de tus semillas <Text style={styles.modalTextStrong}>germinará</Text> de esta
+              manera:
+            </Text>
+          </View>
 
-          {/* Each germination range in white card (screen-08 ionic: 4 tarjetas blancas individuales) */}
-          {/* Original home.page.html:265-315: semilla.svg + arrow-right.svg + brote/platula/flor SVG */}
-          {/* testID on description Text so existing tests can read text via .children */}
+          {/* Each germination range in its own white card.
+              Original home.page.html:265-315: semilla.svg + arrow-right.svg + brote/platula/flor */}
 
           {/* 11 a 40 → brote — original: "11<semilla> a 40<semilla><arrow><brote>" */}
           <View style={styles.tokenCard}>
             <View style={styles.germinationRow}>
-              <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>11</Text>
-              <SemillaIcon width={20} height={20} />
-              <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>{' a 40'}</Text>
-              <SemillaIcon width={20} height={20} />
+              <Text style={[styles.modalBig, { color: theme.colors.blue[900] }]}>11</Text>
+              <SemillaIcon width={SEED_ICON_MED_W} height={SEED_ICON_MED_H} />
+              <Text style={[styles.modalBig, { color: theme.colors.blue[900] }]}>{' a 40'}</Text>
+              <SemillaIcon width={SEED_ICON_MED_W} height={SEED_ICON_MED_H} />
               <ArrowRightIcon width={18} height={18} />
-              {/* brote uses PNG (same as AchievementScreen: original also uses brote1.png) */}
+              {/* brote uses PNG: assets/svg/icons/brote.svg is a raster pattern that
+                  react-native-svg renders as a grey box. */}
               <Image
                 source={require('@/assets/png/profile/brote1.png')}
                 style={styles.germinationStageIcon}
@@ -616,69 +796,75 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
               />
             </View>
             <Text
-              style={[styles.modalText, { color: theme.semanticColors.text }]}
+              style={[styles.modalTextCentered, { color: theme.colors.blue[900] }]}
               testID="germination-brote"
             >
-              De 11 a 40 semillas germina un <Text style={{ fontFamily: fontFamilyForWeight('700') }}>brote</Text>
+              De 11 a 40 semillas germina un{' '}
+              <Text style={styles.modalTextStrong}>brote</Text>
             </Text>
           </View>
 
           {/* 41 a 63 → plántula — original: "41<semilla> a 63<semilla><arrow><platula>" */}
           <View style={styles.tokenCard}>
             <View style={styles.germinationRow}>
-              <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>41</Text>
-              <SemillaIcon width={20} height={20} />
-              <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>{' a 63'}</Text>
-              <SemillaIcon width={20} height={20} />
+              <Text style={[styles.modalBig, { color: theme.colors.blue[900] }]}>41</Text>
+              <SemillaIcon width={SEED_ICON_MED_W} height={SEED_ICON_MED_H} />
+              <Text style={[styles.modalBig, { color: theme.colors.blue[900] }]}>{' a 63'}</Text>
+              <SemillaIcon width={SEED_ICON_MED_W} height={SEED_ICON_MED_H} />
               <ArrowRightIcon width={18} height={18} />
-              <PlatulaIcon width={32} height={32} />
+              <PlatulaIcon width={26} height={32} />
             </View>
             <Text
-              style={[styles.modalText, { color: theme.semanticColors.text }]}
+              style={[styles.modalTextCentered, { color: theme.colors.blue[900] }]}
               testID="germination-plantula"
             >
-              De 41 a 63 semillas germina una <Text style={{ fontFamily: fontFamilyForWeight('700') }}>plantula</Text>
+              De 41 a 63 semillas germina una{' '}
+              <Text style={styles.modalTextStrong}>plantula</Text>
             </Text>
           </View>
 
           {/* más de 63 → flor — original: "mas de 63<semilla><arrow><flor>" */}
           <View style={styles.tokenCard}>
             <View style={styles.germinationRow}>
-              <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>{'mas de 63'}</Text>
-              <SemillaIcon width={20} height={20} />
+              <Text style={[styles.modalBig, { color: theme.colors.blue[900] }]}>
+                {'mas de 63'}
+              </Text>
+              <SemillaIcon width={SEED_ICON_MED_W} height={SEED_ICON_MED_H} />
               <ArrowRightIcon width={18} height={18} />
               <FlorIcon width={32} height={32} />
             </View>
             <Text
-              style={[styles.modalText, { color: theme.semanticColors.text }]}
+              style={[styles.modalTextCentered, { color: theme.colors.blue[900] }]}
               testID="germination-flor"
             >
-              más de 63 semillas germina una <Text style={{ fontFamily: fontFamilyForWeight('700') }}>flor</Text>
+              más de 63 semillas germina una{' '}
+              <Text style={styles.modalTextStrong}>flor</Text>
             </Text>
           </View>
 
           {/* 0 a 10 → nada — original: "0<semilla> a 10<semilla>" (no stage icon) */}
           <View style={styles.tokenCard}>
             <View style={styles.germinationRow}>
-              <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>0</Text>
-              <SemillaIcon width={20} height={20} />
-              <Text style={[styles.modalBig, { color: theme.semanticColors.text }]}>{' a 10'}</Text>
-              <SemillaIcon width={20} height={20} />
+              <Text style={[styles.modalBig, { color: theme.colors.blue[900] }]}>0</Text>
+              <SemillaIcon width={SEED_ICON_MED_W} height={SEED_ICON_MED_H} />
+              <Text style={[styles.modalBig, { color: theme.colors.blue[900] }]}>{' a 10'}</Text>
+              <SemillaIcon width={SEED_ICON_MED_W} height={SEED_ICON_MED_H} />
             </View>
             <Text
-              style={[styles.modalText, { color: theme.semanticColors.text }]}
+              style={[styles.modalTextCentered, { color: theme.colors.blue[900] }]}
               testID="germination-nada"
             >
-              De 0 a 10 semillas <Text style={{ fontFamily: fontFamilyForWeight('700') }}>No</Text> alcanza a germinar <Text style={{ fontFamily: fontFamilyForWeight('700') }}>nada</Text> 😒
+              De 0 a 10 semillas <Text style={styles.modalTextStrong}>No</Text> alcanza a
+              germinar <Text style={styles.modalTextStrong}>nada</Text> 😒
             </Text>
           </View>
 
           <TouchableOpacity
-            style={[styles.button, { backgroundColor: theme.colors.blue[600], marginTop: 16 }]}
+            style={[styles.button, { backgroundColor: theme.colors.blue[600] }]}
             onPress={() => dismissModal(modalToken2Ref)}
             testID="modal-token2-entendido"
           >
-            <Text style={[styles.buttonText, { fontFamily: fontFamilyForWeight('600') }]}>
+            <Text style={[styles.buttonText, { fontFamily: fontFamilyForWeight('500') }]}>
               Entendido
             </Text>
           </TouchableOpacity>
@@ -700,31 +886,33 @@ const styles = StyleSheet.create({
     backgroundColor: '#F4F4F4',
   },
   scrollContent: {
-    padding: 16,
-    gap: 0,
+    // Original: ion-content has no horizontal padding — `.cards` and `.card_moon` each
+    // carry `margin-inline: 10px`, so the gutter is 10px, not 16px.
     paddingBottom: 32,
     // Ensure the gutter between cards is also #F4F4F4 (not white)
     backgroundColor: '#F4F4F4',
   },
   dateHeader: {
     fontSize: 16,
-    marginBottom: 16,
+    // Original: .date-header { margin-block: 20px }
+    marginTop: 20,
+    marginBottom: 20,
     textAlign: 'center', // original: text-align: center (home.page.scss .date-header)
     // textTransform removed: original "Hoy, lunes 11 de junio" is NOT capitalize
   },
+  // D-01 / D-09 — global.scss `.cards`:
+  //   border-radius: 10px; border: 1px solid --Colors-Gray-200;
+  //   background: --Colors-Gray-50; margin-inline: 10px; padding: 10px; padding-top: 0
+  // (no shadow, and radius 10 — not the 24-ish radius + drop shadow RN was drawing).
   card: {
-    borderRadius: 12,
-    padding: 16,
-    // Original: ion-card internal spacing — gap 16 matches visible spacing between
-    // title/calendar/button sections visible in screen-01-home-top.png
-    gap: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginHorizontal: 10,
+    padding: 10,
+    paddingTop: 0,
   },
   cardMarginTop: {
+    // Original: `<div class="cards ion-margin-top">` → 16px
     marginTop: 16,
   },
   cardHeader: {
@@ -732,33 +920,56 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  // Original: `.title_series { color: --Colors-Blue-800; font-size: 16px; font-weight: 700 }`
+  // + `ion-card-title { padding: 6px 0 }` (D-05 / D-09 / D-10: was near-black at 15px).
   cardTitle: {
-    fontSize: 15,
+    fontSize: 16,
+    lineHeight: 24,
+    paddingVertical: 6,
+  },
+  // Only the standalone title (card 1) stretches; inside `cardTitleRow` the text must NOT
+  // take the remaining width or it pushes the seed icon to the far right (D-04).
+  cardTitleFlex: {
     flex: 1,
     flexWrap: 'wrap',
-  },
-  infoIcon: {
-    fontSize: 20,
-    paddingLeft: 8,
   },
   button: {
     // Original: ion-button expand="block" → full width. Explicit width:'100%' ensures
     // parity on react-native-web where TouchableOpacity may not auto-stretch.
     width: '100%',
     paddingVertical: 12,
+    // Original: `.cards ion-button { --border-radius: 8px }` + `ion-button { margin-top: 10px }`
     borderRadius: 8,
+    marginTop: 10,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   buttonText: {
     color: '#FFFFFF',
     fontSize: 15,
   },
+  buttonArrow: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    lineHeight: 20,
+  },
+  // Original: `.calendar_content { border-radius: 10px; border: 1px solid --Colors-Gray-200;
+  // background: #FFF }` — the white panel inside the grey card (D-01).
+  innerPanel: {
+    borderRadius: 10,
+    borderWidth: 1,
+  },
   // Modal styles
+  // Original: `%modalCommons { padding: 10px 10px 20px 10px; background: --Colors-Gray-100 }`
+  sheetSurface: {
+    backgroundColor: '#F5F5F5',
+    paddingHorizontal: 0,
+  },
   modalContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 32,
-    gap: 12,
-    // Original: home.page.scss %modalCommons { background-color: var(--Colors-Gray-100) = #F5F5F5 }
+    paddingHorizontal: 10,
+    paddingBottom: 20,
     backgroundColor: '#F5F5F5',
   },
   modalScrollContainer: {
@@ -767,44 +978,72 @@ const styles = StyleSheet.create({
   modalNavRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    alignItems: 'center',
+    paddingHorizontal: 10,
     paddingBottom: 8,
+    backgroundColor: '#F5F5F5',
   },
   backArrow: {
-    fontSize: 22,
-    paddingVertical: 4,
-  },
-  closeBtn: {
     fontSize: 20,
     paddingVertical: 4,
+  },
+  // D-12 — white ✕ on a filled rounded teal square (original ion-button, width 36px).
+  closeSquare: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeSquareText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    lineHeight: 22,
+    fontFamily: 'Montserrat-Regular',
   },
   modalText: {
-    fontSize: 14,
-    fontFamily: 'Montserrat-Regular',
-    lineHeight: 20,
-  },
-  // Modal section heading — larger than body text (screen-06: "Tienes 2 Días de racha 😌")
-  // Original: .date-header { @include text-base(16px, 700) } — used as modal title reference
-  modalHeading: {
+    // Original: `.modal_Days p { font-size: 16px; font-weight: 500 }`, line-height 150%
     fontSize: 16,
-    fontFamily: 'Montserrat-Bold',
+    fontFamily: 'Montserrat-Medium',
     lineHeight: 24,
   },
-  modalBig: {
-    fontSize: 20,
-    fontFamily: 'Montserrat-Bold',
+  modalTextCentered: {
+    fontSize: 16,
+    fontFamily: 'Montserrat-Medium',
+    lineHeight: 24,
+    // Original: `.modal_token, .modal_token_2 { text-align: center }` (D-15)
     textAlign: 'center',
-    marginVertical: 4,
+  },
+  modalTextStrong: {
+    fontFamily: 'Montserrat-Bold',
+  },
+  modalTextFlex: {
+    flex: 1,
+  },
+  // Original: `.container_text { padding: 10px; border-radius: 10px; background: #FFF;
+  // gap: 14px; margin-block: 20px }`
+  textCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 10,
+    gap: 14,
+    marginVertical: 20,
+  },
+  modalBig: {
+    // Original: `.modal_token h1 { font-size: 30px; font-weight: 600 }`
+    fontSize: 30,
+    fontFamily: 'Montserrat-SemiBold',
+    textAlign: 'center',
   },
   // card title row: "Registra y gana: +2 <semilla.svg>"
   // Original: ion-card-title .title_series = text inline with semilla.svg icon
   cardTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 2,
     flex: 1,
   },
-  // Inline row for seed count display: "+2 <semilla.svg>" inside tokenCard header
+  // Inline row for seed count display: "+2 <semilla.svg>" under the paragraph
   // Original: h1 { +2<ion-icon src="semilla.svg"> } in modal_token
   seedCountRow: {
     flexDirection: 'row',
@@ -813,7 +1052,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   // Row for germination range display: "11 <semilla> a 40 <semilla> → <brote>"
-  // Original: h1 { 11<semilla> a 40<semilla><arrow><brote> } in modal_token_2 (home.page.html:266-275)
+  // Original: h1 { 11<semilla> a 40<semilla><arrow><brote> } in modal_token_2
   germinationRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -827,23 +1066,18 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
   },
-  // modal_Days state rows (screen-05: Day circle + label side by side)
+  // modal_Days state rows (screen-05: 40x40 asset + label side by side)
+  // Original: `.modal_Days p ion-icon { margin-right: 14px; width: 40px; height: 40px }`
   modalStateRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
   },
-  // screen-07: streak recovery visual — Day(incomplete) → arrow → Day(complete)
-  // Original: #modal_token .icon_arrow { font-size: 18px } + two Day circles inline
+  // screen-07: streak recovery illustration (date_incomplete_to_done.svg, 126x40)
   streakRecoveryRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-  },
-  streakArrow: {
-    fontSize: 18, // original: .icon_arrow { font-size: 18px }
-    fontFamily: 'Montserrat-Regular',
   },
   // White card for each seed rule / germination range (screen-07/08)
   // Original: .container_text { background: #FFF; border-radius: 10px; padding: 10px }
@@ -851,13 +1085,44 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
     padding: 10,
+    gap: 10,
+    marginTop: 20,
+  },
+  // Fixed streak illustration inside modal_Days_question (screen-06):
+  // light-cyan panel (--Colors-Blue-50 = #EDFEFE, radius 16) with the title inside.
+  exampleCard: {
+    backgroundColor: '#EDFEFE',
+    borderRadius: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
     gap: 4,
   },
-  // Wrapper for mini calendar in modal_Days_question (screen-06)
-  miniCalendarWrapper: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    padding: 10,
+  exampleTitle: {
+    fontSize: 14,
+    lineHeight: 21,
+    paddingHorizontal: 4,
+    marginBottom: 4,
+  },
+  exampleHeaderRow: {
+    flexDirection: 'row',
+  },
+  exampleWeekRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  exampleCell: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  exampleHeaderText: {
+    fontSize: 12,
+  },
+  // Inline `date_incomplete.svg` badge inside a paragraph (original renders the ion-icon
+  // in the flow of the sentence at font-size 26).
+  inlineBadge: {
+    width: 26,
+    height: 26,
   },
 });
 

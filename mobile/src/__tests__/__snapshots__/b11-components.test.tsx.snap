@@ -4,10 +4,8 @@ exports[`ExploreContainer matches snapshot with title and subtitle 1`] = `
 <View
   style={
     {
-      "alignItems": "center",
+      "backgroundColor": "#4BC5BE",
       "flex": 1,
-      "justifyContent": "center",
-      "padding": 18,
     }
   }
   testID="explore-container"
@@ -30,95 +28,106 @@ exports[`ExploreContainer matches snapshot with title and subtitle 1`] = `
     style={
       {
         "alignItems": "center",
-        "maxWidth": 400,
-        "width": "100%",
+        "flex": 1,
+        "justifyContent": "center",
+        "padding": 18,
       }
     }
   >
     <View
-      colors={
-        [
-          "rgba(255,255,255,0.3)",
-          "rgba(255,255,255,0.8)",
-        ]
-      }
-      end={
-        {
-          "x": 0,
-          "y": 1,
-        }
-      }
-      start={
-        {
-          "x": 0,
-          "y": 0,
-        }
-      }
       style={
         {
           "alignItems": "center",
-          "borderRadius": 20,
-          "gap": 20,
-          "overflow": "hidden",
-          "padding": 20,
+          "maxWidth": 400,
           "width": "100%",
         }
       }
     >
-      <svg
-        height={70}
-        width={70}
-      />
-      <Text
-        style={
+      <View
+        colors={
           [
-            {
-              "fontSize": 20,
-              "textAlign": "center",
-            },
-            {
-              "color": "#1A6270",
-              "fontFamily": "Montserrat-SemiBold",
-            },
+            "rgba(255,255,255,0.3)",
+            "rgba(255,255,255,0.8)",
           ]
         }
-      >
-        Registro
-      </Text>
-      <Text
+        end={
+          {
+            "x": 0,
+            "y": 1,
+          }
+        }
+        start={
+          {
+            "x": 0,
+            "y": 0,
+          }
+        }
         style={
-          [
-            {
-              "fontSize": 16,
-              "lineHeight": 24,
-              "textAlign": "center",
-            },
-            {
-              "color": "#404040",
-              "fontFamily": "Montserrat-Bold",
-            },
-          ]
+          {
+            "alignItems": "center",
+            "borderRadius": 20,
+            "gap": 20,
+            "overflow": "hidden",
+            "padding": 20,
+            "width": "100%",
+          }
         }
       >
-        Crea tu cuenta
-      </Text>
-      <Text
-        style={
-          [
-            {
-              "fontSize": 16,
-              "lineHeight": 24,
-              "textAlign": "center",
-            },
-            {
-              "color": "#404040",
-              "fontFamily": "Montserrat-Medium",
-            },
-          ]
-        }
-      >
-        Ingresa tus datos
-      </Text>
+        <svg
+          height={70}
+          width={70}
+        />
+        <Text
+          style={
+            [
+              {
+                "fontSize": 20,
+                "textAlign": "center",
+              },
+              {
+                "color": "#1A6270",
+                "fontFamily": "Montserrat-SemiBold",
+              },
+            ]
+          }
+        >
+          Registro
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "fontSize": 16,
+                "lineHeight": 24,
+                "textAlign": "center",
+              },
+              {
+                "color": "#404040",
+                "fontFamily": "Montserrat-Bold",
+              },
+            ]
+          }
+        >
+          Crea tu cuenta
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "fontSize": 16,
+                "lineHeight": 24,
+                "textAlign": "center",
+              },
+              {
+                "color": "#404040",
+                "fontFamily": "Montserrat-Medium",
+              },
+            ]
+          }
+        >
+          Ingresa tus datos
+        </Text>
+      </View>
     </View>
   </View>
 </View>
@@ -411,18 +420,18 @@ exports[`MoonCard — name and icon never undefined (§4.4 bug fix) matches snap
   <View
     style={
       {
+        "aspectRatio": 3.8636363636363638,
         "bottom": 0,
         "left": 6,
         "pointerEvents": "none",
         "position": "absolute",
-        "right": 6,
         "top": 0,
       }
     }
   >
     <svg
       height="100%"
-      preserveAspectRatio="xMidYMid slice"
+      preserveAspectRatio="xMinYMid meet"
       width="100%"
     />
   </View>

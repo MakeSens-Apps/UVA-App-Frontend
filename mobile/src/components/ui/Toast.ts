@@ -92,14 +92,23 @@ export function hideToast(): void {
  * Must be rendered exactly ONCE near the root of the app (App.tsx / NavigationContainer).
  * Provides the portal for Toast.show() to inject messages into.
  *
+ * Prefer `ToastHost`, which mounts the same portal already wired to the
+ * ion-toast look (solid full-width bar, white regular text) and to the bottom
+ * safe-area inset.
+ *
  * @example (App.tsx):
- *   import { ToastComponent } from '@/components/ui/Toast';
+ *   import { ToastHost } from '@/components/ui/Toast';
  *   ...
  *   return (
  *     <>
  *       <NavigationContainer>...</NavigationContainer>
- *       <ToastComponent />
+ *       <ToastHost />
  *     </>
  *   );
  */
 export { default as ToastComponent } from 'react-native-toast-message';
+
+/**
+ * ion-toast styling shared by every toast in the app (Historial, Configuración…).
+ */
+export { toastConfig, ToastHost } from './toastConfig';

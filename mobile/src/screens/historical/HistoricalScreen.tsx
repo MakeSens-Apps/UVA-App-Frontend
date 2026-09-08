@@ -65,6 +65,7 @@ import { TimeFrame } from '@/components/time-frame/TimeFrame';
 import type { TimeFrameValue } from '@/components/time-frame/TimeFrame';
 import { Areachart } from '@/components/areachart/Areachart';
 import { showToast } from '@/components/ui/Toast';
+import { AppIcon } from '@/components/icons/AppIcons';
 
 import { useConfigContext } from '@/state/ConfigContext';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -81,7 +82,10 @@ import {
   sum,
   mean,
 } from '@/domain/aggregations/historical-aggregations';
-import type { HistoricalMeasurement } from '@/domain/aggregations/historical-aggregations';
+import type {
+  HistoricalMeasurement,
+  RawMeasurementData,
+} from '@/domain/aggregations/historical-aggregations';
 
 import type { Historical, MeasurementModel } from '@/data/models/configuration/measurements.model';
 import type { UserProgress } from '@/data/models';
@@ -89,6 +93,10 @@ import type { CalendarDay } from '@/components/calendar/calendarLogic';
 import { EnvironmentalReport } from '@/components/environmental-report/EnvironmentalReport';
 import { EnvironmentalReportService } from '@/domain/report/environmental-report';
 import type { ReportData } from '@/domain/report/environmental-report';
+import {
+  buildReportFileName,
+  renameCaptureForShare,
+} from '@/domain/report/report-file';
 
 // ─── Grid helpers ─────────────────────────────────────────────────────────────
 
@@ -164,7 +172,7 @@ interface ChartDataResult {
  */
 function buildChartData(
   measureSelected: Historical,
-  rawMeasurements: Array<{ data?: Record<string, number> | null; ts: string }>,
+  rawMeasurements: { data?: RawMeasurementData; ts: string }[],
   measuresConfig: MeasurementModel | null,
   year: number,
   monthIndex: number,
@@ -307,10 +315,12 @@ export function HistoricalScreen(): React.JSX.Element {
   const [currentYearIndex, setCurrentYearIndex] = useState(realCurrentYear);
   const [nRegisters, setNRegisters] = useState<number | undefined>(undefined);
   const [completedTaskYear, setCompletedTaskYear] = useState<CompleteTaskHistorical[]>([]);
-  const [completedTaskMonth, setCompletedTaskMonth] = useState<CompleteTaskHistorical | undefined>(undefined);
   const [variables, setVariables] = useState<Historical[]>([]);
   const [measuresConfig, setMeasuresConfig] = useState<MeasurementModel | null>(null);
   const [measureSelected, setMeasureSelected] = useState<Historical | undefined>(undefined);
+  // Stable identity of the selected variable, used by the month-load effect so
+  // it does not re-run when only the object reference changes.
+  const measureSelectedName = measureSelected?.name;
   const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [loading, setLoading] = useState(true);
   const [sharing, setSharing] = useState(false);
@@ -344,34 +354,6 @@ export function HistoricalScreen(): React.JSX.Element {
       return () => { mounted = false; };
     }, []),
   );
-
-  // ─── Mount: load all data ──────────────────────────────────────────────────
-  useEffect(() => {
-    let mounted = true;
-    const loadAll = async () => {
-      setLoading(true);
-      try {
-        await initializeRegisters(mounted);
-        await initializeCompletedTasks(mounted);
-        // Preserved (historical.page.ts ngOnInit): the page loads the measurement
-        // config itself via ConfigurationAppService.getConfigurationMeasurement()
-        // (cached by ConfigContext) — it does NOT depend on another screen having
-        // loaded it first.
-        const config = await getConfigurationMeasurement();
-        if (mounted) setMeasuresConfig(config);
-        if (config?.historical && mounted) {
-          // Fix (b): pass current timeFrame instead of hardcoded 'month' so that
-          // year-view variables are built with the full-year dataset.
-          // Original: initializeVariables reads this.timeFrame (historical.page.ts:512).
-          await initializeVariables(config.historical, timeFrame, mounted);
-        }
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-    void loadAll();
-    return () => { mounted = false; };
-  }, [getConfigurationMeasurement, currentMonthIndex, currentYearIndex]);
 
   // ─── initializeRegisters ──────────────────────────────────────────────────
 
@@ -410,14 +392,24 @@ export function HistoricalScreen(): React.JSX.Element {
     if (!mounted) return;
 
     setCompletedTaskYear(completedYear);
-    const monthTask = completedYear.find((h) => h.mes === currentMonthIndex);
-    setCompletedTaskMonth(monthTask);
-  }, [currentMonthIndex, currentYearIndex, getCompletedTaskForMonth]);
+  }, [currentYearIndex, getCompletedTaskForMonth]);
+
+  // Original: `this.completedTaskMonth = this.completedTaskYear?.find(...)`
+  // (historical.page.ts:217-219) — a pure lookup in memory, so navigating
+  // months repaints the calendar immediately without hitting the DataStore.
+  const completedTaskMonth = React.useMemo(
+    () => completedTaskYear.find((h) => h.mes === currentMonthIndex),
+    [completedTaskYear, currentMonthIndex],
+  );
 
   // ─── initializeVariables ─────────────────────────────────────────────────
 
   const initializeVariables = useCallback(
-    async (historicalData: Historical[], tf: TimeFrameValue, mounted: boolean) => {
+    async (
+      historicalData: Historical[],
+      tf: TimeFrameValue,
+      mounted: boolean,
+    ): Promise<Historical[]> => {
       let measurementValues: any[];
 
       if (tf === 'year') {
@@ -465,6 +457,7 @@ export function HistoricalScreen(): React.JSX.Element {
           }) as Historical[],
         );
       }
+      return newVariables;
     },
     [currentMonthIndex, currentYearIndex],
   );
@@ -474,21 +467,13 @@ export function HistoricalScreen(): React.JSX.Element {
   const updateChartData = useCallback(
     async (measurement: Historical) => {
       try {
-        const rawMeasurementsRaw = await MeasurementDSService.getMeasurementsByMont(
+        // `transformData` normalizes `Measurement.data` (object or AWSJSON
+        // string) itself, so the chart and the Tem/Hum/Acu cards consume the
+        // EXACT same input shape — see parseMeasurementData in B07.
+        const rawMeasurements = await MeasurementDSService.getMeasurementsByMont(
           currentYearIndex,
           currentMonthIndex,
         );
-        // Parse JSON-string `data` field from Amplify DataStore model → Record<string, number>.
-        // On web, the IndexedDB driver may already deserialize the field into an object,
-        // so guard against double-parsing ("object is not valid JSON").
-        const rawMeasurements = rawMeasurementsRaw.map((m) => ({
-          ts: m.ts,
-          data: m.data
-            ? typeof m.data === 'string'
-              ? (JSON.parse(m.data) as Record<string, number>)
-              : (m.data as unknown as Record<string, number>)
-            : null,
-        }));
         const chartData = buildChartData(
           measurement,
           rawMeasurements,
@@ -504,6 +489,83 @@ export function HistoricalScreen(): React.JSX.Element {
     [currentMonthIndex, currentYearIndex, measuresConfig],
   );
 
+  // ─── Mount / year change: the expensive 12-month load ─────────────────────
+  //
+  // D-40: the previous single effect re-ran `initializeCompletedTasks` (12
+  // parallel DataStore queries) on EVERY month change and blanked the whole
+  // screen meanwhile.  The original only does that on mount (`ngOnInit`) and
+  // when the YEAR changes (`updateDataForYear`, historical.page.ts:325-333);
+  // `setCurrentMonth` reuses the already-loaded `completedTaskYear` (`:216-219`),
+  // which is why switching months is instant there.
+  useEffect(() => {
+    let mounted = true;
+    const loadYear = async () => {
+      setLoading(true);
+      try {
+        await initializeCompletedTasks(mounted);
+        // Preserved (historical.page.ts ngOnInit): the page loads the measurement
+        // config itself via ConfigurationAppService.getConfigurationMeasurement()
+        // (cached by ConfigContext) — it does NOT depend on another screen having
+        // loaded it first.
+        const config = await getConfigurationMeasurement();
+        if (mounted) setMeasuresConfig(config);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    void loadYear();
+    return () => { mounted = false; };
+  }, [getConfigurationMeasurement, currentYearIndex, initializeCompletedTasks]);
+
+  // ─── Month change: registers + variables + chart (original setCurrentMonth) ─
+  //
+  // Original historical.page.ts:222-236: initializeRegisters → initializeVariables
+  // → and, only when `typeView === 'chart'`, updateChart() for the new month.
+  // D-12: doing the chart refresh here is what lets the graph survive month
+  // navigation instead of falling back to the calendar.
+  useEffect(() => {
+    let mounted = true;
+    const loadMonth = async () => {
+      await initializeRegisters(mounted);
+      const config = measuresConfig ?? (await getConfigurationMeasurement());
+      if (!config?.historical || !mounted) return;
+
+      // Fix (b): pass current timeFrame instead of hardcoded 'month' so that
+      // year-view variables are built with the full-year dataset.
+      // Original: initializeVariables reads this.timeFrame (historical.page.ts:512).
+      const freshVariables = await initializeVariables(
+        config.historical,
+        timeFrame,
+        mounted,
+      );
+
+      if (!mounted || typeView !== 'chart' || freshVariables.length === 0) return;
+      // Original: `this.measureSelected.selected = true; updateChart(...)`, or
+      // `changeColorChart(this.variables[0])` when nothing is selected yet.
+      const selected =
+        freshVariables.find((v) => v.name === measureSelectedName) ??
+        freshVariables[0];
+      setVariables((v) =>
+        v.map((vr) => ({ ...vr, selected: vr.name === selected.name })),
+      );
+      setMeasureSelected({ ...selected, selected: true });
+      await updateChartData(selected);
+    };
+    void loadMonth();
+    return () => { mounted = false; };
+  }, [
+    currentMonthIndex,
+    currentYearIndex,
+    measuresConfig,
+    timeFrame,
+    typeView,
+    measureSelectedName,
+    getConfigurationMeasurement,
+    initializeRegisters,
+    initializeVariables,
+    updateChartData,
+  ]);
+
   // ─── changeModeData ────────────────────────────────────────────────────────
 
   const changeModeData = useCallback(() => {
@@ -513,15 +575,14 @@ export function HistoricalScreen(): React.JSX.Element {
         const firstVar = { ...variables[0], selected: true };
         setMeasureSelected(firstVar);
         setVariables((v) => v.map((vr, i) => ({ ...vr, selected: i === 0 })));
-        // Async chart update (fire and forget)
-        void updateChartData(firstVar);
+        // The month-load effect (keyed on typeView) builds the chart data.
       } else {
         setVariables((v) => v.map((vr) => ({ ...vr, selected: false })));
         setMeasureSelected(undefined);
       }
       return next;
     });
-  }, [variables, updateChartData]);
+  }, [variables]);
 
   // ─── changeColorChart ─────────────────────────────────────────────────────
 
@@ -537,16 +598,12 @@ export function HistoricalScreen(): React.JSX.Element {
 
   // ─── changeSegment ────────────────────────────────────────────────────────
 
-  const changeSegment = useCallback(
-    async (type: TimeFrameValue) => {
-      setTimeFrame(type);
-      const config = measuresConfig ?? (await getConfigurationMeasurement());
-      if (config?.historical) {
-        await initializeVariables(config.historical, type, true);
-      }
-    },
-    [measuresConfig, getConfigurationMeasurement, initializeVariables],
-  );
+  // Original changeSegment (historical.page.ts:159-176) re-runs
+  // initializeVariables for the new timeFrame; here the month-load effect is
+  // keyed on `timeFrame`, so setting it is enough and avoids a duplicate query.
+  const changeSegment = useCallback((type: TimeFrameValue) => {
+    setTimeFrame(type);
+  }, []);
 
   // ─── setCurrentMonth ──────────────────────────────────────────────────────
 
@@ -571,12 +628,20 @@ export function HistoricalScreen(): React.JSX.Element {
 
       setCurrentMonthIndex(newIndex);
       setCurrentYearIndex(newYear);
+
+      // D-12: the original ONLY drops back to the calendar when the navigation
+      // starts from the year view (`historical.page.ts:203-211`); coming from
+      // the month view it keeps `typeView` and re-runs updateChart for the new
+      // month (`:227-236`).  Resetting typeView unconditionally lost the chart
+      // mode on every month change.
+      if (timeFrame === 'year') {
+        setTypeView('calendar');
+        setVariables((v) => v.map((vr) => ({ ...vr, selected: false })));
+        setMeasureSelected(undefined);
+      }
       setTimeFrame('month');
-      setTypeView('calendar');
-      setVariables((v) => v.map((vr) => ({ ...vr, selected: false })));
-      setMeasureSelected(undefined);
     },
-    [completedTaskYear, currentYearIndex, realCurrentYear],
+    [completedTaskYear, currentYearIndex, realCurrentYear, timeFrame],
   );
 
   // ─── isNextYearDisabled ───────────────────────────────────────────────────
@@ -645,6 +710,18 @@ export function HistoricalScreen(): React.JSX.Element {
         }
       } catch (captureErr) {
         console.warn('[HistoricalScreen] captureRef failed, falling back to text:', captureErr);
+      }
+
+      // ── Step 4b: give the file a readable name (D-19) ─────────────────────
+      // captureRef writes `ReactNative-snapshot-image<hash>.png` into the temp
+      // dir and the share sheet shows that raw name.  The original shares
+      // `reporte-<mes>-<año>.png` (share.service.ts names the blob), so copy
+      // the capture to the cache dir under that name before sharing.
+      if (imageUri) {
+        imageUri = await renameCaptureForShare(
+          imageUri,
+          buildReportFileName(currentMonthIndex, currentYearIndex),
+        );
       }
 
       // ── Step 5: share ─────────────────────────────────────────────────────
@@ -720,14 +797,11 @@ export function HistoricalScreen(): React.JSX.Element {
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
-  if (loading) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.gray[100] }]}>
-        <ActivityIndicator color={theme.colors.blue[500]} size="large" />
-      </View>
-    );
-  }
-
+  // D-40/D-12: the original NEVER unmounts the shell while loading — the header
+  // and the Mes/Año segment stay on screen and only the content area is
+  // refreshed (Ionic renders the page, then ngOnInit fills it in).  Returning a
+  // bare full-screen spinner produced a white screen with a white status bar
+  // for ~8-10 s on entry and on every month change.
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.gray[100] }]}>
       <Header
@@ -744,7 +818,13 @@ export function HistoricalScreen(): React.JSX.Element {
         </View>
 
         {/* Month view */}
-        {timeFrame === 'month' && (
+        {loading && (
+          <View style={styles.contentLoader} testID="historical-loading">
+            <ActivityIndicator color={theme.colors.blue[500]} size="large" />
+          </View>
+        )}
+
+        {!loading && timeFrame === 'month' && (
           <View style={[styles.card, { backgroundColor: theme.colors.gray[50], borderColor: theme.colors.gray[200] }]}>
             {/* Header: month name, year, register count, toggle button */}
             <View style={styles.calendarHeader}>
@@ -818,7 +898,13 @@ export function HistoricalScreen(): React.JSX.Element {
                       { fontFamily: fontFamilyForWeight('600') },
                     ]}
                   >
-                    {variable.symbol}{variable.name.substring(0, 3)}
+                    {/* D-20: the emoji is rendered by the system emoji font,
+                        whose advance width is wider than the web one, so it
+                        showed a gap the original does not have
+                        ("🌡 Tem" vs "🌡Tem"). A negative letterSpacing on the
+                        symbol only compensates that advance. */}
+                    <Text style={styles.variableSymbol}>{variable.symbol}</Text>
+                    {variable.name.substring(0, 3)}
                   </Text>
                   <View
                     style={[
@@ -959,9 +1045,18 @@ export function HistoricalScreen(): React.JSX.Element {
                 disabled={sharing}
                 testID="share-data-btn"
               >
+                {/* Original: <ion-icon slot="start" name="share-outline"> —
+                    the ionicons upload tray, not a thin ↗ arrow (D-17). */}
+                {!sharing && (
+                  <AppIcon
+                    name="share-outline"
+                    width={18}
+                    height={18}
+                    style={styles.shareBtnIcon}
+                  />
+                )}
                 <Text style={[styles.shareBtnText, { fontFamily: fontFamilyForWeight('500') }]}>
-                  {/* Original: ion-icon share-outline (⇗ share/export arrow) */}
-                  {sharing ? 'Generando...' : '⇗ Compartir datos'}
+                  {sharing ? 'Generando...' : 'Compartir datos'}
                 </Text>
               </TouchableOpacity>
             )}
@@ -969,7 +1064,7 @@ export function HistoricalScreen(): React.JSX.Element {
         )}
 
         {/* Year view */}
-        {timeFrame === 'year' && (
+        {!loading && timeFrame === 'year' && (
           <View style={[styles.card, { backgroundColor: theme.colors.gray[50], borderColor: theme.colors.gray[200] }]}>
             {/* Year navigation */}
             <View style={styles.yearNav}>
@@ -1023,7 +1118,13 @@ export function HistoricalScreen(): React.JSX.Element {
                       { fontFamily: fontFamilyForWeight('600') },
                     ]}
                   >
-                    {variable.symbol}{variable.name.substring(0, 3)}
+                    {/* D-20: the emoji is rendered by the system emoji font,
+                        whose advance width is wider than the web one, so it
+                        showed a gap the original does not have
+                        ("🌡 Tem" vs "🌡Tem"). A negative letterSpacing on the
+                        symbol only compensates that advance. */}
+                    <Text style={styles.variableSymbol}>{variable.symbol}</Text>
+                    {variable.name.substring(0, 3)}
                   </Text>
                   <View style={[styles.variableAvgBox, { backgroundColor: theme.colors.white }]}>
                     <Text
@@ -1111,6 +1212,12 @@ export function HistoricalScreen(): React.JSX.Element {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  // Loader shown INSIDE the content area (header + segment stay mounted).
+  contentLoader: {
+    paddingVertical: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   scroll: { flex: 1 },
   timeFrameContainer: {
     paddingHorizontal: 16,
@@ -1166,6 +1273,11 @@ const styles = StyleSheet.create({
     padding: 10,
     gap: 6,
     alignItems: 'flex-start',
+  },
+  // D-20: cancels the extra advance width of the system emoji font so the
+  // symbol sits flush against the label, as in the original.
+  variableSymbol: {
+    letterSpacing: -2,
   },
   variableTitle: {
     // Original: .calendar_variables--title — 16px/600, #545454, centered, width 100%
@@ -1242,9 +1354,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#14788A', // --Colors-Blue-700
     borderRadius: 8,
     height: 44,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
+  },
+  shareBtnIcon: {
+    marginRight: 8, // ion-button icon slot="start" spacing
   },
   shareBtnText: {
     color: '#FFFFFF',

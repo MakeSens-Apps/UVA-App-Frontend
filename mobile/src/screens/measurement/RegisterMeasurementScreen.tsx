@@ -54,12 +54,12 @@ import {
   ScrollView,
   TouchableOpacity,
   Modal,
-  Image,
   StyleSheet,
   ActivityIndicator,
   type TextInputProps,
 } from 'react-native';
 import ExclamationIcon from '@/assets/svg/icons/exclamation.svg';
+import InformationCircleIcon from '@/assets/svg/icons/information-circle.svg';
 import { BlurView } from 'expo-blur';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -83,6 +83,8 @@ import type {
   MeasurementModel,
 } from '@/data/models/configuration/measurements.model';
 import type { MeasurementValue } from '@/domain/measurement-engine/measurement-engine';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ConfigIcon } from './ConfigIcon';
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
@@ -109,6 +111,10 @@ interface LocalMeasurement extends Measurement {
  */
 export function RegisterMeasurementScreen({ route, navigation }: Props): React.JSX.Element {
   const { theme } = useTheme();
+  // Edge-to-edge (targetSdk 36 / RN 0.85): this screen is a full-screen stack route
+  // with no tab bar underneath, so its scroll content ends flush with the window
+  // bottom — i.e. UNDER the Android system navigation bar. Pad by the bottom inset.
+  const insets = useSafeAreaInsets();
   const { configMeasurement, countTasks, loadImage } = useConfigContext();
 
   const {
@@ -579,7 +585,11 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
         onBackPress={() => navigation.navigate('AppTabs', { screen: 'Measurement' })}
       />
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={{ paddingBottom: insets.bottom }}
+        showsVerticalScrollIndicator={false}
+      >
         {flow && (
           <View style={styles.formContainer}>
             {/* Flow text (HTML) */}
@@ -622,16 +632,23 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
                   ]}
                   testID={`measurement-card-${measIdx}`}
                 >
-                  {/* Measurement name + icon */}
+                  {/* Measurement name + icon.
+                      `.measurements_name { justify-content: space-between }` — the
+                      24×24 `item.icon` sits in the RIGHT corner of the card, painted
+                      with `icon.colorHex`: ↑ green for máximos, ↓ red for mínimos
+                      (register-measurement.page.html:21-30, screen-07 / screen-16).
+                      D-30: it never painted because <Image> cannot decode the SVG
+                      the RACIMO config ships — see ConfigIcon. */}
                   <View style={styles.measurementHeader}>
                     {item.name ? (
                       <RichText html={item.name} inline baseFontSize={14} />
                     ) : null}
-                    {item.icon?.enable && item.iconUri ? (
-                      <Image
-                        source={{ uri: item.iconUri }}
-                        style={[styles.iconImg, { tintColor: item.icon.colorHex }]}
-                        resizeMode="contain"
+                    {item.icon?.enable ? (
+                      <ConfigIcon
+                        uri={item.iconUri}
+                        size={24}
+                        color={item.icon.colorHex}
+                        testID={`measurement-icon-${measIdx}`}
                       />
                     ) : null}
                   </View>
@@ -669,27 +686,40 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
                     </Text>
                   </View>
 
-                  {/* Alert / error message */}
-                  {/* Original: .alert .title { color: var(--Colors-Orange-500, #e58b24) }
-                      register-measurement.page.scss:130-131
-                      ion-icon src="exclamation.svg" 20×20px (register-measurement.page.html:54) */}
+                  {/* Alert / error message — D-32.
+                      The box is the GLOBAL `.alert` (global.scss:381-393): white
+                      background, 1px --Gray-300 border, radius 14, padding 10px 16px,
+                      column layout with `align-items: center`, 10px margin. The page
+                      only overrides `gap: 0` and the title colour
+                      (register-measurement.page.scss:121-134). So: ⚠️ alone on its
+                      own centred line, then the centred orange 16/700 title, then the
+                      message — see docs/evidence/measurement/screen-07. RN had a cream
+                      box with the icon inline to the left of the title. */}
                   {showAlert && errorMsg ? (
                     <View
-                      style={[styles.alertContainer, { backgroundColor: theme.colors.orange[50] ?? '#FFF7ED' }]}
+                      style={[
+                        styles.alertContainer,
+                        {
+                          backgroundColor: theme.colors.white,
+                          borderColor: theme.colors.gray[300],
+                        },
+                      ]}
                       testID={`measurement-alert-${measIdx}`}
                     >
-                      <View style={styles.alertTitleRow}>
-                        <ExclamationIcon width={20} height={20} />
-                        <Text
-                          style={[
-                            styles.alertTitle,
-                            { fontFamily: fontFamilyForWeight('600'), color: theme.colors.orange[500] ?? '#E58B24' },
-                          ]}
-                        >
-                          ¿Estás seguro de este dato?
-                        </Text>
-                      </View>
-                      <RichText html={errorMsg} baseFontSize={13} />
+                      <ExclamationIcon width={20} height={20} />
+                      <Text
+                        style={[
+                          styles.alertTitle,
+                          { fontFamily: fontFamilyForWeight('700'), color: theme.colors.orange[500] ?? '#E58B24' },
+                        ]}
+                      >
+                        ¿Estás seguro de este dato?
+                      </Text>
+                      <RichText
+                        html={errorMsg}
+                        baseFontSize={16}
+                        baseColor={theme.colors.gray[700]}
+                      />
                     </View>
                   ) : null}
                 </View>
@@ -711,7 +741,11 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
                 >
                   ¿Cómo ver este dato?
                 </Text>
-                <Text style={[styles.guideLinkIcon, { color: theme.colors.blue[500] }]}>ℹ️</Text>
+                {/* D-31 — `.help ion-icon { width: 20px; height: 20px }` with
+                    src="information-circle.svg": a FILLED dark-teal (#1A6270) circle
+                    with a white "i", not the ℹ️ emoji
+                    (register-measurement.page.html:71-74, .scss:29-32). */}
+                <InformationCircleIcon width={20} height={20} testID="guide-help-icon" />
               </TouchableOpacity>
             )}
 
@@ -725,7 +759,7 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
                 <Text
                   style={[
                     styles.saveButtonText,
-                    { fontFamily: fontFamilyForWeight('600'), color: theme.colors.white },
+                    { fontFamily: fontFamilyForWeight('500'), color: theme.colors.white },
                   ]}
                 >
                   Guardar registro
@@ -762,12 +796,20 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
         {/* BlurView replaces solid overlay — mirrors backdrop-filter:blur(20px) */}
         <BlurView intensity={80} tint="light" style={styles.modalBackdropCentered}>
           {modalStage === 'saved' ? (
-            // ── Saved phase ───────────────────────────────────────────────────
+            /* ── Saved phase ──────────────────────────────────────────────────
+               `.modal_saved` (global.scss:523-542): white card, 1px --Gray-200
+               border, radius 10, `padding: 10px 0px`, centred column; the modal
+               itself is 95% wide / max 400 (`ion-modal#modal_register_ok`).
+               D-36: "Siguiente" is an `expand="block"` ion-button — full width of
+               the modal with the usual button padding. RN rendered it hugging its
+               label, and the card's own border cut across it because the button had
+               no horizontal room. `.container_button` supplies the side padding
+               that `.modal_saved`'s `padding: 10px 0` deliberately omits. */
             <View style={[styles.savedCard, { backgroundColor: theme.colors.white }]}>
               <Text
                 style={[
                   styles.savedTitle,
-                  { fontFamily: fontFamilyForWeight('600'), color: theme.semanticColors.text },
+                  { fontFamily: fontFamilyForWeight('700'), color: theme.colors.gray[600] },
                 ]}
               >
                 {flow?.name} guardados
@@ -775,40 +817,49 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
 
               {/* If there's a next flow, show "Siguiente" button (multi-flow advance) */}
               {flow?.nextFlow ? (
-                <TouchableOpacity
-                  style={[styles.saveButton, { backgroundColor: theme.colors.blue[600], marginTop: 16 }]}
-                  onPress={goToComplete}
-                  testID="next-flow-button"
-                >
-                  <Text
-                    style={[
-                      styles.saveButtonText,
-                      { fontFamily: fontFamilyForWeight('600'), color: theme.colors.white },
-                    ]}
+                <View style={styles.savedButtonContainer} testID="next-flow-container">
+                  <TouchableOpacity
+                    style={[styles.saveButton, { backgroundColor: theme.colors.blue[600] }]}
+                    onPress={goToComplete}
+                    testID="next-flow-button"
                   >
-                    Siguiente
-                  </Text>
-                </TouchableOpacity>
+                    <Text
+                      style={[
+                        styles.saveButtonText,
+                        { fontFamily: fontFamilyForWeight('500'), color: theme.colors.white },
+                      ]}
+                    >
+                      Siguiente
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               ) : null}
             </View>
           ) : (
             // ── Confirmation phase ────────────────────────────────────────────
+            /* D-35: there is NO white container card in the original. `.wrapper`
+               only sets `margin-inline: 10px` and the modal part is transparent
+               (`.custom-modal_confirmation::part(content) { background: transparent }`,
+               register-measurement.page.scss:147-154), so the title, the measurement
+               cards and the button float straight over the blurred form — see
+               docs/evidence/measurement/screen-09 and screen-20. */
             <ScrollView
               style={styles.modalScroll}
               contentContainerStyle={styles.modalScrollContent}
               showsVerticalScrollIndicator={false}
             >
-              <View style={[styles.modalCard, { backgroundColor: theme.colors.white }]}>
+              <View style={styles.modalWrapper} testID="confirm-modal-wrapper">
                 <Text
                   style={[
                     styles.modalTitle,
-                    { fontFamily: fontFamilyForWeight('700'), color: theme.semanticColors.text },
+                    { fontFamily: fontFamilyForWeight('600'), color: theme.colors.gray[700] },
                   ]}
                 >
                   Verifica los datos 🧐
                 </Text>
 
-                {/* Measurement summary */}
+                {/* Measurement summary — the SAME cards as the form, arrows included
+                    (register-measurement.page.html:135-148). */}
                 {measurements.map((item, measIdx) => (
                   <View
                     key={item.id ?? measIdx}
@@ -819,21 +870,44 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
                         borderColor: item.style?.borderColor?.colorHex ?? theme.colors.blue[200] ?? '#BFDBFE',
                       },
                     ]}
+                    testID={`confirm-card-${measIdx}`}
                   >
                     <View style={styles.measurementHeader}>
                       {item.name ? (
                         <RichText html={item.name} inline baseFontSize={14} />
                       ) : null}
+                      {item.icon?.enable ? (
+                        <ConfigIcon
+                          uri={item.iconUri}
+                          size={16}
+                          color={item.icon.colorHex}
+                          testID={`confirm-icon-${measIdx}`}
+                        />
+                      ) : null}
                     </View>
+                    {/* D-35: the original re-renders the per-digit inputs, so the value
+                        reads "2 8 °C" — one glyph per underlined 40dp box — not a single
+                        joined "28 °C" string. */}
                     <View style={styles.digitContainer}>
-                      <Text
-                        style={[
-                          styles.valueDisplay,
-                          { fontFamily: fontFamilyForWeight('600'), color: theme.semanticColors.text },
-                        ]}
-                      >
-                        {item.value ?? '--'}
-                      </Text>
+                      {item.fieldsArray.map((digit, i) => (
+                        <View
+                          key={i}
+                          style={styles.digitReadonly}
+                          testID={`confirm-digit-${measIdx}-${i}`}
+                        >
+                          <Text
+                            style={[
+                              styles.digitReadonlyText,
+                              {
+                                fontFamily: fontFamilyForWeight('600'),
+                                color: theme.semanticColors.text,
+                              },
+                            ]}
+                          >
+                            {digit}
+                          </Text>
+                        </View>
+                      ))}
                       <Text
                         style={[
                           styles.unitText,
@@ -846,25 +920,27 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
                   </View>
                 ))}
 
-                <TouchableOpacity
-                  style={[styles.saveButton, { backgroundColor: theme.colors.blue[600] }]}
-                  onPress={() => void confirmSave()}
-                  disabled={saving}
-                  testID="confirm-save-button"
-                >
-                  {saving ? (
-                    <ActivityIndicator color={theme.colors.white} />
-                  ) : (
-                    <Text
-                      style={[
-                        styles.saveButtonText,
-                        { fontFamily: fontFamilyForWeight('600'), color: theme.colors.white },
-                      ]}
-                    >
-                      Guardar registro
-                    </Text>
-                  )}
-                </TouchableOpacity>
+                <View style={styles.saveButtonContainer}>
+                  <TouchableOpacity
+                    style={[styles.saveButton, { backgroundColor: theme.colors.blue[600] }]}
+                    onPress={() => void confirmSave()}
+                    disabled={saving}
+                    testID="confirm-save-button"
+                  >
+                    {saving ? (
+                      <ActivityIndicator color={theme.colors.white} />
+                    ) : (
+                      <Text
+                        style={[
+                          styles.saveButtonText,
+                          { fontFamily: fontFamilyForWeight('500'), color: theme.colors.white },
+                        ]}
+                      >
+                        Guardar registro
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
               </View>
             </ScrollView>
           )}
@@ -890,15 +966,15 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
   },
+  // `.measurements_name { display:flex; justify-content:space-between; align-items:flex-start; align-self:stretch }`
+  // register-measurement.page.scss:71-76 — the icon is pinned to the RIGHT corner.
   measurementHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    alignSelf: 'stretch',
     marginBottom: 12,
     gap: 8,
-  },
-  iconImg: {
-    width: 24,
-    height: 24,
   },
   digitContainer: {
     flexDirection: 'row',
@@ -908,35 +984,76 @@ const styles = StyleSheet.create({
   },
   digitInput: {
     // Original .digit-input: border-bottom only (no full border), no borderRadius, width:40, fontSize:26
+    // (register-measurement.page.scss:104-115 — --padding-start/end: 0)
+    //
+    // DEVICE BUG F-08 (Redmi Note 10S, Android 13, 440dpi): the typed digit was
+    // clipped in half. On Android a <TextInput> adds its own vertical padding
+    // plus the font's internal padding on top of the glyph box; with a fixed
+    // 44dp height and a 26dp Montserrat face the ascender no longer fitted and
+    // was cut off at the top. The five properties below make the glyph box
+    // deterministic at any density:
+    //   height 48       — 26dp glyph (~32dp line box) + breathing room
+    //   lineHeight 34   — MUST be >= fontSize; Montserrat needs ~1.22em
+    //   padding 0       — kills Android's implicit TextInput padding
+    //   textAlignVertical: 'center' — centers the line box inside `height`
+    //   includeFontPadding: false   — drops Android's extra ascent/descent pad
     width: 40,
-    height: 44,
+    height: 48,
+    lineHeight: 34,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    textAlignVertical: 'center',
+    includeFontPadding: false,
     borderBottomWidth: 2,
     borderBottomColor: '#525252', // --Colors-Gray-600
     borderRadius: 0,
     textAlign: 'center',
     fontSize: 26,
   },
-  valueDisplay: {
-    fontSize: 28,
+  /**
+   * Read-only digit box of the confirmation modal — same metrics as `.digit-input`
+   * so "2 8 °C" reads exactly like the form (D-35).
+   */
+  digitReadonly: {
+    width: 40,
+    height: 48,
+    borderBottomWidth: 2,
+    borderBottomColor: '#525252', // --Colors-Gray-600
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  digitReadonlyText: {
+    fontSize: 26,
+    lineHeight: 34,
+    textAlign: 'center',
+    includeFontPadding: false,
   },
   unitText: {
     fontSize: 16,
     marginLeft: 4,
   },
+  /**
+   * D-32 — the global `.alert` box (global.scss:381-393) with the page's `gap: 0`
+   * override (register-measurement.page.scss:121-122): WHITE background, 1px
+   * --Gray-300 border, radius 14, padding 10px 16px, margin 10, centred column.
+   * `borderColor` / `backgroundColor` are applied from the theme at render time.
+   */
   alertContainer: {
-    marginTop: 8,
-    padding: 12,
-    borderRadius: 8,
-  },
-  alertTitleRow: {
-    flexDirection: 'row',
+    margin: 10,
+    alignSelf: 'stretch',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1,
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 4,
+    justifyContent: 'center',
   },
+  // `.alert .title`: 16px / 700, --Colors-Orange-500, margin 4px 0, centred.
   alertTitle: {
-    fontSize: 13,
-    flex: 1,
+    fontSize: 16,
+    lineHeight: 24,
+    textAlign: 'center',
+    marginVertical: 4,
   },
   guideLink: {
     // .help: white bg, borderRadius 16, paddingH 12, paddingV 10, space-between
@@ -956,16 +1073,23 @@ const styles = StyleSheet.create({
   guideLinkIcon: {
     fontSize: 18,
   },
+  // `.container_button { margin-top: 10px }` — register-measurement.page.scss:117-119
   saveButtonContainer: {
-    marginTop: 8,
+    marginTop: 10,
   },
+  /**
+   * D-33 — `<ion-button expand="block">` (MD): 36dp tall, full width, 8dp radius,
+   * label at the MD button size in regular/medium weight — never the 48dp,
+   * semibold slab RN was drawing (docs/evidence/measurement/screen-07, screen-19).
+   */
   saveButton: {
     borderRadius: 8,
-    paddingVertical: 14,
+    height: 36,
+    justifyContent: 'center',
     alignItems: 'center',
   },
   saveButtonText: {
-    fontSize: 16,
+    fontSize: 15,
   },
   // Modal styles
   // BlurView replaces solid overlay — backdrop-filter:blur(20px) from original SCSS.
@@ -986,34 +1110,52 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalCard: {
-    // .wrapper { margin-inline: 10px } → horizontal margin; full rounded card (not bottom-sheet)
-    borderRadius: 16,
-    padding: 20,
+  /**
+   * D-35 — `.wrapper` is nothing but `margin-inline: 10px`
+   * (register-measurement.page.scss:147-149). NO background, NO border, NO radius:
+   * the content floats over the blurred form.
+   */
+  modalWrapper: {
     marginHorizontal: 10,
-    width: '95%',
-    maxWidth: 400,
-    alignSelf: 'center',
+    alignSelf: 'stretch',
   },
+  // `.title_modal_confirmation`: 18px / 600, --Colors-Gray-700, centred,
+  // with the mixin's 10px block margins (register-measurement.page.scss:155-163).
   modalTitle: {
     fontSize: 18,
-    marginBottom: 16,
+    lineHeight: 27,
+    marginVertical: 10,
     textAlign: 'center',
   },
   savedCard: {
     // ion-modal#modal_register_ok: --width 95%, --max-width 400px, border-radius 10px
-    // .modal_saved: border 1px Gray-200, centered column
+    // .modal_saved: border 1px Gray-200, `padding: 10px 0px`, centred column
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#E5E5E5',
-    padding: 32,
+    paddingVertical: 10,
+    paddingHorizontal: 0,
     width: '95%',
     maxWidth: 400,
     alignItems: 'center',
   },
+  // `.modal_saved p`: 16px / 700, line-height 150%, --Colors-Gray-600
   savedTitle: {
-    fontSize: 20,
+    fontSize: 16,
+    lineHeight: 24,
     textAlign: 'center',
+    marginVertical: 10,
+  },
+  /**
+   * D-36 — `.container_button` wrapper around the `expand="block"` ion-button.
+   * `alignSelf: 'stretch'` cancels the card's `align-items: center` (which is what
+   * shrank the button to its label), and the side padding keeps the card border
+   * clear of it.
+   */
+  savedButtonContainer: {
+    alignSelf: 'stretch',
+    paddingHorizontal: 16,
+    marginTop: 10,
   },
   bottomPadding: { height: 80 },
 });

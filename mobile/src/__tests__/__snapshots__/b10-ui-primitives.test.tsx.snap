@@ -277,7 +277,6 @@ exports[`Day snapshot — complete state with icon 1`] = `
         "backgroundColor": "#1097AA",
       },
       false,
-      false,
     ]
   }
   testID="day-cell-14"
@@ -286,7 +285,7 @@ exports[`Day snapshot — complete state with icon 1`] = `
     style={
       [
         {
-          "fontFamily": "Montserrat-SemiBold",
+          "fontFamily": "Montserrat-Regular",
           "fontSize": 13,
           "lineHeight": 18,
         },
@@ -306,11 +305,12 @@ exports[`Day snapshot — complete state with icon 1`] = `
           "position": "absolute",
         },
         {
-          "bottom": -4,
-          "left": -2,
+          "bottom": 0,
+          "right": 0,
         },
       ]
     }
+    testID="day-icon-badge"
   >
     <svg
       height={14}
@@ -350,7 +350,6 @@ exports[`Day snapshot — saveStreak state 1`] = `
         "backgroundColor": "#1097AA",
       },
       false,
-      false,
     ]
   }
   testID="day-cell-21"
@@ -359,7 +358,7 @@ exports[`Day snapshot — saveStreak state 1`] = `
     style={
       [
         {
-          "fontFamily": "Montserrat-SemiBold",
+          "fontFamily": "Montserrat-Regular",
           "fontSize": 13,
           "lineHeight": 18,
         },
@@ -379,11 +378,12 @@ exports[`Day snapshot — saveStreak state 1`] = `
           "position": "absolute",
         },
         {
-          "bottom": -4,
-          "left": -2,
+          "bottom": 0,
+          "right": 0,
         },
       ]
     }
+    testID="day-icon-badge"
   >
     <svg
       height={14}
@@ -410,21 +410,86 @@ exports[`Day snapshot — today state 1`] = `
       {
         "backgroundColor": "transparent",
       },
-      {
-        "borderColor": "#14788A",
-        "borderStyle": "dashed",
-        "borderWidth": 2,
-      },
       false,
     ]
   }
   testID="day-cell-6"
 >
+  <RNSVGSvgView
+    align="xMidYMid"
+    bbHeight={40}
+    bbWidth={40}
+    focusable={false}
+    height={40}
+    meetOrSlice={0}
+    minX={0}
+    minY={0}
+    pointerEvents="none"
+    style={
+      [
+        {
+          "backgroundColor": "transparent",
+          "borderWidth": 0,
+        },
+        {
+          "left": 0,
+          "position": "absolute",
+          "top": 0,
+        },
+        {
+          "flex": 0,
+          "height": 40,
+          "width": 40,
+        },
+      ]
+    }
+    testID="day-today-ring"
+    vbHeight={40}
+    vbWidth={40}
+    width={40}
+  >
+    <RNSVGGroup
+      fill={
+        {
+          "payload": 4278190080,
+          "type": 0,
+        }
+      }
+    >
+      <RNSVGCircle
+        cx={20}
+        cy={20}
+        fill={null}
+        propList={
+          [
+            "fill",
+            "stroke",
+            "strokeWidth",
+            "strokeDasharray",
+          ]
+        }
+        r={19}
+        stroke={
+          {
+            "payload": 4279531658,
+            "type": 0,
+          }
+        }
+        strokeDasharray={
+          [
+            "4",
+            "4",
+          ]
+        }
+        strokeWidth={2}
+      />
+    </RNSVGGroup>
+  </RNSVGSvgView>
   <Text
     style={
       [
         {
-          "fontFamily": "Montserrat-SemiBold",
+          "fontFamily": "Montserrat-Regular",
           "fontSize": 13,
           "lineHeight": 18,
         },

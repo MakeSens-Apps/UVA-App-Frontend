@@ -175,13 +175,19 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
     <>
       <View style={styles.gradient} testID="login-screen">
         {/* Background — original %bg uses background.svg (soft teal), NOT a hard gradient
-            (global.scss:59-93). */}
+            (global.scss:59-93).
+            IMPORTANT: this must stay a direct child of `gradient`, which has NO padding.
+            `width/height: '100%'` on an absolutely-positioned child resolves against the
+            parent's CONTENT box, so any padding on the parent left the SVG short of the
+            screen edges (a ~18dp gutter showed through on the right). The 5vw padding now
+            lives on the inner `content` wrapper instead. */}
         <BackgroundSvg
           width="100%"
           height="100%"
           preserveAspectRatio="xMidYMid slice"
           style={styles.background as StyleProp<ViewStyle>}
         />
+        <View style={styles.content}>
         {/* Card: LinearGradient rgba(255,255,255,0.3)→rgba(255,255,255,0.8) (global.scss:100-106 .card-content_gradient) */}
         <LinearGradient
           colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.8)']}
@@ -338,6 +344,7 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
             </TouchableOpacity>
           </View>
         </LinearGradient>
+        </View>
       </View>
 
       {/* Confirm modals rendered outside the screen container so they overlay properly */}
@@ -350,6 +357,14 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
 
 const styles = StyleSheet.create({
   gradient: {
+    // No padding here — the absolutely-positioned BackgroundSvg is a child of this
+    // view and its '100%' size resolves against this view's content box.
+    flex: 1,
+    // Safety net for edge-to-edge: matches background.svg's own base fill, so no
+    // window background can ever show through at a seam.
+    backgroundColor: '#4BC5BE',
+  },
+  content: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',

@@ -81,7 +81,11 @@ export interface CalendarProps {
   calendarView?: 'month' | 'week';
   /** Whether to show mini-sized day cells */
   isMini?: boolean;
-  /** Whether to show the day-of-week header row */
+  /**
+   * Kept for API compatibility with the Angular component, where `hasHeader` gated the
+   * `[header]` ng-content slot — NOT the `D L M M J V S` row, which the original renders
+   * unconditionally. The weekday row is therefore always shown (D-38).
+   */
   hasHeader?: boolean;
   /** Whether to show the title above the calendar */
   hasTitle?: boolean;
@@ -115,8 +119,7 @@ export interface CalendarProps {
 
 // Normal-mode circle size (matches Day.tsx CIRCLE_SIZE_NORMAL = 40)
 const CIRCLE_NORMAL = 40;
-// Mini-mode circle size (matches Day.tsx CIRCLE_SIZE_MINI = 13)
-const CIRCLE_MINI = 13;
+// Mini-mode cells are flexible (1fr): the 13px circle from Day.tsx is centred inside.
 
 const WEEK_ROW_STYLE: ViewStyle = {
   flexDirection: 'row',
@@ -129,10 +132,10 @@ const WEEK_ROW_MINI_STYLE: ViewStyle = {
   flexDirection: 'row',
   marginBottom: 1.322,
   alignItems: 'center',
-  // Mini mode: TOs have fixed 13px width. space-around distributes them
-  // evenly across the full weekRow width to match the original 7-column
-  // CSS grid behavior: grid-template-columns: repeat(7, 1fr).
-  justifyContent: 'space-around',
+  // Mini mode: 7 flexible columns, exactly like the original CSS grid
+  // (`grid-template-columns: repeat(7, 1fr)`). Fixed-width cells + space-around
+  // overflowed the ~90px mini-month column, so the circles touched each other
+  // and the ✓ badges overlapped their neighbours (D-39).
 };
 
 // Normal-mode cell: fixed width = circle size, centered content
@@ -143,18 +146,19 @@ const DAY_CELL_STYLE: ViewStyle = {
   paddingVertical: 2,
 };
 
-// Mini-mode cell: fixed width = mini circle size, no padding
-// Original: .day.mini { width: 13.223px; ... }
+// Mini-mode cell: one seventh of the row (original: 1fr of a 7-column grid), with the
+// circle centred inside so there is always air between neighbouring days (D-39).
+// Original: .day.mini { width: 13.223px; ... } inside `grid-template-columns: repeat(7,1fr)`
 const DAY_CELL_MINI_STYLE: ViewStyle = {
-  width: CIRCLE_MINI,
+  flex: 1,
   alignItems: 'center',
   justifyContent: 'center',
   paddingVertical: 0,
 };
 
 // TouchableOpacity (TO) wrapper inherits the cell dimensions via inner View.
-// TO itself only needs flex:1 in normal mode so the weekRow stretches to full width.
-// In mini mode the TO uses a fixed-width inner View; no flex needed on TO.
+// TO uses flex:1 in BOTH modes so each of the 7 columns gets an equal share of the row
+// (original: `grid-template-columns: repeat(7, 1fr)`).
 const TO_FLEX1_STYLE: ViewStyle = {
   flex: 1,
 };
@@ -245,6 +249,8 @@ export function Calendar({
     <View
       style={[
         styles.container,
+        // Original: .calendar { padding: 8px } / .calendar.mini { padding: 0 }
+        !isMini && !isMoonCalendar && styles.containerPadded,
         // Original: .calendar.moon { background: #1A6270; border-radius: 16px;
         //   padding: 20px 10px 10px 10px; gap: 6px; margin-inline: 10px; color: white }
         isMoonCalendar && styles.containerMoon,
@@ -266,26 +272,34 @@ export function Calendar({
         </Text>
       )}
 
-      {hasHeader && (
-        <View style={styles.headerRow}>
-          {DAY_HEADERS.map((day, idx) => (
-            <View key={`${day}-${idx}`} style={styles.headerCell}>
-              <Text
-                style={[
-                  styles.headerText,
-                  {
-                    fontFamily: fontFamilyForWeight('600'),
-                    // Original: .calendar.moon { color: white } — all text in moon mode is white
-                    color: isMoonCalendar ? '#FFFFFF' : theme.semanticColors.textSecondary,
-                  },
-                ]}
-              >
-                {day}
-              </Text>
-            </View>
-          ))}
-        </View>
-      )}
+      {/* Weekday header row.
+          Original calendar.component.html renders `D L M M J V S` for EVERY normal and
+          moon calendar (the `hasHeader` input only gates the `[header]` ng-content slot),
+          so mini calendars carry it too — D-38 (Historial › vista Año).
+          Colour/weight: `.calendar { color: var(--Colors-Gray-400) }` + dayCalendar mixin
+          `font-weight: 400` — light grey, regular (D-07). */}
+      <View style={[styles.headerRow, isMini && styles.headerRowMini]}>
+        {DAY_HEADERS.map((day, idx) => (
+          <View
+            key={`${day}-${idx}`}
+            style={isMini ? DAY_CELL_MINI_STYLE : styles.headerCell}
+          >
+            <Text
+              style={[
+                styles.headerText,
+                isMini && styles.headerTextMini,
+                {
+                  fontFamily: fontFamilyForWeight('400'),
+                  // Original: .calendar.moon { color: white } — all text in moon mode is white
+                  color: isMoonCalendar ? '#FFFFFF' : theme.colors.gray[400],
+                },
+              ]}
+            >
+              {day}
+            </Text>
+          </View>
+        ))}
+      </View>
 
       {/* Calendar grid — rendered as explicit week rows (7 cells per row).
           Inline styles are used for per-row and per-cell layout to avoid
@@ -309,7 +323,7 @@ export function Calendar({
                - The Day circle renders inside at its fixed mini/normal size.        */
             <TouchableOpacity
               key={dayIndex}
-              style={isMini ? undefined : TO_FLEX1_STYLE}
+              style={TO_FLEX1_STYLE}
               onPress={() => onDayPress?.(dayData.date ? dayData : null)}
               disabled={!dayData.date || !onDayPress}
               testID={dayData.date ? `calendar-day-${dayData.dayOfMonth}` : `calendar-empty-${weekIndex * 7 + dayIndex}`}
@@ -347,6 +361,10 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
   },
+  // Original: .calendar { padding: 8px }
+  containerPadded: {
+    padding: 8,
+  },
   // Original: .calendar.moon { background: #1A6270; border-radius: 16px;
   //   padding: 20px 10px 10px 10px; gap: 6px; margin-inline: 10px; color: white }
   containerMoon: {
@@ -374,12 +392,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     marginBottom: 4,
   },
+  headerRowMini: {
+    marginBottom: 1.322,
+  },
   headerCell: {
     flex: 1,
     alignItems: 'center',
   },
   headerText: {
     fontSize: 12,
+  },
+  // Original: .day.mini { font-size: 4.628px }
+  headerTextMini: {
+    fontSize: 5,
+    lineHeight: 7,
   },
   // weekRow, weekRowMini, dayCell, dayCellMini are defined as plain object
   // constants (WEEK_ROW_STYLE etc.) above, NOT in this StyleSheet, to avoid

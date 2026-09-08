@@ -30,6 +30,7 @@ import { SplashScreen } from '@/screens/splash/SplashScreen';
 import { useAuthGate } from './useAuthGate';
 import type { AuthGateDestination } from './useAuthGate';
 import { registerGateSetter } from './navigationGate';
+import { useBackHandler } from '@/native/back/useBackHandler';
 
 const Root = createNativeStackNavigator<RootStackParamList>();
 
@@ -86,6 +87,31 @@ export function RootNavigator(): React.JSX.Element {
 
     routeNameRef.current = currentRouteName;
   }, []);
+
+  // ─── Hardware back button (Android) ──────────────────────────────────────
+  //
+  // Original parity: app.component.ts registers the handler ONCE, globally
+  // (appMinimizeService.initializeBackButtonHandler()). Mounting it here — the
+  // only component that owns the NavigationContainer ref and outlives both the
+  // Auth and App stacks — reproduces that.
+  //
+  // Device bug fixed here: the hook existed but was never called from anywhere,
+  // so on Home the back button fell through to Android's default behavior
+  // (Activity finished → on relaunch the auth gate could land the user back in
+  // the Auth/register stack) instead of minimizing the app.
+  //
+  // getCurrentRoute() resolves the focused LEAF route across nested navigators
+  // (Root → App → AppTabs → HomeStack → Home ⇒ 'Home'), which is exactly what
+  // ROUTES_TO_MINIMIZE is keyed on.
+  const getCurrentRouteName = useCallback(
+    (): string => navigationRef.current?.getCurrentRoute()?.name ?? '',
+    [],
+  );
+
+  // `destination` is passed as the resubscribe key: NavigationContainer remounts on
+  // every gate flip (key={destination}) and registers its own BackHandler listener.
+  // RN's BackHandler is LIFO, so ours must be (re)registered last to win.
+  useBackHandler(getCurrentRouteName, destination);
 
   // ─── Splash → destination transition ─────────────────────────────────────
 
