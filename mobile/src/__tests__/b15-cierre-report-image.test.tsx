@@ -167,6 +167,21 @@ jest.mock('@gorhom/bottom-sheet', () => {
     __esModule: true,
     default: MockBS,
     BottomSheetView: ({ children }: { children: React.ReactNode }) => <View>{children}</View>,
+    // UvaBottomSheet renders its content in a BottomSheetScrollView (the scrollable is
+    // what reports the content height to the dynamic-sizing detent — --height: auto).
+    BottomSheetScrollView: ({
+      children,
+      contentContainerStyle,
+      testID,
+    }: {
+      children: React.ReactNode;
+      contentContainerStyle?: unknown;
+      testID?: string;
+    }) => (
+      <View style={contentContainerStyle as never} testID={testID}>
+        {children}
+      </View>
+    ),
     BottomSheetBackdrop: () => null,
   };
 });

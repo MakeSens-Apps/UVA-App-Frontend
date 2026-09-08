@@ -637,11 +637,11 @@ export function MeasurementScreen(): React.JSX.Element {
         <View style={styles.bottomPadding} />
       </ScrollView>
 
-      {/* Bonus surprise bottom sheet */}
+      {/* Bonus surprise bottom sheet — sin snapPoints: alto por contenido
+          (measurement.page.html:100 es un ion-modal --height:auto, breakpoints [0,1]). */}
       {bonusConfig && (
         <UvaBottomSheet
           ref={surpriseSheetRef}
-          snapPoints={['60%']}
           onDismiss={() => setOpenModalSurprise(false)}
         >
           <View style={styles.bonusSheet}>

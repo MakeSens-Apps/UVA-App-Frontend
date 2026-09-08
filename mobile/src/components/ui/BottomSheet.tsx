@@ -26,6 +26,24 @@
  *   - D-12 — close button is a white ✕ on a rounded teal square (`ion-button` with
  *     `color="uva_blue-600"` + `<ion-icon name="close" slot="icon-only">`), not a bare
  *     grey glyph. See `home.page.scss %modalCommons .contener_buttons_actions`.
+ *   - SHEET HEIGHT — every `ion-modal` in the app is `--height: auto` (global.scss:513,
+ *     app.component.scss:37, home.page.scss:163, achievement.page.scss:220,
+ *     profile.page.scss:206) with `[initialBreakpoint]="1" [breakpoints]="[0,1]"`, i.e.
+ *     the sheet is exactly AS TALL AS ITS CONTENT, capped at the viewport. Measured on
+ *     the original captures (viewport 360×740):
+ *         home/screen-05  modal_Days            top y=415 → 325px (44%)
+ *         home/screen-06  modal_Days_question   top y=264 → 476px (64%)
+ *         home/screen-07  modal_token           top y=63  → 677px (91%)
+ *         home/screen-08  modal_token_2         top y=24  → 716px (97%)
+ *         app-shell/screen-31 share modal       top y=364 → 376px (51%)
+ *     A single `snapPoints={['100%']}` therefore cannot be right for any of them.
+ *     `UvaBottomSheet` uses @gorhom/bottom-sheet v5 `enableDynamicSizing` so the detent
+ *     is derived from the measured content, capped at `maxDynamicContentSize` (the
+ *     window minus the status-bar inset) — the RN equivalent of `--height: auto`.
+ *     The content lives in a `BottomSheetScrollView` so content taller than the cap
+ *     scrolls (Ionic's `ion-content` inside the sheet does the same) instead of being
+ *     clipped. `UvaFullBottomSheet` keeps the fixed 100% detent for the sheets that are
+ *     fullscreen by design.
  *
  * Risks addressed: R-17, R-18, R-36
  */
@@ -43,12 +61,14 @@ import {
   StyleSheet,
   Pressable,
   Text,
+  useWindowDimensions,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import RNBottomSheet, {
   BottomSheetView,
+  BottomSheetScrollView,
   BottomSheetBackdrop,
   type BottomSheetBackdropProps,
 } from '@gorhom/bottom-sheet';
@@ -66,7 +86,15 @@ export interface BottomSheetRef {
 }
 
 export interface UvaBottomSheetProps {
-  /** Snap points (percentage strings or pixel numbers). Defaults to ['50%', '90%']. */
+  /**
+   * Explicit snap points (percentage strings or pixel numbers).
+   *
+   * OMIT THIS for parity with the original: every `ion-modal` in the app is
+   * `--height: auto`, so the sheet must be as tall as its content. Leaving this
+   * undefined enables @gorhom/bottom-sheet dynamic sizing, which measures the
+   * content and caps it at the window height minus the status-bar inset.
+   * Pass a value only for a sheet whose height is deliberately fixed.
+   */
   snapPoints?: (string | number)[];
   /** Whether the sheet can be dismissed by dragging down. Defaults to true. */
   enablePanDownToClose?: boolean;
@@ -133,11 +161,14 @@ function useSheetHost(onDismiss?: () => void) {
  *
  * Draggable bottom sheet with snap points.
  *
+ * Height comes from the CONTENT (original `ion-modal { --height: auto }`), not from a
+ * fixed detent — see the SHEET HEIGHT note at the top of this file.
+ *
  * @example
  *   const sheetRef = useRef<BottomSheetRef>(null);
  *
- *   // In JSX:
- *   <UvaBottomSheet ref={sheetRef} snapPoints={['40%', '80%']}>
+ *   // In JSX — no snapPoints: the sheet is as tall as <MyContent />
+ *   <UvaBottomSheet ref={sheetRef}>
  *     <MyContent />
  *   </UvaBottomSheet>
  *
@@ -147,7 +178,7 @@ function useSheetHost(onDismiss?: () => void) {
 export const UvaBottomSheet = forwardRef<BottomSheetRef, UvaBottomSheetProps>(
   function UvaBottomSheet(
     {
-      snapPoints = ['50%', '90%'],
+      snapPoints,
       enablePanDownToClose = true,
       onDismiss,
       children,
@@ -162,6 +193,19 @@ export const UvaBottomSheet = forwardRef<BottomSheetRef, UvaBottomSheetProps>(
     // is UNDER the Android system navigation bar. Pad the content by the bottom inset
     // so the last row / action button stays tappable above the nav bar.
     const insets = useSafeAreaInsets();
+    const { height: windowHeight } = useWindowDimensions();
+
+    // `--height: auto` still cannot exceed the viewport, and the Ionic viewport starts
+    // BELOW the status bar (the sheet tops out at the top of `ion-app`; the tallest of
+    // the captured sheets, screen-08, reaches 97% and stops). The host Modal here is
+    // statusBarTranslucent, so the same ceiling has to be applied by hand:
+    // `maxDynamicContentSize` lets the sheet grow with its content and then stop, with
+    // the content scrolling from there.
+    const maxDynamicContentSize = Math.max(windowHeight - insets.top, 1);
+
+    // Explicit snapPoints mean "this sheet has a deliberate fixed height" — dynamic
+    // sizing must be off there, otherwise gorhom appends a content detent to the list.
+    const useDynamicSizing = snapPoints === undefined;
 
     useImperativeHandle(ref, () => ({ present, dismiss }));
 
@@ -179,21 +223,28 @@ export const UvaBottomSheet = forwardRef<BottomSheetRef, UvaBottomSheetProps>(
             ref={sheetRef}
             index={0}
             snapPoints={snapPoints}
+            enableDynamicSizing={useDynamicSizing}
+            maxDynamicContentSize={maxDynamicContentSize}
             enablePanDownToClose={enablePanDownToClose}
             backdropComponent={renderBackdrop}
             onClose={handleClose}
             backgroundStyle={{ backgroundColor: theme.colors.white }}
             handleIndicatorStyle={HANDLE_INDICATOR_STYLE}
           >
-            <BottomSheetView
-              style={[
+            {/* BottomSheetScrollView (not BottomSheetView): it reports its content size
+                to the dynamic-sizing detent AND scrolls once the content passes
+                `maxDynamicContentSize`, mirroring the `ion-content` inside an
+                `--height: auto` sheet modal. */}
+            <BottomSheetScrollView
+              testID="bottom-sheet-content"
+              contentContainerStyle={[
                 styles.content,
                 { paddingBottom: styles.content.paddingBottom + insets.bottom },
                 contentStyle,
               ]}
             >
               {children}
-            </BottomSheetView>
+            </BottomSheetScrollView>
           </RNBottomSheet>
         </GestureHandlerRootView>
       </Modal>
@@ -253,6 +304,9 @@ export const UvaFullBottomSheet = forwardRef<
           ref={sheetRef}
           index={0}
           snapPoints={['100%']}
+          // v5 turns dynamic sizing ON by default; this variant is fullscreen BY DESIGN,
+          // so the measured-content detent must not be appended to ['100%'].
+          enableDynamicSizing={false}
           enablePanDownToClose={enablePanDownToClose}
           backdropComponent={renderBackdrop}
           onClose={handleClose}
@@ -295,8 +349,10 @@ const styles = StyleSheet.create({
   host: {
     flex: 1,
   },
+  // Content container of the dynamic sheet: NO `flex: 1`. The sheet's detent is derived
+  // from this container's measured height (`--height: auto`), so it must size itself to
+  // its children instead of stretching to fill a height it is itself supposed to define.
   content: {
-    flex: 1,
     paddingHorizontal: 16,
     paddingBottom: 24,
   },

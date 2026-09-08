@@ -519,7 +519,6 @@ exports[`ProgressBar matches snapshot 1`] = `
       {
         "backgroundColor": "#FFFFFF",
       },
-      false,
     ]
   }
   testID="progress-bar-container"

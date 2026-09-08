@@ -19,7 +19,7 @@
  * Changes from original:
  *   - ionViewWillEnter → useFocusEffect (React Navigation focus lifecycle)
  *   - ngOnInit → useEffect on mount
- *   - ion-modal bottom sheets → UvaFullBottomSheet (B10)
+ *   - ion-modal bottom sheets → UvaBottomSheet (B10, altura por contenido)
  *   - Router.navigate → navigation.navigate (typed params)
  *   - ChangeDetectorRef.detectChanges → setState (React)
  *   - IonContent → ScrollView
@@ -85,7 +85,7 @@ import { Calendar } from '@/components/calendar/Calendar';
 import { Day } from '@/components/ui/Day';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { MoonCard } from '@/components/moon-card/MoonCard';
-import { UvaFullBottomSheet } from '@/components/ui/BottomSheet';
+import { UvaBottomSheet } from '@/components/ui/BottomSheet';
 import type { BottomSheetRef } from '@/components/ui/BottomSheet';
 
 import { UserProgressDSService } from '@/data/datastore/user-progress-ds';
@@ -314,7 +314,10 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
 
   // ─── Render ───────────────────────────────────────────────────────────
 
-  const seedValue = userProgress?.Seed ?? 0;
+  // `null` while the progress row has not been read yet, so the header chip stays
+  // blank instead of flashing 0 → real value on entry (original: `{{ seed }}` on an
+  // undefined field renders an empty label — docs/evidence/home/screen-10-header.png).
+  const seedValue = userProgress === undefined ? null : (userProgress?.Seed ?? 0);
   const streakValue = userProgress?.Streak ?? 0;
   const completedTasksValue = userProgress?.completedTasks ?? 0;
 
@@ -471,8 +474,9 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
 
           {/* D-01 — the ProgressBar's own white panel IS the inner box of the original
               (`progress-bar.component.scss .progress_container { background:#fff; radius:14 }`).
-              It was suppressed with `naked` while the card itself was white; now the card is
-              grey (`.cards` = Gray-50 + Gray-200 border) so the panel must be visible. */}
+              It used to be suppressed by an opt-out prop while the card itself was white;
+              the card is now grey (`.cards` = Gray-50 + Gray-200 border), so the panel must
+              be visible and the opt-out has been removed from ProgressBar. */}
           <ProgressBar
             currentProgress={completedTasksValue}
             totalProgress={totalTask}
@@ -506,7 +510,7 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
       {/* ─── Bottom Sheet Modals ─────────────────────────────────────────── */}
 
       {/* modal_Days — "Los días tienen estos estados" (docs/evidence/home/screen-05) */}
-      <UvaFullBottomSheet
+      <UvaBottomSheet
         ref={modalDaysRef}
         contentStyle={styles.sheetSurface}
         onDismiss={() => {/* handled by gesture */}}
@@ -557,10 +561,10 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
             </Text>
           </TouchableOpacity>
         </View>
-      </UvaFullBottomSheet>
+      </UvaBottomSheet>
 
       {/* modal_Days_question — "En el siguiente ejemplo…" (docs/evidence/home/screen-06) */}
-      <UvaFullBottomSheet
+      <UvaBottomSheet
         ref={modalDaysQuestionRef}
         contentStyle={styles.sheetSurface}
         onDismiss={() => {/* handled by gesture */}}
@@ -659,19 +663,18 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
             </Text>
           </TouchableOpacity>
         </View>
-      </UvaFullBottomSheet>
+      </UvaBottomSheet>
 
       {/* modal_token — semillas (docs/evidence/home/screen-07) */}
-      <UvaFullBottomSheet
+      <UvaBottomSheet
         ref={modalTokenRef}
         contentStyle={styles.sheetSurface}
         onDismiss={() => {/* handled by gesture */}}
       >
-        <ScrollView
-          style={styles.modalScrollContainer}
-          contentContainerStyle={styles.modalContent}
-          testID="modal-token"
-        >
+        {/* No inner ScrollView: UvaBottomSheet's own BottomSheetScrollView both measures
+            this content (→ sheet height, `--height: auto`) and scrolls it when it
+            outgrows the viewport. A nested ScrollView would report a height of 0. */}
+        <View style={styles.modalContent} testID="modal-token">
           {/* D-09 — original order inside every `.container_text`: the explanatory <p>
               FIRST and the big `<h1>+N 🌰</h1>` BELOW it, both centred. There is no
               "5 🌰" heading on the third card: the original shows the
@@ -734,11 +737,11 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
               Siguiente
             </Text>
           </TouchableOpacity>
-        </ScrollView>
-      </UvaFullBottomSheet>
+        </View>
+      </UvaBottomSheet>
 
       {/* modal_token_2 — germinación (docs/evidence/home/screen-08) */}
-      <UvaFullBottomSheet
+      <UvaBottomSheet
         ref={modalToken2Ref}
         contentStyle={styles.sheetSurface}
         onDismiss={() => {/* handled by gesture */}}
@@ -761,11 +764,8 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
             <Text style={styles.closeSquareText}>✕</Text>
           </Pressable>
         </View>
-        <ScrollView
-          style={styles.modalScrollContainer}
-          contentContainerStyle={styles.modalContent}
-          testID="modal-token-2"
-        >
+        {/* Same as modal_token: the sheet itself is the scroller (see BottomSheet.tsx). */}
+        <View style={styles.modalContent} testID="modal-token-2">
           {/* D-15 — the intro paragraph is its own `.container_text` white card in the
               original, and every range description is centred. */}
           <View style={styles.tokenCard}>
@@ -868,8 +868,8 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
               Entendido
             </Text>
           </TouchableOpacity>
-        </ScrollView>
-      </UvaFullBottomSheet>
+        </View>
+      </UvaBottomSheet>
     </View>
   );
 }
@@ -971,9 +971,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingBottom: 20,
     backgroundColor: '#F5F5F5',
-  },
-  modalScrollContainer: {
-    flex: 1,
   },
   modalNavRow: {
     flexDirection: 'row',

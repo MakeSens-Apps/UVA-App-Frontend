@@ -453,13 +453,16 @@ describe('Header', () => {
     expect(queryByTestId('header-profile-btn')).toBeNull();
   });
 
-  it('renders seed fallback (null → 0) without crash', async () => {
-    const { getByTestId } = await render(
+  // seed=null significa "aún no cargado": el original interpola `{{ seed }}` sobre un
+  // campo undefined y no pinta dígito (docs/evidence/home/screen-10-header.png).
+  it('renders no seed digit while seed is null', async () => {
+    const { getByTestId, queryByTestId } = await render(
       <Wrapper>
         <Header title="Inicio" seed={null} />
       </Wrapper>,
     );
     expect(getByTestId('header')).toBeTruthy();
+    expect(queryByTestId('header-seed')).toBeNull();
   });
 
   it('matches snapshot', async () => {

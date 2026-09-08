@@ -444,10 +444,10 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
         </View>
       </ScrollView>
 
-      {/* Bottom sheet — Comparte la aplicación */}
+      {/* Bottom sheet — Comparte la aplicación. Sin snapPoints: alto por contenido
+          (profile.page.html:100 → ion-modal --height:auto; original 376/740 px). */}
       <UvaBottomSheet
         ref={shareSheetRef}
-        snapPoints={['45%']}
         enablePanDownToClose
       >
         <View style={styles.shareSheet}>

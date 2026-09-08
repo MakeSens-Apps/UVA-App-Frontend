@@ -63,7 +63,12 @@ export interface HeaderProps {
   /**
    * Seed count shown in the user chip.
    * Passed from the parent (decoupled from DataStore — R-29 fix).
-   * Falls back to 0 if not provided.
+   *
+   * `null` / `undefined` means NOT LOADED YET and renders NO number at all — the
+   * original is `<ion-label>{{ seed }} </ion-label>`, which interpolates to an empty
+   * label while `seed` is undefined. Compare docs/evidence/home/screen-10-header.png
+   * (chip 73px wide, no digit) with screen-16-header-seed-count.png (84px, "0"):
+   * substituting 0 for "unknown" made the chip flash 0 → real value on entry.
    */
   seed?: number | null;
   /** Whether to show the back button */
@@ -124,7 +129,8 @@ export function Header({
 
   const topPadding = insets.top + (Platform.OS === 'android' ? 0 : 0);
 
-  const seedValue = seed ?? 0;
+  // Not `seed ?? 0`: an unresolved seed must render nothing (see the `seed` prop doc).
+  const hasSeed = seed !== null && seed !== undefined;
 
   return (
     <View
@@ -150,10 +156,14 @@ export function Header({
         )}
 
         {/* Title */}
+        {/* D-06 — the title is NOT bold. Original: `.header .title { @include
+            text_base(18px, 600) }` (header.component.scss:13), i.e. Montserrat SemiBold.
+            RN was painting Montserrat-Bold (docs/evidence/device-2026-09-07/05-home.png
+            vs docs/evidence/home/screen-10-header.png). */}
         <Text
           style={[
             styles.title,
-            { fontFamily: fontFamilyForWeight('700'), color: theme.colors.white },
+            { fontFamily: fontFamilyForWeight('600'), color: theme.colors.white },
             hasCenterTitle && styles.titleCenter,
           ]}
           numberOfLines={1}
@@ -174,17 +184,20 @@ export function Header({
             onPress={onProfilePress}
             testID="header-profile-btn"
           >
-            <Text
-              style={[
-                styles.seedText,
-                {
-                  fontFamily: fontFamilyForWeight('700'),
-                  color: theme.colors.blue[700],
-                },
-              ]}
-            >
-              {seedValue}
-            </Text>
+            {hasSeed && (
+              <Text
+                style={[
+                  styles.seedText,
+                  {
+                    fontFamily: fontFamilyForWeight('700'),
+                    color: theme.colors.blue[700],
+                  },
+                ]}
+                testID="header-seed"
+              >
+                {seed}
+              </Text>
+            )}
             {/* semilla.svg has hardcoded gradient fills (orange/brown oval seed shape).
                 Original: <ion-icon src="semilla.svg"> renders without any color tint.
                 No color prop here — gradient fills must not be overridden. */}

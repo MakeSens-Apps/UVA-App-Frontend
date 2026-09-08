@@ -630,10 +630,10 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
         </View>
       </KeyboardAvoidingView>
 
-      {/* Bottom sheet — modal_Delete (paso 1) */}
+      {/* Bottom sheet — modal_Delete (paso 1). Sin snapPoints: alto por contenido
+          (personal-info.page.html:137 → ion-modal --height:auto). */}
       <UvaBottomSheet
         ref={deleteModalRef}
-        snapPoints={['45%']}
         enablePanDownToClose
       >
         <View style={styles.deleteModal}>
@@ -717,7 +717,6 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
       {/* Bottom sheet — modal_Delete_2 (paso 2: escribir ELIMINAR CUENTA) */}
       <UvaBottomSheet
         ref={deleteModal2Ref}
-        snapPoints={['45%']}
         enablePanDownToClose
       >
         <View style={styles.deleteModal}>

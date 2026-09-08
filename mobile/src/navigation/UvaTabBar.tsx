@@ -11,6 +11,9 @@
  *   - active tint: --Colors-Blue-700 (#14788A)          global.scss:315
  *   - height: 82px                                       global.scss:306
  *   - active tab pill: borderRadius:14, bg:blue[200] (#A9F5F8), height:56  global.scss:327-331
+ *     and the FULL width of the tab button (the rule is on `ion-tab-button.tab-selected`
+ *     itself) — docs/evidence/home/screen-04-tab-bar.png x=10..122 of 360 (D-07)
+ *   - label weight: 500 on every tab, selected included (global.scss:317) — D-07
  *
  * Risks: R-05, R-47
  */
@@ -129,6 +132,7 @@ export function UvaTabBar({ state, descriptors, navigation }: BottomTabBarProps)
           >
             {/* Pill background only on active tab — global.scss:327-331 */}
             <View
+              testID={`tab-pill-${route.name}`}
               style={[
                 tabBarStyles.pill,
                 isFocused && { backgroundColor: theme.colors.blue[200] as string },
@@ -139,12 +143,16 @@ export function UvaTabBar({ state, descriptors, navigation }: BottomTabBarProps)
                 const SvgIcon = SVG_TAB_ICONS[cfg.svgIcon];
                 return <SvgIcon width={20} height={20} color={tintColor} />;
               })()}
+              {/* D-07 — labels are NOT bolded on the active tab. The original styles
+                  EVERY `ion-tab-button` with `@include text_base(14px, 500)`
+                  (global.scss:317); `--color-selected` changes the COLOUR only. */}
               <Text
+                testID={`tab-label-${route.name}`}
                 style={[
                   tabBarStyles.label,
                   {
                     color: tintColor,
-                    fontFamily: fontFamilyForWeight(isFocused ? '700' : '500'),
+                    fontFamily: fontFamilyForWeight('500'),
                   },
                 ]}
               >
@@ -169,7 +177,8 @@ const tabBarStyles = StyleSheet.create({
     flexDirection: 'row',
     height: TAB_BAR_HEIGHT,
     alignItems: 'center',
-    paddingHorizontal: 8,
+    // ion-tab-bar { padding-inline: 10px } (global.scss:307)
+    paddingHorizontal: 10,
     paddingBottom: 4,
   },
   tab: {
@@ -179,17 +188,22 @@ const tabBarStyles = StyleSheet.create({
     height: '100%',
   },
   pill: {
-    // Default state: transparent pill container, centered
+    // D-07 — the pill is the WHOLE tab button, not a content-hugging capsule:
+    // `.tab-selected` sets background/border-radius on the `ion-tab-button` itself,
+    // which is a flex child of the bar. Measured on docs/evidence/home/screen-04-tab-bar.png
+    // (360×83): the active background runs x=10..122 → 113px = (360 − 2×10) / 3, and
+    // y=14..69 → the 56px height below. `alignSelf: 'stretch'` reproduces that; the
+    // previous paddingHorizontal:12 capsule was the "pill más estrecho" of the review.
+    alignSelf: 'stretch',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 14,
     height: 56,
     gap: 2,
   },
   label: {
-    fontSize: 11,
+    fontSize: 14, // global.scss:317 text_base(14px, 500)
     marginTop: 2,
   },
 });

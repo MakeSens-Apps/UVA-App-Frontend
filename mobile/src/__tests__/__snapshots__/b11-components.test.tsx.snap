@@ -174,7 +174,7 @@ exports[`Header matches snapshot 1`] = `
           },
           {
             "color": "#FFFFFF",
-            "fontFamily": "Montserrat-Bold",
+            "fontFamily": "Montserrat-SemiBold",
           },
           false,
         ]
@@ -237,6 +237,7 @@ exports[`Header matches snapshot 1`] = `
             },
           ]
         }
+        testID="header-seed"
       >
         15
       </Text>

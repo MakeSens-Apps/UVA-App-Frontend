@@ -222,11 +222,11 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
         </TouchableOpacity>
       </ImageBackground>
 
-      {/* modal_token_a — explicación de semillas ([isOpen]="modals['modal_token_a']") */}
+      {/* modal_token_a — explicación de semillas ([isOpen]="modals['modal_token_a']").
+          Sin snapPoints: alto por contenido (achievement.page.scss:220 --height:auto). */}
       {openSheet === 'a' && (
       <UvaBottomSheet
         ref={presentOnMount}
-        snapPoints={['75%']}
         enablePanDownToClose
         onDismiss={() => setOpenSheet((prev) => (prev === 'a' ? null : prev))}
       >
@@ -364,7 +364,6 @@ export function AchievementScreen({ navigation }: Props): React.JSX.Element {
       {openSheet === 'b' && (
       <UvaBottomSheet
         ref={presentOnMount}
-        snapPoints={['80%']}
         enablePanDownToClose
         onDismiss={() => setOpenSheet((prev) => (prev === 'b' ? null : prev))}
       >
