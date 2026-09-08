@@ -66,7 +66,6 @@ export type AppStackParamList = {
   Achievement: undefined;
   Alerts: undefined;
   Configuration: undefined;
-  SyncAction: undefined;
   /** Measurement sub-screens */
   GuideMeasurement: {
     /** Task ID to guide (optional for modal-entry) */

@@ -17,7 +17,7 @@ import { act, renderHook } from '@testing-library/react-native';
 
 const mockReadFile = jest.fn();
 const mockGetFileUri = jest.fn();
-const mockWriteFile = jest.fn(() =>
+const mockWriteFile = jest.fn((..._args: unknown[]) =>
   Promise.resolve({ success: true, data: { uri: 'file://test' } }),
 );
 

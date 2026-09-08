@@ -52,7 +52,6 @@ export function AppStack(): React.JSX.Element {
       <Stack.Screen name="Achievement" component={AchievementScreen} />
       <Stack.Screen name="Alerts" component={AlertsScreen} />
       <Stack.Screen name="Configuration" component={ConfigurationScreen} />
-      <Stack.Screen name="SyncAction" component={ConfigurationScreen} />
 
       {/* Measurement sub-screens */}
       {/* GuideMeasurement is the original's ion-modal sheet

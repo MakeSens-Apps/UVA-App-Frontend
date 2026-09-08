@@ -117,7 +117,9 @@ describe('B05 — S3Service', () => {
       if (result.success) {
         expect(result.data.type).toBe('JSON');
         if (result.data.type === 'JSON') {
-          expect((result.data.content as Record<string, string>).primaryColor).toBe('#00A651');
+          expect(
+            (result.data.content as unknown as Record<string, string>).primaryColor,
+          ).toBe('#00A651');
         }
       }
     });

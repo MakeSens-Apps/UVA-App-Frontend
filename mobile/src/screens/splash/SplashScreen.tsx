@@ -170,12 +170,12 @@ export function SplashScreen({ onAuthResolved }: SplashScreenProps): React.JSX.E
   }, []);
 
   function scheduleAnimationDone(): void {
-    const timer = setTimeout(() => {
+    setTimeout(() => {
       animationDone.current = true;
       maybeFireCallback();
     }, 500);
-    // Cleanup handled implicitly (component unmounts after navigation)
-    return () => clearTimeout(timer) as unknown as void;
+    // Cleanup handled implicitly (component unmounts after navigation);
+    // the returned cleanup was never consumed by callers of this function.
   }
 
   return (

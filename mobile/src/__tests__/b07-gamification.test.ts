@@ -90,6 +90,7 @@ jest.mock('@/domain/gamification/gamification-alerts', () => ({
 import { GamificationService } from '@/domain/gamification/gamification';
 import { UserProgressDSService } from '@/data/datastore/user-progress-ds';
 import { GamificationAlertsService } from '@/domain/gamification/gamification-alerts';
+import type { UserProgress } from '@/data/models';
 
 const mockUPS = UserProgressDSService as jest.Mocked<typeof UserProgressDSService>;
 const mockAlerts = GamificationAlertsService as jest.Mocked<typeof GamificationAlertsService>;
@@ -102,7 +103,7 @@ function makeProgress(overrides: Partial<{
   Seed: number;
   Streak: number;
   SaveStreak: boolean;
-}> = {}) {
+}> = {}): UserProgress {
   return {
     id: 'progress-id-1',
     ts: new Date().toISOString(),
@@ -110,8 +111,9 @@ function makeProgress(overrides: Partial<{
     Seed: 0,
     Streak: 0,
     SaveStreak: false,
+    userID: 'test-user-id',
     ...overrides,
-  };
+  } as unknown as UserProgress;
 }
 
 beforeEach(() => {

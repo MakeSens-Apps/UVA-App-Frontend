@@ -240,6 +240,7 @@ Convención de esfuerzo: **S** trivial · **M** medio · **L** varias piezas/agr
 - **Depende de:** B14, B15, B16, B18.
 - **Riesgos:** R-10, R-39, R-40, R-45, R-49, R-50, R-43.
 - **Gate:** Paridad visual+funcional aprobada (humano); jest+eslint verdes en CI; `eas build --profile production` firma con el keystore correcto (SHA-256 == publicado) y versionCode > publicado; árbol RN limpio en root sin restos Ionic; keystore purgado de la historia (verificado con git log); smoke test end-to-end del AAB en device. PR único en `feature/ionic-to-react-native` listo. **Commit final.**
+- **Estado de verificación en curso:** ver `docs/migration/verification.md` (tabla de bugs de device, gates pendientes de device físico y checklist de B19).
 
 ---
 

@@ -206,10 +206,10 @@ class FileSystemService {
   ): Promise<FileSystemResponse<CopyResult>> {
     try {
       const fromUri = toUri(from, directory);
-      const toUri = resolveBase(directory) + to;
-      await ensureParentDirs(toUri);
-      await ExpoFileSystem.copyAsync({ from: fromUri, to: toUri });
-      return { success: true, data: { uri: toUri } };
+      const destUri = resolveBase(directory) + to;
+      await ensureParentDirs(destUri);
+      await ExpoFileSystem.copyAsync({ from: fromUri, to: destUri });
+      return { success: true, data: { uri: destUri } };
     } catch (err) {
       return { success: false, error: this.handleError(err) };
     }
@@ -228,9 +228,9 @@ class FileSystemService {
   ): Promise<FileSystemResponse<null>> {
     try {
       const fromUri = toUri(from, directory);
-      const toUri = resolveBase(directory) + to;
-      await ensureParentDirs(toUri);
-      await ExpoFileSystem.moveAsync({ from: fromUri, to: toUri });
+      const destUri = resolveBase(directory) + to;
+      await ensureParentDirs(destUri);
+      await ExpoFileSystem.moveAsync({ from: fromUri, to: destUri });
       return { success: true, data: null };
     } catch (err) {
       return { success: false, error: this.handleError(err) };

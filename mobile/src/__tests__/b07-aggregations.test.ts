@@ -27,7 +27,7 @@ import {
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
 // Fixture: represents Amplify DataStore Measurement records
-const fixture_measurements = [
+const fixture_measurements: { ts: string; data: Record<string, number> }[] = [
   {
     ts: '2024-01-15T08:00:00.000Z',
     data: { temperatura: 22.5, humedad: 65 },
