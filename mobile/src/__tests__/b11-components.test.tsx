@@ -29,50 +29,6 @@ jest.mock('expo-linear-gradient', () => {
   };
 });
 
-jest.mock('@shopify/react-native-skia', () => ({
-  useFont: jest.fn(() => null),
-  Skia: {},
-  Canvas: ({ children }: { children?: React.ReactNode }) => {
-    const React = require('react');
-    const { View } = require('react-native');
-    return React.createElement(View, { testID: 'skia-canvas' }, children);
-  },
-}));
-
-jest.mock('victory-native', () => {
-  const React = require('react');
-  const { View } = require('react-native');
-
-  const CartesianChart = ({
-    children,
-    data,
-  }: {
-    children?: ((args: { points: Record<string, unknown[]>; chartBounds: Record<string, number> }) => React.ReactNode) | React.ReactNode;
-    data?: unknown[];
-  }) => {
-    const points: Record<string, unknown[]> = {};
-    if (Array.isArray(data) && data.length > 0) {
-      const datum = data[0] as Record<string, unknown>;
-      Object.keys(datum).forEach((k) => {
-        points[k] = data.map((d) => ({ x: (d as Record<string, unknown>).x, y: (d as Record<string, unknown>)[k] }));
-      });
-    }
-    const chartBounds = { top: 0, bottom: 200, left: 0, right: 300 };
-    return React.createElement(
-      View,
-      { testID: 'cartesian-chart' },
-      typeof children === 'function' ? children({ points, chartBounds }) : children,
-    );
-  };
-
-  const Area = () => React.createElement(View, { testID: 'victory-area' });
-  const AreaRange = () => React.createElement(View, { testID: 'victory-area-range' });
-  const Line = () => React.createElement(View, { testID: 'victory-line' });
-  const Bar = () => React.createElement(View, { testID: 'victory-bar' });
-
-  return { CartesianChart, Area, AreaRange, Line, Bar };
-});
-
 jest.mock('../data/storage/s3', () => ({
   s3Service: {
     listFiles: jest.fn(() => Promise.resolve({ success: false })),
@@ -662,9 +618,9 @@ describe('SyncAction', () => {
   });
 });
 
-// ─── Areachart (SPIKE) ─────────────────────────────────────────────────────────
+// ─── Areachart (react-native-svg) ─────────────────────────────────────────────
 
-describe('Areachart (SPIKE victory-native) — render without crash', () => {
+describe('Areachart (react-native-svg) — render without crash', () => {
   // Real-like measurement fixtures
   const CHART_LABELS_NORMAL = [
     '2024-01-01',

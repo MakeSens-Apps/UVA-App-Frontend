@@ -6,6 +6,8 @@
 
 La app funciona **sin conexión** y sincroniza los datos en segundo plano cuando hay red disponible.
 
+> El código fuente vive en `mobile/` (React Native / Expo, target Android). El proyecto Ionic/Angular original en la raíz del repo es el predecesor de esta app y se eliminará en el cutover final de la migración (ver `docs/migration/plan.md`).
+
 ### Flujos principales
 
 **Autenticación**
@@ -32,147 +34,84 @@ La app funciona **sin conexión** y sincroniza los datos en segundo plano cuando
 
 ---
 
-## Estructura de carpetas (`src/`)
+## Estructura de carpetas (`mobile/`)
 
 ```
-src/
-├── main.ts                        # Punto de entrada
-├── index.html
-├── global.scss                    # Estilos globales
-├── polyfills.ts
+mobile/
+├── App.tsx                        # Composición raíz: polyfills → Amplify/DataStore → Context providers → RootNavigator
+├── index.ts                       # Entry point de Expo
+├── app.json                       # Configuración de Expo (nombre, versión, permisos, plugins)
+├── plugins/                       # Config plugins de Expo (se aplican en `expo prebuild`)
+│   └── withAsyncStorageDbSize.js  #   Eleva el cap de AsyncStorage/SQLite a 200MB
+├── modules/                       # Módulos nativos propios (si aplica)
+├── assets/                        # Iconos, splash, fuentes de nivel app
 │
-├── environments/                  # Variables de entorno (dev / prod)
-│
-├── theme/                         # Tokens de diseño globales
-│   ├── variables.scss             #   Colores, tipografías, espaciados
-│   └── mixins.scss
-│
-├── models/                        # Modelos de datos de negocio
-│   ├── session.model.ts           #   Sesión del usuario autenticado
-│   ├── schema.js / schema.d.ts    #   Esquema del almacén local sincronizado
-│   └── configuration/
-│       ├── config.model.ts        #   Configuración persitida del dispositivo
-│       ├── colors.model.ts
-│       └── measurements.model.ts  #   Tipos y configuración de mediciones
-│
-├── graphql/                       # Contratos con el backend (queries, mutations, subscriptions)
-│
-├── assets/
-│   ├── fonts/                     #   Tipografías
-│   ├── icons/                     #   Íconos de la app (varios tamaños)
-│   └── images/                    #   Ilustraciones, logos, fases lunares, animaciones
-│
-└── app/
-    ├── app.routes.ts              # Definición de rutas raíz
-    ├── app.component.*            # Shell de la aplicación
-    │
-    ├── Interfaces/                # Contratos de tipo compartidos entre capas
-    │   ├── IMeasurement.ts
-    │   └── ITask.ts
-    │
-    ├── explore-container/         # Componente layout base (wrappea el contenido de cada página)
-    │
-    ├── components/                # Componentes de UI reutilizables
-    │   ├── alert/                 #   Modal de confirmación genérico
-    │   ├── areachart/             #   Gráfica de área para series temporales
-    │   ├── calendar/              #   Calendario interactivo
-    │   │   └── day/               #     Celda de día individual
-    │   ├── environmental-report/  #   Tarjeta/tabla de reporte ambiental
-    │   ├── header/                #   Cabecera de pantalla
-    │   ├── moon-card/             #   Tarjeta de fase lunar
-    │   └── progress-bar/         #   Barra de progreso de gamificación
-    │
-    ├── core/                      # Lógica de negocio y acceso a datos
-    │   ├── pipes/
-    │   │   └── safe-html.pipe.ts  #   Renderizado seguro de HTML dinámico
-    │   │
-    │   └── services/
-    │       ├── auth/              #   Autenticación: sign-in, sign-up, OTP, sesión
-    │       │   └── test-users.service.ts
-    │       │
-    │       ├── session/           #   Estado de sesión del usuario activo
-    │       │
-    │       ├── minimize/          #   Comportamiento al minimizar la app
-    │       │
-    │       ├── api/               #   Llamadas al backend remoto
-    │       │   ├── errors-handle/ #     Manejo centralizado de errores de API
-    │       │   ├── moon-phase-api.service.ts
-    │       │   ├── racimo-api.service.ts
-    │       │   ├── user-api.service.ts
-    │       │   ├── user-progress-api.service.ts
-    │       │   └── uva-api.service.ts
-    │       │
-    │       ├── storage/           #   Persistencia de datos
-    │       │   ├── configuration-app.service.ts  # Config del dispositivo
-    │       │   ├── datastore/     #   Almacén local con sincronización en la nube
-    │       │   │   ├── measurement-ds.service.ts
-    │       │   │   ├── racimo-ds.service.ts
-    │       │   │   ├── uva-ds.service.ts
-    │       │   │   ├── user-ds.service.ts
-    │       │   │   ├── user-progress-ds.service.ts
-    │       │   │   ├── gamification-event-ds.service.ts
-    │       │   │   └── sync-monitor-ds.service.ts  # Estado de sincronización
-    │       │   ├── file-system/   #   Archivos locales del dispositivo
-    │       │   └── s3/            #   Almacenamiento en la nube
-    │       │
-    │       └── view/              #   Lógica específica de cada pantalla/flujo
-    │           ├── app-usage.service.ts
-    │           ├── environmental-report.service.ts
-    │           ├── share.service.ts
-    │           ├── gamification/
-    │           │   ├── gamification.service.ts          # Cálculo de logros y rachas
-    │           │   ├── gamification-alerts.service.ts   # Disparadores de alertas
-    │           │   ├── gamification-alerts-types.service.ts
-    │           │   └── notification.service.ts
-    │           ├── moon/
-    │           │   └── moon-phase.service.ts            # Cálculo de fase lunar
-    │           └── setup/
-    │               ├── setup.service.ts                 # Inicialización de sesión y usuario
-    │               └── setup-racimo.service.ts          # Vinculación a RACIMO/UVA
-    │
-    ├── pages/                     # Pantallas de la aplicación
-    │   ├── splash-animation/      #   Pantalla de arranque
-    │   │
-    │   ├── tabs/                  #   Navegación principal por pestañas (home / measurement / historical / profile)
-    │   │
-    │   ├── auth/                  #   Flujo de autenticación
-    │   │   ├── login/             #     Ingreso con número de celular
-    │   │   ├── otp/               #     Verificación por código SMS
-    │   │   │   └── validate-code/ #       Pantalla de confirmación post-OTP
-    │   │   └── register/          #     Flujo de registro
-    │   │       ├── pre-register/
-    │   │       ├── set-phone-register/
-    │   │       ├── project-vinculation/       # Vinculación a un RACIMO existente
-    │   │       ├── project-vinculation-done/
-    │   │       ├── validate-project/
-    │   │       ├── register-project-form/     # Creación de nuevo proyecto
-    │   │       ├── register-completed/
-    │   │       └── register-success/
-    │   │
+└── src/
+    ├── screens/                   # Pantallas, agrupadas por flujo
+    │   ├── auth/                  #   Login, OTP, registro, vinculación a RACIMO
     │   ├── home/                  #   Dashboard principal
-    │   │
-    │   ├── measurement/           #   Registro de mediciones ambientales
-    │   │   ├── guide-measurement/ #     Guía paso a paso antes de medir
-    │   │   └── register-measurement/ #  Formulario de captura de la medición
-    │   │
-    │   ├── historical/            #   Historial de mediciones
-    │   │   ├── time-frame/        #     Selector de rango de fechas
-    │   │   └── measurement-detail/#     Detalle y gráfica de una medición
-    │   │
-    │   ├── moon-phase/            #   Detalle del ciclo lunar
-    │   │
-    │   ├── profile/               #   Perfil del usuario
-    │   │   ├── personal-info/     #     Datos personales
-    │   │   ├── achievement/       #     Logros y gamificación
-    │   │   ├── alerts/            #     Historial de alertas recibidas
-    │   │   └── configuration/     #     Ajustes de cuenta
-    │   │       └── sync-action/   #       Acción manual de sincronización
-    │   │
-    │   └── alerts/
-    │       └── creation/          #   Creación de alertas personalizadas
+    │   ├── measurement/           #   Guía + registro de mediciones
+    │   ├── historical/            #   Histórico y detalle de medición
+    │   ├── moon/                  #   Detalle del ciclo lunar
+    │   ├── profile/                #   Perfil, logros, alertas, info personal
+    │   ├── configuration/          #   Ajustes de cuenta
+    │   ├── splash/                  #   Pantalla de arranque
+    │   └── dev/                      #   Pantallas de desarrollo/QA
     │
-    └── services/
-        └── notification/          # Notificaciones push locales
+    ├── navigation/                 # RootNavigator, AuthStack, AppStack, AppTabs, gates de navegación
+    │
+    ├── components/                 # Componentes de UI reutilizables
+    │   ├── ui/                     #   Primitivas (botones, inputs, Toast, etc.)
+    │   ├── calendar/                #   Calendario interactivo
+    │   ├── areachart/                #   Gráfica de área (react-native-svg puro)
+    │   ├── environmental-report/      #   Tarjeta/tabla de reporte ambiental
+    │   ├── header/                     #   Cabecera de pantalla
+    │   ├── moon-card/                    #   Tarjeta de fase lunar
+    │   ├── sync-action/                   #   Acción manual de sincronización
+    │   ├── time-frame/                     #   Selector de rango de fechas
+    │   ├── icons/, rich-text/, explore-container/  # Utilitarios de presentación
+    │
+    ├── state/                       # React Context (estado global)
+    │   ├── SessionContext.tsx       #   Sesión del usuario autenticado
+    │   ├── SyncContext.tsx           #   Estado de sincronización de DataStore
+    │   ├── ConfigContext.tsx          #   Configuración persistida del dispositivo
+    │   └── notification/               #   Estado de alertas/notificaciones locales
+    │
+    ├── data/                         # Acceso a datos
+    │   ├── amplify-bootstrap/        #   Amplify.configure + DataStore.configure + Hub
+    │   ├── api/                       #   Llamadas GraphQL directas (racimo, uva, user, user-progress, moon-phase)
+    │   │   └── errors-handle/          #     Manejo centralizado de errores de API
+    │   ├── auth/                        #   Autenticación (Cognito, OTP, test-users)
+    │   ├── datastore/                     #   Wrappers de DataStore por modelo
+    │   │   ├── measurement-ds.ts
+    │   │   ├── racimo-ds.ts
+    │   │   ├── uva-ds.ts
+    │   │   ├── user-ds.ts
+    │   │   ├── user-progress-ds.ts
+    │   │   └── gamification-event-ds.ts
+    │   ├── graphql/                        #   Queries/mutations/subscriptions generadas
+    │   ├── models/                          #   Esquema DataStore (schema.js/.d.ts)
+    │   ├── session/                          #   Persistencia de sesión
+    │   └── storage/                            #   file-system, preferences, S3
+    │
+    ├── domain/                       # Lógica de negocio pura (sin dependencias de RN)
+    │   ├── measurement-engine/       #   Captura y validación de mediciones
+    │   ├── gamification/              #   Cálculo de logros y rachas
+    │   ├── moon/                       #   Cálculo de fase lunar
+    │   ├── report/                      #   Reporte ambiental y archivo compartible
+    │   ├── aggregations/                 #   Agregaciones históricas
+    │   └── setup/                          #   Inicialización de sesión y vinculación a RACIMO/UVA
+    │
+    ├── native/                       # Envoltorios de módulos nativos
+    │   ├── back/                     #   Botón atrás de Android
+    │   ├── minimize/                  #   Comportamiento al minimizar la app
+    │   ├── notifications/               #   Notificaciones locales (recordatorios)
+    │   ├── device/                        #   Nivel de API de Android
+    │   ├── clipboard/, share/, filesystem/  # Envoltorios sobre APIs nativas/Expo
+    │
+    ├── theme/                         # ThemeProvider y tokens de diseño (theming por RACIMO)
+    ├── types/                          # Tipos compartidos
+    └── __tests__/                       # Suite Jest (unit + component, RNTL)
 ```
 
 ---

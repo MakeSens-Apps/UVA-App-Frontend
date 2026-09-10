@@ -1,130 +1,33 @@
-# 🚀 Pipeline de GitHub Actions - UVA App
+# 🚀 Pipeline de GitHub Actions - UVA App (React Native)
 
-## ✅ Configuración Completada
+Resumen operativo del pipeline de CI/CD para la app RN en `mobile/`. Para el detalle completo ver `docs/github-actions-pipeline.md` (proceso de CI/CD) y `docs/release-workflow.md` (versionado, firma y release).
 
-Se ha creado un pipeline completo de GitHub Actions para compilar APKs y AABs de la aplicación UVA con las siguientes características:
+## 📦 Qué hace el pipeline
 
-### 📦 Archivos Creados
+1. **CI de calidad** (bloquea merge): `npm run lint` + `npm run test:ci` (Jest) sobre `mobile/`, en cada push/PR que toque `mobile/**`.
+2. **Build Android** (Gradle, sin EAS): `expo prebuild --platform android` genera `mobile/android/` (no versionado), un config plugin de Expo inyecta la firma de release durante el prebuild, y Gradle compila `assembleRelease` (APK) o `bundleRelease` (AAB) según el artefacto pedido.
+3. **Publicación**: el APK/AAB firmado se sube como artifact de GitHub Actions. La subida a Google Play es manual por defecto, y automatizable si `PLAY_DEPLOY_ENABLED` está activo (ver más abajo).
 
-1. **`.github/workflows/build-android.yml`** - Pipeline principal de APK
-2. **`.github/workflows/build-android-bundle.yml`** - Pipeline para AAB (Google Play Store)
-3. **`scripts/amplify-pull.sh`** - Script headless para Amplify Pull (CI/CD y local)
-4. **`docs/github-actions-pipeline.md`** - Documentación completa
-5. **`scripts/trigger-pipeline.sh`** - Script para activar pipelines desde CLI
+Los nombres exactos de jobs y triggers viven en `.github/workflows/` — este documento no los fija porque están en evolución activa durante el cierre de la migración Ionic→RN.
 
-### 🎯 Características Principales
+## 🔐 Secrets y variables necesarias
 
-#### ✅ Configuración Automática de Ambientes Amplify
+Configurar en **Settings → Secrets and variables → Actions**:
 
-- **main** → ambiente `main` (producción)
-- **test** → ambiente `test` (testing)
-- **develop** → ambiente `develop` (desarrollo)
-- **feature/\***, **fix/\***, **hotfix/\*** → ambiente `develop`
+| Nombre | Tipo | Para qué sirve |
+|---|---|---|
+| `ANDROID_KEYSTORE_BASE64` | Secret | Keystore de firma (`.jks`) codificado en base64. |
+| `KEYSTORE_PASSWORD` | Secret | Password del keystore. |
+| `KEY_ALIAS` | Secret | Alias de la llave de firma. |
+| `KEY_PASSWORD` | Secret | Password de la llave. |
+| `PLAY_SERVICE_ACCOUNT_JSON` | Secret | Cuenta de servicio de Google Play (Play Developer API), solo si se habilita la subida automática. |
+| `PLAY_DEPLOY_ENABLED` | Variable | Interruptor de subida automática a Play (`true`/`false` según convención del workflow). |
 
-#### ✅ Compilación Inteligente
+Ver `docs/release-workflow.md` para el flujo completo de cómo se usan estos secrets durante `expo prebuild` + Gradle.
 
-- **APK Debug**: Todas las ramas
-- **APK Release**: Solo `main` y `test`
-- **AAB Release**: Manual y tags de release
+## 🔢 Versionado
 
-#### ✅ Reutilización de Scripts Existentes
-
-- Aprovecha `npm run build` para compilación web
-- Usa `npx cap sync android` para sincronización
-- Mantiene compatibilidad con scripts locales
-
-#### ✅ Gestión de Artifacts
-
-- Nomenclatura única con timestamps
-- Retención diferenciada (30-90 días)
-- Clasificación por tipo y ambiente
-
-## 🛠️ Pasos para Activar el Pipeline
-
-### 1. Configurar Secrets en GitHub
-
-Ve a **Settings > Secrets and variables > Actions** y añade:
-
-```
-AWS_ACCESS_KEY_ID = tu_access_key
-AWS_SECRET_ACCESS_KEY = tu_secret_key
-SLACK_WEBHOOK_URL = https://hooks.slack.com/services/...
-```
-
-**Nota**: La región `us-east-1` y el App ID están hardcodeados en los workflows.
-
-### 2. Verificar Permisos AWS
-
-El usuario AWS debe tener permisos para:
-
-- Amplify (AmplifyBackendDeployFullAccess)
-- CloudFormation (CloudFormationFullAccess)
-- IAM (IAMFullAccess)
-- S3 (S3FullAccess)
-- DynamoDB (DynamoDBFullAccess)
-
-### 3. Probar el Pipeline
-
-```bash
-# Hacer un push a una rama de feature
-git checkout -b feature/test-pipeline
-git commit --allow-empty -m "test: probar pipeline"
-git push origin feature/test-pipeline
-```
-
-### 4. Monitorear Resultados
-
-- Ve a **Actions** en tu repositorio GitHub
-- Verifica que el workflow se ejecute correctamente
-- Descarga los APKs generados desde la sección **Artifacts**
-
-## 🎪 Solución Definitiva: Amplify Headless Mode
-
-El pipeline usa **modo headless completo** para evitar cualquier problema de navegador en CI/CD:
-
-### ✅ Enfoque Actual (100% Automatizado)
-
-```bash
-# 1. Instalar la versión más reciente de Amplify CLI
-npm install -g @aws-amplify/cli@latest
-
-# 2. Configurar variables de entorno para desactivar navegador
-export AMPLIFY_CLI_DISABLE_BROWSER_AUTH=true
-
-# 3. Usar configuración JSON completa (modo headless)
-AMPLIFY_JSON='{"projectName":"UVA","appId":"d2l8hh51bqhq16","envName":"develop"}'
-PROVIDERS_JSON='{"awscloudformation":{"configLevel":"project","useProfile":false,"accessKeyId":"KEY","secretAccessKey":"SECRET","region":"us-east-1"}}'
-FRONTEND_JSON='{"frontend":"javascript","framework":"angular","config":{"SourceDir":"src","DistributionDir":"www","BuildCommand":"npm run build","StartCommand":"ionic serve"}}'
-
-# 4. Ejecutar amplify pull con configuración completa
-amplify pull \
-  --amplify "$AMPLIFY_JSON" \
-  --providers "$PROVIDERS_JSON" \
-  --frontend "$FRONTEND_JSON" \
-  --yes
-```
-
-### 🛡️ Características de Seguridad
-
-1. **No requiere browser auth**: `AMPLIFY_CLI_DISABLE_BROWSER_AUTH=true`
-2. **Credenciales via environment**: No se almacenan en archivos
-3. **Configuración JSON inline**: Todo se pasa como parámetros
-4. **Versión CLI actualizada**: `@aws-amplify/cli@latest` evita bugs conocidos
-
-### 📄 Script Independiente
-
-Creamos `scripts/amplify-pull.sh` para uso local o testing:
-
-```bash
-# Dar permisos de ejecución
-chmod +x scripts/amplify-pull.sh
-
-# Configurar variables y ejecutar
-export AWS_ACCESS_KEY_ID="tu_key"
-export AWS_SECRET_ACCESS_KEY="tu_secret"
-export AMPLIFY_ENV="develop"
-./scripts/amplify-pull.sh
-```
+`version` y `android.versionCode` se declaran en `mobile/app.json` (no se generan dinámicamente en CI, a diferencia del pipeline Ionic anterior que sobrescribía el `versionCode` con un timestamp). El último `versionCode` publicado en Google Play es **178830096** — cualquier release nuevo debe declarar un valor estrictamente mayor en `app.json`, o Play rechaza la subida. Ver `docs/release-workflow.md` para el procedimiento de bump antes de cada release.
 
 ## 📱 Identidad de la App en Google Play
 
@@ -162,199 +65,52 @@ Cambiar el `applicationId` implica tocar estos archivos en conjunto:
 > La subida a Play es **manual**: el pipeline solo genera el AAB firmado y lo publica
 > como artifact de GitHub Actions. No hay integración con la Play Developer API.
 
+> **Nota RN (post-migración)**: en el proyecto React Native, `android/` es generado por
+> `expo prebuild` y no se versiona; el keystore se distribuye a CI como secret
+> `ANDROID_KEYSTORE_BASE64` en lugar de un archivo en `android/keys/`, y la firma se
+> inyecta vía config plugin de Expo en vez de `signing.properties` a mano. La subida a
+> Play sigue siendo manual por defecto, pero ahora está preparada para automatizarse con
+> `PLAY_SERVICE_ACCOUNT_JSON` + `PLAY_DEPLOY_ENABLED`. Ver `docs/release-workflow.md`
+> para el flujo vigente; esta sección se conserva tal cual documenta la decisión
+> original de identidad de la app en Play.
+
 ---
 
-## 🚀 Comandos Rápidos
+## 🚀 Comandos rápidos
 
-### Compilar Bundle para Play Store
-
-```bash
-# Usando GitHub CLI
-gh workflow run build-android-bundle.yml -f environment=main -f build_type=release
-
-# Usando el script incluido
-./scripts/trigger-pipeline.sh bundle main release
-```
-
-### Probar Amplify Pull localmente
+### Build local (reproduce el pipeline)
 
 ```bash
-# Ver ayuda del script
-./scripts/amplify-pull.sh --help
-
-# Ejecutar con configuración manual
-export AWS_ACCESS_KEY_ID="tu_key"
-export AWS_SECRET_ACCESS_KEY="tu_secret"
-export AMPLIFY_ENV="develop"
-./scripts/amplify-pull.sh
+cd mobile
+npm ci
+npx expo prebuild --platform android --clean
+cd android
+./gradlew assembleRelease   # APK
+./gradlew bundleRelease     # AAB
 ```
 
-### Ver Estado de Workflows
+Ver `docs/android-build.md` para el detalle y troubleshooting.
+
+### Ver estado de workflows
 
 ```bash
-gh run list --workflow=build-android.yml --limit=5
+gh run list --limit=5
 ```
 
-### Descargar Artifacts
+### Descargar artifacts
 
 ```bash
 gh run download [RUN_ID] --dir ./artifacts
 ```
 
-## 📊 Configuración de Ambientes
-
-| Rama        | Ambiente Amplify | APK Debug | APK Release | Descripción |
-| ----------- | ---------------- | --------- | ----------- | ----------- |
-| `main`      | `main`           | ✅        | ✅          | Producción  |
-| `test`      | `test`           | ✅        | ✅          | Testing     |
-| `develop`   | `develop`        | ✅        | ❌          | Desarrollo  |
-| `feature/*` | `develop`        | ✅        | ❌          | Features    |
-| `fix/*`     | `develop`        | ✅        | ❌          | Bugfixes    |
-| `hotfix/*`  | `develop`        | ✅        | ❌          | Hotfixes    |
-
-## 🔧 Mantenimiento
-
-### Actualizar App ID de Amplify
-
-Editar en ambos workflows y script:
-
-```yaml
-env:
-  AMPLIFY_APP_ID: d2l8hh51bqhq16 # Cambiar aquí
-```
-
-### Cambiar Región AWS
-
-Editar en ambos workflows:
-
-```yaml
-env:
-  AWS_REGION: us-east-1 # Cambiar aquí si es necesario
-```
-
-### Añadir Nuevos Ambientes
-
-Modificar la lógica en el step "Determine Amplify environment":
-
-```bash
-elif [[ "${{ github.ref }}" == "refs/heads/nueva-rama" ]]; then
-  echo "env_name=nuevo-ambiente" >> $GITHUB_OUTPUT
-```
-
-### Actualizar Framework Config
-
-Si cambias la estructura del proyecto, actualizar en workflows:
-
-```json
-{
-  "frontend": "javascript",
-  "framework": "angular",
-  "config": {
-    "SourceDir": "src",
-    "DistributionDir": "www",
-    "BuildCommand": "npm run build",
-    "StartCommand": "ionic serve"
-  }
-}
-```
-
-## 🔍 Variables de Entorno del Pipeline
-
-| Variable                           | Valor            | Descripción                           |
-| ---------------------------------- | ---------------- | ------------------------------------- |
-| `AMPLIFY_APP_ID`                   | `d2l8hh51bqhq16` | ID de la aplicación Amplify           |
-| `AWS_REGION`                       | `us-east-1`      | Región de AWS para Amplify            |
-| `JAVA_VERSION`                     | `17`             | Versión de Java para Android          |
-| `NODE_VERSION`                     | `20`             | Versión de Node.js                    |
-| `AMPLIFY_CLI_DISABLE_BROWSER_AUTH` | `true`           | Desactiva autenticación por navegador |
-
-## 🐛 Solución de Problemas
-
-### Error: "Amplify CLI opens browser"
-
-✅ **Solucionado**: Modo headless con `AMPLIFY_CLI_DISABLE_BROWSER_AUTH=true`
-
-### Error: "Cannot find app with appId"
-
-- Verificar que el App ID sea correcto
-- Confirmar permisos AWS para Amplify
-
-### Error: "Invalid credentials"
-
-- Verificar secrets en GitHub Actions
-- Confirmar que las credenciales AWS tengan permisos suficientes
-
-### Error: "Frontend configuration not found"
-
-- El pipeline incluye configuración completa para Ionic/Angular
-- Verificar que la estructura del proyecto no haya cambiado
-
-## 📚 Documentación Adicional
-
-- **Documentación completa**: [`docs/github-actions-pipeline.md`](docs/github-actions-pipeline.md)
-- **Documentación del proyecto**: [`README.md`](README.md)
-- **Documentación de build Android**: [`docs/android-build.md`](docs/android-build.md)
-
----
-
-**¡El pipeline está listo para usar! 🎉**
-
-### ⚡ Inicio Rápido
-
-1. **Configurar secrets**: `AWS_ACCESS_KEY_ID` y `AWS_SECRET_ACCESS_KEY`
-2. **Push a cualquier rama**: El pipeline se ejecutará automáticamente
-3. **Descargar APKs**: Desde la sección Artifacts en GitHub Actions
-
-### 🎯 Beneficios de esta Solución
-
-- ✅ **100% Automatizado**: No requiere interacción manual
-- ✅ **Robusto**: Usa la versión más reciente de Amplify CLI
-- ✅ **Seguro**: Credenciales via environment variables
-- ✅ **Flexible**: Script independiente para uso local
-- ✅ **Bien documentado**: Logs detallados y manejo de errores
-
-Para cualquier problema, consulta la documentación completa o los logs del workflow en GitHub Actions.
-
-## 🚀 ¿Cómo empezar?
-
-### 1. Configurar Secrets en GitHub
-
-```bash
-# Ir a: Settings → Secrets and variables → Actions
-# Agregar:
-AWS_ACCESS_KEY_ID=tu_access_key
-AWS_SECRET_ACCESS_KEY=tu_secret_key
-SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
-```
-
-### 2. Hacer push a cualquier rama
-
-```bash
-git push origin feature/mi-nueva-feature
-```
-
-### 3. Ver resultados
-
-- **GitHub Actions**: Ir a la pestaña "Actions" del repositorio
-- **Slack**: Recibir notificaciones automáticas en tu canal configurado
-- **Artifacts**: Descargar APK/AAB desde GitHub o enlaces en Slack
-
 ## 📬 Integración con Slack
 
-### Configuración
+Si el pipeline conserva notificaciones a Slack (build exitoso/fallido), la configuración del webhook está en `docs/slack-integration.md`. Confirmar en el workflow vigente si ese paso sigue presente tras la migración a Gradle.
 
-1. Crear webhook en Slack (ver [docs/slack-integration.md](docs/slack-integration.md))
-2. Agregar `SLACK_WEBHOOK_URL` a los secrets de GitHub
-3. ¡Listo! Recibirás notificaciones automáticas
+## 📚 Documentación adicional
 
-### Notificaciones que Envía
-
-- ✅ **Build exitoso**: APK/AAB generado con información del commit
-- ❌ **Build fallido**: Error con enlace a los logs
-- 📱 **APK builds**: Para todas las ramas
-- 📦 **Bundle AAB**: Para releases y Google Play
-
-### Canales Recomendados
-
-- `#uva-app-builds` - Todas las notificaciones
-- `#uva-app-releases` - Solo releases importantes
+- **Pipeline de CI/CD completo**: [`docs/github-actions-pipeline.md`](docs/github-actions-pipeline.md)
+- **Workflow de release (versionado, firma, Play)**: [`docs/release-workflow.md`](docs/release-workflow.md)
+- **Build Android local**: [`docs/android-build.md`](docs/android-build.md)
+- **Documentación del proyecto**: [`README.md`](README.md)
+- **Arranque rápido de `mobile/`**: [`mobile/README.md`](mobile/README.md)

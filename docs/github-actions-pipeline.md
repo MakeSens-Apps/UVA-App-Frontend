@@ -1,319 +1,64 @@
-# 🚀 GitHub Actions Pipeline - UVA App
+# GitHub Actions — pipeline de CI/CD (React Native)
 
-Este documento describe el pipeline de GitHub Actions configurado para compilar automáticamente APKs y AABs de la aplicación UVA.
+Este documento describe, a nivel de proceso, el pipeline de CI/CD para la app RN en `mobile/`. Los workflows en sí viven en `.github/workflows/` y son la fuente de verdad para nombres exactos de jobs, triggers y pasos — este documento no los repite literalmente porque están en evolución activa durante el cierre de la migración Ionic→RN; donde haga falta el detalle exacto, "ver workflow" apunta a ese directorio.
 
-## 📋 Tabla de Contenidos
+## Qué corre en el pipeline
 
-- [Workflows Disponibles](#workflows-disponibles)
-- [Configuración de Secrets](#configuración-de-secrets)
-- [Ambientes de Amplify](#ambientes-de-amplify)
-- [Triggers y Ramas](#triggers-y-ramas)
-- [Artifacts y Salidas](#artifacts-y-salidas)
-- [Troubleshooting](#troubleshooting)
+El pipeline tiene, conceptualmente, dos responsabilidades separadas:
 
-## 🔧 Workflows Disponibles
+1. **CI de calidad** — lint + tests en cada cambio a `mobile/`: `npm run lint` y `npm run test:ci` (Jest) contra Node 22, con `npm ci` a partir de `mobile/package-lock.json`. Este job bloquea el merge si falla. Ver el workflow correspondiente en `.github/workflows/` (filtra por cambios bajo `mobile/**`).
+2. **Build y release Android** — genera el binario nativo Android a partir del código RN:
+   - `npm ci` en `mobile/`
+   - `npx expo prebuild --platform android` (Continuous Native Generation — regenera `mobile/android/`, que no está versionado)
+   - Firma inyectada durante el prebuild vía config plugin, usando el keystore y credenciales de secrets (ver `docs/release-workflow.md`)
+   - Compilación con **Gradle** (`./gradlew assembleRelease` o `./gradlew bundleRelease` según el artefacto pedido — APK o AAB)
+   - Publicación del artefacto firmado (como artifact de GitHub Actions, y opcionalmente subida directa a Google Play — ver más abajo)
 
-### 1. Build Android APK (`build-android.yml`)
+No hay ningún paso de **EAS Build** ni **EAS Submit** en este pipeline: todo el build nativo corre dentro del runner de GitHub Actions con Gradle.
 
-**Propósito**: Compilar APKs automáticamente en cada push a ramas específicas.
+## Secrets y variables
 
-**Características**:
+| Nombre | Tipo | Uso |
+|---|---|---|
+| `ANDROID_KEYSTORE_BASE64` | Secret | Keystore de firma de release, codificado en base64; se decodifica a `.jks` en el runner. |
+| `KEYSTORE_PASSWORD` | Secret | Password del keystore. |
+| `KEY_ALIAS` | Secret | Alias de la llave dentro del keystore. |
+| `KEY_PASSWORD` | Secret | Password de la llave. |
+| `PLAY_SERVICE_ACCOUNT_JSON` | Secret | Credenciales de cuenta de servicio de Google Play (Play Developer API), usadas solo si la subida automática está habilitada. |
+| `PLAY_DEPLOY_ENABLED` | Variable | Interruptor: si no está activa, el AAB queda solo como artifact de GitHub Actions (subida manual a Play); si está activa, el workflow además publica en Play Console. |
 
-- ✅ Compilación automática en push a branches
-- ✅ Configuración automática de ambiente Amplify
-- ✅ Generación de APK debug y release
-- ✅ Upload de artifacts con nombres únicos
-- ✅ Resumen detallado del build
+Ver `docs/release-workflow.md` para el flujo completo de versionado y firma, y `README-PIPELINE.md` para la identidad de la app en Google Play (`applicationId`, organización, consola).
 
-**Se ejecuta en**:
+## Artifacts
 
-- `feature/**`
-- `fix/**`
-- `hotfix/**`
-- `develop`
-- `test`
-- `main`
+- **CI de lint/test**: no genera artifacts, solo el resultado pasa/falla del job.
+- **Build Android**: publica el APK y/o AAB generado como artifact descargable desde la ejecución del workflow en GitHub Actions. Los nombres de artifact y la política de retención se definen en el workflow — ver `.github/workflows/`.
 
-### 2. Build Android Bundle (`build-android-bundle.yml`)
+## Notificaciones
 
-**Propósito**: Generar AAB (Android App Bundle) para Google Play Store.
+El pipeline Ionic anterior enviaba notificaciones a Slack (éxito/fallo de build) usando `SLACK_WEBHOOK_URL`. Si ese mecanismo se conserva en el pipeline RN, seguirá documentado en `docs/slack-integration.md`; confirmar en el workflow vigente si el paso de notificación sigue presente.
 
-**Características**:
+## Troubleshooting
 
-- ✅ Ejecutión manual con parámetros
-- ✅ Compilación automática en tags y main
-- ✅ Selección de ambiente y tipo de build
-- ✅ Generación de AAB para Play Store
-- ✅ Upload de artifacts con retención extendida
+### El job de lint/test no se dispara
 
-**Se ejecuta en**:
+Los workflows de CI para `mobile/` suelen estar filtrados por `paths: mobile/**` — un cambio que solo toca archivos fuera de `mobile/` (por ejemplo, solo `docs/`) no dispara ese job. Confirmar el filtro exacto en `.github/workflows/`.
 
-- Manual (workflow_dispatch)
-- Push a `main`
-- Tags `v*`
+### `expo prebuild` falla en CI
 
-## 🔐 Configuración de Secrets
+Revisar que `mobile/app.json` y los config plugins en `mobile/plugins/` sean válidos (`npx expo config --type public` local reproduce la resolución de configuración). Un fallo de prebuild en CI casi siempre reproduce localmente con `npx expo prebuild --platform android --clean`.
 
-Para que el pipeline funcione correctamente, necesitas configurar los siguientes secrets en tu repositorio de GitHub:
+### Gradle falla en `assembleRelease`/`bundleRelease` en CI pero funciona local
 
-### GitHub Repository Secrets
+Verificar que los cuatro secrets de firma (`ANDROID_KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`) estén configurados en el repositorio/organización de GitHub y que el keystore decodificado coincida con el usado en local (mismo SHA-256 — ver `README-PIPELINE.md`).
 
-Ve a **Settings > Secrets and variables > Actions** y añade:
+### La subida a Play falla o no se ejecuta
 
-| Secret                  | Descripción           | Valor             |
-| ----------------------- | --------------------- | ----------------- |
-| `AWS_ACCESS_KEY_ID`     | AWS Access Key ID     | Tu AWS Access Key |
-| `AWS_SECRET_ACCESS_KEY` | AWS Secret Access Key | Tu AWS Secret Key |
+Confirmar que `PLAY_DEPLOY_ENABLED` está en el estado esperado y que `PLAY_SERVICE_ACCOUNT_JSON` tiene permisos vigentes en Play Console para la app `com.makesens.appuva`.
 
-### Obtener Credenciales de AWS
+## Ver también
 
-1. **Accede a AWS Console**
-2. **Ve a IAM > Users**
-3. **Crea un usuario para CI/CD** con permisos de Amplify
-4. **Genera Access Keys**
-5. **Añade los secrets al repositorio**
-
-### Permisos Necesarios
-
-El usuario de AWS necesita estos permisos:
-
-- `AmplifyBackendDeployFullAccess`
-- `AWSAmplifyConsoleFullAccess`
-- `CloudFormationFullAccess`
-- `IAMFullAccess`
-- `S3FullAccess`
-- `DynamoDBFullAccess`
-
-## 🌍 Ambientes de Amplify
-
-El pipeline configura automáticamente el ambiente correcto según la rama:
-
-| Rama         | Ambiente Amplify | Descripción |
-| ------------ | ---------------- | ----------- |
-| `main`       | `main`           | Producción  |
-| `test`       | `test`           | Testing     |
-| `develop`    | `develop`        | Desarrollo  |
-| `feature/**` | `develop`        | Desarrollo  |
-| `fix/**`     | `develop`        | Desarrollo  |
-| `hotfix/**`  | `develop`        | Desarrollo  |
-
-### Configuración Manual
-
-Para el workflow de Bundle, puedes seleccionar manualmente:
-
-- **Ambiente**: `develop`, `test`, `main`
-- **Tipo de Build**: `debug`, `release`
-
-## 🔄 Triggers y Ramas
-
-### Automatic Triggers
-
-```yaml
-# Push a ramas específicas
-push:
-  branches:
-    - 'feature/**'
-    - 'fix/**'
-    - 'hotfix/**'
-    - 'develop'
-    - 'test'
-    - 'main'
-
-# Pull requests a ramas principales
-pull_request:
-  branches:
-    - 'develop'
-    - 'main'
-```
-
-### Manual Triggers
-
-```yaml
-# Activación manual para Bundle
-workflow_dispatch:
-  inputs:
-    environment:
-      description: 'Ambiente de Amplify'
-      required: true
-      default: 'develop'
-      type: choice
-      options:
-        - develop
-        - test
-        - main
-```
-
-## 📦 Artifacts y Salidas
-
-### Nomenclatura de Artifacts
-
-Los artifacts se generan con nombres únicos:
-
-```
-UVA-APK-{BRANCH_NAME}-{TIMESTAMP}-{TYPE}
-UVA-Bundle-{BRANCH_NAME}-{TIMESTAMP}-{TYPE}
-```
-
-**Ejemplo**: `UVA-APK-feature-auth-20241201_143022-debug`
-
-### Tipos de Artifacts
-
-| Tipo               | Descripción           | Retención | Ramas        |
-| ------------------ | --------------------- | --------- | ------------ |
-| **APK Debug**      | APK para testing      | 30 días   | Todas        |
-| **APK Release**    | APK para distribución | 90 días   | main, test   |
-| **Bundle Debug**   | AAB para testing      | 30 días   | Manual       |
-| **Bundle Release** | AAB para Play Store   | 90 días   | Manual, main |
-
-### Ubicación de Archivos
-
-Los artifacts se almacenan en:
-
-- **APK Debug**: `android/app/build/outputs/apk/debug/app-debug.apk`
-- **APK Release**: `android/app/build/outputs/apk/release/app-release-unsigned.apk`
-- **Bundle Debug**: `android/app/build/outputs/bundle/debug/app-debug.aab`
-- **Bundle Release**: `android/app/build/outputs/bundle/release/app-release.aab`
-
-## 🔍 Monitoring y Logs
-
-### Build Summary
-
-Cada workflow genera un resumen con:
-
-- 📊 Información del build
-- 📱 Tamaño de los artifacts
-- 🎯 Configuración del ambiente
-- ✅ Estado de la compilación
-
-### Logs Detallados
-
-Los workflows incluyen logs detallados para:
-
-- Configuración de Amplify
-- Compilación web
-- Sincronización de Capacitor
-- Compilación de Android
-- Upload de artifacts
-
-## 🛠️ Troubleshooting
-
-### Problemas Comunes
-
-#### 1. Error de Credenciales AWS
-
-```
-Error: Unable to configure AWS credentials
-```
-
-**Solución**: Verifica que los secrets `AWS_ACCESS_KEY_ID` y `AWS_SECRET_ACCESS_KEY` estén configurados correctamente.
-
-#### 2. Error de Amplify Pull
-
-```
-Error: Cannot find app with appId: d2l8hh51bqhq16
-```
-
-**Solución**: Verifica que el appId sea correcto y que tengas permisos para acceder a la aplicación de Amplify.
-
-#### 3. Error de Compilación Android
-
-```
-Error: Could not find or load main class GradleWrapperMain
-```
-
-**Solución**: El workflow corrige automáticamente este problema dando permisos de ejecución al gradlew.
-
-#### 4. Error de Dependencias
-
-```
-Error: npm ci failed
-```
-
-**Solución**:
-
-- Verifica que `package-lock.json` esté actualizado
-- Revisa que no haya conflictos de dependencias
-- Considera actualizar Node.js en el workflow
-
-### Logs de Debugging
-
-Para debugging avanzado, puedes:
-
-1. **Habilitar logs detallados**:
-
-   ```yaml
-   - name: Debug step
-     run: |
-       set -x  # Habilitar verbose
-       your-command
-   ```
-
-2. **Verificar variables de entorno**:
-
-   ```yaml
-   - name: Debug environment
-     run: |
-       echo "Node version: $(node -v)"
-       echo "NPM version: $(npm -v)"
-       echo "Java version: $(java -version)"
-   ```
-
-3. **Revisar archivos generados**:
-   ```yaml
-   - name: List build outputs
-     run: |
-       find android/app/build/outputs -type f -name "*.apk" -o -name "*.aab"
-   ```
-
-## 🚀 Uso del Pipeline
-
-### Para Releases
-
-1. **Generar Bundle para Play Store**:
-
-   - Ve a **Actions > Build Android Bundle**
-   - Clic en **Run workflow**
-   - Selecciona:
-     - Environment: `main`
-     - Build type: `release`
-   - Clic en **Run workflow**
-
-2. **Crear Release Tag**:
-   ```bash
-   git tag -a v1.0.0 -m "Release v1.0.0"
-   git push origin v1.0.0
-   ```
-   → Se compilará automáticamente un Bundle release
-
-### Descargar Artifacts
-
-1. **Ve a Actions > Workflow run**
-2. **Scroll hasta la sección Artifacts**
-3. **Clic en el artifact que necesites**
-4. **Se descargará automáticamente**
-
-## 🔄 Mantenimiento
-
-### Actualización de Dependencias
-
-El pipeline puede requerir actualizaciones periódicas:
-
-- **GitHub Actions**: Actualizar versiones de actions
-- **Node.js**: Actualizar versión de Node
-- **Java**: Actualizar versión de Java
-- **Android SDK**: Actualizar API level y build tools
-
-### Monitoreo
-
-Revisa periódicamente:
-
-- ✅ Tiempo de compilación
-- ✅ Tamaño de artifacts
-- ✅ Tasa de éxito de builds
-- ✅ Uso de secrets y permisos
-
----
-
-**¡El pipeline está listo para usar! 🎉**
-
-Para más información sobre el proyecto, consulta el [README principal](../README.md).
+- `docs/release-workflow.md` — versionado, firma y subida a Play en detalle
+- `docs/android-build.md` — cómo reproducir el build localmente
+- `README-PIPELINE.md` — resumen operativo e identidad de la app en Google Play
+- `.github/workflows/` — definición exacta de cada workflow
