@@ -176,3 +176,19 @@ Estado actual de cada ítem del checklist de B19:
   `docs/evidence/device-2026-09-07/review-frames-166-239.md`.
 - Commits de la ronda de fixes: `24545a5`, `c5eec23`.
 - Módulo app-minimize: `mobile/modules/app-minimize/README.md`.
+
+## Validación en device — 2026-09-10 (Redmi Note 10S, modo asistido)
+
+Validado por el usuario con el bundle de Metro (commits `b2fe17a`…`8160801`), sin reinstalar el APK:
+
+| Área | Resultado |
+|---|---|
+| Home (tarjetas, ⓘ, días futuros, tab bar), Perfil sin tabs, Logros, Notificaciones, Configuración | OK |
+| Historial: gráfica Tem/Hum/Acu (vacía en Hermes por `Date.parse` → corregido), agregados 24.3/28/22 idénticos al original, loader al cambiar de mes, gráfica y variable conservadas al volver de Año (decisión del usuario), tooltip al tocar/arrastrar | OK |
+| Registro: sin duplicado de flujo (`replace` + guard por día), atrás minimiza en registro/guía (decisión del usuario), backdrop 0.32, guía a la altura del contenido | OK |
+| Información personal: guardado sin `BadRecord`, `uvaID` reparado desde la sesión | OK |
+| Botón atrás: Inicio y Registrar minimizan; Historial vuelve a Inicio (igual que el original; pendiente decisión del usuario si debe minimizar) | OK |
+
+Decisiones del usuario aplicadas como desviación consciente del original: minimizar en registro/guía; conservar gráfica+variable al volver de Año; capa oscura 0.32 en el modal de confirmación (el original solo desenfoca).
+
+Pendiente: B19 (hardening final, CI/EAS, cutover), gates que exigen SIM o device con toques automatizados (OTP real, vinculación real de RACIMO), Doze/exact-alarm, theming multi-RACIMO visual.
