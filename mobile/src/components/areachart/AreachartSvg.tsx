@@ -44,17 +44,25 @@
  *     (datasets `fill:'+1'` / `fill:false`) + línea de promedio encima.
  *   - `chartType === 'bar'`: barras sólidas con `borderColor` (el original no
  *     usa gradiente para barras — areachart.component.ts:157-158).
+ *   - Tooltip al tocar/arrastrar sobre el área (`interaction: { mode:'index',
+ *     intersect:false, axis:'x' }` + `plugins.tooltip` —
+ *     areachart.component.ts:220-290): fondo blanco, borde `#ccc` 1px, sin
+ *     cuadro de color, título `dd/MM/yyyy` a 14px y cuerpo a 12px.
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  View,
+  PanResponder,
   StyleSheet,
+  Text,
+  View,
   useWindowDimensions,
+  type GestureResponderEvent,
   type LayoutChangeEvent,
 } from 'react-native';
 import Svg, {
   Path,
+  Circle,
   Defs,
   LinearGradient as SvgLinearGradient,
   Stop,
@@ -300,7 +308,7 @@ export interface AreachartProps {
 
 // ─── Internal data shape ───────────────────────────────────────────────────────
 
-interface ChartDatum {
+export interface ChartDatum {
   x: number; // timestamp (ms)
   y: number;
   yMin?: number;
@@ -333,6 +341,231 @@ const X_LABEL_ROTATION = -45;
  * measured yet (`.cards` margin-inline 10 + padding 10 on both sides).
  */
 const CARD_HORIZONTAL_INSET = 40;
+
+// ─── Tooltip — Chart.js `plugins.tooltip` parity ───────────────────────────
+
+/** `backgroundColor: 'white'` (areachart.component.ts:231). */
+const TOOLTIP_BG = 'white';
+/** `borderColor: '#ccc'` + `borderWidth: 1` (areachart.component.ts:234-235). */
+const TOOLTIP_BORDER = '#ccc';
+/** `titleColor` / `bodyColor`: `'black'` (areachart.component.ts:232-233). */
+export const TOOLTIP_TEXT_COLOR = 'black';
+/** `titleFont.size: 14` (areachart.component.ts:240). */
+const TOOLTIP_TITLE_FONT_SIZE = 14;
+/** `bodyFont.size: 12` (areachart.component.ts:237). */
+const TOOLTIP_BODY_FONT_SIZE = 12;
+/** Chart.js default `padding: 6`. */
+const TOOLTIP_PADDING = 6;
+/** Chart.js default `cornerRadius: 6`. */
+const TOOLTIP_RADIUS = 6;
+/** Chart.js default `titleMarginBottom: 6`. */
+const TOOLTIP_TITLE_MARGIN = 6;
+/** Chart.js default `caretSize: 5`. */
+const CARET_SIZE = 5;
+/** Gap between the highlighted point and the tooltip box. */
+const TOOLTIP_GAP = 4;
+/** Chart.js default `pointHoverRadius: 4`. */
+const ACTIVE_POINT_RADIUS = 4;
+/** Line box of the title / of every body line (Chart.js lineHeight 1.2). */
+const TOOLTIP_TITLE_LINE_HEIGHT = 18;
+const TOOLTIP_BODY_LINE_HEIGHT = 15;
+/** Rough average glyph width factor, used only until `onLayout` measures. */
+const TOOLTIP_CHAR_WIDTH_RATIO = 0.62;
+
+/**
+ * Formats a timestamp as `dd/MM/yyyy`.
+ *
+ * The original calls
+ * `date.toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric' })`
+ * (areachart.component.ts:244-249), whose output for `es-ES` is exactly
+ * `dd/MM/yyyy`. It is built by hand here because Hermes ships without a full
+ * ICU in some Android builds and would silently fall back to another format —
+ * the same class of Hermes divergence that once left the chart empty.
+ *
+ * @param {number} ts - Epoch milliseconds.
+ * @returns {string} `dd/MM/yyyy`.
+ */
+export function formatTooltipDate(ts: number): string {
+  const d = new Date(ts);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  return `${day}/${month}/${d.getFullYear()}`;
+}
+
+/** One body line of the tooltip, with the colour Chart.js gives it. */
+export interface TooltipLine {
+  text: string;
+  color: string;
+}
+
+/** Resolved tooltip content: title + body lines. */
+export interface TooltipContent {
+  title: string;
+  lines: TooltipLine[];
+}
+
+/**
+ * Index of the datum whose x is closest to a touch — Chart.js
+ * `interaction: { mode: 'index', intersect: false, axis: 'x' }`
+ * (areachart.component.ts:221-225): touching anywhere over the plot selects the
+ * nearest point along x, no need to hit the point itself. Ties resolve to the
+ * lower index, like Chart.js' own scan.
+ *
+ * @param {number[]} pointXs - screen x of every datum (ascending).
+ * @param {number} touchX - screen x of the touch, in the same space.
+ * @returns {number} index of the nearest datum, or -1 when there is no data.
+ */
+export function nearestIndexFromX(pointXs: number[], touchX: number): number {
+  if (pointXs.length === 0) return -1;
+  let best = 0;
+  let bestDist = Math.abs(pointXs[0] - touchX);
+  for (let i = 1; i < pointXs.length; i++) {
+    const dist = Math.abs(pointXs[i] - touchX);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = i;
+    }
+  }
+  return best;
+}
+
+/**
+ * Builds the tooltip title and body for one datum, mirroring the original
+ * `callbacks.title` / `callbacks.label` / `callbacks.labelTextColor`
+ * (areachart.component.ts:243-286):
+ *
+ *   - `detailedMode` (Tem/Hum, there is min/max data): `Máximo` / `Mínimo` /
+ *     `Promedio`, collapsed to a single `Promedio` line when the three values
+ *     are equal.
+ *   - otherwise (lluvia/barras): a single `Promedio: value` line.
+ *
+ * The `Promedio` line takes the series colour in `detailedMode`
+ * (`labelTextColor` returns `this.borderColor`); everything else is black.
+ * Values are interpolated raw, exactly as the original template strings do —
+ * no rounding, and no standard deviation (the original has none).
+ *
+ * @param {ChartDatum} datum - the selected point.
+ * @param {boolean} detailedMode - whether min/max data is being plotted.
+ * @param {string} borderColor - the series colour.
+ * @returns {TooltipContent} title + body lines.
+ */
+export function buildTooltipContent(
+  datum: ChartDatum,
+  detailedMode: boolean,
+  borderColor: string,
+): TooltipContent {
+  const title = formatTooltipDate(datum.x);
+  const avg = datum.y;
+
+  if (detailedMode && datum.yMax !== undefined && datum.yMin !== undefined) {
+    if (avg === datum.yMax && datum.yMax === datum.yMin) {
+      return {
+        title,
+        lines: [{ text: `Promedio: ${avg}`, color: borderColor }],
+      };
+    }
+    return {
+      title,
+      lines: [
+        { text: `Máximo: ${datum.yMax}`, color: TOOLTIP_TEXT_COLOR },
+        { text: `Mínimo: ${datum.yMin}`, color: TOOLTIP_TEXT_COLOR },
+        { text: `Promedio: ${avg}`, color: borderColor },
+      ],
+    };
+  }
+
+  return {
+    title,
+    lines: [{ text: `Promedio: ${avg}`, color: TOOLTIP_TEXT_COLOR }],
+  };
+}
+
+/**
+ * First-frame size guess for the tooltip box, used only until `onLayout`
+ * reports the real one (so the box is never mis-clamped on its first paint).
+ *
+ * @param {TooltipContent} content - resolved tooltip content.
+ * @returns {{ w: number; h: number }} estimated box size in px.
+ */
+export function estimateTooltipSize(content: TooltipContent): {
+  w: number;
+  h: number;
+} {
+  const titleW =
+    content.title.length * TOOLTIP_TITLE_FONT_SIZE * TOOLTIP_CHAR_WIDTH_RATIO;
+  const bodyW = content.lines.reduce(
+    (max, line) =>
+      Math.max(
+        max,
+        line.text.length * TOOLTIP_BODY_FONT_SIZE * TOOLTIP_CHAR_WIDTH_RATIO,
+      ),
+    0,
+  );
+  return {
+    w: Math.ceil(Math.max(titleW, bodyW)) + TOOLTIP_PADDING * 2 + 2,
+    h:
+      TOOLTIP_PADDING * 2 +
+      2 +
+      TOOLTIP_TITLE_LINE_HEIGHT +
+      TOOLTIP_TITLE_MARGIN +
+      content.lines.length * TOOLTIP_BODY_LINE_HEIGHT,
+  };
+}
+
+/** Where the tooltip box and its caret are painted, in chart coordinates. */
+export interface TooltipPlacement {
+  left: number;
+  top: number;
+  caretX: number;
+  /** `true` when the box sits above the point (caret pointing down). */
+  above: boolean;
+}
+
+/**
+ * Places the tooltip over the point without letting it leave the chart:
+ * horizontally centred on the point and clamped to the chart width, above the
+ * point when there is room and below it otherwise (Chart.js `yAlign: 'auto'`).
+ *
+ * @param {object} args - point position, box size and chart size.
+ * @param {number} args.pointX - x of the highlighted point.
+ * @param {number} args.pointY - y of the highlighted point.
+ * @param {{w:number;h:number}} args.size - tooltip box size.
+ * @param {number} args.chartWidth - chart width.
+ * @param {number} args.chartHeight - chart height.
+ * @returns {TooltipPlacement} clamped box origin + caret x.
+ */
+export function placeTooltip({
+  pointX,
+  pointY,
+  size,
+  chartWidth,
+  chartHeight,
+}: {
+  pointX: number;
+  pointY: number;
+  size: { w: number; h: number };
+  chartWidth: number;
+  chartHeight: number;
+}): TooltipPlacement {
+  const above = pointY - TOOLTIP_GAP - CARET_SIZE - size.h >= 0;
+  const rawTop = above
+    ? pointY - TOOLTIP_GAP - CARET_SIZE - size.h
+    : pointY + TOOLTIP_GAP + CARET_SIZE;
+  const top = Math.max(1, Math.min(rawTop, Math.max(1, chartHeight - size.h - 1)));
+
+  const rawLeft = pointX - size.w / 2;
+  const left = Math.max(1, Math.min(rawLeft, Math.max(1, chartWidth - size.w - 1)));
+
+  // Keep the caret inside the rounded box.
+  const caretMin = left + TOOLTIP_RADIUS + CARET_SIZE;
+  const caretMax = left + size.w - TOOLTIP_RADIUS - CARET_SIZE;
+  const caretX =
+    caretMax <= caretMin
+      ? left + size.w / 2
+      : Math.max(caretMin, Math.min(pointX, caretMax));
+
+  return { left, top, caretX, above };
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -534,6 +767,107 @@ function AreachartSvg({
 
   const baselineY = PAD_TOP + plotH;
 
+  // ── Interaction ───────────────────────────────────────────────────────────
+  // Chart.js `interaction: { mode:'index', intersect:false, axis:'x' }`
+  // (areachart.component.ts:221-225): touching or dragging anywhere over the
+  // plot selects the datum whose x is closest to the finger.
+  /**
+   * Selected datum, tagged with the signature of the data it belongs to.
+   * Tagging (instead of resetting from an effect) is what makes the tooltip
+   * disappear by itself when the plotted data changes — a month or measurement
+   * switch invalidates the selection without any cascading render.
+   */
+  const [selection, setSelection] = useState<{
+    key: string;
+    index: number;
+  } | null>(null);
+  const [tooltipSize, setTooltipSize] = useState<{
+    w: number;
+    h: number;
+  } | null>(null);
+
+  /** Screen x of every datum — the lookup table for the x → index mapping. */
+  const pointXs = useMemo(
+    () => chartDatum.map((d) => PAD_LEFT + ((d.x - xDomainMin) / xRange) * plotW),
+    [chartDatum, xDomainMin, xRange, plotW],
+  );
+
+  // Keyed on the values themselves, not on the array identity, so an unrelated
+  // re-render of the screen never drops the open tooltip.
+  const dataSignature = chartDatum
+    .map((d) => `${d.x}:${d.y}:${d.yMin ?? ''}:${d.yMax ?? ''}`)
+    .join('|');
+
+  const activeIndex =
+    selection && selection.key === dataSignature ? selection.index : null;
+
+  const plotRight = PAD_LEFT + plotW;
+
+  const handleTouch = useCallback(
+    (e: GestureResponderEvent) => {
+      const { locationX, locationY } = e.nativeEvent;
+      if (
+        !Number.isFinite(locationX) ||
+        locationX < PAD_LEFT ||
+        locationX > plotRight ||
+        locationY < PAD_TOP ||
+        locationY > baselineY
+      ) {
+        // Outside the plotting area (axis gutters) → dismiss.
+        setSelection(null);
+        return;
+      }
+      const idx = nearestIndexFromX(pointXs, locationX);
+      setSelection(idx >= 0 ? { key: dataSignature, index: idx } : null);
+    },
+    [pointXs, plotRight, baselineY, dataSignature],
+  );
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        // Claim horizontal drags only, so the surrounding ScrollView keeps
+        // handling vertical scrolling.
+        onMoveShouldSetPanResponder: (_e, g) =>
+          Math.abs(g.dx) > Math.abs(g.dy) && Math.abs(g.dx) > 2,
+        onPanResponderGrant: handleTouch,
+        onPanResponderMove: handleTouch,
+        // The ScrollView stealing the gesture (a scroll) also dismisses it.
+        onPanResponderTerminate: () => setSelection(null),
+      }),
+    [handleTouch],
+  );
+
+  const onTooltipLayout = useCallback((e: LayoutChangeEvent) => {
+    const { width: w, height: h } = e.nativeEvent.layout;
+    setTooltipSize((prev) =>
+      prev && Math.abs(prev.w - w) < 0.5 && Math.abs(prev.h - h) < 0.5
+        ? prev
+        : { w, h },
+    );
+  }, []);
+
+  const activeDatum =
+    activeIndex !== null && activeIndex < chartDatum.length
+      ? chartDatum[activeIndex]
+      : undefined;
+  const tooltip = activeDatum
+    ? buildTooltipContent(activeDatum, detailedMode, borderColor)
+    : null;
+  const tooltipBox = tooltip ? (tooltipSize ?? estimateTooltipSize(tooltip)) : null;
+  const activeX = activeDatum ? pointXs[activeIndex as number] : 0;
+  const placement =
+    tooltip && tooltipBox && activeDatum
+      ? placeTooltip({
+          pointX: activeX,
+          pointY: mapY(activeDatum.y),
+          size: tooltipBox,
+          chartWidth: width,
+          chartHeight: height,
+        })
+      : null;
+
   return (
     <View
       style={[styles.container, { height, width }]}
@@ -689,7 +1023,109 @@ function AreachartSvg({
             />
           </>
         )}
+
+        {/* Highlighted datum — Chart.js hover point (radius 4) plus a thin
+            index line, the visual cue of `mode: 'index'`. */}
+        {activeDatum ? (
+          <>
+            <Line
+              x1={activeX}
+              y1={PAD_TOP}
+              x2={activeX}
+              y2={baselineY}
+              stroke={borderColor}
+              strokeWidth={1}
+              strokeOpacity={0.5}
+            />
+            <Circle
+              cx={activeX}
+              cy={mapY(activeDatum.y)}
+              r={ACTIVE_POINT_RADIUS}
+              fill={borderColor}
+              stroke="#FFFFFF"
+              strokeWidth={1.5}
+            />
+          </>
+        ) : null}
       </Svg>
+
+      {/* Touch layer — above the SVG so `locationX` is always relative to the
+          chart container (a react-native-svg node would otherwise become the
+          touch target on Android and shift the origin). */}
+      <View
+        testID="areachart-touch-layer"
+        style={StyleSheet.absoluteFill}
+        {...panResponder.panHandlers}
+      />
+
+      {tooltip && tooltipBox && placement ? (
+        <>
+          <View
+            testID="areachart-tooltip"
+            onLayout={onTooltipLayout}
+            style={[styles.tooltip, { left: placement.left, top: placement.top }]}
+          >
+            <Text testID="areachart-tooltip-title" style={styles.tooltipTitle}>
+              {tooltip.title}
+            </Text>
+            {tooltip.lines.map((line) => (
+              <Text
+                key={line.text}
+                style={[styles.tooltipBody, { color: line.color }]}
+              >
+                {line.text}
+              </Text>
+            ))}
+          </View>
+
+          {/* Caret: Chart.js draws it as part of the tooltip path, so it carries
+              the same 1px #ccc border — two stacked triangles reproduce it. */}
+          <View
+            style={[
+              styles.caret,
+              placement.above
+                ? {
+                    left: placement.caretX - (CARET_SIZE + 1),
+                    top: placement.top + tooltipBox.h - 1,
+                    borderLeftWidth: CARET_SIZE + 1,
+                    borderRightWidth: CARET_SIZE + 1,
+                    borderTopWidth: CARET_SIZE + 1,
+                    borderTopColor: TOOLTIP_BORDER,
+                  }
+                : {
+                    left: placement.caretX - (CARET_SIZE + 1),
+                    top: placement.top - CARET_SIZE,
+                    borderLeftWidth: CARET_SIZE + 1,
+                    borderRightWidth: CARET_SIZE + 1,
+                    borderBottomWidth: CARET_SIZE + 1,
+                    borderBottomColor: TOOLTIP_BORDER,
+                  },
+            ]}
+          />
+          <View
+            style={[
+              styles.caret,
+              placement.above
+                ? {
+                    left: placement.caretX - CARET_SIZE,
+                    top: placement.top + tooltipBox.h - 1,
+                    borderLeftWidth: CARET_SIZE,
+                    borderRightWidth: CARET_SIZE,
+                    borderTopWidth: CARET_SIZE,
+                    borderTopColor: TOOLTIP_BG,
+                  }
+                : {
+                    left: placement.caretX - CARET_SIZE,
+                    top: placement.top + 1 - CARET_SIZE,
+                    borderLeftWidth: CARET_SIZE,
+                    borderRightWidth: CARET_SIZE,
+                    borderBottomWidth: CARET_SIZE,
+                    borderBottomColor: TOOLTIP_BG,
+                  },
+            ]}
+          />
+        </>
+      ) : null}
     </View>
   );
 }
@@ -706,6 +1142,41 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     left: 0,
+  },
+  tooltip: {
+    position: 'absolute',
+    // `pointerEvents` goes in the style, not in the prop: on react-native-web
+    // only the style form emits CSS `pointer-events:none`, and the tooltip must
+    // never swallow the touches meant for the layer underneath it (same fix as
+    // MoonCard.tsx:242).
+    pointerEvents: 'none',
+    backgroundColor: TOOLTIP_BG,
+    borderWidth: 1,
+    borderColor: TOOLTIP_BORDER,
+    borderRadius: TOOLTIP_RADIUS,
+    paddingHorizontal: TOOLTIP_PADDING,
+    paddingVertical: TOOLTIP_PADDING,
+  },
+  tooltipTitle: {
+    fontSize: TOOLTIP_TITLE_FONT_SIZE,
+    lineHeight: TOOLTIP_TITLE_LINE_HEIGHT,
+    fontWeight: 'bold',
+    color: TOOLTIP_TEXT_COLOR,
+    marginBottom: TOOLTIP_TITLE_MARGIN,
+  },
+  tooltipBody: {
+    fontSize: TOOLTIP_BODY_FONT_SIZE,
+    lineHeight: TOOLTIP_BODY_LINE_HEIGHT,
+  },
+  caret: {
+    position: 'absolute',
+    pointerEvents: 'none',
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderStyle: 'solid',
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
   },
 });
 
