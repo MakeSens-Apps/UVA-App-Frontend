@@ -100,7 +100,15 @@ export function formatDayMonth(ts: number): string {
  * @param {string} dateString - e.g. `2026-05-01`.
  * @returns {Date} Parsed date.
  */
-function parseDateSafe(dateString: string): Date {
+export function parseDateSafe(dateString: string): Date {
+  // Hermes (RN) only parses ISO-8601 / RFC-2822 strings: `new Date('2026/05/01')`
+  // is NaN there although V8 (web) accepts it. Labels arrive as `yyyy-MM-dd`
+  // (sorted `Object.keys` of the daily aggregation), so build the local date
+  // from its parts — this is what made the chart render empty on device.
+  const m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(dateString);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const iso = new Date(dateString);
+  if (!isNaN(iso.getTime())) return iso;
   return new Date(dateString.replace(/-/g, '/'));
 }
 
