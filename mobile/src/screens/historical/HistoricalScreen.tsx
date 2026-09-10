@@ -141,6 +141,21 @@ function formatStat(value: number | undefined): string {
 // in the SCSS — not a --Colors-* token, so kept as a local constant here).
 const VARIABLES_TEXT_COLOR = '#545454';
 
+// Device review 2026-09-10: delay before showing the mid-navigation content
+// loader (see `monthLoading`). The DataStore reads behind a month change are
+// local and usually resolve in a handful of ms, so showing the loader
+// immediately would just flicker on the common case. If the load takes
+// longer than this threshold we show the loader until the new data lands;
+// if it resolves first, the loader never appears. A brief flicker under this
+// threshold is an accepted trade-off (documented per user request) rather
+// than adding a minimum-visible-time lock, which would make FAST months
+// feel slower for no benefit.
+const CONTENT_LOADER_DELAY_MS = 150;
+
+// Placeholder shown by the Tem/Hum/Acu cards while `monthLoading` is true —
+// replaces the (possibly stale, from the previous month) avg/max/min values.
+const LOADING_STAT_PLACEHOLDER = '–';
+
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
 type TypeView = 'calendar' | 'chart';
@@ -324,6 +339,14 @@ export function HistoricalScreen(): React.JSX.Element {
   const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [loading, setLoading] = useState(true);
   const [sharing, setSharing] = useState(false);
+  // Device review 2026-09-10: navigating months with the arrows (or via the
+  // Mes/Año segment, or tapping a month from Año) briefly kept SHOWING the
+  // previous month's chart + Tem/Hum/Acu card values while the new month's
+  // data was still being fetched (initializeVariables/updateChartData are
+  // async). `monthLoading` gates that stale content so the content area
+  // shows a loader / placeholders instead, without unmounting the header or
+  // the Mes/Año segment and without touching `typeView`/`measureSelected`.
+  const [monthLoading, setMonthLoading] = useState(false);
 
   // B15-cierre: off-screen report for view-shot capture
   const reportViewRef = useRef<View>(null);
@@ -525,34 +548,57 @@ export function HistoricalScreen(): React.JSX.Element {
   // navigation instead of falling back to the calendar.
   useEffect(() => {
     let mounted = true;
+    // Device review 2026-09-10: delay showing `monthLoading` by
+    // CONTENT_LOADER_DELAY_MS so a fast (typical) local read never flickers
+    // the loader — see the constant's comment above.
+    let showLoaderTimer: ReturnType<typeof setTimeout> | null = setTimeout(() => {
+      showLoaderTimer = null;
+      if (mounted) setMonthLoading(true);
+    }, CONTENT_LOADER_DELAY_MS);
+    const clearShowLoaderTimer = () => {
+      if (showLoaderTimer) {
+        clearTimeout(showLoaderTimer);
+        showLoaderTimer = null;
+      }
+    };
     const loadMonth = async () => {
-      await initializeRegisters(mounted);
-      const config = measuresConfig ?? (await getConfigurationMeasurement());
-      if (!config?.historical || !mounted) return;
+      try {
+        await initializeRegisters(mounted);
+        const config = measuresConfig ?? (await getConfigurationMeasurement());
+        if (!config?.historical || !mounted) return;
 
-      // Fix (b): pass current timeFrame instead of hardcoded 'month' so that
-      // year-view variables are built with the full-year dataset.
-      // Original: initializeVariables reads this.timeFrame (historical.page.ts:512).
-      const freshVariables = await initializeVariables(
-        config.historical,
-        timeFrame,
-        mounted,
-      );
+        // Fix (b): pass current timeFrame instead of hardcoded 'month' so that
+        // year-view variables are built with the full-year dataset.
+        // Original: initializeVariables reads this.timeFrame (historical.page.ts:512).
+        const freshVariables = await initializeVariables(
+          config.historical,
+          timeFrame,
+          mounted,
+        );
 
-      if (!mounted || typeView !== 'chart' || freshVariables.length === 0) return;
-      // Original: `this.measureSelected.selected = true; updateChart(...)`, or
-      // `changeColorChart(this.variables[0])` when nothing is selected yet.
-      const selected =
-        freshVariables.find((v) => v.name === measureSelectedName) ??
-        freshVariables[0];
-      setVariables((v) =>
-        v.map((vr) => ({ ...vr, selected: vr.name === selected.name })),
-      );
-      setMeasureSelected({ ...selected, selected: true });
-      await updateChartData(selected);
+        if (!mounted || typeView !== 'chart' || freshVariables.length === 0) return;
+        // Original: `this.measureSelected.selected = true; updateChart(...)`, or
+        // `changeColorChart(this.variables[0])` when nothing is selected yet.
+        const selected =
+          freshVariables.find((v) => v.name === measureSelectedName) ??
+          freshVariables[0];
+        setVariables((v) =>
+          v.map((vr) => ({ ...vr, selected: vr.name === selected.name })),
+        );
+        setMeasureSelected({ ...selected, selected: true });
+        await updateChartData(selected);
+      } finally {
+        // Always clears — regardless of which of the early returns above
+        // was hit — so `monthLoading` never gets stuck true.
+        clearShowLoaderTimer();
+        if (mounted) setMonthLoading(false);
+      }
     };
     void loadMonth();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+      clearShowLoaderTimer();
+    };
   }, [
     currentMonthIndex,
     currentYearIndex,
@@ -629,19 +675,22 @@ export function HistoricalScreen(): React.JSX.Element {
       setCurrentMonthIndex(newIndex);
       setCurrentYearIndex(newYear);
 
-      // D-12: the original ONLY drops back to the calendar when the navigation
-      // starts from the year view (`historical.page.ts:203-211`); coming from
-      // the month view it keeps `typeView` and re-runs updateChart for the new
-      // month (`:227-236`).  Resetting typeView unconditionally lost the chart
-      // mode on every month change.
-      if (timeFrame === 'year') {
-        setTypeView('calendar');
-        setVariables((v) => v.map((vr) => ({ ...vr, selected: false })));
-        setMeasureSelected(undefined);
-      }
+      // Desviación del original a petición del usuario (2026-09-10): el
+      // original (historical.page.ts:207-236) SIEMPRE fuerza
+      // `typeView='calendar'` y limpia `selected` al venir de la vista Año.
+      // El usuario pidió que, si venía en modo gráfica con una variable
+      // seleccionada, el mes destino se abra también en modo gráfica con esa
+      // misma variable. Para eso basta con NO resetear `typeView` ni
+      // `measureSelected` aquí: el month-load effect de abajo ya reconstruye
+      // la gráfica cuando `typeView === 'chart'` — buscando la variable por
+      // nombre (`measureSelectedName`) y cayendo a `freshVariables[0]` si no
+      // había ninguna seleccionada —, igual que hace con la navegación por
+      // flechas dentro del mes (preservado desde el commit 24545a5). Si el
+      // usuario estaba en calendario, `typeView` sigue en 'calendar' y el
+      // comportamiento no cambia.
       setTimeFrame('month');
     },
-    [completedTaskYear, currentYearIndex, realCurrentYear, timeFrame],
+    [completedTaskYear, currentYearIndex, realCurrentYear],
   );
 
   // ─── isNextYearDisabled ───────────────────────────────────────────────────
@@ -873,7 +922,7 @@ export function HistoricalScreen(): React.JSX.Element {
                 Original: historical.page.html .calendar_variables_container —
                 3 white cards (radius 10, padding 10, gap 10) on the gray-50
                 section; values formatted with `number:'1.0-1'`. */}
-            <View style={styles.variablesRow}>
+            <View style={[styles.variablesRow, monthLoading && styles.variablesRowLoading]}>
               {variables.map((variable) => (
                 <TouchableOpacity
                   key={variable.name}
@@ -926,36 +975,51 @@ export function HistoricalScreen(): React.JSX.Element {
                           fontFamily: fontFamilyForWeight(typeView === 'chart' && variable.selected ? '700' : '600'),
                         },
                       ]}
+                      testID={`variable-avg-${variable.name}`}
                     >
-                      {formatStat(variable.avg)}
-                      {variable.unit}
+                      {/* Device review 2026-09-10: while the new month's stats
+                          are loading, show a placeholder instead of the
+                          PREVIOUS month's (stale) avg/max/min. */}
+                      {monthLoading ? LOADING_STAT_PLACEHOLDER : `${formatStat(variable.avg)}${variable.unit}`}
                     </Text>
                   </View>
                   <View style={styles.variableStat}>
                     <Text style={[styles.statLabel, { fontFamily: fontFamilyForWeight('500') }]}>
                       Max:
                     </Text>
-                    <Text style={[styles.statValue, { fontFamily: fontFamilyForWeight('500') }]}>
-                      {formatStat(variable.max)}
-                      {variable.unit}
+                    <Text
+                      style={[styles.statValue, { fontFamily: fontFamilyForWeight('500') }]}
+                      testID={`variable-max-${variable.name}`}
+                    >
+                      {monthLoading ? LOADING_STAT_PLACEHOLDER : `${formatStat(variable.max)}${variable.unit}`}
                     </Text>
                   </View>
                   <View style={styles.variableStat}>
                     <Text style={[styles.statLabel, { fontFamily: fontFamilyForWeight('500') }]}>
                       Min:
                     </Text>
-                    <Text style={[styles.statValue, { fontFamily: fontFamilyForWeight('500') }]}>
-                      {formatStat(variable.min)}
-                      {variable.unit}
+                    <Text
+                      style={[styles.statValue, { fontFamily: fontFamilyForWeight('500') }]}
+                      testID={`variable-min-${variable.name}`}
+                    >
+                      {monthLoading ? LOADING_STAT_PLACEHOLDER : `${formatStat(variable.min)}${variable.unit}`}
                     </Text>
                   </View>
                 </TouchableOpacity>
               ))}
             </View>
 
-            {/* Calendar or Chart */}
+            {/* Calendar or Chart — while `monthLoading`, show the content
+                loader instead (same ActivityIndicator/style as the
+                full-page loader above), regardless of typeView. This never
+                resets typeView/measureSelected: it only swaps what's
+                rendered until the new month's data lands. */}
             <View style={styles.calendarContainer}>
-              {typeView === 'calendar' ? (
+              {monthLoading ? (
+                <View style={styles.contentLoader} testID="historical-month-loading">
+                  <ActivityIndicator color={theme.colors.blue[500]} size="large" />
+                </View>
+              ) : typeView === 'calendar' ? (
                 completedTaskMonth ? (
                   // Original: calendar.component.scss .calendar_content —
                   // white card (radius 10, border 1px Gray-200) on the gray-50 section
@@ -1007,6 +1071,7 @@ export function HistoricalScreen(): React.JSX.Element {
                 <TouchableOpacity
                   style={styles.monthNavBtn}
                   onPress={() => goToMonth(completedTaskMonth.mes - 1)}
+                  testID="month-nav-prev"
                 >
                   <Text
                     style={[
@@ -1024,6 +1089,7 @@ export function HistoricalScreen(): React.JSX.Element {
                   ]}
                   onPress={() => goToMonth(completedTaskMonth.mes + 1)}
                   disabled={completedTaskMonth.mes === 11 && isNextYearDisabled()}
+                  testID="month-nav-next"
                 >
                   <Text
                     style={[
@@ -1167,6 +1233,7 @@ export function HistoricalScreen(): React.JSX.Element {
                     key={register.mes}
                     style={styles.miniCalendarCell}
                     onPress={() => goToMonth(register.mes)}
+                    testID={`month-cell-${register.mes}`}
                   >
                     <View style={styles.miniCalendarInner}>
                       <Calendar
@@ -1263,6 +1330,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 10,
     marginBottom: 10,
+  },
+  // Device review 2026-09-10: dims the Tem/Hum/Acu cards while the new
+  // month's stats are loading (values are replaced by LOADING_STAT_PLACEHOLDER).
+  variablesRowLoading: {
+    opacity: 0.5,
   },
   variableCard: {
     // Original: .calendar_variables — padding 10, gap 6, radius 10,
