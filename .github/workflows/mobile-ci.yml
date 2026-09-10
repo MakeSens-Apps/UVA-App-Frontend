@@ -1,4 +1,12 @@
-name: Mobile CI — Lint + Jest
+# Gate de calidad de la app React Native: typecheck + lint + tests.
+# Debe estar en verde antes de mergear.
+#
+# 📁 APP_DIR parametriza el directorio de la app. En el cutover
+# (mover `mobile/` a la raíz) hay que cambiar:
+#   - env.APP_DIR: mobile → .
+#   - los filtros `paths:` — GitHub no admite expresiones ahí, así que son
+#     el único punto del workflow que no se puede parametrizar.
+name: Mobile CI — Typecheck + Lint + Jest
 
 on:
   push:
@@ -10,18 +18,17 @@ on:
       - 'mobile/**'
       - '.github/workflows/mobile-ci.yml'
 
+env:
+  APP_DIR: mobile
+
 jobs:
-  lint-and-test:
-    name: Lint + Jest (Node ${{ matrix.node-version }})
+  quality:
+    name: Typecheck + Lint + Jest (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
         node-version: ['22']
-
-    defaults:
-      run:
-        working-directory: mobile
 
     steps:
       - name: Checkout repository
@@ -32,13 +39,20 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
-          cache-dependency-path: mobile/package-lock.json
+          cache-dependency-path: ${{ env.APP_DIR }}/package-lock.json
 
       - name: Install dependencies
+        working-directory: ${{ env.APP_DIR }}
         run: npm ci
 
+      - name: Typecheck
+        working-directory: ${{ env.APP_DIR }}
+        run: npm run typecheck
+
       - name: Lint
+        working-directory: ${{ env.APP_DIR }}
         run: npm run lint
 
       - name: Run tests
+        working-directory: ${{ env.APP_DIR }}
         run: npm run test:ci

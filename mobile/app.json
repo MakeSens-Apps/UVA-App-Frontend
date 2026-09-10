@@ -61,7 +61,8 @@
       "expo-font",
       "expo-sharing",
       "expo-notifications",
-      "./plugins/withAsyncStorageDbSize.js"
+      "./plugins/withAsyncStorageDbSize.js",
+      "./plugins/withReleaseSigning.js"
     ]
   }
 }
