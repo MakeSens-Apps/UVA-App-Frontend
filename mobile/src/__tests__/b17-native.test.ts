@@ -502,13 +502,41 @@ describe('ROUTES_TO_MINIMIZE', () => {
     expect(ROUTES_TO_MINIMIZE.has('Measurement')).toBe(true);
   });
 
+  /*
+   * Desviación del original a petición del usuario (2026-09-10).
+   * El original (app-minimize.service.ts) NO lista el registro de mediciones; el
+   * usuario pidió que el atrás del sistema minimice también ahí, como en Inicio.
+   * La guía se presenta encima del formulario, así que entra con él.
+   */
+  it('contains RegisterMeasurement (deviation requested by the user, 2026-09-10)', () => {
+    expect(ROUTES_TO_MINIMIZE.has('RegisterMeasurement')).toBe(true);
+  });
+
+  it('contains GuideMeasurement (sheet presented over RegisterMeasurement)', () => {
+    expect(ROUTES_TO_MINIMIZE.has('GuideMeasurement')).toBe(true);
+  });
+
   it('does NOT contain inner screens', () => {
     expect(ROUTES_TO_MINIMIZE.has('Historical')).toBe(false);
     expect(ROUTES_TO_MINIMIZE.has('Profile')).toBe(false);
     expect(ROUTES_TO_MINIMIZE.has('MeasurementDetail')).toBe(false);
-    expect(ROUTES_TO_MINIMIZE.has('RegisterMeasurement')).toBe(false);
     expect(ROUTES_TO_MINIMIZE.has('Achievement')).toBe(false);
     expect(ROUTES_TO_MINIMIZE.has('PersonalInfo')).toBe(false);
+  });
+
+  it('pins the exact list (original 6 + the 2 user-requested deviations)', () => {
+    expect([...ROUTES_TO_MINIMIZE].sort()).toEqual(
+      [
+        'GuideMeasurement',
+        'Home',
+        'Login',
+        'Measurement',
+        'Otp',
+        'PreRegister',
+        'Register',
+        'RegisterMeasurement',
+      ].sort(),
+    );
   });
 });
 

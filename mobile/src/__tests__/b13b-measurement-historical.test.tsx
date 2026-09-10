@@ -383,11 +383,13 @@ jest.mock('expo-sharing', () => ({
 const mockNavigate = jest.fn();
 const mockGoBack = jest.fn();
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({
     navigate: mockNavigate,
     goBack: mockGoBack,
     push: mockPush,
+    replace: mockReplace,
   }),
   useFocusEffect: (cb: () => void | (() => void)) => {
     const React = require('react');
@@ -927,6 +929,7 @@ describe('RegisterMeasurementScreen — multi-flow advance (BUG 1)', () => {
       navigate: mockNavigate,
       goBack: mockGoBack,
       push: mockPush,
+      replace: mockReplace,
     };
     const route = {
       params: { taskId: 'task1', taskName: 'Temperatura y Humedad', flowId },
@@ -941,7 +944,7 @@ describe('RegisterMeasurementScreen — multi-flow advance (BUG 1)', () => {
     mockAddMeasurement.mockResolvedValue(undefined);
   });
 
-  it('flow WITH nextFlow: save → shows saved modal with "Siguiente" → goToComplete pushes flowId=nextFlow', async () => {
+  it('flow WITH nextFlow: save → shows saved modal with "Siguiente" → goToComplete REPLACES with flowId=nextFlow', async () => {
     const { navigation, route } = makeProps('flow1'); // flow1.nextFlow === 'flow2'
     const { getByTestId, queryByText, getByText } = await render(
       <RegisterMeasurementScreen navigation={navigation} route={route} />,
@@ -984,8 +987,14 @@ describe('RegisterMeasurementScreen — multi-flow advance (BUG 1)', () => {
       fireEvent.press(getByTestId('next-flow-button'));
     });
 
-    expect(mockPush).toHaveBeenCalledTimes(1);
-    expect(mockPush).toHaveBeenCalledWith(
+    /*
+     * `replace`, not `push` (device report 2026-09-10): pushing kept the already
+     * saved máximos screen underneath, and the system back button dropped the user
+     * onto it again — which is how the duplicate máximos record was created.
+     */
+    expect(mockReplace).toHaveBeenCalledTimes(1);
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(mockReplace).toHaveBeenCalledWith(
       'RegisterMeasurement',
       expect.objectContaining({
         taskId: 'task1',

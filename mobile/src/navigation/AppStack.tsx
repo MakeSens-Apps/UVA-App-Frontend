@@ -58,10 +58,12 @@ export function AppStack(): React.JSX.Element {
           (register-measurement.page.ts:199-227 — initialBreakpoint: 1,
           breakpoints: [0, 1]), presented OVER the register page so its header
           stays visible above the sheet — docs/evidence/measurement/screen-03.
-          `transparentModal` reproduces that; the sheet itself offsets its top by
-          the status-bar inset + header height (device bug F-11: the close button
-          used to sit under the status bar). `replace` still works from a
-          transparent modal, so the nextGuide chain is unaffected. */}
+          `transparentModal` reproduces that; the sheet itself is content-sized and
+          anchored to the bottom, capped at `windowHeight − insets.top −
+          GUIDE_HEADER_GAP` (user request 2026-09-10, same mechanics as the Home
+          help sheets; device bug F-11: the close button used to sit under the
+          status bar). `replace` still works from a transparent modal, so the
+          nextGuide chain is unaffected. */}
       <Stack.Screen
         name="GuideMeasurement"
         component={GuideMeasurementScreen}

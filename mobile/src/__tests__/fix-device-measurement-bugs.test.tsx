@@ -178,7 +178,7 @@ jest.mock('expo-blur', () => {
 
 /* eslint-disable import/first */
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { Dimensions, StyleSheet } from 'react-native';
 import type { TextStyle, ViewStyle } from 'react-native';
 import { render, waitFor } from '@testing-library/react-native';
 
@@ -194,6 +194,9 @@ import {
 function flattenStyle<T>(style: unknown): T {
   return (StyleSheet.flatten(style as never) ?? {}) as T;
 }
+
+/** Window height `useWindowDimensions()` reports under jest-expo. */
+const WINDOW_HEIGHT = Dimensions.get('window').height;
 
 function makeRegisterProps() {
   const navigation = { navigate: jest.fn(), goBack: jest.fn(), push: jest.fn(), replace: jest.fn() };
@@ -275,7 +278,15 @@ describe('F-08 — RegisterMeasurementScreen digit input (clipped digits on Andr
 // ─── ════════════════════════════════════════════════════════════════════════ ─
 
 describe('F-11 — GuideMeasurementScreen close button under the status bar', () => {
-  it('offsets the sheet by the TOP safe-area inset plus the header height', async () => {
+  /**
+   * The sheet is now CONTENT-SIZED and anchored to the bottom (user request,
+   * 2026-09-10 — same mechanics as the Home help sheets, `UvaBottomSheet` with
+   * `enableDynamicSizing`). The fixed `marginTop: insets.top + GUIDE_HEADER_GAP`
+   * became a CEILING: `maxHeight = windowHeight − insets.top − GUIDE_HEADER_GAP`.
+   * F-11 still holds: whatever the content height, the sheet top can never go
+   * above `insets.top + GUIDE_HEADER_GAP`, so the X always clears the status bar.
+   */
+  it('caps the sheet at windowHeight − topInset − header gap and anchors it to the bottom', async () => {
     const { navigation, route } = makeGuideProps();
     const { getByTestId } = await render(
       <GuideMeasurementScreen navigation={navigation} route={route} />,
@@ -286,9 +297,32 @@ describe('F-11 — GuideMeasurementScreen close button under the status bar', ()
     });
 
     const sheetStyle = flattenStyle<ViewStyle>(getByTestId('guide-sheet').props.style);
-    expect(sheetStyle.marginTop).toBe(DEVICE_TOP_INSET + GUIDE_HEADER_GAP);
-    // Must be strictly below the status bar — this is the regression.
-    expect(sheetStyle.marginTop as number).toBeGreaterThan(DEVICE_TOP_INSET);
+    expect(sheetStyle.maxHeight).toBe(
+      WINDOW_HEIGHT - DEVICE_TOP_INSET - GUIDE_HEADER_GAP,
+    );
+    // Bottom-anchored: the sheet is the only in-flow child of the transparent route.
+    expect(sheetStyle.marginTop).toBe('auto');
+    // …and it is NOT full height any more — that is the regression this replaces.
+    expect(sheetStyle.flex).toBeUndefined();
+    expect(sheetStyle.height).toBeUndefined();
+  });
+
+  it('lets the content scroll inside the sheet instead of growing past the ceiling', async () => {
+    const { navigation, route } = makeGuideProps();
+    const { getByTestId } = await render(
+      <GuideMeasurementScreen navigation={navigation} route={route} />,
+    );
+
+    await waitFor(() => {
+      expect(getByTestId('guide-scroll')).toBeTruthy();
+    });
+
+    // The ScrollView must be able to give up height (RN's default flexShrink is 0)
+    // but must not stretch a short guide to the ceiling.
+    const scrollStyle = flattenStyle<ViewStyle>(getByTestId('guide-scroll').props.style);
+    expect(scrollStyle.flexShrink).toBe(1);
+    expect(scrollStyle.flexGrow).toBe(0);
+    expect(scrollStyle.flex).toBeUndefined();
   });
 
   it('keeps the close button inside the sheet, so it clears the status bar', async () => {
@@ -305,8 +339,13 @@ describe('F-11 — GuideMeasurementScreen close button under the status bar', ()
     const closeStyle = flattenStyle<ViewStyle>(getByTestId('guide-btn-close').props.style);
 
     expect(closeStyle.position).toBe('absolute');
-    // `top` is relative to the sheet, which already starts below the status bar.
-    const absoluteTop = (sheetStyle.marginTop as number) + (closeStyle.top as number);
+    /*
+     * Worst case for F-11 is the TALLEST possible sheet (height === maxHeight),
+     * whose top sits at windowHeight − maxHeight = topInset + GUIDE_HEADER_GAP.
+     * `top` is relative to the sheet, so the X can never reach the status bar.
+     */
+    const worstCaseSheetTop = WINDOW_HEIGHT - (sheetStyle.maxHeight as number);
+    const absoluteTop = worstCaseSheetTop + (closeStyle.top as number);
     expect(absoluteTop).toBeGreaterThan(DEVICE_TOP_INSET);
     // 38×38 tap target of the original .btn_close.
     expect(closeStyle.width).toBe(38);

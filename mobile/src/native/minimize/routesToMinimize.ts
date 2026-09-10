@@ -27,6 +27,17 @@
  *   '/login'                 → 'Login'
  *   '/otp'                   → 'Otp'
  *   '/app/tabs/register'     → 'Measurement'  (register tab)
+ *
+ * DESVIACIÓN DEL ORIGINAL A PETICIÓN DEL USUARIO (2026-09-10)
+ *   'RegisterMeasurement' y 'GuideMeasurement' NO están en la lista del original
+ *   (app-minimize.service.ts sólo declara /home, /login, /otp, /pre-register,
+ *   /register y /app/tabs/register). El usuario pidió explícitamente que el botón
+ *   atrás del sistema MINIMICE la app durante el flujo de registro de una medición,
+ *   igual que en Inicio, porque en el device el atrás devolvía al formulario de un
+ *   flujo YA GUARDADO (máximos) y permitía duplicar el registro.
+ *   'GuideMeasurement' se incluye porque la guía se presenta ENCIMA del formulario
+ *   (transparentModal): sin ella, el atrás sobre la guía seguiría cayendo en la pila.
+ *   El botón de volver del header del formulario sigue funcionando igual.
  */
 export const ROUTES_TO_MINIMIZE: ReadonlySet<string> = new Set([
   'PreRegister',
@@ -35,4 +46,8 @@ export const ROUTES_TO_MINIMIZE: ReadonlySet<string> = new Set([
   'Login',
   'Otp',
   'Measurement',
+  // Desviación del original a petición del usuario (2026-09-10)
+  'RegisterMeasurement',
+  // Desviación del original a petición del usuario (2026-09-10)
+  'GuideMeasurement',
 ]);

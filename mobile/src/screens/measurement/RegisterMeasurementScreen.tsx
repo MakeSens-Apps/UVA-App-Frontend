@@ -90,6 +90,44 @@ import { ConfigIcon } from './ConfigIcon';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'RegisterMeasurement'>;
 
+// ─── Confirmation / saved modal backdrop ──────────────────────────────────────
+
+/**
+ * Blur radius of the modal backdrop, mirroring
+ * `.custom-modal_confirmation::part(backdrop) { backdrop-filter: blur(20px) }`
+ * (register-measurement.page.scss:139-142). expo-blur's `intensity` is a 1..100
+ * scale, so 20 is used as the direct analogue of the CSS 20px radius.
+ */
+export const CONFIRM_MODAL_BLUR_INTENSITY = 20;
+
+/**
+ * Opacity of the black scrim painted UNDER the modal content.
+ *
+ * Measured on the original captures (per-pixel ratio of the teal header band,
+ * blurred capture ÷ plain capture, docs/evidence/measurement):
+ *   screen-03 (guide ion-modal, default backdrop)        → 0.318  ≈ --backdrop-opacity 0.32
+ *   screen-20 (confirmation modal)                       → 0.000  (no dimming at all)
+ * The confirmation modal declares `--backdrop-opacity: 0.5` but then sets
+ * `::part(backdrop) { background: transparent }` (register-measurement.page.scss:136-142),
+ * which removes Ionic's black — so in the browser ALL the separation comes from
+ * `backdrop-filter: blur(20px)` composited at 50 %.
+ *
+ * That is impossible to reproduce here: the modal is a native Android `Modal`
+ * (its own window), and expo-blur 56 defaults `blurMethod` to `'none'` on Android
+ * and additionally needs a same-window `blurTarget`, so `<BlurView>` degrades to a
+ * flat `getBackgroundColor(intensity, tint)` rectangle. With the previous
+ * `intensity={80} tint="light"` that rectangle was `rgba(249,249,249,0.624)` — a
+ * 62 % WHITE wash that LIGHTENS the page and blurs nothing, which is exactly the
+ * "el fondo se ve poco oscurecido" reported on the Redmi Note 10S (2026-09-10).
+ *
+ * Fix: a faint neutral blur tint (`tint="default"` → rgba(255,255,255,0.06) at
+ * intensity 20) plus an explicit dark scrim at the SAME opacity Ionic actually
+ * renders for every other ion-modal in this app (0.32, measured on screen-03).
+ * The scrim sits behind the modal content, so the title/cards/button keep their
+ * full contrast.
+ */
+export const CONFIRM_MODAL_BACKDROP_OPACITY = 0.32;
+
 // ─── Local measurement state type ─────────────────────────────────────────────
 
 interface LocalMeasurement extends Measurement {
@@ -503,13 +541,67 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
         {} as Record<string, number>,
       );
 
-      await MeasurementDSService.addMeasurement(
-        'RAW',
-        measurementData,
-        {},
-        new Date().toISOString(),
-        taskId,
-      );
+      /*
+       * GUARD ANTI-DUPLICADO (mejora mínima — el original NO la tiene).
+       *
+       * Device report 2026-09-10 (Redmi Note 10S): the user saved "máximos", went
+       * back with the system button and ended up with TWO máximos records for the
+       * same day. `register-measurement.page.ts:355-370` calls `addMeasurement`
+       * unconditionally — there is no `existsMeasurementToday` check anywhere in the
+       * original — so any second visit to an already-saved flow inserts a second row.
+       *
+       * The structural cause is fixed above (`goToComplete` now REPLACES the finished
+       * flow screen instead of pushing on top of it, and the hardware back minimizes),
+       * but this guard makes the duplicate impossible even if the screen is reached
+       * again by any other route: if a record stored TODAY for THIS task already
+       * holds EXACTLY this flow's set of measurement ids, the insert is skipped and
+       * the flow simply advances.
+       *
+       * It is deliberately conservative — exact set match per record, so a record
+       * belonging to another flow of the same task never blocks the save — and any
+       * DataStore failure falls through to the normal insert (a legitimate save is
+       * never blocked).
+       */
+      const flowMeasurementIds = Object.keys(measurementData);
+      let alreadySavedToday = false;
+      try {
+        const today = new Date();
+        const todaysMeasurements = await MeasurementDSService.getMeasurementsByDay(
+          today.getFullYear(),
+          today.getMonth() + 1,
+          today.getDate(),
+        );
+        if (Array.isArray(todaysMeasurements) && flowMeasurementIds.length > 0) {
+          alreadySavedToday = todaysMeasurements.some((lazyMeasurement) => {
+            if (lazyMeasurement?.task !== taskId || !lazyMeasurement?.data) return false;
+            const parsed =
+              typeof lazyMeasurement.data === 'string'
+                ? (JSON.parse(lazyMeasurement.data) as Record<string, unknown> | null)
+                : (lazyMeasurement.data as Record<string, unknown> | null);
+            if (!parsed) return false;
+            const savedIds = Object.keys(parsed);
+            // Exact set match: one stored record covering EXACTLY this flow's
+            // measurements is this flow already saved. (A record with a different
+            // id set belongs to another flow of the same task.)
+            return (
+              savedIds.length === flowMeasurementIds.length &&
+              flowMeasurementIds.every((id) => savedIds.includes(id))
+            );
+          });
+        }
+      } catch (err) {
+        console.error('RegisterMeasurementScreen ~ duplicate check failed:', err);
+      }
+
+      if (!alreadySavedToday) {
+        await MeasurementDSService.addMeasurement(
+          'RAW',
+          measurementData,
+          {},
+          new Date().toISOString(),
+          taskId,
+        );
+      }
 
       /*
        * FIX (BUG 1 — multi-flow advance max→min — audit CRÍTICA):
@@ -544,8 +636,19 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
        *
        * Fix: pass flowId=flow.nextFlow so the next screen loads the correct flow.
        * hasBackButton=false mirrors original backButtom:false (register-measurement.page.ts:543).
+       *
+       * FIX (registro duplicado de máximos — device report 2026-09-10, ALTA):
+       * `push` kept the ALREADY SAVED flow1 screen underneath flow2, so the system
+       * back button popped the user straight back onto the máximos form — still
+       * mounted, still filled — and "Guardar registro" there inserted a SECOND
+       * máximos record for the day. The original is an Angular SPA that re-enters
+       * the SAME component with new queryParams (register-measurement.page.ts:534-552,
+       * ngOnInit's `queryParams.subscribe`), i.e. it never stacks a second instance.
+       * `replace` is the native-stack equivalent: flow1 leaves the stack, so back
+       * from flow2 lands on the task list, which reloads (useFocusEffect) and
+       * reopens the task on flow2 via `task.flowsComplete`.
        */
-      navigation.push('RegisterMeasurement', {
+      navigation.replace('RegisterMeasurement', {
         taskId,
         flowId: flow.nextFlow,
         hasBackButton: false,
@@ -793,8 +896,22 @@ export function RegisterMeasurementScreen({ route, navigation }: Props): React.J
         }}
         testID={modalStage === 'saved' ? 'saved-modal' : 'confirm-modal'}
       >
-        {/* BlurView replaces solid overlay — mirrors backdrop-filter:blur(20px) */}
-        <BlurView intensity={80} tint="light" style={styles.modalBackdropCentered}>
+        {/* Backdrop = faint neutral blur + an explicit dark scrim.
+            See CONFIRM_MODAL_BLUR_INTENSITY / CONFIRM_MODAL_BACKDROP_OPACITY for the
+            measurements behind both numbers (device report 2026-09-10: the previous
+            `intensity={80} tint="light"` painted a 62 % WHITE wash and no blur). */}
+        <BlurView
+          intensity={CONFIRM_MODAL_BLUR_INTENSITY}
+          tint="default"
+          style={styles.modalBackdropCentered}
+          testID="modal-backdrop-blur"
+        >
+          {/* Dark layer, UNDER the modal content (rendered first, absolute fill). */}
+          <View
+            style={[styles.modalScrim, { opacity: CONFIRM_MODAL_BACKDROP_OPACITY }]}
+            pointerEvents="none"
+            testID="modal-backdrop-scrim"
+          />
           {modalStage === 'saved' ? (
             /* ── Saved phase ──────────────────────────────────────────────────
                `.modal_saved` (global.scss:523-542): white card, 1px --Gray-200
@@ -1099,6 +1216,20 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  /**
+   * `ion-backdrop` equivalent: the dark layer of the modal backdrop. Painted as an
+   * absolute-fill sibling BEFORE the modal content so the title, the measurement
+   * cards and the button keep their full contrast on top of it.
+   * `opacity` is applied at render time from CONFIRM_MODAL_BACKDROP_OPACITY.
+   */
+  modalScrim: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#000000',
   },
   // ScrollView wrapper keeps the centered card scrollable + vertically centered
   // when its content is taller than the viewport (e.g. two measurement cards).

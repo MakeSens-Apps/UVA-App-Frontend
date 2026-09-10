@@ -32,6 +32,7 @@ import {
   Pressable,
   StyleSheet,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -90,6 +91,7 @@ export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.
   // with no tab bar underneath, so its scroll content ends flush with the window
   // bottom — i.e. UNDER the Android system navigation bar. Pad by the bottom inset.
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const { configMeasurement, loadImage } = useConfigContext();
 
   /*
@@ -102,13 +104,22 @@ export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.
    * the page header stays visible above it and the X sits clearly below the
    * status bar — docs/evidence/measurement/screen-03-guide-flow1-step1.png.
    *
-   * `sheetTop` reproduces that: status-bar inset + the Header height
-   * (paddingTop 8 + toolbar minHeight 44, header/Header.tsx). Everything inside
-   * the sheet — the absolutely positioned X included — is therefore laid out
-   * below the system bar at any density. The BOTTOM inset is deliberately NOT
-   * touched here (owned by the safe-area pass).
+   * SHEET HEIGHT (petición del usuario, 2026-09-10): the sheet must be exactly as
+   * tall as its content — image + title + steps + checkbox + button — and anchored
+   * to the BOTTOM of the window, like the Home help sheets (`UvaBottomSheet` with
+   * `enableDynamicSizing`, components/ui/BottomSheet.tsx). That is also what
+   * `ion-modal { --height: auto }` does in the original. It used to be a
+   * `flex: 1` sheet pinned by `marginTop: sheetTop`, i.e. always full height.
+   *
+   * `sheetMaxHeight` is the ceiling that replaces the old fixed top offset: the
+   * window minus the status-bar inset minus the Header height (paddingTop 8 +
+   * toolbar minHeight 44, header/Header.tsx). Short content ⇒ short sheet; tall
+   * content ⇒ the sheet stops at the ceiling and its ScrollView scrolls inside.
+   * Either way everything in the sheet — the absolutely positioned X included —
+   * lays out at or below `insets.top + GUIDE_HEADER_GAP`, which is what F-11
+   * required. The BOTTOM inset is handled by the button container.
    */
-  const sheetTop = insets.top + GUIDE_HEADER_GAP;
+  const sheetMaxHeight = Math.max(windowHeight - insets.top - GUIDE_HEADER_GAP, 1);
 
   const { taskId, guideKey: initialGuideKey } = route.params;
 
@@ -254,7 +265,7 @@ export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.
         style={[
           styles.loadingContainer,
           styles.sheet,
-          { marginTop: sheetTop, backgroundColor: theme.colors.gray[50] },
+          { maxHeight: sheetMaxHeight, backgroundColor: theme.colors.gray[50] },
         ]}
         testID="guide-sheet"
       >
@@ -269,7 +280,7 @@ export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.
         style={[
           styles.container,
           styles.sheet,
-          { marginTop: sheetTop, backgroundColor: theme.colors.gray[50] },
+          { maxHeight: sheetMaxHeight, backgroundColor: theme.colors.gray[50] },
         ]}
         testID="guide-sheet"
       >
@@ -307,7 +318,7 @@ export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.
         style={[
           styles.container,
           styles.sheet,
-          { marginTop: sheetTop, backgroundColor: theme.colors.gray[50] },
+          { maxHeight: sheetMaxHeight, backgroundColor: theme.colors.gray[50] },
         ]}
         testID="guide-sheet"
       >
@@ -331,6 +342,7 @@ export function GuideMeasurementScreen({ route, navigation }: Props): React.JSX.
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          testID="guide-scroll"
         >
           {/* Guide image — `<ion-img>` inside `.guide { padding: 10px 20px 30px }`:
               full content width, natural aspect ratio (D-27). */}
@@ -481,20 +493,35 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: '#000000',
   },
-  container: {
-    flex: 1,
-  },
+  /**
+   * Content box of the sheet. NO `flex: 1`: its height is the sum of its children
+   * (image + title + steps + checkbox + button), which is what makes the sheet as
+   * tall as its content — `ion-modal { --height: auto }` / `enableDynamicSizing`.
+   */
+  container: {},
   /**
    * Sheet chrome shared by the loading / error / content states.
-   * `marginTop` is applied inline (depends on the runtime status-bar inset);
-   * the rounded top corners mirror the ion-modal sheet of the original.
+   *
+   * `marginTop: 'auto'` anchors the sheet to the BOTTOM of the transparent modal
+   * route (the backdrop is absolutely positioned, so the sheet is the only in-flow
+   * child). `maxHeight` is applied inline — it depends on the runtime window height
+   * and status-bar inset — and is the ceiling
+   * `windowHeight − insets.top − GUIDE_HEADER_GAP`.
+   * The rounded top corners mirror the ion-modal sheet of the original.
    */
   sheet: {
+    marginTop: 'auto',
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
     overflow: 'hidden',
   },
-  scroll: { flex: 1 },
+  /**
+   * `flexShrink: 1` (RN's default is 0) is what lets the scroller give up height
+   * once the sheet hits `maxHeight`, so tall guides scroll INSIDE the sheet instead
+   * of pushing the "Entendido" button off-screen. `flexGrow: 0` keeps a short guide
+   * from stretching the sheet to the ceiling.
+   */
+  scroll: { flexShrink: 1, flexGrow: 0 },
   /**
    * `.guide { padding: 10px 20px 30px 20px; gap: 20px }`
    * (guide-measurement.component.scss:3-9). The close button is absolutely
@@ -518,8 +545,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#C0C0BE',
     zIndex: 10,
   },
+  /**
+   * The loading sheet has no content to measure yet, so it gets an explicit
+   * placeholder height instead of `flex: 1` (which would make it full-height and
+   * defeat the content-sized sheet).
+   */
   loadingContainer: {
-    flex: 1,
+    height: 200,
     alignItems: 'center',
     justifyContent: 'center',
   },

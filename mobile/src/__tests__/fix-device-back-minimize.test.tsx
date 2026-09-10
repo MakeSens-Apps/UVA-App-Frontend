@@ -280,6 +280,20 @@ describe('B1 — back del sistema en una ruta raíz minimiza (no navega)', () =>
     expect(mockMinimizeApp).not.toHaveBeenCalled();
   });
 
+  /*
+   * Desviación del original a petición del usuario (2026-09-10): el flujo de
+   * registro de una medición minimiza igual que Inicio. Antes el atrás caía en la
+   * pila y devolvía al formulario de un flujo ya guardado (máximos duplicados).
+   */
+  it('registro de medición (RegisterMeasurement / GuideMeasurement): el back minimiza', () => {
+    expect(handleHardwareBackPress('RegisterMeasurement')).toBe(true);
+    expect(mockMinimizeApp).toHaveBeenCalledTimes(1);
+
+    mockMinimizeApp.mockClear();
+    expect(handleHardwareBackPress('GuideMeasurement')).toBe(true);
+    expect(mockMinimizeApp).toHaveBeenCalledTimes(1);
+  });
+
   it('resolveLeafRouteName resuelve la ruta hoja de un estado anidado (Root→App→AppTabs→HomeStack→Home)', () => {
     const nested = {
       index: 0,

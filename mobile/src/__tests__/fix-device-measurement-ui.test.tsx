@@ -335,7 +335,7 @@ jest.mock('expo-blur', () => {
 
 /* eslint-disable import/first */
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { Dimensions, StyleSheet } from 'react-native';
 import type { TextStyle, ViewStyle } from 'react-native';
 import { act, render, fireEvent, waitFor } from '@testing-library/react-native';
 
@@ -523,9 +523,13 @@ describe('GuideMeasurementScreen — sheet chrome and content', () => {
     expect(footer.paddingBottom).toBe(30 + DEVICE_BOTTOM_INSET);
     expect(footer.paddingBottom as number).toBeGreaterThan(DEVICE_BOTTOM_INSET);
 
-    // The top offset stays exactly where the F-11 fix put it.
+    // The sheet is content-sized and bottom-anchored (user request 2026-09-10);
+    // the F-11 top offset survives as the CEILING of its height.
     const sheet = flattenStyle<ViewStyle>(getByTestId('guide-sheet').props.style);
-    expect(sheet.marginTop).toBe(DEVICE_TOP_INSET + GUIDE_HEADER_GAP);
+    expect(sheet.marginTop).toBe('auto');
+    expect(sheet.maxHeight).toBe(
+      Dimensions.get('window').height - DEVICE_TOP_INSET - GUIDE_HEADER_GAP,
+    );
   });
 
   it('D-26 — puts guide.icon on the right of the title, tinted with colorHex', async () => {
