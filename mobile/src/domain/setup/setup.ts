@@ -26,6 +26,7 @@ import { authService } from '@/data/auth/auth';
 import { sessionService } from '@/data/session/session';
 import { userAPIService } from '@/data/api/user-api';
 import { userProgressAPIService } from '@/data/api/user-progress-api';
+import { UserDSService } from '@/data/datastore/user-ds';
 import type { AuthResponse } from '@/data/auth/auth';
 import type { SignInOutput } from 'aws-amplify/auth';
 import type { Session } from '@/data/models/session.model';
@@ -98,6 +99,30 @@ export class SetupService {
    */
   static async getParametersUser(): Promise<Session> {
     return await sessionService.getInfo();
+  }
+
+  /**
+   * Garantiza que la sesión tenga `uvaID` (rehidratación / reparación).
+   *
+   * NO existe en el original: en Ionic toda la sesión vive en un único store
+   * (Capacitor Preferences), así que `uvaID` nunca desaparece por separado.
+   * En RN la sesión está partida en dos stores con ciclos de vida distintos
+   * (`userID`/`phone` en expo-secure-store, el resto en AsyncStorage —
+   * session.ts:27), de modo que se puede quedar autenticado (userID presente)
+   * y sin `uvaID`. Cuando eso pasa:
+   *   - `UvaDSService.getUVAByID()` consulta DataStore con id '' → la pantalla
+   *     de ubicación aparece vacía,
+   *   - `MeasurementDSService` crea mediciones con uvaID '',
+   *   - `UserDSService.updateUser` borraba la relación User→UVA.
+   *
+   * Recupera el valor del `User` local (`User.uvaID`), que es la fuente de
+   * verdad offline, y lo persiste en la sesión.
+   *
+   * @returns {Promise<string | undefined>} El uvaID vigente, o undefined si no
+   *   se pudo determinar (usuario sin UVA asignada todavía).
+   */
+  static async ensureUvaID(): Promise<string | undefined> {
+    return UserDSService.ensureSessionUvaID();
   }
 
   /**

@@ -23,6 +23,16 @@ import { Session, sessionKeys } from '@/data/models/session.model';
 /**
  * Keys that contain sensitive data and must be stored in expo-secure-store.
  * Remaining session keys go to AsyncStorage.
+ *
+ * ⚠️ DIVERGENCIA CON EL ORIGINAL (fuente del bug de `uvaID`):
+ * en Ionic las 9 claves viven en UN solo store (Capacitor Preferences), así que
+ * o están todas o no está ninguna. Aquí la sesión está partida en dos backends
+ * con ciclos de vida independientes (SharedPreferences cifradas + Keystore para
+ * SecureStore, SQLite `RKStorage` para AsyncStorage): se puede quedar con
+ * `userID`/`phone` presentes — el auth gate y `UserDSService.getUser()` pasan —
+ * y `uvaID`/`racimoID` ausentes. Todo consumidor de `uvaID` debe tolerar eso;
+ * ver `SetupService.ensureUvaID()` (rehidratación desde el `User` local) y
+ * `UserDSService.updateUser` (nunca pisa la relación con '').
  */
 const SENSITIVE_KEYS: Set<keyof Session> = new Set(['userID', 'phone']);
 

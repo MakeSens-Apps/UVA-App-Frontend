@@ -54,6 +54,7 @@ import type { AppStackParamList } from '@/navigation/types';
 
 import { UvaBottomSheet } from '@/components/ui/BottomSheet';
 import type { BottomSheetRef } from '@/components/ui/BottomSheet';
+import { showToast } from '@/components/ui/Toast';
 
 import { UserDSService } from '@/data/datastore/user-ds';
 import { UvaDSService } from '@/data/datastore/uva-ds';
@@ -205,7 +206,19 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
 
   // ─── Submit forms ──────────────────────────────────────────────────────────
 
-  const onSubmit = useCallback(async () => {
+  /**
+   * Guarda ambos formularios.
+   * @returns {Promise<boolean>} true si el guardado terminó bien; false si algo
+   *   falló (formulario inválido o rechazo de DataStore).
+   *
+   * MEJORA MÍNIMA sobre el original: personal-info.page.ts:225-250 lanza
+   * `void UserDSService.updateUser(...)` / `void UvaDSService.updateUVA(...)`
+   * sin await ni feedback — un rechazo del backend se perdía en silencio y la
+   * pantalla volvía a modo lectura como si hubiera guardado. Aquí se mantiene el
+   * alert de validación literal del original y se añade un toast de error para
+   * los rechazos (los mismos que produjeron el bug de uvaID en el device).
+   */
+  const onSubmit = useCallback(async (): Promise<boolean> => {
     const pValid = await personalForm.trigger();
     const lValid = await locationForm.trigger();
     if (pValid && lValid) {
@@ -234,11 +247,18 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
           altitud: lValues.altitude,
           fields: JSON.stringify(fields),
         });
+        return true;
       } catch (saveErr) {
         console.error('Error saving personal info:', saveErr);
+        showToast({
+          message: 'No se pudieron guardar los cambios. Intenta de nuevo.',
+          type: 'error',
+        });
+        return false;
       }
     } else {
       Alert.alert('Error', 'Para guardar todos los datos deben ser completados.');
+      return false;
     }
   }, [personalForm, locationForm]);
 
@@ -246,9 +266,15 @@ export function PersonalInfoScreen({ navigation }: Props): React.JSX.Element {
 
   const toggleEdit = useCallback(() => {
     if (isEditable) {
-      void onSubmit();
+      // Sólo se sale de modo edición si el guardado terminó bien: antes se
+      // volvía a modo lectura aunque `updateUser` rechazara, dando la falsa
+      // impresión de haber guardado.
+      void onSubmit().then((ok) => {
+        if (ok) setIsEditable(false);
+      });
+      return;
     }
-    setIsEditable((prev) => !prev);
+    setIsEditable(true);
   }, [isEditable, onSubmit]);
 
   // ─── Delete account flow ──────────────────────────────────────────────────

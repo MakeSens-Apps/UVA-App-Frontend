@@ -26,9 +26,13 @@ jest.mock('@/data/auth/auth', () => ({
 
 // DataStore services
 const mockGetUser = jest.fn();
+// ensureSessionUvaID: rehidratación de `session.uvaID` desde el User local
+// (fix device 2026-09-10 — la sesión RN vive en dos stores distintos).
+const mockEnsureSessionUvaID = jest.fn();
 jest.mock('@/data/datastore/user-ds', () => ({
   UserDSService: {
     getUser: (...args: unknown[]) => mockGetUser(...args),
+    ensureSessionUvaID: (...args: unknown[]) => mockEnsureSessionUvaID(...args),
   },
 }));
 
@@ -95,6 +99,8 @@ import { useAuthGate } from '@/navigation/useAuthGate';
 function resetMocks(): void {
   mockCurrentAuthenticatedUser.mockReset();
   mockGetUser.mockReset();
+  mockEnsureSessionUvaID.mockReset();
+  mockEnsureSessionUvaID.mockResolvedValue(undefined);
   mockGetUVAByuserID.mockReset();
   mockGetRacimoCode.mockReset();
   mockSessionServiceGetInfo.mockReset();

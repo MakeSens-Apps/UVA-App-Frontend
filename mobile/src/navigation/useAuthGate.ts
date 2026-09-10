@@ -20,7 +20,11 @@
  *  - console.log/error kept (verbatim from original for parity) – dev only
  *
  * Auth logic preserved verbatim from original checkUserAuthentication /
- * continueWithAuthenticatedFlow (no behavior changes).
+ * continueWithAuthenticatedFlow, salvo dos desviaciones documentadas en el
+ * cuerpo de continueWithAuthenticatedFlow (ninguna cambia el destino):
+ *   - UserDSService.ensureSessionUvaID() rehidrata `session.uvaID` desde el `User` local
+ *     (la sesión RN vive en dos stores distintos, ver session.ts:27)
+ *   - `setSessionField('uvaID', uva.id)` se adelanta al chequeo de racimo
  *
  * Portability matrix: SplashAnimationPage → B12 → hook useAuthGate()
  * Risks: R-04, R-15, R-30, R-27
@@ -78,12 +82,26 @@ export function useAuthGate(): UseAuthGateResult {
 
         // Check if the user has an assigned UVA
         console.log('🍇 Checking UVA assignment...');
+
+        // REPARACIÓN de sesión (no existe en el original): en RN la sesión está
+        // partida entre expo-secure-store (userID/phone) y AsyncStorage (uvaID,
+        // racimoID, …), así que se puede llegar aquí autenticado pero sin uvaID.
+        // Lo rehidratamos desde el `User` local antes de seguir; si no hay UVA
+        // asignada devuelve undefined y el flujo continúa igual que el original.
+        await UserDSService.ensureSessionUvaID();
+
         const uva = await UvaDSService.getUVAByuserID(userID);
         if (!uva) {
           console.log('❌ No UVA found, redirecting to project validation');
           setDestination('validate-project');
           return;
         }
+
+        // El original guardaba uvaID sólo al final (splash-animation.page.ts:184),
+        // dentro de la rama con racimoCode válido. Lo escribimos en cuanto se conoce
+        // la UVA: si el chequeo de racimo falla, la sesión conserva igualmente la
+        // relación User→UVA (de lo contrario `updateUser` la borraba con '').
+        await setSessionField('uvaID', uva.id);
 
         // Check if the UVA has an associated racimo ID
         const racimoID = uva.racimoID ?? '';
@@ -107,7 +125,6 @@ export function useAuthGate(): UseAuthGateResult {
         if (racimoCode) {
           console.log('✅ All validations passed, navigating to home');
 
-          await setSessionField('uvaID', uva.id);
           await setSessionField('racimoID', racimoID);
           await setSessionField('racimoLinkCode', racimoCode);
 
