@@ -47,10 +47,17 @@ on:
       - 'develop'
       - 'test'
       - 'main'
+    # Un push que solo toca documentación no justifica un build nativo de ~18 min.
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
   pull_request:
     branches:
       - 'develop'
       - 'main'
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
 
 env:
   # 👇 Único valor a cambiar en el cutover (mobile/ → raíz): APP_DIR: .
