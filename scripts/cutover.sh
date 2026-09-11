@@ -326,7 +326,7 @@ else
   err "package.json raíz NO declara \"expo\""; FAILED_GATES+=("package.json expo")
 fi
 
-for f in app.json index.ts App.tsx metro.config.js babel.config.js eas.json; do
+for f in app.json app.config.js index.ts App.tsx metro.config.js babel.config.js; do
   if [ -f "$f" ]; then ok "presente: $f"; else err "falta: $f"; FAILED_GATES+=("falta $f"); fi
 done
 
