@@ -142,28 +142,40 @@ Estado actual de cada ítem del checklist de B19:
   (`android/`) NO se tocó.
 - [ ] **Fase 6 paridad** (capturas Ionic `open_browser` S8 360×740 vs RN dev
   build, pantalla-por-pantalla) — pendiente, es el grueso de B19.
-- [ ] **Workflows EAS** (`build-android.yml`, `build-android-bundle.yml`,
-  eliminar `test-secrets.yml`) — pendiente.
-- [ ] **CI lint+jest que bloquea merge** — pendiente de consolidar.
-- [ ] **Husky 9 + lint-staged (R-49)** — pendiente.
+- [x] **Workflows de build** (2026-09-11, decisión: Gradle en Actions, sin EAS):
+  `build-android.yml` (APK, ~18 min, verde) y `build-android-bundle.yml`
+  (AAB firmado + `deploy-play`, verde); `test-secrets.yml` eliminado.
+  Reintento de Gradle ante 403 de Maven Central y concurrency por rama.
+- [x] **CI lint+jest que bloquea merge**: `mobile-ci.yml` (typecheck + lint +
+  jest) verde en todos los pushes de la rama.
+- [x] **Husky 9 + lint-staged (R-49)**: `mobile/.husky/pre-commit` +
+  `lint-staged` en `mobile/package.json`.
 - [ ] **Scripts build/setup → expo prebuild/eas** (eliminar 6 `.sh` macOS y
   amplify-modelgen/push rotos) — pendiente.
-- [ ] **Docs de proceso reescritas para Expo/EAS (R-49)** — pendiente.
+- [x] **Docs de proceso reescritas para Expo/Gradle (R-49)**:
+  `docs/android-build.md`, `docs/release-workflow.md`,
+  `docs/github-actions-pipeline.md`.
 - [ ] **Eliminar deps muertas** (sweetalert2+ngx-sweetalert2 R-45,
   ini/inquirer, `@types/date-fns`, plugins Capacitor sin uso, zone.js,
   cordova-res) — pendiente (estas dependencias viven en el Ionic raíz, no en
   `mobile/`, y se eliminan recién en el cutover).
 - [ ] **Excluir CreationPage QA y manifest huérfano (R-43)** — pendiente.
-- [ ] **Medir bundle con `expo export`** (chart.js/html-to-image/dompurify/
-  sweetalert2 ausentes, R-50) — pendiente.
-- [ ] **versionCode final > publicado (R-39)** — pendiente.
+- [x] **Medir bundle** (R-50): `docs/migration/bundle-report.md` — descarga
+  en Play 16.5 MiB arm64 (bundletool), R8 + shrinkResources, ABIs
+  armeabi-v7a/arm64-v8a.
+- [x] **versionCode final > publicado (R-39)**: el workflow calcula
+  `date +%s / 10` y falla si no supera 178830096. **Primera publicación
+  automatizada: 2.3.1 (178909349) en el track interno de Play,
+  2026-09-11, run 34554461087**, con `mapping.txt` de R8.
 - [ ] **CUTOVER** (`git mv mobile/* a raíz`, `git rm` Ionic completo,
   desinstalar @angular/@ionic/@capacitor, purgar keystore de la historia,
   build EAS production firmado) — pendiente, es el cierre de todo el plan.
-- [ ] **Gate final**: paridad visual+funcional aprobada por humano; jest+
-  eslint verdes en CI; `eas build --profile production` firmado
-  correctamente; árbol RN limpio en root; keystore purgado; smoke test
-  end-to-end del AAB en device — pendiente.
+- [ ] **Gate final**: paridad visual+funcional aprobada por humano (OK
+  general del usuario 2026-09-10); jest+eslint verdes en CI (OK); AAB de
+  producción firmado con el keystore del secret (OK, en Play interno);
+  árbol RN limpio en root (cutover pendiente); keystore purgado (pendiente,
+  requiere confirmación); smoke test end-to-end del AAB en device
+  (pendiente: instalar desde el track interno).
 
 ---
 
