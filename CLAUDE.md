@@ -1,3 +1,5 @@
+@AGENTS.md
+
 # UVA App — Contexto de la aplicación
 
 ## Qué hace la app
@@ -6,38 +8,43 @@
 
 La app funciona **sin conexión** y sincroniza los datos en segundo plano cuando hay red disponible.
 
-> El código fuente vive en `mobile/` (React Native / Expo, target Android). El proyecto Ionic/Angular original en la raíz del repo es el predecesor de esta app y se eliminará en el cutover final de la migración (ver `docs/migration/plan.md`).
+> El código fuente vive en la raíz del repo (React Native / Expo, target Android). El proyecto Ionic/Angular original fue eliminado en el cutover del 2026-09-11 (ver `docs/migration/plan.md`); quien necesite el código Ionic puede encontrarlo en el tag `pre-cutover-2026-09-11` y en los tags `V2.x`.
 
 ### Flujos principales
 
 **Autenticación**
+
 - Registro con número de celular → vinculación a un RACIMO → perfil listo
 - Login con número de celular → verificación por SMS (OTP) → home
 
 **Registro de mediciones**
+
 - El usuario selecciona el tipo de medición, sigue una guía paso a paso y envía la lectura
 - Cada medición queda asociada a la fecha, el usuario y su RACIMO
 
 **Histórico**
+
 - Vista de mediciones pasadas con filtros por rango de tiempo
 - Detalle por medición con gráfica de área
 
 **Fase lunar**
+
 - Tarjeta con la fase lunar actual; página dedicada con detalle del ciclo
 
 **Gamificación**
+
 - Sistema de logros y rachas para incentivar la participación continua
 - Alertas de progreso y notificaciones de hitos
 
 **Perfil**
+
 - Información personal, logros, configuración de la cuenta y sincronización manual
 
 ---
 
-## Estructura de carpetas (`mobile/`)
+## Estructura de carpetas (raíz del repo)
 
 ```
-mobile/
 ├── App.tsx                        # Composición raíz: polyfills → Amplify/DataStore → Context providers → RootNavigator
 ├── index.ts                       # Entry point de Expo
 ├── app.json                       # Configuración de Expo (nombre, versión, permisos, plugins)
@@ -118,12 +125,12 @@ mobile/
 
 ## Entidades de negocio clave
 
-| Entidad | Descripción |
-|---|---|
-| **Usuario** | Persona registrada con número de celular. Tiene nombre, apellido y pertenece a una UVA. |
-| **UVA** | Unidad de Vigilancia Ambiental. Agrupa a los usuarios de un mismo punto geográfico. |
-| **RACIMO** | Proyecto o grupo al que pertenece una UVA. Es la entidad raíz de organización. |
-| **Medición** | Registro de un dato ambiental (temperatura, humedad, lluvia) hecho por un usuario en una fecha. |
-| **Logro** | Hito de gamificación desbloqueado al cumplir criterios de participación. |
-| **Racha** | Contador de días consecutivos con mediciones registradas. |
-| **Fase lunar** | Dato astronómico del ciclo lunar usado como contexto de las mediciones. |
+| Entidad        | Descripción                                                                                     |
+| -------------- | ----------------------------------------------------------------------------------------------- |
+| **Usuario**    | Persona registrada con número de celular. Tiene nombre, apellido y pertenece a una UVA.         |
+| **UVA**        | Unidad de Vigilancia Ambiental. Agrupa a los usuarios de un mismo punto geográfico.             |
+| **RACIMO**     | Proyecto o grupo al que pertenece una UVA. Es la entidad raíz de organización.                  |
+| **Medición**   | Registro de un dato ambiental (temperatura, humedad, lluvia) hecho por un usuario en una fecha. |
+| **Logro**      | Hito de gamificación desbloqueado al cumplir criterios de participación.                        |
+| **Racha**      | Contador de días consecutivos con mediciones registradas.                                       |
+| **Fase lunar** | Dato astronómico del ciclo lunar usado como contexto de las mediciones.                         |

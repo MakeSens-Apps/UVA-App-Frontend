@@ -1,15 +1,15 @@
 # GitHub Actions — pipeline de CI/CD (React Native)
 
-Este documento describe, a nivel de proceso, el pipeline de CI/CD para la app RN en `mobile/`. Los workflows en sí viven en `.github/workflows/` y son la fuente de verdad para nombres exactos de jobs, triggers y pasos — este documento no los repite literalmente porque están en evolución activa durante el cierre de la migración Ionic→RN; donde haga falta el detalle exacto, "ver workflow" apunta a ese directorio.
+Este documento describe, a nivel de proceso, el pipeline de CI/CD para la app RN. Los workflows en sí viven en `.github/workflows/` y son la fuente de verdad para nombres exactos de jobs, triggers y pasos — este documento no los repite literalmente porque están en evolución activa; donde haga falta el detalle exacto, "ver workflow" apunta a ese directorio.
 
 ## Qué corre en el pipeline
 
 El pipeline tiene, conceptualmente, dos responsabilidades separadas:
 
-1. **CI de calidad** — lint + tests en cada cambio a `mobile/`: `npm run lint` y `npm run test:ci` (Jest) contra Node 22, con `npm ci` a partir de `mobile/package-lock.json`. Este job bloquea el merge si falla. Ver el workflow correspondiente en `.github/workflows/` (filtra por cambios bajo `mobile/**`).
+1. **CI de calidad** — lint + tests en cada push/PR: `npm run lint` y `npm run test:ci` (Jest) contra Node 22, con `npm ci` a partir de `package-lock.json`. Este job bloquea el merge si falla. Ver el workflow correspondiente en `.github/workflows/`.
 2. **Build y release Android** — genera el binario nativo Android a partir del código RN:
-   - `npm ci` en `mobile/`
-   - `npx expo prebuild --platform android` (Continuous Native Generation — regenera `mobile/android/`, que no está versionado)
+   - `npm ci`
+   - `npx expo prebuild --platform android` (Continuous Native Generation — regenera `android/`, que no está versionado)
    - Firma inyectada durante el prebuild vía config plugin, usando el keystore y credenciales de secrets (ver `docs/release-workflow.md`)
    - Compilación con **Gradle** (`./gradlew assembleRelease` o `./gradlew bundleRelease` según el artefacto pedido — APK o AAB)
    - Publicación del artefacto firmado (como artifact de GitHub Actions, y opcionalmente subida directa a Google Play — ver más abajo)
@@ -18,17 +18,17 @@ No hay ningún paso de **EAS Build** ni **EAS Submit** en este pipeline: todo el
 
 ## Secrets y variables
 
-| Nombre | Tipo | Uso |
-|---|---|---|
-| `ANDROID_KEYSTORE_BASE64` | Secret | Keystore de firma de release, codificado en base64; se decodifica a `.jks` en el runner. |
-| `KEYSTORE_PASSWORD` | Secret | Password del keystore. |
-| `KEY_ALIAS` | Secret | Alias de la llave dentro del keystore. |
-| `KEY_PASSWORD` | Secret | Password de la llave. |
-| `PLAY_SERVICE_ACCOUNT_JSON` | Secret | Credenciales de cuenta de servicio de Google Play (Play Developer API), usadas solo si la subida automática está habilitada. |
-| `PLAY_DEPLOY_ENABLED` | Variable | Interruptor: si no está activa, el AAB queda solo como artifact de GitHub Actions (subida manual a Play); si está activa, el workflow además publica en Play Console. |
-| `PLAY_DEVELOPER_ID` | Variable o secret | Opcional. Número largo tras `/developers/` en la URL de Play Console. Con `PLAY_APP_ID` forma el enlace directo al track interno que lleva la notificación de Slack. Hoy están cargados como secrets; el workflow acepta cualquiera de las dos formas. |
-| `PLAY_APP_ID` | Variable o secret | Opcional. Número largo tras `/app/` en la URL de la app en Play Console. |
-| `PLAY_INTERNAL_TEST_URL` | Variable | Opcional. Enlace "Únete en la web" de Testing → Internal testing → Testers; botón "Unirse a la prueba interna" en Slack. |
+| Nombre                      | Tipo              | Uso                                                                                                                                                                                                                                                    |
+| --------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ANDROID_KEYSTORE_BASE64`   | Secret            | Keystore de firma de release, codificado en base64; se decodifica a `.jks` en el runner.                                                                                                                                                               |
+| `KEYSTORE_PASSWORD`         | Secret            | Password del keystore.                                                                                                                                                                                                                                 |
+| `KEY_ALIAS`                 | Secret            | Alias de la llave dentro del keystore.                                                                                                                                                                                                                 |
+| `KEY_PASSWORD`              | Secret            | Password de la llave.                                                                                                                                                                                                                                  |
+| `PLAY_SERVICE_ACCOUNT_JSON` | Secret            | Credenciales de cuenta de servicio de Google Play (Play Developer API), usadas solo si la subida automática está habilitada.                                                                                                                           |
+| `PLAY_DEPLOY_ENABLED`       | Variable          | Interruptor: si no está activa, el AAB queda solo como artifact de GitHub Actions (subida manual a Play); si está activa, el workflow además publica en Play Console.                                                                                  |
+| `PLAY_DEVELOPER_ID`         | Variable o secret | Opcional. Número largo tras `/developers/` en la URL de Play Console. Con `PLAY_APP_ID` forma el enlace directo al track interno que lleva la notificación de Slack. Hoy están cargados como secrets; el workflow acepta cualquiera de las dos formas. |
+| `PLAY_APP_ID`               | Variable o secret | Opcional. Número largo tras `/app/` en la URL de la app en Play Console.                                                                                                                                                                               |
+| `PLAY_INTERNAL_TEST_URL`    | Variable          | Opcional. Enlace "Únete en la web" de Testing → Internal testing → Testers; botón "Unirse a la prueba interna" en Slack.                                                                                                                               |
 
 Ver `docs/release-workflow.md` para el flujo completo de versionado y firma, y `README-PIPELINE.md` para la identidad de la app en Google Play (`applicationId`, organización, consola).
 
@@ -45,11 +45,11 @@ Ambos workflows avisan a Slack (éxito/fallo) con `SLACK_WEBHOOK_URL`. El workfl
 
 ### El job de lint/test no se dispara
 
-Los workflows de CI para `mobile/` suelen estar filtrados por `paths: mobile/**` — un cambio que solo toca archivos fuera de `mobile/` (por ejemplo, solo `docs/`) no dispara ese job. Confirmar el filtro exacto en `.github/workflows/`.
+Desde el cutover del 2026-09-11 el CI ya no está filtrado por `paths: mobile/**` — corre en todo push/PR, sin importar qué archivos toque. Si el job no se dispara, el problema está en otra condición del workflow (branch, evento); confirmar en `.github/workflows/`.
 
 ### `expo prebuild` falla en CI
 
-Revisar que `mobile/app.json` y los config plugins en `mobile/plugins/` sean válidos (`npx expo config --type public` local reproduce la resolución de configuración). Un fallo de prebuild en CI casi siempre reproduce localmente con `npx expo prebuild --platform android --clean`.
+Revisar que `app.json` y los config plugins en `plugins/` sean válidos (`npx expo config --type public` local reproduce la resolución de configuración). Un fallo de prebuild en CI casi siempre reproduce localmente con `npx expo prebuild --platform android --clean`.
 
 ### Gradle falla en `assembleRelease`/`bundleRelease` en CI pero funciona local
 

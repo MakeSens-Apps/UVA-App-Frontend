@@ -110,3 +110,14 @@ tmp/
 temp/
 *.tmp
 *.tmp.*
+
+# --- Artefactos que NO se versionan (heredado del .gitignore Ionic, acotado) ---
+# Sesiones de Playwright (capturas de QA locales)
+.playwright/
+.playwright-cli/
+# Archivos comprimidos (docs/evidence.zip pesa 29 MB)
+*.zip
+# Capturas de evidencia: solo se versionan a mano con `git add -f` las que
+# referencian los docs; el resto se queda local. Las ya versionadas no se ven
+# afectadas por esta regla.
+docs/evidence/**/*.png

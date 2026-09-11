@@ -10,8 +10,9 @@
 # runner, y la subida a Play se hace con `r0adkll/upload-google-play`.
 #
 # 📁 APP_DIR
-#   Todo es relativo a `${{ env.APP_DIR }}`. En el cutover (mover `mobile/` a
-#   la raíz) basta cambiar `APP_DIR: mobile` → `APP_DIR: .`.
+#   Todo es relativo a `${{ env.APP_DIR }}`. Desde el cutover del 2026-09-11 la
+#   app RN vive en la raíz del repo (`APP_DIR: .`); se conserva la
+#   parametrización por si vuelve a moverse a un subdirectorio.
 #
 # 🔐 Secrets obligatorios
 #   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY  — amplify pull
@@ -71,8 +72,8 @@ on:
       - main
 
 env:
-  # 👇 Único valor a cambiar en el cutover (mobile/ → raíz): APP_DIR: .
-  APP_DIR: mobile
+  # 👇 La app RN vive en la raíz del repo desde el cutover del 2026-09-11.
+  APP_DIR: .
   AMPLIFY_APP_ID: d2l8hh51bqhq16
   AMPLIFY_PROJECT_NAME: UVA
   JAVA_VERSION: '17'
@@ -243,8 +244,14 @@ jobs:
           # → el archivo debe quedar en la RAÍZ de la app RN ($APP_DIR).
           # Metro lo empaqueta al compilar, así que va antes de Gradle.
           TARGET="$APP_DIR/amplifyconfiguration.json"
-          FOUND=$(find . -maxdepth 3 -name 'amplifyconfiguration.json' \
-            -not -path './node_modules/*' -not -path "./$APP_DIR/node_modules/*" | head -n 1)
+          # Con APP_DIR=. (app en la raíz) amplify pull ya lo deja en su sitio;
+          # el find solo es el fallback para un layout con subdirectorio.
+          if [ -f "$TARGET" ]; then
+            FOUND="$TARGET"
+          else
+            FOUND=$(find . -maxdepth 3 -name 'amplifyconfiguration.json' \
+              -not -path './node_modules/*' -not -path './amplify/*' | head -n 1)
+          fi
 
           if [ -z "$FOUND" ]; then
             echo "❌ amplify pull no generó amplifyconfiguration.json"

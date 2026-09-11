@@ -2,8 +2,6 @@
 
 Aplicación móvil para la recolección y monitoreo de datos ambientales comunitarios (temperatura, humedad, lluvia), con fase lunar y gamificación. Los usuarios son colaboradores de campo agrupados en **RACIMOS** (proyectos); la app funciona **sin conexión** y sincroniza en segundo plano cuando hay red.
 
-> **Migración en curso**: el código fuente vive hoy en `mobile/` (React Native / Expo). El proyecto Ionic/Angular original sigue en la raíz del repo hasta el cutover final (ver `docs/migration/plan.md`), momento en el que `mobile/` pasará a ser la raíz del repositorio y el árbol Ionic se eliminará. Este README describe la app **RN**, que es el destino de la migración.
-
 ## Stack
 
 - **React Native 0.85** + **Expo SDK 56** (Dev Client, sin EAS Build)
@@ -16,10 +14,9 @@ Aplicación móvil para la recolección y monitoreo de datos ambientales comunit
 - **Jest** (`jest-expo`) + **@testing-library/react-native** para pruebas
 - Build nativo: `expo prebuild` (Continuous Native Generation) + **Gradle** en GitHub Actions — **no se usa EAS Build/Submit**
 
-## Estructura (`mobile/`)
+## Estructura
 
 ```
-mobile/
 ├── App.tsx                 # Composición raíz: polyfills → Amplify/DataStore → Context providers → RootNavigator
 ├── index.ts                # Entry point de Expo
 ├── app.json                # Configuración de Expo (nombre, versión, permisos, plugins)
@@ -61,7 +58,6 @@ Ver `docs/arquitectura.md` para el detalle de la arquitectura (navegación, Cont
 ## Cómo correr la app
 
 ```bash
-cd mobile
 npm install
 
 # Servidor de desarrollo (requiere un Dev Client instalado en el dispositivo/emulador,
@@ -76,14 +72,13 @@ npm run android           # expo run:android
 npm run web
 ```
 
-`mobile/amplifyconfiguration.json` es necesario para que la app arranque contra el backend real; está en `.gitignore` (se distribuye fuera del repo). Sin él, Metro falla al resolver el import en `src/data/amplify-bootstrap/amplify-config.ts`.
+`amplifyconfiguration.json` es necesario para que la app arranque contra el backend real; está en `.gitignore` (se distribuye fuera del repo). Sin él, Metro falla al resolver el import en `src/data/amplify-bootstrap/amplify-config.ts`.
 
 ## Build local (APK/AAB) sin EAS
 
-El pipeline de release usa `expo prebuild` para generar `mobile/android/` (Continuous Native Generation) y compila con Gradle directamente — no hay `eas build`/`eas submit` en el flujo de CI. Para reproducir localmente:
+El pipeline de release usa `expo prebuild` para generar `android/` (Continuous Native Generation) y compila con Gradle directamente — no hay `eas build`/`eas submit` en el flujo de CI. Para reproducir localmente:
 
 ```bash
-cd mobile
 npx expo prebuild --platform android --clean
 cd android
 ./gradlew assembleRelease     # APK
@@ -95,7 +90,6 @@ La firma de release se resuelve mediante un config plugin de Expo (inyecta el ke
 ## Tests
 
 ```bash
-cd mobile
 npm run test        # jest
 npm run test:watch
 npm run test:ci      # jest --ci --coverage (el que corre en GitHub Actions)
@@ -103,11 +97,11 @@ npx tsc --noEmit      # chequeo de tipos, sin emitir output
 npm run lint
 ```
 
-La suite cubre lógica de dominio pura (`src/domain/`), los Contexts de estado, componentes de UI con `@testing-library/react-native`, y bootstrap de Amplify/DataStore con mocks. Una nota conocida: el snapshot de `MoonCard` en `b11-components.test.tsx` embebe una ruta de asset relativa al directorio del proyecto — si se ejecuta desde un *worktree* de git con un path distinto al checkout normal, ese snapshot específico falla por la diferencia de ruta, no por una regresión real.
+La suite cubre lógica de dominio pura (`src/domain/`), los Contexts de estado, componentes de UI con `@testing-library/react-native`, y bootstrap de Amplify/DataStore con mocks. Una nota conocida: el snapshot de `MoonCard` en `b11-components.test.tsx` embebe una ruta de asset relativa al directorio del proyecto — si se ejecuta desde un _worktree_ de git con un path distinto al checkout normal, ese snapshot específico falla por la diferencia de ruta, no por una regresión real.
 
 ## Estado de la migración
 
-El proyecto está migrando de Ionic/Angular a React Native (Expo). El plan completo, bloque por bloque, y el estado de verificación viven en:
+El proyecto migró de Ionic/Angular a React Native (Expo); el cutover se ejecutó el 2026-09-11 y el árbol Ionic fue eliminado (código disponible en el tag `pre-cutover-2026-09-11` y en los tags `V2.x`). El plan completo, bloque por bloque, y el estado de verificación viven en:
 
 - `docs/migration/plan.md` — roadmap completo (B01…B19) y decisiones
 - `docs/migration/verification.md` — estado de gates y pendientes de validación en dispositivo
@@ -123,4 +117,3 @@ Pendiente de producto (no técnico): issue #57 — logos institucionales Natura/
 - [`docs/release-workflow.md`](docs/release-workflow.md) — flujo de release (versionado, firma, Google Play)
 - [`docs/github-actions-pipeline.md`](docs/github-actions-pipeline.md) — pipeline de CI/CD
 - [`README-PIPELINE.md`](README-PIPELINE.md) — resumen operativo del pipeline y secrets
-- [`mobile/README.md`](mobile/README.md) — arranque rápido específico de `mobile/`

@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">UVA</string>
-    <string name="title_activity_main">UVA</string>
-    <string name="package_name">com.makesens.appuva</string>
-    <string name="custom_url_scheme">com.makesens.appuva</string>
-</resources>

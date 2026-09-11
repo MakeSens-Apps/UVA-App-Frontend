@@ -1,6 +1,0 @@
-src/models/models
-node_modules/
-build/
-*.spec.ts
-**/*.test.ts
-src/models/index.d.ts

@@ -1,25 +1,17 @@
 # Gate de calidad de la app React Native: typecheck + lint + tests.
 # Debe estar en verde antes de mergear.
 #
-# 📁 APP_DIR parametriza el directorio de la app. En el cutover
-# (mover `mobile/` a la raíz) hay que cambiar:
-#   - env.APP_DIR: mobile → .
-#   - los filtros `paths:` — GitHub no admite expresiones ahí, así que son
-#     el único punto del workflow que no se puede parametrizar.
+# 📁 APP_DIR parametriza el directorio de la app. Desde el cutover del
+# 2026-09-11 la app vive en la raíz del repo (`.`), así que el workflow corre
+# en todos los pushes y PRs sin filtro de rutas.
 name: Mobile CI — Typecheck + Lint + Jest
 
 on:
   push:
-    paths:
-      - 'mobile/**'
-      - '.github/workflows/mobile-ci.yml'
   pull_request:
-    paths:
-      - 'mobile/**'
-      - '.github/workflows/mobile-ci.yml'
 
 env:
-  APP_DIR: mobile
+  APP_DIR: .
 
 jobs:
   quality:

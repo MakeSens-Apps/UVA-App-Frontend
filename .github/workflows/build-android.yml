@@ -10,10 +10,10 @@
 # No se usa EAS Build: el APK se compila con Gradle en el propio runner.
 #
 # 📁 APP_DIR
-#   Todo el pipeline es relativo a `${{ env.APP_DIR }}`. Hoy la app RN vive en
-#   `mobile/`; cuando se ejecute el cutover (mover `mobile/` a la raíz) basta
-#   con cambiar `APP_DIR: mobile` → `APP_DIR: .` y el workflow sigue siendo
-#   válido sin más cambios.
+#   Todo el pipeline es relativo a `${{ env.APP_DIR }}`. Tras el cutover del
+#   2026-09-11 la app RN vive en la RAÍZ del repo, así que `APP_DIR: .`.
+#   Se conserva la parametrización por si la app vuelve a moverse a un
+#   subdirectorio (monorepo): basta cambiar ese único valor.
 #
 # 🔐 Secrets que consume
 #   AWS_ACCESS_KEY_ID          (obligatorio) — amplify pull
@@ -60,8 +60,8 @@ on:
       - '**/*.md'
 
 env:
-  # 👇 Único valor a cambiar en el cutover (mobile/ → raíz): APP_DIR: .
-  APP_DIR: mobile
+  # 👇 La app RN vive en la raíz del repo desde el cutover del 2026-09-11.
+  APP_DIR: .
   AMPLIFY_APP_ID: d2l8hh51bqhq16
   AMPLIFY_PROJECT_NAME: UVA
   JAVA_VERSION: '17'
@@ -170,8 +170,14 @@ jobs:
           # no en src/. Metro lo empaqueta en tiempo de build, por eso este
           # paso debe ir SIEMPRE antes del prebuild/Gradle.
           TARGET="$APP_DIR/amplifyconfiguration.json"
-          FOUND=$(find . -maxdepth 3 -name 'amplifyconfiguration.json' \
-            -not -path './node_modules/*' -not -path "./$APP_DIR/node_modules/*" | head -n 1)
+          # Con APP_DIR=. (app en la raíz) amplify pull ya lo deja en su sitio;
+          # el find solo es el fallback para un layout con subdirectorio.
+          if [ -f "$TARGET" ]; then
+            FOUND="$TARGET"
+          else
+            FOUND=$(find . -maxdepth 3 -name 'amplifyconfiguration.json' \
+              -not -path './node_modules/*' -not -path './amplify/*' | head -n 1)
+          fi
 
           if [ -z "$FOUND" ]; then
             echo "❌ amplify pull no generó amplifyconfiguration.json"

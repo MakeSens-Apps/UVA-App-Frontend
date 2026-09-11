@@ -6,13 +6,13 @@
 
 ## 0. Resumen
 
-| | |
-|---|---|
-| **Qué hace** | `git mv` de todo `mobile/*` a la raíz + `git rm -r` de la implementación Ionic/Angular. |
-| **Herramienta** | `scripts/cutover.sh` (dry-run por defecto). |
-| **Resultado** | Un único commit `chore(cutover): …` sin `mobile/` y sin restos Ionic. |
+|                   |                                                                                                        |
+| ----------------- | ------------------------------------------------------------------------------------------------------ |
+| **Qué hace**      | `git mv` de todo `mobile/*` a la raíz + `git rm -r` de la implementación Ionic/Angular.                |
+| **Herramienta**   | `scripts/cutover.sh` (dry-run por defecto).                                                            |
+| **Resultado**     | Un único commit `chore(cutover): …` sin `mobile/` y sin restos Ionic.                                  |
 | **Paso separado** | Purga de `android/keys/keystore.jks` de la historia git (`scripts/purge-keystore.sh`), con force-push. |
-| **Rollback** | `git reset --hard <sha-previo>` mientras no se haya hecho force-push. |
+| **Rollback**      | `git reset --hard <sha-previo>` mientras no se haya hecho force-push.                                  |
 
 Se **conservan** en la raíz: `amplify/`, `schema.json`, `.graphqlconfig.yml`,
 `docs/`, `.github/`, `.claude/`, `.vscode/`, `.editorconfig`, `LICENSE`,
@@ -68,12 +68,12 @@ git commit -m "chore(cutover): promover la app RN de mobile/ a la raíz y elimin
 
 ### Opciones de `cutover.sh`
 
-| Flag | Efecto |
-|---|---|
-| *(ninguno)* | Dry-run. Imprime cada operación, no toca nada. |
-| `--execute` | Aplica los cambios y corre **todos** los gates. |
+| Flag                           | Efecto                                                               |
+| ------------------------------ | -------------------------------------------------------------------- |
+| _(ninguno)_                    | Dry-run. Imprime cada operación, no toca nada.                       |
+| `--execute`                    | Aplica los cambios y corre **todos** los gates.                      |
 | `--execute --skip-build-gates` | Aplica; omite `npm ci` / `tsc` / `jest` / `prebuild` (útil sin red). |
-| `--execute --skip-verify` | Aplica; sin ninguna verificación. |
+| `--execute --skip-verify`      | Aplica; sin ninguna verificación.                                    |
 
 El script es **idempotente**: si `mobile/` ya no tiene archivos versionados,
 salta directo a la verificación.
@@ -118,23 +118,23 @@ También se borran los residuos **no versionados** de la era Ionic que rompen
 
 ### 3.3 Colisiones y decisiones
 
-| Ruta | Decisión | Motivo |
-|---|---|---|
-| `package.json` | **mobile gana** | La raíz es Angular/Ionic. Además el script cambia `"name": "mobile"` → `"uva-app"`. |
-| `package-lock.json` | **mobile gana** | Idem. |
-| `tsconfig.json` | **mobile gana** | El de mobile extiende `expo/tsconfig.base`. `tsconfig.app.json` / `tsconfig.spec.json` se borran. |
-| `.prettierrc` | **mobile gana** | Contenido idéntico; se mueve por limpieza. |
-| `.gitignore` | **fusionado** | Se instala `docs/migration/cutover.gitignore` (§3.4). |
-| `.claude/` | **fusión archivo a archivo** | La raíz tiene `CLAUDE.md` + `skills/`; mobile aporta `settings.json`. Sin colisión de archivos. |
-| `CLAUDE.md` | **raíz gana** | El de la raíz se reescribe para RN. `mobile/CLAUDE.md` es sólo `@AGENTS.md` → añade esa línea al de la raíz (§4). |
-| `LICENSE` | **raíz gana** | La raíz es GPL-3.0; `mobile/LICENSE` es el MIT de la plantilla Expo. Se descarta. |
-| `LICENSE copy` | **se borra** | Duplicado byte a byte de `LICENSE`. |
-| `AGENTS.md` | **se mueve** | No existe en la raíz. |
-| `assets/` | **se mueve** | No hay `assets/` en la raíz (los del Ionic vivían en `src/assets/`). |
-| `plugins/` | **se mueve** | El `plugins/` de la raíz era de Cordova y estaba gitignoreado / ausente. Se limpia antes de mover. |
-| `android/` | **se borra y se regenera** | El de la raíz es Capacitor. El nuevo lo genera `expo prebuild` (CNG) y queda **gitignoreado**. |
-| `src/` | **se borra y se sustituye** | Angular fuera, `mobile/src` dentro. |
-| `README.md`, `README-PIPELINE.md` | **raíz gana** *(defensa)* | Hoy no existen bajo `mobile/`; están en la lista por si un agente las crea antes del cutover. |
+| Ruta                              | Decisión                     | Motivo                                                                                                            |
+| --------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `package.json`                    | **mobile gana**              | La raíz es Angular/Ionic. Además el script cambia `"name": "mobile"` → `"uva-app"`.                               |
+| `package-lock.json`               | **mobile gana**              | Idem.                                                                                                             |
+| `tsconfig.json`                   | **mobile gana**              | El de mobile extiende `expo/tsconfig.base`. `tsconfig.app.json` / `tsconfig.spec.json` se borran.                 |
+| `.prettierrc`                     | **mobile gana**              | Contenido idéntico; se mueve por limpieza.                                                                        |
+| `.gitignore`                      | **fusionado**                | Se instala `docs/migration/cutover.gitignore` (§3.4).                                                             |
+| `.claude/`                        | **fusión archivo a archivo** | La raíz tiene `CLAUDE.md` + `skills/`; mobile aporta `settings.json`. Sin colisión de archivos.                   |
+| `CLAUDE.md`                       | **raíz gana**                | El de la raíz se reescribe para RN. `mobile/CLAUDE.md` es sólo `@AGENTS.md` → añade esa línea al de la raíz (§4). |
+| `LICENSE`                         | **raíz gana**                | La raíz es GPL-3.0; `mobile/LICENSE` es el MIT de la plantilla Expo. Se descarta.                                 |
+| `LICENSE copy`                    | **se borra**                 | Duplicado byte a byte de `LICENSE`.                                                                               |
+| `AGENTS.md`                       | **se mueve**                 | No existe en la raíz.                                                                                             |
+| `assets/`                         | **se mueve**                 | No hay `assets/` en la raíz (los del Ionic vivían en `src/assets/`).                                              |
+| `plugins/`                        | **se mueve**                 | El `plugins/` de la raíz era de Cordova y estaba gitignoreado / ausente. Se limpia antes de mover.                |
+| `android/`                        | **se borra y se regenera**   | El de la raíz es Capacitor. El nuevo lo genera `expo prebuild` (CNG) y queda **gitignoreado**.                    |
+| `src/`                            | **se borra y se sustituye**  | Angular fuera, `mobile/src` dentro.                                                                               |
+| `README.md`, `README-PIPELINE.md` | **raíz gana** _(defensa)_    | Hoy no existen bajo `mobile/`; están en la lista por si un agente las crea antes del cutover.                     |
 
 > **Colisión imprevista.** Si aparece una entrada nueva en `mobile/` que también
 > existe en la raíz (p. ej. `mobile/docs/`), el script cae en la rama de
@@ -172,16 +172,16 @@ Verificado tras el cutover de prueba:
 `cutover.sh` mueve archivos; **no** reescribe contenidos. Estas rutas siguen
 apuntando a `mobile/` y hay que arreglarlas antes del commit:
 
-| Archivo | Qué cambiar |
-|---|---|
-| `.github/workflows/mobile-ci.yml` | `paths: 'mobile/**'` → `'**'` (o quitar el filtro); `defaults.run.working-directory: mobile` → borrar (o `.`); `cache-dependency-path: mobile/package-lock.json` → `package-lock.json`. |
-| `.github/workflows/*` (nuevos EAS) | `APP_DIR: mobile` → `APP_DIR: .` en **todos** los workflows que lo declaren. |
-| `.graphqlconfig.yml` | Rutas Angular: `includes: src/graphql/**/*.ts` → `src/data/graphql/**/*.ts`; `excludes: src/API.ts` → `src/data/graphql/API.ts`; `generatedFileName: src/API.ts` → `src/data/graphql/API.ts`; `docsFilePath: src/graphql` → `src/data/graphql`; `framework: ionic` → `none`. |
-| `CLAUDE.md` (raíz) | Añadir `@AGENTS.md` en la primera línea (era el contenido íntegro de `mobile/CLAUDE.md`, que se descarta). |
-| `.vscode/settings.json` | `files.exclude` / `search.exclude` con `**/www`, `**/.angular`; claves `ionic.showIcons`, `ionic.showToolTips`; `emmet.includeLanguages.typescript: html`. Sustituir por `**/android`, `**/ios`, `**/.expo`. |
-| `.vscode/extensions.json` | Quitar `angular.ng-template`, `ionic.ionic`; añadir `expo.vscode-expo-tools`. |
-| `README.md`, `README-PIPELINE.md`, `docs/android-build.md`, `docs/release-workflow.md`, `docs/github-actions-pipeline.md` | Referencias a `npm run android:setup/build/bundle/prod`, `./scripts/setup-dev-environment.sh`, `ionic`, `ng serve` → `npx expo prebuild`, `eas build`. *(Los reescribe el agente de documentación; verificar que no queden rutas `mobile/`.)* |
-| `docs/migration/plan.md`, `docs/migration/verification.md` | Referencias históricas a `mobile/` y `cd mobile`. Son **históricas**: dejarlas y añadir una nota de "post-cutover" en vez de reescribir la historia del plan. |
+| Archivo                                                                                                                   | Qué cambiar                                                                                                                                                                                                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.github/workflows/mobile-ci.yml`                                                                                         | `paths: 'mobile/**'` → `'**'` (o quitar el filtro); `defaults.run.working-directory: mobile` → borrar (o `.`); `cache-dependency-path: mobile/package-lock.json` → `package-lock.json`.                                                                                      |
+| `.github/workflows/*` (nuevos EAS)                                                                                        | `APP_DIR: mobile` → `APP_DIR: .` en **todos** los workflows que lo declaren.                                                                                                                                                                                                 |
+| `.graphqlconfig.yml`                                                                                                      | Rutas Angular: `includes: src/graphql/**/*.ts` → `src/data/graphql/**/*.ts`; `excludes: src/API.ts` → `src/data/graphql/API.ts`; `generatedFileName: src/API.ts` → `src/data/graphql/API.ts`; `docsFilePath: src/graphql` → `src/data/graphql`; `framework: ionic` → `none`. |
+| `CLAUDE.md` (raíz)                                                                                                        | Añadir `@AGENTS.md` en la primera línea (era el contenido íntegro de `mobile/CLAUDE.md`, que se descarta).                                                                                                                                                                   |
+| `.vscode/settings.json`                                                                                                   | `files.exclude` / `search.exclude` con `**/www`, `**/.angular`; claves `ionic.showIcons`, `ionic.showToolTips`; `emmet.includeLanguages.typescript: html`. Sustituir por `**/android`, `**/ios`, `**/.expo`.                                                                 |
+| `.vscode/extensions.json`                                                                                                 | Quitar `angular.ng-template`, `ionic.ionic`; añadir `expo.vscode-expo-tools`.                                                                                                                                                                                                |
+| `README.md`, `README-PIPELINE.md`, `docs/android-build.md`, `docs/release-workflow.md`, `docs/github-actions-pipeline.md` | Referencias a `npm run android:setup/build/bundle/prod`, `./scripts/setup-dev-environment.sh`, `ionic`, `ng serve` → `npx expo prebuild`, `eas build`. _(Los reescribe el agente de documentación; verificar que no queden rutas `mobile/`.)_                                |
+| `docs/migration/plan.md`, `docs/migration/verification.md`                                                                | Referencias históricas a `mobile/` y `cd mobile`. Son **históricas**: dejarlas y añadir una nota de "post-cutover" en vez de reescribir la historia del plan.                                                                                                                |
 
 ### Referencias `mobile/` que NO hay que tocar
 
@@ -201,18 +201,18 @@ apuntando a `mobile/` y hay que arreglarlas antes del commit:
 
 ## 5. Verificación (la corre `cutover.sh --execute`)
 
-| Gate | Comprobación |
-|---|---|
-| Estructura | No existe `mobile/`, `src/app`, `angular.json`, `www`, `capacitor.config.ts`, `ionic.config.json`, `android/keys/keystore.jks`. |
-| Estructura | Existen `app.json`, `index.ts`, `App.tsx`, `metro.config.js`, `babel.config.js`, `eas.json`. |
-| `package.json` | Declara `"expo"`. |
-| Toolchain | `npm ci` · `npx tsc --noEmit` · `npx jest --ci`. |
-| CNG | `npx expo prebuild --platform android --clean --no-install` y `android/app/build.gradle` con `applicationId 'com.makesens.appuva'`. |
+| Gate           | Comprobación                                                                                                                        |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Estructura     | No existe `mobile/`, `src/app`, `angular.json`, `www`, `capacitor.config.ts`, `ionic.config.json`, `android/keys/keystore.jks`.     |
+| Estructura     | Existen `app.json`, `index.ts`, `App.tsx`, `metro.config.js`, `babel.config.js`, `eas.json`.                                        |
+| `package.json` | Declara `"expo"`.                                                                                                                   |
+| Toolchain      | `npm ci` · `npx tsc --noEmit` · `npx jest --ci`.                                                                                    |
+| CNG            | `npx expo prebuild --platform android --clean --no-install` y `android/app/build.gradle` con `applicationId 'com.makesens.appuva'`. |
 
 Además, manualmente:
 
 - [ ] `npm run lint` en verde.
-- [ ] `git status` no muestra archivos inesperados como *untracked* (señal de
+- [ ] `git status` no muestra archivos inesperados como _untracked_ (señal de
       que el `.gitignore` fusionado dejó fuera algo que debía versionarse).
 - [ ] `eas build --profile production` firma con el keystore correcto y con
       `versionCode` > el publicado en Play.
@@ -297,7 +297,7 @@ puede rotar).
   # Linux: base64 -w0 ~/uva-keystore-backup-<fecha>/keystore.jks
   ```
 
-  → GitHub → *Settings* → *Secrets and variables* → *Actions* → **`ANDROID_KEYSTORE_BASE64`**.
+  → GitHub → _Settings_ → _Secrets and variables_ → _Actions_ → **`ANDROID_KEYSTORE_BASE64`**.
 
 ---
 
@@ -342,13 +342,13 @@ Confirmar contra los workflows finales antes del primer build post-cutover.
 
 ## 8. Rollback
 
-| Momento | Cómo revertir |
-|---|---|
-| Tras `--dry-run` | Nada que revertir. |
-| Tras `--execute`, **antes** del commit | `git reset --hard HEAD && git clean -fd` |
-| Tras el commit del cutover, **antes** del force-push | `git reset --hard <SHA anotado en §2 paso 1>` |
-| Tras `purge-keystore.sh --execute`, **antes** del force-push | El repo local está reescrito: bórralo y vuelve a clonar (`rm -rf <repo> && git clone <url>`). El remoto sigue intacto. |
-| Tras el force-push | No hay rollback limpio. Sólo restaurar desde un clon de otro colaborador que no haya re-clonado, o desde un backup del remoto. **Haz un `git clone --mirror` del remoto antes del force-push.** |
+| Momento                                                      | Cómo revertir                                                                                                                                                                                   |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tras `--dry-run`                                             | Nada que revertir.                                                                                                                                                                              |
+| Tras `--execute`, **antes** del commit                       | `git reset --hard HEAD && git clean -fd`                                                                                                                                                        |
+| Tras el commit del cutover, **antes** del force-push         | `git reset --hard <SHA anotado en §2 paso 1>`                                                                                                                                                   |
+| Tras `purge-keystore.sh --execute`, **antes** del force-push | El repo local está reescrito: bórralo y vuelve a clonar (`rm -rf <repo> && git clone <url>`). El remoto sigue intacto.                                                                          |
+| Tras el force-push                                           | No hay rollback limpio. Sólo restaurar desde un clon de otro colaborador que no haya re-clonado, o desde un backup del remoto. **Haz un `git clone --mirror` del remoto antes del force-push.** |
 
 ```bash
 # Red de seguridad recomendada, ANTES del force-push:
@@ -362,16 +362,33 @@ git clone --mirror <url> ~/uva-repo-mirror-$(date +%Y%m%d).git
 Ensayado sobre una copia completa del repo en `c52e69e`
 (`git clone --no-hardlinks --no-local`), no sobre el árbol real.
 
-| Gate | Resultado |
-|---|---|
-| `cutover.sh` (dry-run) | 21 entradas de `mobile/` detectadas, 26 rutas Ionic a borrar, 0 cambios en disco. |
-| `cutover.sh --execute` | 353 renames + 445 deletes + 4 modificaciones. Sin conflictos. |
-| Estructura | `mobile/`, `src/app`, `angular.json`, `www`, `capacitor.config.ts`, `ionic.config.json`, `android/keys/keystore.jks` ausentes. |
-| `npm ci` | OK — 1311 paquetes. |
-| `npx tsc --noEmit` | OK — 0 errores. |
-| `npx jest --ci` | OK — **56 suites / 1047 tests / 16 snapshots**. |
-| `npx expo prebuild --platform android --clean --no-install` | OK — `android/app/build.gradle` con `namespace` y `applicationId 'com.makesens.appuva'`. |
-| `.gitignore` fusionado | `android/` generado queda ignorado; ningún artefacto versionado necesita ya `git add -f`. |
-| Idempotencia | Segunda pasada con `--execute`: detecta "cutover ya aplicado" y sólo verifica. |
-| `purge-keystore.sh` (dry-run) | Detecta `git-filter-repo`, encuentra 1 commit (`2f503a5`), backup extraído de la historia. |
-| `purge-keystore.sh --execute` | Historia reescrita (330 commits), 0 objetos `keystore.jks` alcanzables. |
+| Gate                                                        | Resultado                                                                                                                      |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `cutover.sh` (dry-run)                                      | 21 entradas de `mobile/` detectadas, 26 rutas Ionic a borrar, 0 cambios en disco.                                              |
+| `cutover.sh --execute`                                      | 353 renames + 445 deletes + 4 modificaciones. Sin conflictos.                                                                  |
+| Estructura                                                  | `mobile/`, `src/app`, `angular.json`, `www`, `capacitor.config.ts`, `ionic.config.json`, `android/keys/keystore.jks` ausentes. |
+| `npm ci`                                                    | OK — 1311 paquetes.                                                                                                            |
+| `npx tsc --noEmit`                                          | OK — 0 errores.                                                                                                                |
+| `npx jest --ci`                                             | OK — **56 suites / 1047 tests / 16 snapshots**.                                                                                |
+| `npx expo prebuild --platform android --clean --no-install` | OK — `android/app/build.gradle` con `namespace` y `applicationId 'com.makesens.appuva'`.                                       |
+| `.gitignore` fusionado                                      | `android/` generado queda ignorado; ningún artefacto versionado necesita ya `git add -f`.                                      |
+| Idempotencia                                                | Segunda pasada con `--execute`: detecta "cutover ya aplicado" y sólo verifica.                                                 |
+| `purge-keystore.sh` (dry-run)                               | Detecta `git-filter-repo`, encuentra 1 commit (`2f503a5`), backup extraído de la historia.                                     |
+| `purge-keystore.sh --execute`                               | Historia reescrita (330 commits), 0 objetos `keystore.jks` alcanzables.                                                        |
+
+---
+
+## 10. Ejecución real (2026-09-11)
+
+Cutover ejecutado sobre el repo real (no el ensayo de §9):
+
+- **CUTOVER**: ejecutado el 2026-09-11 con `scripts/cutover.sh --execute`
+  (gates npm ci / tsc / jest / expo prebuild verdes, applicationId
+  `com.makesens.appuva`).
+- **Purga del keystore**: ejecutada con `scripts/purge-keystore.sh` sobre un
+  clon fresco, con force-push de 6 ramas y 29 tags.
+- **Tag de seguridad**: `pre-cutover-2026-09-11`, apuntando al estado del
+  repo inmediatamente antes del force-push.
+- **PR #54** (`feature/share-data`) siguió **MERGEABLE** tras el force-push.
+- **Backup del keystore**: `~/uva-keystore-backup-20260911-094301/keystore.jks`
+  (fuera del repo).

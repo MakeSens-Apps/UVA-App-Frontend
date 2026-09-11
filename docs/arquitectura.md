@@ -2,7 +2,7 @@
 
 ## Resumen ejecutivo
 
-UVA App es una aplicación móvil desarrollada en **React Native (Expo, target Android)** para la recolección y monitoreo de datos ambientales comunitarios (temperatura, humedad, lluvia), con fase lunar y gamificación. Usa **AWS Amplify** (DataStore + GraphQL/AppSync + Cognito + S3) como backend, funciona **offline-first** y sincroniza en segundo plano. Este documento describe la arquitectura del código en `mobile/`, destino de la migración desde la app Ionic/Angular original (ver `docs/migration/plan.md` para el proceso de migración en sí).
+UVA App es una aplicación móvil desarrollada en **React Native (Expo, target Android)** para la recolección y monitoreo de datos ambientales comunitarios (temperatura, humedad, lluvia), con fase lunar y gamificación. Usa **AWS Amplify** (DataStore + GraphQL/AppSync + Cognito + S3) como backend, funciona **offline-first** y sincroniza en segundo plano. Este documento describe la arquitectura del código en la raíz del repo, destino de la migración desde la app Ionic/Angular original (ver `docs/migration/plan.md` para el proceso de migración en sí).
 
 ## Stack tecnológico
 
@@ -19,7 +19,7 @@ UVA App es una aplicación móvil desarrollada en **React Native (Expo, target A
 
 ## Composición de la app (`App.tsx`)
 
-El árbol raíz sigue un orden de bootstrap estricto, documentado en cabecera en `mobile/App.tsx`:
+El árbol raíz sigue un orden de bootstrap estricto, documentado en cabecera en `App.tsx`:
 
 1. Polyfills (`react-native-get-random-values`, `react-native-url-polyfill/auto`) — deben cargar antes que cualquier otra cosa porque Amplify/DataStore los necesita en tiempo de import.
 2. `bootstrapAmplify()` (`src/data/amplify-bootstrap/amplify-config.ts`) — `Amplify.configure(amplifyconfiguration)` + `DataStore.configure({ syncExpressions })`.
@@ -42,7 +42,7 @@ GestureHandlerRootView
 
 ## Navegación (`src/navigation/`)
 
-- **`RootNavigator`** decide entre el stack de autenticación y el stack de la app, mediante *gates* de navegación (`navigationGate.ts`, `useNavigationGate.ts`, `useAuthGate.ts`, `authInitialRoute.ts`) que evalúan sesión/estado de setup antes de montar cualquiera de los dos.
+- **`RootNavigator`** decide entre el stack de autenticación y el stack de la app, mediante _gates_ de navegación (`navigationGate.ts`, `useNavigationGate.ts`, `useAuthGate.ts`, `authInitialRoute.ts`) que evalúan sesión/estado de setup antes de montar cualquiera de los dos.
 - **`AuthStack`** — login, OTP, y todo el flujo de registro/vinculación a RACIMO.
 - **`AppStack`** — pantallas post-login que no son tabs (detalle de medición, configuración, alertas, etc.).
 - **`AppTabs`** + **`UvaTabBar`** — navegación principal por pestañas (home / medición / histórico / perfil), tab bar custom.
@@ -70,7 +70,7 @@ El estado global se maneja con **React Context**, uno por dominio, cada uno envo
 
 ### DataStore + AsyncStorage (offline-first)
 
-DataStore usa **AsyncStorage** como adaptador de almacenamiento local en Android. El límite por defecto de la base SQLite interna de `@react-native-async-storage/async-storage` es de 6 MB (`AsyncStorage_db_size_in_MB` en su `config.gradle`) — insuficiente para el histórico de mediciones que acumula DataStore en el tiempo, lo que producía `SQLiteFullException` en dispositivos reales. Como `mobile/android/` es generado por `expo prebuild` (no se versiona ni se edita a mano), ese límite se eleva a **200 MB** mediante un config plugin de Expo, `mobile/plugins/withAsyncStorageDbSize.js`, que inyecta la propiedad Gradle correspondiente en cada prebuild vía `withGradleProperties`.
+DataStore usa **AsyncStorage** como adaptador de almacenamiento local en Android. El límite por defecto de la base SQLite interna de `@react-native-async-storage/async-storage` es de 6 MB (`AsyncStorage_db_size_in_MB` en su `config.gradle`) — insuficiente para el histórico de mediciones que acumula DataStore en el tiempo, lo que producía `SQLiteFullException` en dispositivos reales. Como `android/` es generado por `expo prebuild` (no se versiona ni se edita a mano), ese límite se eleva a **200 MB** mediante un config plugin de Expo, `plugins/withAsyncStorageDbSize.js`, que inyecta la propiedad Gradle correspondiente en cada prebuild vía `withGradleProperties`.
 
 ## Lógica de dominio (`src/domain/`)
 
@@ -103,7 +103,7 @@ Envoltorios delgados sobre APIs nativas/Expo, aislados del resto del código par
 
 ### Gráficas: por qué SVG puro y no Skia/victory-native
 
-El componente de gráfica (`AreachartSvg.tsx`) se implementó con **`react-native-svg`** puro. La app pasó por un spike previo con `victory-native` (`CartesianChart`) sobre `@shopify/react-native-skia`, que nunca llegó a pintar correctamente en Android (problemas de fuente/ejes documentados en los comentarios del propio archivo). Ambas librerías se retiraron del proyecto — no quedan referencias de import en el código de producción (`mobile/package.json` ya no las declara como dependencias; ver `docs/migration/bundle-report.md` para la verificación de que no aparecen en el bundle final).
+El componente de gráfica (`AreachartSvg.tsx`) se implementó con **`react-native-svg`** puro. La app pasó por un spike previo con `victory-native` (`CartesianChart`) sobre `@shopify/react-native-skia`, que nunca llegó a pintar correctamente en Android (problemas de fuente/ejes documentados en los comentarios del propio archivo). Ambas librerías se retiraron del proyecto — no quedan referencias de import en el código de producción (`package.json` ya no las declara como dependencias; ver `docs/migration/bundle-report.md` para la verificación de que no aparecen en el bundle final).
 
 ## Theming por RACIMO
 
@@ -111,7 +111,7 @@ El componente de gráfica (`AreachartSvg.tsx`) se implementó con **`react-nativ
 
 ## Testing
 
-- **Jest** con preset `jest-expo`, `@testing-library/react-native` para componentes, mocks explícitos para módulos nativos/Amplify en `src/__tests__/jest.setup.js` y en cada suite (ver `mobile/README.md` y el `package.json` de `mobile/` para la configuración completa de `moduleNameMapper`/`transformIgnorePatterns`).
+- **Jest** con preset `jest-expo`, `@testing-library/react-native` para componentes, mocks explícitos para módulos nativos/Amplify en `src/__tests__/jest.setup.js` y en cada suite (ver el `package.json` de la raíz del repo para la configuración completa de `moduleNameMapper`/`transformIgnorePatterns`).
 - La lógica de dominio pura se testea sin mocks de RN.
 - Los Contexts y componentes de UI se testean con RNTL, incluyendo snapshots para componentes visuales estables.
 
@@ -123,18 +123,18 @@ El componente de gráfica (`AreachartSvg.tsx`) se implementó con **`react-nativ
 
 ## Diferencias clave respecto a la arquitectura Ionic/Angular
 
-| Aspecto | Ionic (antes) | RN (ahora) |
-|---|---|---|
-| UI | Componentes Angular standalone + Ionic UI | Componentes React Native + `react-native-svg`/primitivas propias |
-| Estado | Servicios `@Injectable` + `BehaviorSubject`/RxJS | React Context + hooks |
-| Navegación | Angular Router + tabs de Ionic | React Navigation (native-stack + bottom-tabs) |
-| Renderizado nativo | WebView (Capacitor) | Nativo (Hermes) |
-| Gráficas | Chart.js | `react-native-svg` (SVG puro) |
-| Compartir imagen | `html-to-image` | `react-native-view-shot` |
-| Sanitización HTML | `dompurify` | `sanitize-html` |
-| Alertas/modales | `sweetalert2` | Componentes nativos / `react-native-toast-message` |
-| Almacenamiento local de DataStore | IndexedDB (web) | AsyncStorage (cap elevado a 200 MB vía config plugin) |
-| Build nativo | Capacitor (`android/` versionado) + Gradle | `expo prebuild` (`android/` generado) + Gradle, sin EAS |
+| Aspecto                           | Ionic (antes)                                    | RN (ahora)                                                       |
+| --------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------- |
+| UI                                | Componentes Angular standalone + Ionic UI        | Componentes React Native + `react-native-svg`/primitivas propias |
+| Estado                            | Servicios `@Injectable` + `BehaviorSubject`/RxJS | React Context + hooks                                            |
+| Navegación                        | Angular Router + tabs de Ionic                   | React Navigation (native-stack + bottom-tabs)                    |
+| Renderizado nativo                | WebView (Capacitor)                              | Nativo (Hermes)                                                  |
+| Gráficas                          | Chart.js                                         | `react-native-svg` (SVG puro)                                    |
+| Compartir imagen                  | `html-to-image`                                  | `react-native-view-shot`                                         |
+| Sanitización HTML                 | `dompurify`                                      | `sanitize-html`                                                  |
+| Alertas/modales                   | `sweetalert2`                                    | Componentes nativos / `react-native-toast-message`               |
+| Almacenamiento local de DataStore | IndexedDB (web)                                  | AsyncStorage (cap elevado a 200 MB vía config plugin)            |
+| Build nativo                      | Capacitor (`android/` versionado) + Gradle       | `expo prebuild` (`android/` generado) + Gradle, sin EAS          |
 
 ## Pendiente de producto
 
