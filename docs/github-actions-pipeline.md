@@ -26,6 +26,9 @@ No hay ningún paso de **EAS Build** ni **EAS Submit** en este pipeline: todo el
 | `KEY_PASSWORD` | Secret | Password de la llave. |
 | `PLAY_SERVICE_ACCOUNT_JSON` | Secret | Credenciales de cuenta de servicio de Google Play (Play Developer API), usadas solo si la subida automática está habilitada. |
 | `PLAY_DEPLOY_ENABLED` | Variable | Interruptor: si no está activa, el AAB queda solo como artifact de GitHub Actions (subida manual a Play); si está activa, el workflow además publica en Play Console. |
+| `PLAY_DEVELOPER_ID` | Variable | Opcional. Número largo tras `/developers/` en la URL de Play Console. Con `PLAY_APP_ID` forma el enlace directo al track interno que lleva la notificación de Slack. |
+| `PLAY_APP_ID` | Variable | Opcional. Número largo tras `/app/` en la URL de la app en Play Console. |
+| `PLAY_INTERNAL_TEST_URL` | Variable | Opcional. Enlace "Únete en la web" de Testing → Internal testing → Testers; botón "Unirse a la prueba interna" en Slack. |
 
 Ver `docs/release-workflow.md` para el flujo completo de versionado y firma, y `README-PIPELINE.md` para la identidad de la app en Google Play (`applicationId`, organización, consola).
 
@@ -36,7 +39,7 @@ Ver `docs/release-workflow.md` para el flujo completo de versionado y firma, y `
 
 ## Notificaciones
 
-El pipeline Ionic anterior enviaba notificaciones a Slack (éxito/fallo de build) usando `SLACK_WEBHOOK_URL`. Si ese mecanismo se conserva en el pipeline RN, seguirá documentado en `docs/slack-integration.md`; confirmar en el workflow vigente si el paso de notificación sigue presente.
+Ambos workflows avisan a Slack (éxito/fallo) con `SLACK_WEBHOOK_URL`. El workflow del AAB manda dos mensajes: uno al terminar el build (bundle firmado, enlace al artifact) y otro desde el job `deploy-play` cuando la versión queda publicada en el canal interno de Play, con botones "Ver versión interna en Play Console" (enlace directo al track si están definidas `PLAY_DEVELOPER_ID` y `PLAY_APP_ID`), "Unirse a la prueba interna" (`PLAY_INTERNAL_TEST_URL`) y el run de Actions. Si la subida falla, el mensaje de error recuerda que el AAB firmado sigue en el artifact para subirlo a mano. Detalle en `docs/slack-integration.md`.
 
 ## Troubleshooting
 
@@ -61,6 +64,8 @@ Política de concurrencia por rama: el workflow del APK cancela el run anterior 
 ### La subida a Play falla o no se ejecuta
 
 Confirmar que `PLAY_DEPLOY_ENABLED` está en el estado esperado y que `PLAY_SERVICE_ACCOUNT_JSON` tiene permisos vigentes en Play Console para la app `com.makesens.appuva`.
+
+`ENOENT: no such file or directory, open 'aab/**/mapping.txt'` (visto el 2026-09-11): la acción `r0adkll/upload-google-play` no expande globs en `mappingFile`. El job resuelve las rutas reales del AAB y del `mapping.txt` con `find` en el paso "Locate AAB and mapping.txt" antes de subir; si ese paso falla, el artifact no trae alguno de los dos archivos.
 
 ## Ver también
 

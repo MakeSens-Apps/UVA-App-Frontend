@@ -34,6 +34,7 @@ La subida a Play está **preparada pero no forzada por defecto**:
 
 - `PLAY_SERVICE_ACCOUNT_JSON` — secret con las credenciales de la cuenta de servicio de Google Play (Play Developer API), usado si el paso de publicación está habilitado.
 - `PLAY_DEPLOY_ENABLED` — variable (no secret) que actúa como interruptor: cuando no está activada, el workflow genera y publica el AAB firmado como artifact de GitHub Actions únicamente (descarga manual, igual que el flujo anterior); cuando está activada, el workflow además sube el AAB a Play (pista interna/cerrada/producción según cómo esté configurado el paso, ver el workflow).
+- `PLAY_DEVELOPER_ID`, `PLAY_APP_ID`, `PLAY_INTERNAL_TEST_URL` — variables opcionales para que la notificación de Slack del despliegue enlace directo al track interno de Play Console y al enlace de inscripción de testers (ver `docs/github-actions-pipeline.md`).
 
 Ver `.github/workflows/` para la implementación exacta (nombres de jobs y de pasos pueden ajustarse; esta guía describe el proceso y los contratos de secrets/variables, no el YAML literal).
 

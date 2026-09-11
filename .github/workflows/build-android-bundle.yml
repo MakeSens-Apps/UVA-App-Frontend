@@ -510,6 +510,13 @@ jobs:
   # 🎯 Track: `internal` (testers internos) con `status: completed`, es decir,
   #    la release queda publicada en ese track sin pasos manuales. Para pasar a
   #    producción se promueve desde Play Console.
+  #
+  # 🔗 Enlace directo en Slack a la versión interna (variables de repositorio,
+  #    opcionales; sin ellas el botón apunta a la portada de Play Console):
+  #      PLAY_DEVELOPER_ID   → número largo tras `/developers/` en la URL de la consola
+  #      PLAY_APP_ID         → número largo tras `/app/` en la URL de la app
+  #      PLAY_INTERNAL_TEST_URL → enlace "Únete en la web" de Testing → Internal
+  #                               testing → Testers (https://play.google.com/apps/internaltest/…)
   # ===========================================================================
   deploy-play:
     name: 🚀 Deploy to Google Play (internal)
@@ -538,17 +545,115 @@ jobs:
           name: ${{ needs.build.outputs.artifact_name }}
           path: aab
 
+      # `mappingFile` de la acción NO acepta globs (falló con ENOENT 'aab/**/mapping.txt'),
+      # así que se resuelven las rutas reales antes de subir.
+      - name: 📂 Locate AAB and mapping.txt
+        id: files
+        run: |
+          set -euo pipefail
+          AAB=$(find aab -type f -name 'app-release.aab' | head -n1)
+          MAPPING=$(find aab -type f -name 'mapping.txt' | head -n1)
+          if [ -z "$AAB" ]; then
+            echo "❌ No se encontró app-release.aab en el artifact"; find aab -type f; exit 1
+          fi
+          if [ -z "$MAPPING" ]; then
+            echo "❌ No se encontró mapping.txt en el artifact (R8 está activo; Play lo necesita para desofuscar crashes)"
+            find aab -type f; exit 1
+          fi
+          echo "aab=$AAB" >> $GITHUB_OUTPUT
+          echo "mapping=$MAPPING" >> $GITHUB_OUTPUT
+          echo "✅ AAB: $AAB ($(du -h "$AAB" | cut -f1))"
+          echo "✅ mapping.txt: $MAPPING ($(du -h "$MAPPING" | cut -f1))"
+
+      - name: 🔗 Build Play Console links
+        id: links
+        env:
+          PLAY_DEVELOPER_ID: ${{ vars.PLAY_DEVELOPER_ID }}
+          PLAY_APP_ID: ${{ vars.PLAY_APP_ID }}
+          PLAY_INTERNAL_TEST_URL: ${{ vars.PLAY_INTERNAL_TEST_URL }}
+        run: |
+          if [ -n "${PLAY_DEVELOPER_ID:-}" ] && [ -n "${PLAY_APP_ID:-}" ]; then
+            CONSOLE_URL="https://play.google.com/console/u/0/developers/${PLAY_DEVELOPER_ID}/app/${PLAY_APP_ID}/tracks/internal-testing"
+            echo "exact=true" >> $GITHUB_OUTPUT
+          else
+            CONSOLE_URL="https://play.google.com/console/"
+            echo "exact=false" >> $GITHUB_OUTPUT
+            echo "⚠️  Faltan las variables PLAY_DEVELOPER_ID / PLAY_APP_ID: el enlace de Slack irá a la portada de Play Console."
+          fi
+          echo "console_url=$CONSOLE_URL" >> $GITHUB_OUTPUT
+          echo "tester_url=${PLAY_INTERNAL_TEST_URL:-$CONSOLE_URL}" >> $GITHUB_OUTPUT
+          echo "🔗 $CONSOLE_URL"
+
       - name: 🚀 Upload to Google Play (internal track)
         if: steps.check.outputs.available == 'true'
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: ${{ env.ANDROID_PACKAGE_NAME }}
-          releaseFiles: aab/**/app-release.aab
+          releaseFiles: ${{ steps.files.outputs.aab }}
           # mapping.txt de R8 (minify activo): Play lo usa para desofuscar crashes en Vitals.
-          mappingFile: aab/**/mapping.txt
+          mappingFile: ${{ steps.files.outputs.mapping }}
+          releaseName: ${{ needs.build.outputs.version_name }} (${{ needs.build.outputs.version_code }})
           track: internal
           status: completed
+
+      - name: 📬 Send Play release to Slack
+        if: success()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "text": "🚀 UVA App v${{ needs.build.outputs.version_name }} (${{ needs.build.outputs.version_code }}) publicada en Google Play — canal interno",
+              "attachments": [
+                {
+                  "color": "good",
+                  "fields": [
+                    { "title": "Versión", "value": "v${{ needs.build.outputs.version_name }} (${{ needs.build.outputs.version_code }})", "short": true },
+                    { "title": "Track", "value": "internal (testers internos)", "short": true },
+                    { "title": "Package", "value": "${{ env.ANDROID_PACKAGE_NAME }}", "short": true },
+                    { "title": "Ambiente", "value": "${{ needs.build.outputs.environment }}", "short": true },
+                    { "title": "Rama", "value": "${{ github.ref_name }}", "short": true },
+                    { "title": "Autor", "value": "${{ github.actor }}", "short": true }
+                  ],
+                  "actions": [
+                    { "type": "button", "style": "primary", "text": "🎯 Ver versión interna en Play Console", "url": "${{ steps.links.outputs.console_url }}" },
+                    { "type": "button", "text": "📱 Unirse a la prueba interna", "url": "${{ steps.links.outputs.tester_url }}" },
+                    { "type": "button", "text": "📥 Bundle y logs", "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: 📬 Send Play deploy failure to Slack
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "text": "❌ Falló la subida a Google Play de UVA App v${{ needs.build.outputs.version_name }} (${{ needs.build.outputs.version_code }})",
+              "attachments": [
+                {
+                  "color": "danger",
+                  "fields": [
+                    { "title": "Versión", "value": "v${{ needs.build.outputs.version_name }} (${{ needs.build.outputs.version_code }})", "short": true },
+                    { "title": "Track", "value": "internal", "short": true },
+                    { "title": "Rama", "value": "${{ github.ref_name }}", "short": true },
+                    { "title": "Autor", "value": "${{ github.actor }}", "short": true },
+                    { "title": "Nota", "value": "El AAB firmado sí se generó: está en el artifact del run y puede subirse a mano.", "short": false }
+                  ],
+                  "actions": [
+                    { "type": "button", "text": "🔍 Ver logs y descargar AAB", "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" },
+                    { "type": "button", "text": "🎯 Play Console", "url": "${{ steps.links.outputs.console_url || 'https://play.google.com/console/' }}" }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: 📊 Deploy summary
         if: always()
@@ -559,4 +664,8 @@ jobs:
             echo "- **Package**: \`$ANDROID_PACKAGE_NAME\`"
             echo "- **Track**: internal"
             echo "- **Versión**: v${{ needs.build.outputs.version_name }} (code ${{ needs.build.outputs.version_code }})"
+            echo "- **Play Console**: ${{ steps.links.outputs.console_url }}"
+            if [ "${{ steps.links.outputs.exact }}" != "true" ]; then
+              echo "- ⚠️ Define las variables de repositorio \`PLAY_DEVELOPER_ID\` y \`PLAY_APP_ID\` para que el enlace apunte directo al track interno."
+            fi
           } >> $GITHUB_STEP_SUMMARY
