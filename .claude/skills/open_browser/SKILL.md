@@ -23,6 +23,7 @@ playwright-cli resize 360 740
 ```
 
 Verify viewport after opening:
+
 ```bash
 playwright-cli --raw eval "JSON.stringify({w: innerWidth, h: innerHeight, dpr: devicePixelRatio})"
 # expected: {"w":360,"h":740,"dpr":3}
@@ -43,7 +44,7 @@ The script opens `http://localhost:4200<path>` in a visible mobile browser and p
 
 ## Screenshot naming convention
 
-All screenshots go to `docs/evidence/` with this format:
+All screenshots go to `docs/evidence/` (gitignored since 2026-09-11 — they stay local and are never committed; the migration-era set is archived in `../../backup-uva/`) with this format:
 
 ```
 docs/evidence/[view-name]-[YYYY-MM-DD]-[pass|fail].png
@@ -96,10 +97,10 @@ The test user **3000000002** has real historical measurement data.
 
 ### Months with data (as of June 2026)
 
-| Month | Records | Notes |
-|---|---|---|
+| Month         | Records          | Notes                                                            |
+| ------------- | ---------------- | ---------------------------------------------------------------- |
 | **Mayo 2026** | **68 registros** | Best month for testing charts — temperature, humidity, rain data |
-| June 2026 | 0 registros | Current month, no data yet |
+| June 2026     | 0 registros      | Current month, no data yet                                       |
 
 ### What the chart view looks like in Mayo 2026
 
@@ -195,12 +196,14 @@ The DataStore sync can take a few seconds after authentication. If records are
 missing, either:
 
 1. **Wait and reload** — reload the page and check again:
+
    ```bash
    playwright-cli reload
    playwright-cli snapshot
    ```
 
 2. **Wait for the sync event** — poll until records appear:
+
    ```bash
    # Run the count check a few times with snapshots in between
    playwright-cli snapshot

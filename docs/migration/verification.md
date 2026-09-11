@@ -8,7 +8,7 @@
 
 Este documento se actualiza a medida que avanza la ronda de verificación en
 device real y el hardening de B19 (`docs/migration/plan.md` §B19). No
-reemplaza la evidencia cruda (`docs/evidence/`); la resume y le da estado.
+reemplaza la evidencia cruda (`docs/evidence/`, **archivada fuera del repo el 2026-09-11**; las notas escritas viven en `docs/migration/evidence-notes/`); la resume y le da estado.
 
 ---
 
@@ -23,9 +23,9 @@ reemplaza la evidencia cruda (`docs/evidence/`); la resume y le da estado.
   hecha en esta ronda; el resto del checklist de B19 (§4) sigue abierto.
 - **Primera ronda de verificación en device físico real:** 2026-09-07, sobre
   un Redmi Note 10S (Android 13, MIUI 14, 1080×2400 @440dpi). Produjo:
-  - `docs/evidence/device-findings-2026-09-07.md` (hallazgos F-01…F-11 del
+  - `docs/migration/evidence-notes/device-findings-2026-09-07.md` (hallazgos F-01…F-11 del
     recorrido inicial).
-  - `docs/evidence/device-2026-09-07/review-frames-021-090.md`,
+  - `docs/migration/evidence-notes/device-2026-09-07/review-frames-021-090.md`,
     `review-frames-091-165.md`, `review-frames-166-239.md` (revisión frame a
     frame, hallazgos D-01…D-44 / D1…D17 según el rango).
   - Dos rondas de fixes ya commiteadas en respuesta a esos hallazgos:
@@ -186,10 +186,10 @@ Estado actual de cada ítem del checklist de B19:
 ## Referencias
 
 - Plan de bloques: `docs/migration/plan.md` §B19.
-- Evidencia device: `docs/evidence/device-findings-2026-09-07.md`,
-  `docs/evidence/device-2026-09-07/review-frames-021-090.md`,
-  `docs/evidence/device-2026-09-07/review-frames-091-165.md`,
-  `docs/evidence/device-2026-09-07/review-frames-166-239.md`.
+- Evidencia device: `docs/migration/evidence-notes/device-findings-2026-09-07.md`,
+  `docs/migration/evidence-notes/device-2026-09-07/review-frames-021-090.md`,
+  `docs/migration/evidence-notes/device-2026-09-07/review-frames-091-165.md`,
+  `docs/migration/evidence-notes/device-2026-09-07/review-frames-166-239.md`.
 - Commits de la ronda de fixes: `24545a5`, `c5eec23`.
 - Módulo app-minimize: `mobile/modules/app-minimize/README.md`.
 

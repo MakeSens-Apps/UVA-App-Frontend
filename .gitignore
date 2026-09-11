@@ -117,7 +117,6 @@ temp/
 .playwright-cli/
 # Archivos comprimidos (docs/evidence.zip pesa 29 MB)
 *.zip
-# Capturas de evidencia: solo se versionan a mano con `git add -f` las que
-# referencian los docs; el resto se queda local. Las ya versionadas no se ven
-# afectadas por esta regla.
-docs/evidence/**/*.png
+# Capturas de evidencia de la migración: se archivan fuera del repo
+# (ver docs/migration/evidence-notes/README.md), nunca se versionan.
+docs/evidence/

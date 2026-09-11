@@ -390,5 +390,5 @@ Cutover ejecutado sobre el repo real (no el ensayo de §9):
 - **Tag de seguridad**: `pre-cutover-2026-09-11`, apuntando al estado del
   repo inmediatamente antes del force-push.
 - **PR #54** (`feature/share-data`) siguió **MERGEABLE** tras el force-push.
-- **Backup del keystore**: `~/uva-keystore-backup-20260911-094301/keystore.jks`
+- **Backup del keystore**: `../../backup-uva/keystore-backup-2026-09-11/keystore.jks` (fuera del repo, en `Documents/code/makesens/backup-uva`)
   (fuera del repo).
