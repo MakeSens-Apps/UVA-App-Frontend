@@ -52,6 +52,12 @@ Revisar que `mobile/app.json` y los config plugins en `mobile/plugins/` sean vá
 
 Verificar que los cuatro secrets de firma (`ANDROID_KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`) estén configurados en el repositorio/organización de GitHub y que el keystore decodificado coincida con el usado en local (mismo SHA-256 — ver `README-PIPELINE.md`).
 
+### Gradle falla con `403 Forbidden` al descargar de Maven Central
+
+Maven Central rechaza de forma intermitente a los runners de GitHub (visto el 2026-09-11 con `gson-2.9.1.pom` al resolver `com.facebook.react.settings`), sobre todo con varios builds del mismo repo en paralelo. Ambos workflows envuelven Gradle en `gradle_retry` (3 intentos, esperas de 45 s y 90 s), así que un 403 aislado se recupera solo. Si los tres intentos fallan, relanzar el run; el caché de Gradle del run anterior reduce el número de descargas.
+
+Política de concurrencia por rama: el workflow del APK cancela el run anterior cuando llega un push nuevo (`build-apk-<ref>`, `cancel-in-progress: true`); el del AAB no cancela, porque cada build de producción puede terminar subido a Play, y se serializa (`build-aab-<ref>`).
+
 ### La subida a Play falla o no se ejecuta
 
 Confirmar que `PLAY_DEPLOY_ENABLED` está en el estado esperado y que `PLAY_SERVICE_ACCOUNT_JSON` tiene permisos vigentes en Play Console para la app `com.makesens.appuva`.
