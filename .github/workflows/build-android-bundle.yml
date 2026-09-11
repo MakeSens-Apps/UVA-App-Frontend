@@ -314,6 +314,8 @@ jobs:
         working-directory: ${{ env.APP_DIR }}
         env:
           EXPO_PUBLIC_AMPLIFY_ENV: ${{ steps.auto-env.outputs.environment }}
+          # Play sirve splits por ABI, así que el tamaño de descarga por dispositivo no cambia; solo el AAB crece.
+          EXPO_ANDROID_ARCHITECTURES: armeabi-v7a,arm64-v8a,x86,x86_64
         run: |
           set -euo pipefail
           # android/ es gitignored y se regenera entero en cada build, por eso

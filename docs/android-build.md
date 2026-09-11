@@ -37,6 +37,15 @@ La firma **no vive en `android/app/build.gradle` a mano**: se inyecta durante `e
 
 > Ver el plugin correspondiente en `mobile/plugins/` para el mecanismo exacto de inyección — es responsabilidad de otro frente de trabajo de esta migración y puede evolucionar; esta guía describe el proceso a nivel operativo.
 
+## ABIs nativas y compatibilidad de dispositivos en Google Play
+
+El AAB de producción y el APK universal de preview no llevan las mismas ABIs nativas:
+
+- **AAB** (`bundleRelease`, workflow `build-android-bundle.yml`): 4 ABIs — `armeabi-v7a,arm64-v8a,x86,x86_64` — vía `EXPO_ANDROID_ARCHITECTURES` en el paso de `expo prebuild` de ese workflow. Google Play sirve *splits* por ABI desde el AAB, así que esto no cambia el tamaño de descarga por dispositivo, solo el tamaño del propio AAB subido.
+- **APK universal** (`assembleRelease`, workflow `build-android.yml`, usado para QA/preview): 2 ABIs — `armeabi-v7a,arm64-v8a` — el default de `mobile/plugins/withReleaseArchitectures.js`. Un APK universal sí empaqueta todas las ABIs en un solo archivo, así que se mantiene acotado a las que corren en un dispositivo real.
+
+Relacionado, `mobile/plugins/withAndroidOptionalFeatures.js` marca `android.hardware.wifi` y `android.hardware.touchscreen` como `android:required="false"` en el `AndroidManifest.xml` generado. Google Play usa los `<uses-feature>` del manifest para filtrar qué dispositivos pueden ver/instalar la app; `android.hardware.wifi` queda implícito como requerido en cuanto una dependencia nativa (`@react-native-community/netinfo`) agrega el permiso `ACCESS_WIFI_STATE`, y `android.hardware.touchscreen` lo asume requerido Play por defecto salvo que se declare lo contrario. Ninguna de las dos es una dependencia real de la app (la app Ionic anterior llegaba a esos mismos dispositivos sin declararlas), así que declararlas como opcionales restaura compatibilidad sin tocar código de runtime.
+
 ## Dónde quedan los artefactos generados
 
 - **APK debug**: `mobile/android/app/build/outputs/apk/debug/app-debug.apk`

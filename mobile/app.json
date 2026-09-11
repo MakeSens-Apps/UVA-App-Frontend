@@ -65,7 +65,8 @@
       "expo-notifications",
       "./plugins/withAsyncStorageDbSize.js",
       "./plugins/withReleaseSigning.js",
-      "./plugins/withReleaseArchitectures.js"
+      "./plugins/withReleaseArchitectures.js",
+      "./plugins/withAndroidOptionalFeatures.js"
     ]
   }
 }
