@@ -26,8 +26,8 @@ No hay ningún paso de **EAS Build** ni **EAS Submit** en este pipeline: todo el
 | `KEY_PASSWORD` | Secret | Password de la llave. |
 | `PLAY_SERVICE_ACCOUNT_JSON` | Secret | Credenciales de cuenta de servicio de Google Play (Play Developer API), usadas solo si la subida automática está habilitada. |
 | `PLAY_DEPLOY_ENABLED` | Variable | Interruptor: si no está activa, el AAB queda solo como artifact de GitHub Actions (subida manual a Play); si está activa, el workflow además publica en Play Console. |
-| `PLAY_DEVELOPER_ID` | Variable | Opcional. Número largo tras `/developers/` en la URL de Play Console. Con `PLAY_APP_ID` forma el enlace directo al track interno que lleva la notificación de Slack. |
-| `PLAY_APP_ID` | Variable | Opcional. Número largo tras `/app/` en la URL de la app en Play Console. |
+| `PLAY_DEVELOPER_ID` | Variable o secret | Opcional. Número largo tras `/developers/` en la URL de Play Console. Con `PLAY_APP_ID` forma el enlace directo al track interno que lleva la notificación de Slack. Hoy están cargados como secrets; el workflow acepta cualquiera de las dos formas. |
+| `PLAY_APP_ID` | Variable o secret | Opcional. Número largo tras `/app/` en la URL de la app en Play Console. |
 | `PLAY_INTERNAL_TEST_URL` | Variable | Opcional. Enlace "Únete en la web" de Testing → Internal testing → Testers; botón "Unirse a la prueba interna" en Slack. |
 
 Ver `docs/release-workflow.md` para el flujo completo de versionado y firma, y `README-PIPELINE.md` para la identidad de la app en Google Play (`applicationId`, organización, consola).

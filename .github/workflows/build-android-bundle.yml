@@ -511,8 +511,8 @@ jobs:
   #    la release queda publicada en ese track sin pasos manuales. Para pasar a
   #    producción se promueve desde Play Console.
   #
-  # 🔗 Enlace directo en Slack a la versión interna (variables de repositorio,
-  #    opcionales; sin ellas el botón apunta a la portada de Play Console):
+  # 🔗 Enlace directo en Slack a la versión interna (variables de repositorio o
+  #    secrets, opcionales; sin ellas el botón apunta a la portada de Play Console):
   #      PLAY_DEVELOPER_ID   → número largo tras `/developers/` en la URL de la consola
   #      PLAY_APP_ID         → número largo tras `/app/` en la URL de la app
   #      PLAY_INTERNAL_TEST_URL → enlace "Únete en la web" de Testing → Internal
@@ -565,24 +565,25 @@ jobs:
           echo "✅ AAB: $AAB ($(du -h "$AAB" | cut -f1))"
           echo "✅ mapping.txt: $MAPPING ($(du -h "$MAPPING" | cut -f1))"
 
-      - name: 🔗 Build Play Console links
+      # Los IDs pueden venir como variables (preferido: no son sensibles, están en
+      # cualquier URL de la consola) o como secrets. Si son secrets, GitHub descarta
+      # cualquier output que los contenga, así que la URL se arma en la expresión
+      # del propio paso de Slack (env PLAY_DEV/PLAY_APP) y aquí solo se decide si hay IDs.
+      - name: 🔗 Check Play Console link inputs
         id: links
         env:
-          PLAY_DEVELOPER_ID: ${{ vars.PLAY_DEVELOPER_ID }}
-          PLAY_APP_ID: ${{ vars.PLAY_APP_ID }}
+          PLAY_DEVELOPER_ID: ${{ vars.PLAY_DEVELOPER_ID || secrets.PLAY_DEVELOPER_ID }}
+          PLAY_APP_ID: ${{ vars.PLAY_APP_ID || secrets.PLAY_APP_ID }}
           PLAY_INTERNAL_TEST_URL: ${{ vars.PLAY_INTERNAL_TEST_URL }}
         run: |
           if [ -n "${PLAY_DEVELOPER_ID:-}" ] && [ -n "${PLAY_APP_ID:-}" ]; then
-            CONSOLE_URL="https://play.google.com/console/u/0/developers/${PLAY_DEVELOPER_ID}/app/${PLAY_APP_ID}/tracks/internal-testing"
             echo "exact=true" >> $GITHUB_OUTPUT
+            echo "✅ IDs de Play Console presentes: el Slack enlaza directo al track interno."
           else
-            CONSOLE_URL="https://play.google.com/console/"
             echo "exact=false" >> $GITHUB_OUTPUT
-            echo "⚠️  Faltan las variables PLAY_DEVELOPER_ID / PLAY_APP_ID: el enlace de Slack irá a la portada de Play Console."
+            echo "⚠️  Faltan PLAY_DEVELOPER_ID / PLAY_APP_ID (variables o secrets): el enlace de Slack irá a la portada de Play Console."
           fi
-          echo "console_url=$CONSOLE_URL" >> $GITHUB_OUTPUT
-          echo "tester_url=${PLAY_INTERNAL_TEST_URL:-$CONSOLE_URL}" >> $GITHUB_OUTPUT
-          echo "🔗 $CONSOLE_URL"
+          echo "tester_url=${PLAY_INTERNAL_TEST_URL:-}" >> $GITHUB_OUTPUT
 
       - name: 🚀 Upload to Google Play (internal track)
         if: steps.check.outputs.available == 'true'
@@ -617,8 +618,8 @@ jobs:
                     { "title": "Autor", "value": "${{ github.actor }}", "short": true }
                   ],
                   "actions": [
-                    { "type": "button", "style": "primary", "text": "🎯 Ver versión interna en Play Console", "url": "${{ steps.links.outputs.console_url }}" },
-                    { "type": "button", "text": "📱 Unirse a la prueba interna", "url": "${{ steps.links.outputs.tester_url }}" },
+                    { "type": "button", "style": "primary", "text": "🎯 Ver versión interna en Play Console", "url": "${{ steps.links.outputs.exact == 'true' && format('https://play.google.com/console/u/0/developers/{0}/app/{1}/tracks/internal-testing', env.PLAY_DEV, env.PLAY_APP) || 'https://play.google.com/console/' }}" },
+                    { "type": "button", "text": "📱 Unirse a la prueba interna", "url": "${{ steps.links.outputs.tester_url || (steps.links.outputs.exact == 'true' && format('https://play.google.com/console/u/0/developers/{0}/app/{1}/tracks/internal-testing/testers', env.PLAY_DEV, env.PLAY_APP)) || 'https://play.google.com/console/' }}" },
                     { "type": "button", "text": "📥 Bundle y logs", "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" }
                   ]
                 }
@@ -626,6 +627,8 @@ jobs:
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          PLAY_DEV: ${{ vars.PLAY_DEVELOPER_ID || secrets.PLAY_DEVELOPER_ID }}
+          PLAY_APP: ${{ vars.PLAY_APP_ID || secrets.PLAY_APP_ID }}
 
       - name: 📬 Send Play deploy failure to Slack
         if: failure()
@@ -647,13 +650,15 @@ jobs:
                   ],
                   "actions": [
                     { "type": "button", "text": "🔍 Ver logs y descargar AAB", "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" },
-                    { "type": "button", "text": "🎯 Play Console", "url": "${{ steps.links.outputs.console_url || 'https://play.google.com/console/' }}" }
+                    { "type": "button", "text": "🎯 Play Console", "url": "${{ steps.links.outputs.exact == 'true' && format('https://play.google.com/console/u/0/developers/{0}/app/{1}/tracks/internal-testing', env.PLAY_DEV, env.PLAY_APP) || 'https://play.google.com/console/' }}" }
                   ]
                 }
               ]
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          PLAY_DEV: ${{ vars.PLAY_DEVELOPER_ID || secrets.PLAY_DEVELOPER_ID }}
+          PLAY_APP: ${{ vars.PLAY_APP_ID || secrets.PLAY_APP_ID }}
 
       - name: 📊 Deploy summary
         if: always()
@@ -664,8 +669,9 @@ jobs:
             echo "- **Package**: \`$ANDROID_PACKAGE_NAME\`"
             echo "- **Track**: internal"
             echo "- **Versión**: v${{ needs.build.outputs.version_name }} (code ${{ needs.build.outputs.version_code }})"
-            echo "- **Play Console**: ${{ steps.links.outputs.console_url }}"
-            if [ "${{ steps.links.outputs.exact }}" != "true" ]; then
-              echo "- ⚠️ Define las variables de repositorio \`PLAY_DEVELOPER_ID\` y \`PLAY_APP_ID\` para que el enlace apunte directo al track interno."
+            if [ "${{ steps.links.outputs.exact }}" = "true" ]; then
+              echo "- **Play Console**: enlace directo al track interno enviado a Slack"
+            else
+              echo "- ⚠️ Define \`PLAY_DEVELOPER_ID\` y \`PLAY_APP_ID\` (variables o secrets) para que el enlace de Slack apunte directo al track interno."
             fi
           } >> $GITHUB_STEP_SUMMARY
