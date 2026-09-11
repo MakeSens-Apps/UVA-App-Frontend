@@ -1,6 +1,6 @@
 {
   "name": "mobile",
-  "version": "1.0.0",
+  "version": "2.3.1",
   "main": "index.ts",
   "dependencies": {
     "@aws-amplify/datastore": "^5.1.8",

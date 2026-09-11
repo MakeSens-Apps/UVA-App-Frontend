@@ -2,7 +2,7 @@
   "expo": {
     "name": "UVA App",
     "slug": "uva-app",
-    "version": "2.2.10",
+    "version": "2.3.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
