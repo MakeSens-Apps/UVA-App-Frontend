@@ -588,6 +588,7 @@ jobs:
           echo "tester_url=${PLAY_INTERNAL_TEST_URL:-}" >> $GITHUB_OUTPUT
 
       - name: 🚀 Upload to Google Play (internal track)
+        id: upload
         if: steps.check.outputs.available == 'true'
         uses: r0adkll/upload-google-play@v1
         with:
@@ -620,7 +621,8 @@ jobs:
                     { "title": "Autor", "value": "${{ github.actor }}", "short": true }
                   ],
                   "actions": [
-                    { "type": "button", "style": "primary", "text": "🎯 Ver versión interna en Play Console", "url": "${{ steps.links.outputs.exact == 'true' && format('https://play.google.com/console/u/0/developers/{0}/app/{1}/tracks/internal-testing', env.PLAY_DEV, env.PLAY_APP) || 'https://play.google.com/console/' }}" },
+                    { "type": "button", "style": "primary", "text": "📲 Probar esta versión (${{ needs.build.outputs.version_code }})", "url": "${{ steps.upload.outputs.internalSharingDownloadUrl || format('https://play.google.com/apps/test/{0}/{1}', env.ANDROID_PACKAGE_NAME, needs.build.outputs.version_code) }}" },
+                    { "type": "button", "text": "🎯 Track interno en Play Console", "url": "${{ steps.links.outputs.exact == 'true' && format('https://play.google.com/console/u/0/developers/{0}/app/{1}/tracks/internal-testing', env.PLAY_DEV, env.PLAY_APP) || 'https://play.google.com/console/' }}" },
                     { "type": "button", "text": "📱 Unirse a la prueba interna", "url": "${{ steps.links.outputs.tester_url || (steps.links.outputs.exact == 'true' && format('https://play.google.com/console/u/0/developers/{0}/app/{1}/tracks/internal-testing/testers', env.PLAY_DEV, env.PLAY_APP)) || 'https://play.google.com/console/' }}" },
                     { "type": "button", "text": "📥 Bundle y logs", "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" }
                   ]
@@ -671,6 +673,7 @@ jobs:
             echo "- **Package**: \`$ANDROID_PACKAGE_NAME\`"
             echo "- **Track**: internal"
             echo "- **Versión**: v${{ needs.build.outputs.version_name }} (code ${{ needs.build.outputs.version_code }})"
+            echo "- **Probar esta versión**: ${{ steps.upload.outputs.internalSharingDownloadUrl || format('https://play.google.com/apps/test/{0}/{1}', env.ANDROID_PACKAGE_NAME, needs.build.outputs.version_code) }}"
             if [ "${{ steps.links.outputs.exact }}" = "true" ]; then
               echo "- **Play Console**: enlace directo al track interno enviado a Slack"
             else

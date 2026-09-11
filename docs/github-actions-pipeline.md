@@ -39,7 +39,7 @@ Ver `docs/release-workflow.md` para el flujo completo de versionado y firma, y `
 
 ## Notificaciones
 
-Ambos workflows avisan a Slack (éxito/fallo) con `SLACK_WEBHOOK_URL`. El workflow del AAB manda dos mensajes: uno al terminar el build (bundle firmado, enlace al artifact) y otro desde el job `deploy-play` cuando la versión queda publicada en el canal interno de Play, con botones "Ver versión interna en Play Console" (enlace directo al track si están definidas `PLAY_DEVELOPER_ID` y `PLAY_APP_ID`), "Unirse a la prueba interna" (`PLAY_INTERNAL_TEST_URL`) y el run de Actions. Si la subida falla, el mensaje de error recuerda que el AAB firmado sigue en el artifact para subirlo a mano. Detalle en `docs/slack-integration.md`.
+Ambos workflows avisan a Slack (éxito/fallo) con `SLACK_WEBHOOK_URL`. El workflow del AAB manda dos mensajes: uno al terminar el build (bundle firmado, enlace al artifact) y otro desde el job `deploy-play` cuando la versión queda publicada en el canal interno de Play, con botones "Probar esta versión" (enlace `https://play.google.com/apps/test/<paquete>/<versionCode>` que Play genera para la versión exacta subida; lo devuelve la acción de subida), "Track interno en Play Console" (enlace directo al track si están definidas `PLAY_DEVELOPER_ID` y `PLAY_APP_ID`), "Unirse a la prueba interna" (`PLAY_INTERNAL_TEST_URL`) y el run de Actions. Si la subida falla, el mensaje de error recuerda que el AAB firmado sigue en el artifact para subirlo a mano. Detalle en `docs/slack-integration.md`.
 
 ## Troubleshooting
 
