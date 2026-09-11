@@ -36,7 +36,7 @@ import { Location } from '@angular/common';
 
 const operaciones: Record<
   string,
-  (a: number, b: number) => number | undefined
+  (a: number, b: number)=> number | undefined
 > = {
   '+': (a, b) => a + b,
   '-': (a, b) => a - b,

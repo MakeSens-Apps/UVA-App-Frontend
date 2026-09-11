@@ -1,40 +1,43 @@
-import { ChangeDetectorRef, Component, OnInit, ViewChild } from '@angular/core';
-import { HeaderComponent } from '@app/components/header/header.component';
 import { CommonModule } from '@angular/common';
+import { ChangeDetectorRef, Component, OnInit, ViewChild } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { AreachartComponent } from '@app/components/areachart/areachart.component';
 import {
   calendar,
   CalendarComponent,
 } from '@app/components/calendar/calendar.component';
+import { HeaderComponent } from '@app/components/header/header.component';
+import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
+import { MeasurementDSService } from '@app/core/services/storage/datastore/measurement-ds.service';
+import { UserProgressDSService } from '@app/core/services/storage/datastore/user-progress-ds.service';
 import {
+  IonButton,
   IonCol,
   IonContent,
   IonGrid,
+  IonIcon,
   IonLabel,
   IonRow,
-  IonButton,
-  IonIcon,
 } from '@ionic/angular/standalone';
-import { FormsModule } from '@angular/forms';
-import { AreachartComponent } from '@app/components/areachart/areachart.component';
-import { Router } from '@angular/router';
 import {
   Graph,
   Historical,
   MeasurementModel,
 } from 'src/models/configuration/measurements.model';
-import { ConfigurationAppService } from '@app/core/services/storage/configuration-app.service';
-import { MeasurementDSService } from '@app/core/services/storage/datastore/measurement-ds.service';
-import { UserProgressDSService } from '@app/core/services/storage/datastore/user-progress-ds.service';
 
+import { EnvironmentalReportService } from '@app/core/services/view/environmental-report.service';
+import { ShareService } from '@app/core/services/view/share.service';
+import { LoadingController, ToastController } from '@ionic/angular';
 import { Measurement } from 'src/models';
 import {
-  TimeFrame,
   CompleteTaskHistorical,
+  DailyStats,
+  DetailedMeasurementEntry,
   HistoricalMeasurement,
   MeasurementEntry,
-  DetailedMeasurementEntry,
-  DailyStats,
   monthsNames,
+  TimeFrame,
   TypeView,
 } from './historical.model';
 import { TimeFrameComponent } from './time-frame/time-frame.component';
@@ -90,11 +93,19 @@ export class HistoricalPage implements OnInit {
    * @param {Router} router - Provides navigation between pages.
    * @param {ChangeDetectorRef} ref - Detects changes in component data.
    * @param {ConfigurationAppService} configuration Manage configuration app
+   * @param {EnvironmentalReportService} environmentalReportService - Service for generating environmental reports
+   * @param {ShareService} shareService - Service for sharing content
+   * @param {LoadingController} loadingController - Ionic loading controller
+   * @param {ToastController} toastController - Ionic toast controller
    */
   constructor(
     private router: Router,
     private ref: ChangeDetectorRef,
     private configuration: ConfigurationAppService,
+    private environmentalReportService: EnvironmentalReportService,
+    private shareService: ShareService,
+    private loadingController: LoadingController,
+    private toastController: ToastController,
   ) {}
 
   /**
@@ -221,7 +232,7 @@ export class HistoricalPage implements OnInit {
           this.measureSelected.selected = true;
           await this.updateChart(this.measureSelected.graph);
         } else {
-          await this.changeColorChart(this.variables[0]);
+          void this.changeColorChart(this.variables[0]);
         }
       }
     }
@@ -252,12 +263,13 @@ export class HistoricalPage implements OnInit {
       this.measureSelected = measurement;
 
       // Esperar a que se renderice el componente antes de actualizar el gráfico
-      setTimeout(async () => {
-        if (this.areaChartComponent) {
-          await this.updateChart(measurement.graph);
-        }
+      setTimeout(() => {
+        void (async () => {
+          if (this.areaChartComponent) {
+            await this.updateChart(measurement.graph);
+          }
+        })();
       }, 100);
-
     } else if (this.typeView === 'chart') {
       if (measurement.selected) {
         return;
@@ -353,7 +365,10 @@ export class HistoricalPage implements OnInit {
       999,
     ).toLocaleDateString('en-CA');
 
-    if (configGraph.type === 'line' && configGraph.aggregationFunction === 'mean') {
+    if (
+      configGraph.type === 'line' &&
+      configGraph.aggregationFunction === 'mean'
+    ) {
       // Modo detallado para gráficas de línea con promedio
       const detailedMeasures = this.calculateDetailedMeasurement(
         transformedData,
@@ -362,9 +377,9 @@ export class HistoricalPage implements OnInit {
 
       if (detailedMeasures && Object.keys(detailedMeasures).length > 0) {
         const labels = Object.keys(detailedMeasures).sort();
-        const avgData = labels.map(date => detailedMeasures[date]?.avg || 0);
-        const minData = labels.map(date => detailedMeasures[date]?.min || 0);
-        const maxData = labels.map(date => detailedMeasures[date]?.max || 0);
+        const avgData = labels.map((date) => detailedMeasures[date]?.avg || 0);
+        const minData = labels.map((date) => detailedMeasures[date]?.min || 0);
+        const maxData = labels.map((date) => detailedMeasures[date]?.max || 0);
 
         this.areaChartComponent.UpdateChart(
           labels,
@@ -498,7 +513,10 @@ export class HistoricalPage implements OnInit {
       // Para vista de año, obtener datos de todo el año
       const startDate = new Date(this.currentYearIndex, 0, 1); // 1 de enero
       const endDate = new Date(this.currentYearIndex, 11, 31, 23, 59, 59); // 31 de diciembre
-      measurementValues = await MeasurementDSService.getMeasurementsByDateRange(startDate, endDate);
+      measurementValues = await MeasurementDSService.getMeasurementsByDateRange(
+        startDate,
+        endDate,
+      );
     } else {
       // Para vista de mes, obtener datos del mes específico
       measurementValues = await MeasurementDSService.getMeasurementsByMont(
@@ -770,7 +788,8 @@ export class HistoricalPage implements OnInit {
         for (const date in dailyValues) {
           const values = dailyValues[date];
           if (values.length > 0) {
-            const avg = values.reduce((acc, val) => acc + val, 0) / values.length;
+            const avg =
+              values.reduce((acc, val) => acc + val, 0) / values.length;
             const min = Math.min(...values);
             const max = Math.max(...values);
 
@@ -793,8 +812,15 @@ export class HistoricalPage implements OnInit {
   private calculateOverallStats(
     measurement: Historical,
     transformedData: HistoricalMeasurement,
-  ): { min: number | undefined; max: number | undefined; avg: number | undefined } {
-    if (measurement.aggregationFunction === 'mean' && measurement.graph.type === 'line') {
+  ): {
+    min: number | undefined;
+    max: number | undefined;
+    avg: number | undefined;
+  } {
+    if (
+      measurement.aggregationFunction === 'mean' &&
+      measurement.graph.type === 'line'
+    ) {
       // Para gráficas de línea con promedio, usar estadísticas detalladas
       const detailedMeasures = this.calculateDetailedMeasurement(
         transformedData,
@@ -803,14 +829,17 @@ export class HistoricalPage implements OnInit {
 
       if (detailedMeasures && Object.keys(detailedMeasures).length > 0) {
         const dailyStats = Object.values(detailedMeasures);
-        const mins = dailyStats.map(stats => stats.min);
-        const maxs = dailyStats.map(stats => stats.max);
-        const avgs = dailyStats.map(stats => stats.avg);
+        const mins = dailyStats.map((stats) => stats.min);
+        const maxs = dailyStats.map((stats) => stats.max);
+        const avgs = dailyStats.map((stats) => stats.avg);
 
         return {
           min: mins.length > 0 ? Math.min(...mins) : undefined,
           max: maxs.length > 0 ? Math.max(...maxs) : undefined,
-          avg: avgs.length > 0 ? avgs.reduce((sum, avg) => sum + avg, 0) / avgs.length : undefined,
+          avg:
+            avgs.length > 0
+              ? avgs.reduce((sum, avg) => sum + avg, 0) / avgs.length
+              : undefined,
         };
       }
     } else {
@@ -823,15 +852,470 @@ export class HistoricalPage implements OnInit {
 
       if (measures) {
         const values = Object.values(measures);
-        const total = values.length > 0 ? values.reduce((sum, val) => sum + val, 0) : 0;
+        const total =
+          values.length > 0 ? values.reduce((sum, val) => sum + val, 0) : 0;
         return {
           min: values.length > 0 ? Math.min(...values) : undefined,
           max: values.length > 0 ? Math.max(...values) : undefined,
-          avg: measurement.aggregationFunction === 'sum' ? total : (values.length > 0 ? total / values.length : undefined),
+          avg:
+            measurement.aggregationFunction === 'sum'
+              ? total
+              : values.length > 0
+                ? total / values.length
+                : undefined,
         };
       }
     }
 
     return { min: undefined, max: undefined, avg: undefined };
+  }
+
+  /**
+   * Button click handler with early logging
+   * @returns {void}
+   */
+  onShareButtonClick(): void {
+    try {
+      void this.shareMonthlyReport();
+    } catch (syncError) {
+      console.error(
+        '[ShareReport] Button Click - Synchronous error:',
+        syncError,
+      );
+    }
+  }
+
+  /**
+   * Shares the current month's environmental data as an image report
+   * @returns {Promise<void>}
+   */
+  async shareMonthlyReport(): Promise<void> {
+    // Create alternative loading feedback for Android compatibility
+    let loading: any = null;
+    let showingAlternativeLoader = false;
+
+    try {
+      // Try LoadingController with very short timeout
+      const loadingPromise = this.loadingController.create({
+        message: 'Generando reporte...',
+        duration: 45000,
+      });
+
+      const timeoutPromise = new Promise(
+        (_, reject) =>
+          setTimeout(
+            () => reject(new Error('LoadingController timeout')),
+            2000,
+          ), // Shorter timeout
+      );
+
+      loading = await Promise.race([loadingPromise, timeoutPromise]);
+    } catch (loadingError) {
+      console.warn(
+        '[ShareReport] Pre-Step 0.3: LoadingController failed, using alternative feedback:',
+        loadingError,
+      );
+
+      // Show alternative loading feedback
+      this.showAlternativeLoader('Generando imagen del reporte...');
+      showingAlternativeLoader = true;
+    }
+
+    try {
+      if (loading) {
+        await loading.present();
+      } else {
+        console.error(
+          '[ShareReport] Step 1: Using alternative loader, skipping present',
+        );
+      }
+
+      // Check if sharing is available first with timeout
+      const canSharePromise = this.shareService.canShare();
+      const timeoutPromise = new Promise<boolean>((_, reject) =>
+        setTimeout(() => reject(new Error('canShare timeout')), 5000),
+      );
+
+      let canShare: boolean;
+      try {
+        canShare = await Promise.race([canSharePromise, timeoutPromise]);
+      } catch (error) {
+        console.error(
+          '[ShareReport] Step 4: Share capability check failed/timeout:',
+          error,
+        );
+        // Assume sharing is available and continue
+        canShare = true;
+      }
+
+      if (!canShare) {
+        await loading.dismiss();
+        console.warn('[ShareReport] Share not available on this platform');
+
+        const toast = await this.toastController.create({
+          message:
+            'La función de compartir no está disponible en este dispositivo',
+          duration: 3000,
+          position: 'bottom',
+          color: 'warning',
+        });
+        await toast.present();
+        return;
+      }
+
+      // Create month string for filename
+      const monthStr = `${this.monthsNames[this.currentMonthIndex]} ${this.currentYearIndex}`;
+
+      // Generate the report image with error handling
+      let imageDataUrl: string;
+
+      try {
+        // Update loader message
+        if (showingAlternativeLoader) {
+          this.updateAlternativeLoader('Procesando datos...');
+        }
+
+        // Add timeout for image generation
+        const imagePromise =
+          this.environmentalReportService.generateReportImage(
+            this.currentYearIndex,
+            this.currentMonthIndex,
+          );
+        const imageTimeoutPromise = new Promise<string>((_, reject) =>
+          setTimeout(
+            () => reject(new Error('Image generation timeout')),
+            30000,
+          ),
+        );
+
+        imageDataUrl = await Promise.race([imagePromise, imageTimeoutPromise]);
+      } catch (imageError) {
+        console.error(
+          '[ShareReport] Step 9: Image generation failed/timeout:',
+          imageError,
+        );
+
+        // Dismiss loader
+        if (loading) {
+          await loading.dismiss();
+        } else if (showingAlternativeLoader) {
+          this.hideAlternativeLoader();
+        }
+
+        // Fallback: Try to share text data instead
+        await this.shareReportAsText(monthStr);
+        return;
+      }
+
+      // Update loader message
+      if (showingAlternativeLoader) {
+        this.updateAlternativeLoader('Preparando imagen...');
+      }
+
+      // Dismiss loading
+      if (loading) {
+        await loading.dismiss();
+      } else if (showingAlternativeLoader) {
+        this.hideAlternativeLoader();
+      }
+
+      // Share the image with retry logic
+      try {
+        await this.shareService.shareReportImage(imageDataUrl, monthStr);
+
+        // Show success toast
+        const toast = await this.toastController.create({
+          message: 'Reporte compartido exitosamente',
+          duration: 2000,
+          position: 'bottom',
+          color: 'success',
+        });
+        await toast.present();
+      } catch (shareError) {
+        console.error(
+          '[ShareReport] Share failed, trying text fallback:',
+          shareError,
+        );
+
+        // Fallback: Share as text if image sharing fails
+        await this.shareReportAsText(monthStr);
+      }
+    } catch (error) {
+      // Cleanup any loaders
+      if (loading) {
+        await loading.dismiss();
+      } else if (showingAlternativeLoader) {
+        this.hideAlternativeLoader();
+      }
+
+      console.error(
+        '[ShareReport] Unexpected error in shareMonthlyReport:',
+        error,
+      );
+
+      // Create month string for fallback
+      const monthStr = `${this.monthsNames[this.currentMonthIndex]} ${this.currentYearIndex}`;
+
+      // Try text fallback as last resort
+      try {
+        await this.shareReportAsText(monthStr);
+      } catch (fallbackError) {
+        console.error(
+          '[ShareReport] Even text fallback failed:',
+          fallbackError,
+        );
+
+        // Show error toast
+        const toast = await this.toastController.create({
+          message: 'Error al compartir el reporte. Intenta de nuevo.',
+          duration: 3000,
+          position: 'bottom',
+          color: 'danger',
+        });
+        await toast.present();
+      }
+    }
+  }
+
+  /**
+   * Fallback method to share report data as text when image generation fails
+   * @param {string} monthStr - The month string for the report
+   * @returns {Promise<void>}
+   */
+  private async shareReportAsText(monthStr: string): Promise<void> {
+    try {
+      // Generate summary text from current variables data
+      let reportText = `📊 Reporte de Datos Ambientales - ${monthStr}\n\n`;
+
+      if (this.variables && this.variables.length > 0) {
+        reportText += '📈 Resumen del mes:\n';
+
+        this.variables.forEach((variable, index) => {
+          if (variable.avg !== undefined) {
+            reportText += `• ${variable.name}: ${variable.avg.toFixed(1)}${variable.unit}`;
+            if (variable.min !== undefined && variable.max !== undefined) {
+              reportText += ` (Min: ${variable.min.toFixed(1)}, Max: ${variable.max.toFixed(1)})`;
+            }
+            reportText += '\n';
+          }
+        });
+      } else {
+        reportText += '📈 No hay datos disponibles para este mes\n';
+      }
+
+      if (this.nRegisters) {
+        reportText += `\n📝 Total de registros: ${this.nRegisters}`;
+      }
+
+      reportText += '\n\n🌱 Generado con App UVA';
+
+      await this.shareService.shareText(
+        `Reporte de Datos Ambientales - ${monthStr}`,
+        reportText,
+      );
+
+      // Show success toast with note about text format
+      const toast = await this.toastController.create({
+        message: 'Reporte compartido como texto (imagen no disponible)',
+        duration: 3000,
+        position: 'bottom',
+        color: 'warning',
+      });
+      await toast.present();
+    } catch (error) {
+      console.error('[ShareReport] Text Fallback - Error occurred:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Simplified direct text sharing without complex dependencies
+   * @returns {Promise<void>}
+   */
+  private async shareReportAsTextDirect(): Promise<void> {
+    try {
+      const monthStr = `${this.monthsNames[this.currentMonthIndex]} ${this.currentYearIndex}`;
+
+      let reportText = `📊 Reporte de Datos Ambientales - ${monthStr}\n\n`;
+
+      // Add basic info without complex data processing
+      reportText += '📈 Datos del mes recopilados\n';
+      reportText += `📅 Período: ${monthStr}\n`;
+
+      // Try to add variables data if available
+      if (this.variables && this.variables.length > 0) {
+        reportText += '\n📊 Mediciones:\n';
+        this.variables.forEach((variable, index) => {
+          if (variable.avg !== undefined) {
+            reportText += `• ${variable.name}: ${variable.avg.toFixed(1)}${variable.unit}\n`;
+          }
+        });
+      }
+
+      if (this.nRegisters) {
+        reportText += `\n📝 Total de registros: ${this.nRegisters}`;
+      }
+
+      reportText += '\n\n🌱 Generado con App UVA';
+
+      // Use platform-specific sharing
+
+      if ((window as any).Capacitor) {
+        try {
+          const { Share } = await import('@capacitor/share');
+
+          await Share.share({
+            title: `Reporte de Datos Ambientales - ${monthStr}`,
+            text: reportText,
+          });
+        } catch (shareError) {
+          console.error(
+            '[ShareReport] Direct Text Share - Capacitor share failed:',
+            shareError,
+          );
+          // Fallback to clipboard
+          throw shareError;
+        }
+      } else {
+        if (navigator.share) {
+          await navigator.share({
+            title: `Reporte de Datos Ambientales - ${monthStr}`,
+            text: reportText,
+          });
+        } else {
+          // Copy to clipboard as fallback
+          await navigator.clipboard.writeText(reportText);
+          alert('Reporte copiado al portapapeles');
+        }
+      }
+
+      // Show success message with toast timeout
+      try {
+        const toast = await this.toastController.create({
+          message: 'Reporte compartido exitosamente',
+          duration: 2000,
+          position: 'bottom',
+          color: 'success',
+        });
+        await toast.present();
+      } catch (toastError) {
+        console.warn(
+          '[ShareReport] Direct Text Share - Toast failed, but share was successful:',
+          toastError,
+        );
+      }
+    } catch (error) {
+      console.error('[ShareReport] Direct Text Share - Error occurred:', error);
+
+      // Show error message
+      try {
+        const toast = await this.toastController.create({
+          message: 'Error al compartir reporte',
+          duration: 3000,
+          position: 'bottom',
+          color: 'danger',
+        });
+        await toast.present();
+      } catch (toastError) {
+        console.error(
+          '[ShareReport] Direct Text Share - Even error toast failed:',
+          toastError,
+        );
+        // Last resort: alert
+        alert('Error al compartir reporte. Intenta de nuevo.');
+      }
+    }
+  }
+
+  /**
+   * Shows alternative loading feedback when LoadingController fails
+   * @param {string} message - The message to display
+   */
+  private showAlternativeLoader(message: string): void {
+    // Create overlay element
+    const overlay = document.createElement('div');
+    overlay.id = 'alternative-loader-overlay';
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      color: white;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    `;
+
+    // Create spinner
+    const spinner = document.createElement('div');
+    spinner.style.cssText = `
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top: 4px solid white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    `;
+
+    // Create message element
+    const messageElement = document.createElement('div');
+    messageElement.id = 'alternative-loader-message';
+    messageElement.textContent = message;
+    messageElement.style.cssText = `
+      font-size: 16px;
+      text-align: center;
+      max-width: 80%;
+    `;
+
+    // Add CSS animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+
+    overlay.appendChild(spinner);
+    overlay.appendChild(messageElement);
+    document.body.appendChild(overlay);
+  }
+
+  /**
+   * Updates the message of the alternative loader
+   * @param {string} message - The new message to display
+   */
+  private updateAlternativeLoader(message: string): void {
+    const messageElement = document.getElementById(
+      'alternative-loader-message',
+    );
+    if (messageElement) {
+      messageElement.textContent = message;
+    }
+  }
+
+  /**
+   * Hides the alternative loader
+   */
+  private hideAlternativeLoader(): void {
+    const overlay = document.getElementById('alternative-loader-overlay');
+    if (overlay) {
+      overlay.remove();
+    }
+  }
+
+  /**
+   * Checks if sharing is available on the current platform
+   * @returns {Promise<boolean>} True if sharing is supported
+   */
+  async canShareReport(): Promise<boolean> {
+    return await this.shareService.canShare();
   }
 }

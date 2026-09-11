@@ -1,4 +1,4 @@
-package com.makesens.uvaapp;
+package com.makesens.appuva;
 
 import com.getcapacitor.BridgeActivity;
 

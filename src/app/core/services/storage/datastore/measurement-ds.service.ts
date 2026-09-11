@@ -96,7 +96,7 @@ export class MeasurementDSService {
   ): Promise<Measurement[]> {
     try {
       const startDate = new Date(year, month, 1); // Primer día del mes
-      const endDate = new Date(year, month + 1, 0); // Último día del mes
+      const endDate = new Date(year, month + 1, 0, 23, 59, 59, 999); // Último día del mes hasta 23:59:59
 
       return await DataStore.query(
         Measurement,

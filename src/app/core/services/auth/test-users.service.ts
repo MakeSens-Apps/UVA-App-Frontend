@@ -13,6 +13,7 @@ export class TestUsersService {
     '+573000000001',
     '+573000000002',
     '+573000000003',
+    '+573007586230',
 
     // ...add more test users as needed
   ];
