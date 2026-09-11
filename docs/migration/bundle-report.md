@@ -158,6 +158,8 @@ reactNativeArchitectures=armeabi-v7a,arm64-v8a
 
 `x86`/`x86_64` solo existen para el emulador; ningún teléfono de Play los usa. Como Play ya sirve splits por ABI, esto **no cambia la descarga**, pero saca 47,5 MB de `.so` del AAB y del APK universal (y ahorra el tiempo de CMake/NDK de reanimated, worklets, rnscreens, rnsvg y expo-modules-core en dos arquitecturas).
 
+> **Corrección 2026-09-11 (Play Console):** el primer AAB con solo ABIs ARM hizo que Play reportara 1.672 dispositivos menos que el APK Ionic (que, al no tener código nativo, valía para cualquier CPU). El workflow del AAB fija ahora `EXPO_ANDROID_ARCHITECTURES=armeabi-v7a,arm64-v8a,x86,x86_64`; el APK universal de preview sigue con dos. Medido sobre el AAB del run 34556435997 (versionCode 178909570): AAB 65,8 MiB (antes 41), descarga arm64 **16,6 MiB** (sin cambio). La otra causa corregible era `ACCESS_WIFI_STATE` (lo declara `@react-native-community/netinfo`), que Play interpreta como `android.hardware.wifi` requerido: `mobile/plugins/withAndroidOptionalFeatures.js` declara wifi y touchscreen con `required="false"`. Lo que no se puede recuperar son los equipos con Android 5.1/6.0: RN 0.85 exige minSdk 24 (Ionic tenía 22).
+
 Por qué *gradle property* y no `buildTypes.release { ndk { abiFilters … } }`: AGP hace la **unión** de `ndk.abiFilters` entre `defaultConfig` y el build type, así que un filtro por build type no puede *quitar* una ABI — sería un no-op. `reactNativeArchitectures` es la única palanca que lee el plugin Gradle de React Native, y es global al proyecto.
 
 Para correr en un emulador x86_64 hay dos escapes documentados en el docblock del plugin:
