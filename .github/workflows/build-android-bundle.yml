@@ -33,6 +33,12 @@
 
 name: 📦 Build Android Bundle (AAB) - Production Signed
 
+# Los builds de producción no se cancelan entre sí (cada uno puede acabar en
+# Play); solo se serializan por rama para no competir por Maven Central.
+concurrency:
+  group: build-aab-${{ github.ref }}
+  cancel-in-progress: false
+
 on:
   workflow_dispatch:
     inputs:
@@ -348,7 +354,17 @@ jobs:
         working-directory: ${{ env.APP_DIR }}/android
         run: |
           set -euo pipefail
-          ./gradlew bundleRelease --no-daemon --stacktrace
+          # Reintentos: Maven Central / plugins.gradle.org devuelven 403/5xx de forma
+          # intermitente a los runners de GitHub (visto en el run 34549591203).
+          gradle_retry() {
+            local attempt=1 max=3
+            until "$@"; do
+              if [ $attempt -ge $max ]; then echo "❌ Gradle falló tras $max intentos"; return 1; fi
+              echo "⚠️  Gradle falló (intento $attempt/$max); reintentando en $((attempt*45)) s..."
+              sleep $((attempt*45)); attempt=$((attempt+1))
+            done
+          }
+          gradle_retry ./gradlew bundleRelease --no-daemon
 
       - name: 🔍 Verify Bundle Signing
         run: |

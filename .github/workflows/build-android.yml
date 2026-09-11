@@ -32,6 +32,12 @@
 
 name: 🚀 Build Android APK
 
+# Un push nuevo a la misma rama cancela el build anterior: evita 3 builds de
+# Gradle en paralelo golpeando Maven Central (origen de los 403).
+concurrency:
+  group: build-apk-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
@@ -290,12 +296,22 @@ jobs:
         working-directory: ${{ env.APP_DIR }}/android
         run: |
           set -euo pipefail
+          # Reintentos: Maven Central / plugins.gradle.org devuelven 403/5xx de forma
+          # intermitente a los runners de GitHub (visto en el run 34549591203).
+          gradle_retry() {
+            local attempt=1 max=3
+            until "$@"; do
+              if [ $attempt -ge $max ]; then echo "❌ Gradle falló tras $max intentos"; return 1; fi
+              echo "⚠️  Gradle falló (intento $attempt/$max); reintentando en $((attempt*45)) s..."
+              sleep $((attempt*45)); attempt=$((attempt+1))
+            done
+          }
           echo "🔨 Compilando APK debug..."
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          gradle_retry ./gradlew assembleDebug --no-daemon
 
           if [[ "${{ github.ref }}" == "refs/heads/main" ]] || [[ "${{ github.ref }}" == "refs/heads/test" ]]; then
             echo "🚀 Compilando APK release para ${{ github.ref }}..."
-            ./gradlew assembleRelease --no-daemon --stacktrace
+            gradle_retry ./gradlew assembleRelease --no-daemon
           fi
 
       - name: 📄 List generated APKs
