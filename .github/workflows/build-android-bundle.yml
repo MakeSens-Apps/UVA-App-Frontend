@@ -374,7 +374,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.version.outputs.artifact_name }}
-          path: ${{ env.APP_DIR }}/android/app/build/outputs/bundle/release/app-release.aab
+          path: |
+            ${{ env.APP_DIR }}/android/app/build/outputs/bundle/release/app-release.aab
+            ${{ env.APP_DIR }}/android/app/build/outputs/mapping/release/mapping.txt
           retention-days: 90
           if-no-files-found: error
 
@@ -526,7 +528,9 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: ${{ env.ANDROID_PACKAGE_NAME }}
-          releaseFiles: aab/app-release.aab
+          releaseFiles: aab/**/app-release.aab
+          # mapping.txt de R8 (minify activo): Play lo usa para desofuscar crashes en Vitals.
+          mappingFile: aab/**/mapping.txt
           track: internal
           status: completed
 
