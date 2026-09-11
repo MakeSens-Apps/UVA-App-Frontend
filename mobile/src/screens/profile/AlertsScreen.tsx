@@ -50,7 +50,8 @@ import { useNotificationContext } from '@/state/notification/NotificationContext
 import { GamificationService } from '@/domain/gamification/gamification';
 import type { GamificationNotification } from '@/domain/gamification/gamification-alerts-types';
 
-import { Ionicons } from '@expo/vector-icons';
+// Deep import — see the note in GuideMeasurementScreen.tsx / bundle-report.md.
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { fontFamilyForWeight } from '@/theme/theme';
 
 import SettingsOutlineIcon from '@/assets/svg/icons/settings-outline.svg';

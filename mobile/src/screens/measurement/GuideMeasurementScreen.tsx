@@ -34,7 +34,11 @@ import {
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+// Deep import (not the `@expo/vector-icons` barrel): the barrel registers the
+// TTF of every icon family, and Metro then packs all ~20 of them into
+// `res/raw` (~4 MB). Importing the single family the app uses keeps only
+// Ionicons. See docs/migration/bundle-report.md.
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 

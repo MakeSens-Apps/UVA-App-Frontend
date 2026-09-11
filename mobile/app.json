@@ -44,7 +44,9 @@
           "android": {
             "minSdkVersion": 24,
             "compileSdkVersion": 36,
-            "targetSdkVersion": 36
+            "targetSdkVersion": 36,
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
           }
         }
       ],
@@ -62,7 +64,8 @@
       "expo-sharing",
       "expo-notifications",
       "./plugins/withAsyncStorageDbSize.js",
-      "./plugins/withReleaseSigning.js"
+      "./plugins/withReleaseSigning.js",
+      "./plugins/withReleaseArchitectures.js"
     ]
   }
 }

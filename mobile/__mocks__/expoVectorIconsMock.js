@@ -26,6 +26,14 @@ const Zocial = createIconSet();
 const Foundation = createIconSet();
 
 module.exports = {
+  // `moduleNameMapper` maps both the barrel (`@expo/vector-icons`) and the
+  // per-family deep imports (`@expo/vector-icons/Ionicons`, used in app code to
+  // avoid packing every icon font — see docs/migration/bundle-report.md) to
+  // this same file. Flagging it as an ES module makes `import Icon from
+  // '@expo/vector-icons/<Family>'` resolve to `default` instead of the whole
+  // namespace object; every family renders the same stub anyway.
+  __esModule: true,
+  default: Ionicons,
   Ionicons,
   MaterialIcons,
   MaterialCommunityIcons,

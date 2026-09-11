@@ -45,7 +45,8 @@ import {
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+// Deep import — see the note in GuideMeasurementScreen.tsx / bundle-report.md.
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';

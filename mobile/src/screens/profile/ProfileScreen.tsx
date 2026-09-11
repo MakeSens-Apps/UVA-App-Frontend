@@ -69,7 +69,8 @@ import { useConfigContext } from '@/state/ConfigContext';
 
 // ─── Icons ─────────────────────────────────────────────────────────────────────
 
-import { Ionicons } from '@expo/vector-icons';
+// Deep import — see the note in GuideMeasurementScreen.tsx / bundle-report.md.
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Header } from '@/components/header';
 import { AppIcon } from '@/components/icons/AppIcons';
 import type { AppIconName } from '@/components/icons/AppIcons';
