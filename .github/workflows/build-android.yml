@@ -51,13 +51,8 @@ on:
     paths-ignore:
       - 'docs/**'
       - '**/*.md'
-  pull_request:
-    branches:
-      - 'develop'
-      - 'main'
-    paths-ignore:
-      - 'docs/**'
-      - '**/*.md'
+  # Sin `pull_request`: el push ya cubre todas las ramas y GitHub asocia el run
+  # al PR por el SHA; escuchar ambos eventos compilaba el APK dos veces.
 
 env:
   # 👇 La app RN vive en la raíz del repo desde el cutover del 2026-09-11.

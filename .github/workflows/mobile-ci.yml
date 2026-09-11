@@ -8,7 +8,8 @@ name: Mobile CI — Typecheck + Lint + Jest
 
 on:
   push:
-  pull_request:
+  # Sin `pull_request`: el push ya cubre todas las ramas y el run cuenta como
+  # check del PR por el SHA; con ambos eventos corría dos veces por commit.
 
 env:
   APP_DIR: .
