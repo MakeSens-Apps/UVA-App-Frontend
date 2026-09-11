@@ -6,8 +6,8 @@
 # Por defecto sólo INFORMA (dry-run): verifica herramientas, hace el backup del
 # keystore fuera del repo y muestra los commits afectados. No reescribe nada.
 #
-#   ./scripts/purge-keystore.sh              # dry-run: diagnóstico + backup
-#   ./scripts/purge-keystore.sh --execute    # reescribe la historia (IRREVERSIBLE)
+#   docs/migration/scripts/purge-keystore.sh              # dry-run: diagnóstico + backup
+#   docs/migration/scripts/purge-keystore.sh --execute    # reescribe la historia (IRREVERSIBLE)
 #
 # Este script se corre DESPUÉS del commit del cutover, como paso separado.
 # Ver docs/migration/cutover.md §6.
@@ -158,7 +158,7 @@ if [ "$MODE" != "execute" ]; then
     log "  (BFG no borra el path android/keys/ en sí; hay que borrarlo aparte con filter-repo)"
   fi
   log ""
-  log "  Cuando estés listo:  ./scripts/purge-keystore.sh --execute"
+  log "  Cuando estés listo:  docs/migration/scripts/purge-keystore.sh --execute"
   exit 0
 fi
 

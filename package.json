@@ -88,16 +88,17 @@
     "moduleNameMapper": {
       "amplifyconfiguration\\.json$": "<rootDir>/src/__tests__/__mocks__/amplify-config-mock.json",
       "^@/(.*)$": "<rootDir>/src/$1",
-      "\\.svg$": "<rootDir>/__mocks__/svgMock.js",
+      "\\.svg$": "<rootDir>/src/__tests__/__mocks__/svgMock.js",
       "^react-native-reanimated$": "<rootDir>/node_modules/react-native-reanimated/mock",
-      "^@expo/vector-icons(.*)$": "<rootDir>/__mocks__/expoVectorIconsMock.js"
+      "^@expo/vector-icons(.*)$": "<rootDir>/src/__tests__/__mocks__/expoVectorIconsMock.js"
     },
     "setupFiles": [
       "<rootDir>/src/__tests__/jest.setup.js"
     ],
     "testPathIgnorePatterns": [
       "/node_modules/",
-      "/src/__tests__/jest.setup.js"
+      "/src/__tests__/jest.setup.js",
+      "/src/__tests__/__mocks__/"
     ]
   },
   "private": true

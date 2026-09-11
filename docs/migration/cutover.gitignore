@@ -1,7 +1,7 @@
 # ==============================================================================
 # .gitignore PROPUESTO para la RAÍZ del repo DESPUÉS del cutover (B19).
 #
-# Este archivo NO es el .gitignore activo. `scripts/cutover.sh --execute` lo
+# Este archivo NO es el .gitignore activo. `docs/migration/scripts/cutover.sh --execute` lo
 # copia sobre `.gitignore` en la raíz como parte del cutover.
 #
 # Origen: `mobile/.gitignore` (base Expo) + las reglas útiles de la raíz Ionic

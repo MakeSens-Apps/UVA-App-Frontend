@@ -74,7 +74,7 @@ Cambiar el `applicationId` implica tocar estos archivos en conjunto:
 > original de identidad de la app en Play.
 
 > **Keystore fuera del repo (2026-09-11)**: el keystore ya no vive en el historial de
-> git — se purgó con `scripts/purge-keystore.sh` como parte del cutover. La única fuente
+> git — se purgó con `docs/migration/scripts/purge-keystore.sh` como parte del cutover. La única fuente
 > vigente es el secret de CI `ANDROID_KEYSTORE_BASE64`.
 
 ---

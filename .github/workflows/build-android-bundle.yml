@@ -44,7 +44,7 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Ambiente de Amplify'
+        description: 'Ambiente de Amplify (elige un tag en "Use workflow from")'
         required: false
         default: 'main'
         type: choice
@@ -61,15 +61,14 @@ on:
         required: false
         type: string
 
-  release:
-    types: [published]
-
+  # Solo se construye producción al crear un tag de versión (V2.3.1 / v2.3.1)
+  # o a mano desde la pestaña Actions eligiendo un tag como ref. No se dispara
+  # por pushes a ramas ni por el evento `release` (crear una release en GitHub
+  # ya crea el tag y entra por aquí; escuchar ambos duplicaría el build).
   push:
     tags:
       - 'V*.*.*'
       - 'v*.*.*'
-    branches:
-      - main
 
 env:
   # 👇 La app RN vive en la raíz del repo desde el cutover del 2026-09-11.

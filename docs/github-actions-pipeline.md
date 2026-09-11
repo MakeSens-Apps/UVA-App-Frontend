@@ -30,7 +30,7 @@ No hay ningún paso de **EAS Build** ni **EAS Submit** en este pipeline: todo el
 | `PLAY_APP_ID`               | Variable o secret | Opcional. Número largo tras `/app/` en la URL de la app en Play Console.                                                                                                                                                                               |
 | `PLAY_INTERNAL_TEST_URL`    | Variable          | Opcional. Enlace "Únete en la web" de Testing → Internal testing → Testers; botón "Unirse a la prueba interna" en Slack.                                                                                                                               |
 
-Ver `docs/release-workflow.md` para el flujo completo de versionado y firma, y `README-PIPELINE.md` para la identidad de la app en Google Play (`applicationId`, organización, consola).
+Ver `docs/release-workflow.md` para el flujo completo de versionado y firma, y `docs/README-PIPELINE.md` para la identidad de la app en Google Play (`applicationId`, organización, consola).
 
 ## Artifacts
 
@@ -53,7 +53,7 @@ Revisar que `app.json` y los config plugins en `plugins/` sean válidos (`npx ex
 
 ### Gradle falla en `assembleRelease`/`bundleRelease` en CI pero funciona local
 
-Verificar que los cuatro secrets de firma (`ANDROID_KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`) estén configurados en el repositorio/organización de GitHub y que el keystore decodificado coincida con el usado en local (mismo SHA-256 — ver `README-PIPELINE.md`).
+Verificar que los cuatro secrets de firma (`ANDROID_KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`) estén configurados en el repositorio/organización de GitHub y que el keystore decodificado coincida con el usado en local (mismo SHA-256 — ver `docs/README-PIPELINE.md`).
 
 ### Gradle falla con `403 Forbidden` al descargar de Maven Central
 
@@ -71,5 +71,5 @@ Confirmar que `PLAY_DEPLOY_ENABLED` está en el estado esperado y que `PLAY_SERV
 
 - `docs/release-workflow.md` — versionado, firma y subida a Play en detalle
 - `docs/android-build.md` — cómo reproducir el build localmente
-- `README-PIPELINE.md` — resumen operativo e identidad de la app en Google Play
+- `docs/README-PIPELINE.md` — resumen operativo e identidad de la app en Google Play
 - `.github/workflows/` — definición exacta de cada workflow

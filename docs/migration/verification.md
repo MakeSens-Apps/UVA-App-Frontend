@@ -170,10 +170,10 @@ Estado actual de cada ítem del checklist de B19:
       `date +%s / 10` y falla si no supera 178830096. **Primera publicación
       automatizada: 2.3.1 (178909349) en el track interno de Play,
       2026-09-11, run 34554461087**, con `mapping.txt` de R8.
-- [x] **CUTOVER**: ejecutado el 2026-09-11 con `scripts/cutover.sh --execute`
+- [x] **CUTOVER**: ejecutado el 2026-09-11 con `docs/migration/scripts/cutover.sh --execute`
       (gates npm ci / tsc / jest / expo prebuild verdes, applicationId
       `com.makesens.appuva`); keystore purgado de la historia con
-      `scripts/purge-keystore.sh` sobre un clon fresco y force-push de 6 ramas y
+      `docs/migration/scripts/purge-keystore.sh` sobre un clon fresco y force-push de 6 ramas y
       29 tags; tag de seguridad `pre-cutover-2026-09-11`.
 - [ ] **Gate final**: paridad visual+funcional aprobada por humano (OK
       general del usuario 2026-09-10); jest+eslint verdes en CI (OK); AAB de

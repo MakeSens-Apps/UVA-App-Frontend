@@ -6,13 +6,13 @@
 
 ## 0. Resumen
 
-|                   |                                                                                                        |
-| ----------------- | ------------------------------------------------------------------------------------------------------ |
-| **Qué hace**      | `git mv` de todo `mobile/*` a la raíz + `git rm -r` de la implementación Ionic/Angular.                |
-| **Herramienta**   | `scripts/cutover.sh` (dry-run por defecto).                                                            |
-| **Resultado**     | Un único commit `chore(cutover): …` sin `mobile/` y sin restos Ionic.                                  |
-| **Paso separado** | Purga de `android/keys/keystore.jks` de la historia git (`scripts/purge-keystore.sh`), con force-push. |
-| **Rollback**      | `git reset --hard <sha-previo>` mientras no se haya hecho force-push.                                  |
+|                   |                                                                                                                       |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **Qué hace**      | `git mv` de todo `mobile/*` a la raíz + `git rm -r` de la implementación Ionic/Angular.                               |
+| **Herramienta**   | `docs/migration/scripts/cutover.sh` (dry-run por defecto).                                                            |
+| **Resultado**     | Un único commit `chore(cutover): …` sin `mobile/` y sin restos Ionic.                                                 |
+| **Paso separado** | Purga de `android/keys/keystore.jks` de la historia git (`docs/migration/scripts/purge-keystore.sh`), con force-push. |
+| **Rollback**      | `git reset --hard <sha-previo>` mientras no se haya hecho force-push.                                                 |
 
 Se **conservan** en la raíz: `amplify/`, `schema.json`, `.graphqlconfig.yml`,
 `docs/`, `.github/`, `.claude/`, `.vscode/`, `.editorconfig`, `LICENSE`,
@@ -43,10 +43,10 @@ git checkout -b chore/cutover-rn
 git rev-parse HEAD          # <-- ANOTA ESTE SHA: es el punto de rollback
 
 # 2. Dry-run: revisa cada git mv / git rm que se ejecutaría
-./scripts/cutover.sh
+docs/migration/scripts/cutover.sh
 
 # 3. Aplicar + correr todos los gates (npm ci, tsc, jest, expo prebuild)
-./scripts/cutover.sh --execute
+docs/migration/scripts/cutover.sh --execute
 ```
 
 `cutover.sh --execute` **no hace commit**: deja todo en el índice.
@@ -60,8 +60,8 @@ git add -A
 git commit -m "chore(cutover): promover la app RN de mobile/ a la raíz y eliminar Ionic"
 
 # 6. Purga del keystore — PASO SEPARADO (§6)
-./scripts/purge-keystore.sh            # dry-run: diagnóstico + backup
-./scripts/purge-keystore.sh --execute  # reescribe la historia (pide confirmación)
+docs/migration/scripts/purge-keystore.sh            # dry-run: diagnóstico + backup
+docs/migration/scripts/purge-keystore.sh --execute  # reescribe la historia (pide confirmación)
 
 # 7. Force-push + PR (§6.3)
 ```
@@ -141,7 +141,7 @@ También se borran los residuos **no versionados** de la era Ionic que rompen
 > **fusión archivo por archivo, ganando `mobile/` por archivo**, y lo avisa con
 > un `[!] colisión en '<ruta>'`. Revisa ese aviso en el dry-run antes de
 > `--execute`: si la decisión correcta es que gane la raíz, añade la entrada a
-> `MOBILE_DROP` en `scripts/cutover.sh`.
+> `MOBILE_DROP` en `docs/migration/scripts/cutover.sh`.
 
 ### 3.4 `.gitignore` fusionado
 
@@ -239,8 +239,8 @@ Además, manualmente:
 ### 6.2 Ejecutar
 
 ```bash
-./scripts/purge-keystore.sh              # dry-run: herramientas + commits + BACKUP
-./scripts/purge-keystore.sh --execute    # pide escribir PURGAR para confirmar
+docs/migration/scripts/purge-keystore.sh              # dry-run: herramientas + commits + BACKUP
+docs/migration/scripts/purge-keystore.sh --execute    # pide escribir PURGAR para confirmar
 ```
 
 El script:
@@ -382,10 +382,10 @@ Ensayado sobre una copia completa del repo en `c52e69e`
 
 Cutover ejecutado sobre el repo real (no el ensayo de §9):
 
-- **CUTOVER**: ejecutado el 2026-09-11 con `scripts/cutover.sh --execute`
+- **CUTOVER**: ejecutado el 2026-09-11 con `docs/migration/scripts/cutover.sh --execute`
   (gates npm ci / tsc / jest / expo prebuild verdes, applicationId
   `com.makesens.appuva`).
-- **Purga del keystore**: ejecutada con `scripts/purge-keystore.sh` sobre un
+- **Purga del keystore**: ejecutada con `docs/migration/scripts/purge-keystore.sh` sobre un
   clon fresco, con force-push de 6 ramas y 29 tags.
 - **Tag de seguridad**: `pre-cutover-2026-09-11`, apuntando al estado del
   repo inmediatamente antes del force-push.

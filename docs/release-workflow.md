@@ -6,11 +6,20 @@ El release se construye con **`expo prebuild` + Gradle en GitHub Actions**. No h
 Desarrollo → app.json (version/versionCode) → expo prebuild → Gradle (assembleRelease/bundleRelease) → artifact firmado → (opcional) subida a Play
 ```
 
+## Cuándo se construye el AAB
+
+El workflow del AAB (`build-android-bundle.yml`) **no** se dispara por pushes a ramas. Solo corre:
+
+1. Al crear un tag de versión `V<major>.<minor>.<patch>` (o `v…`): el `versionName` sale del tag y el `versionCode` del timestamp (`date +%s / 10`, siempre mayor que el último publicado). Crear una release en GitHub crea el tag y entra por esta vía.
+2. A mano desde Actions → "Build Android Bundle (AAB)" → _Run workflow_, eligiendo el tag en "Use workflow from". Los inputs permiten forzar `version_name`/`version_code` y el ambiente de Amplify.
+
+El APK de preview (`build-android.yml`) sí corre en cada push a `feature/**`, `fix/**`, `hotfix/**`, `develop`, `test` y `main` (salvo cambios solo de docs).
+
 ## Versionado
 
 - **`version`** (Version Name, visible al usuario) y **`android.versionCode`** viven en `app.json`, bajo la clave `expo`. No se generan dinámicamente en CI (a diferencia del pipeline Ionic anterior, que sobrescribía `versionCode` con un timestamp) — se bumpean a mano en el repo antes de cada release.
 - **`versionCode` de referencia**: el último publicado en Google Play Console es **178830096**. Cualquier release nuevo debe declarar un `versionCode` **mayor** a ese valor en `app.json` — Play rechaza subidas con `versionCode` igual o menor al último publicado. Al momento de escribir esto, `app.json` ya declara `178830097`; verificar el valor vigente en Play Console antes de cada release (ver enlace de la organización en la sección de identidad de la app, abajo).
-- El `applicationId` (`com.makesens.appuva`) y el resto de identidad de la app en Play están documentados en `README-PIPELINE.md`, sección "Identidad de la App en Google Play" — no se repite aquí para evitar que las dos copias diverjan.
+- El `applicationId` (`com.makesens.appuva`) y el resto de identidad de la app en Play están documentados en `docs/README-PIPELINE.md`, sección "Identidad de la App en Google Play" — no se repite aquí para evitar que las dos copias diverjan.
 
 ## Firma del release
 
@@ -24,7 +33,7 @@ El keystore de producción no se versiona en texto plano en el repo. El flujo en
    - `KEY_ALIAS`
    - `KEY_PASSWORD`
 
-Estos son los mismos nombres de secret que usaba el pipeline Ionic anterior (mismo keystore, misma identidad de firma — el keystore no está atado al `applicationId`, ver `README-PIPELINE.md`), con la adición de `ANDROID_KEYSTORE_BASE64` como mecanismo de transporte del archivo binario hacia el runner de Actions (antes el `.jks` se versionaba directamente en `android/keys/`, lo cual ya no aplica porque `android/` es generado por `expo prebuild` y no se commitea).
+Estos son los mismos nombres de secret que usaba el pipeline Ionic anterior (mismo keystore, misma identidad de firma — el keystore no está atado al `applicationId`, ver `docs/README-PIPELINE.md`), con la adición de `ANDROID_KEYSTORE_BASE64` como mecanismo de transporte del archivo binario hacia el runner de Actions (antes el `.jks` se versionaba directamente en `android/keys/`, lo cual ya no aplica porque `android/` es generado por `expo prebuild` y no se commitea).
 
 Para reproducir la firma en local, exportar las mismas variables antes de correr `expo prebuild` (ver `docs/android-build.md`).
 
@@ -62,4 +71,4 @@ Ver `.github/workflows/` para la implementación exacta (nombres de jobs y de pa
 
 - `docs/android-build.md` — comandos de build local y en CI
 - `docs/github-actions-pipeline.md` — pipeline de CI/CD completo (lint/test + build + release)
-- `README-PIPELINE.md` — identidad de la app en Google Play y resumen operativo
+- `docs/README-PIPELINE.md` — identidad de la app en Google Play y resumen operativo

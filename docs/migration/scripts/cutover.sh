@@ -6,16 +6,16 @@
 # Por defecto NO modifica nada: imprime cada `git mv` / `git rm` que ejecutaría.
 # Usa `--execute` para aplicarlo de verdad.
 #
-#   ./scripts/cutover.sh                                # dry-run (por defecto)
-#   ./scripts/cutover.sh --execute                      # aplica + corre todos los gates
-#   ./scripts/cutover.sh --execute --skip-build-gates   # aplica, sin npm/tsc/jest/prebuild
-#   ./scripts/cutover.sh --execute --skip-verify        # aplica, sin ninguna verificación
+#   docs/migration/scripts/cutover.sh                                # dry-run (por defecto)
+#   docs/migration/scripts/cutover.sh --execute                      # aplica + corre todos los gates
+#   docs/migration/scripts/cutover.sh --execute --skip-build-gates   # aplica, sin npm/tsc/jest/prebuild
+#   docs/migration/scripts/cutover.sh --execute --skip-verify        # aplica, sin ninguna verificación
 #
 # NO hace commit: deja todo staged para un único commit manual
 # (ver docs/migration/cutover.md).
 #
 # La purga del keystore de la historia git es un paso SEPARADO:
-# ver scripts/purge-keystore.sh.
+# ver docs/migration/scripts/purge-keystore.sh.
 #
 set -euo pipefail
 
@@ -270,7 +270,7 @@ fi  # ALREADY_DONE
 if [ "$MODE" != "execute" ]; then
   head1 "Resumen (dry-run)"
   log "  Nada se modificó. Revisa la lista de arriba y luego:"
-  log "    ./scripts/cutover.sh --execute"
+  log "    docs/migration/scripts/cutover.sh --execute"
   log ""
   log "  Ajustes MANUALES que el script NO hace (ver docs/migration/cutover.md §4):"
   log "    . .github/workflows/*     -> APP_DIR: mobile  =>  APP_DIR: .  (+ quitar 'mobile/**' de los path filters)"
@@ -359,7 +359,7 @@ if [ "${#FAILED_GATES[@]}" -eq 0 ]; then
   log ""
   log "    git commit -m 'chore(cutover): promover la app RN de mobile/ a la raíz y eliminar Ionic'"
   log ""
-  log "  Después, y como paso SEPARADO: ./scripts/purge-keystore.sh"
+  log "  Después, y como paso SEPARADO: docs/migration/scripts/purge-keystore.sh"
   exit 0
 else
   err "GATES FALLIDOS (${#FAILED_GATES[@]}):"

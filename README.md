@@ -116,4 +116,4 @@ Pendiente de producto (no técnico): issue #57 — logos institucionales Natura/
 - [`docs/android-build.md`](docs/android-build.md) — build Android local y en CI
 - [`docs/release-workflow.md`](docs/release-workflow.md) — flujo de release (versionado, firma, Google Play)
 - [`docs/github-actions-pipeline.md`](docs/github-actions-pipeline.md) — pipeline de CI/CD
-- [`README-PIPELINE.md`](README-PIPELINE.md) — resumen operativo del pipeline y secrets
+- [`docs/README-PIPELINE.md`](docs/README-PIPELINE.md) — resumen operativo del pipeline y secrets
