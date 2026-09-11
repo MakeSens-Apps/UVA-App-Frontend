@@ -8,17 +8,16 @@
     "amplify/backend/amplify-meta.json": true,
     "amplify/backend/awscloudformation": true,
     "**/node_modules": true,
-    "**/www": true,
-    "**/.angular": true,
+    "**/android": true,
+    "**/ios": true,
+    "**/.expo": true,
     "**/dist": true,
     "**/.DS_Store": true
   },
   "typescript.preferences.importModuleSpecifier": "relative",
   "typescript.suggest.autoImports": true,
   "typescript.updateImportsOnFileMove.enabled": "always",
-  "eslint.workingDirectories": [
-    "./"
-  ],
+  "eslint.workingDirectories": ["./"],
   "eslint.validate": [
     "javascript",
     "javascriptreact",
@@ -37,27 +36,17 @@
   "[javascript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "[html]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[scss]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "search.exclude": {
     "**/node_modules": true,
-    "**/www": true,
-    "**/.angular": true,
+    "**/android": true,
+    "**/ios": true,
+    "**/.expo": true,
     "**/dist": true,
     "**/coverage": true
   },
-  "emmet.includeLanguages": {
-    "typescript": "html"
-  },
-  "ionic.showIcons": true,
-  "ionic.showToolTips": true,
   "terminal.integrated.env.osx": {
     "JAVA_HOME": "/Library/Java/JavaVirtualMachines/adoptopenjdk-17.jdk/Contents/Home"
   },

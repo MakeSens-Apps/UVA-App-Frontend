@@ -1,0 +1,123 @@
+# ==============================================================================
+# .gitignore PROPUESTO para la RAÍZ del repo DESPUÉS del cutover (B19).
+#
+# Este archivo NO es el .gitignore activo. `docs/migration/scripts/cutover.sh --execute` lo
+# copia sobre `.gitignore` en la raíz como parte del cutover.
+#
+# Origen: `mobile/.gitignore` (base Expo) + las reglas útiles de la raíz Ionic
+# (Amplify, editores, entorno). Se ELIMINAN a propósito las reglas globales
+# `*.js`, `*.png`, `*.jpg`, `*.jpeg`, `*.gif`, `*.webp` y `*.ttf` de la raíz
+# Ionic: son las que hoy obligan a `git add -f` para `mobile/plugins/*.js`,
+# `mobile/assets/**/*.png|ttf` y `docs/evidence/**/*.png`. En su lugar se usan
+# reglas específicas por artefacto.
+# ==============================================================================
+
+# ------------------------------------------------------------------ dependencias
+node_modules/
+.npmrc
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.tgz
+
+# ------------------------------------------------------------------------- Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+.metro-health-check*
+
+# --------------------------------------------------------------- nativo / firma
+# Carpetas nativas generadas por CNG (`expo prebuild`). NUNCA se versionan.
+/android
+/ios
+.kotlin/
+*.orig.*
+
+# Material de firma: NUNCA debe volver a entrar al repo (riesgo R-10).
+*.jks
+*.keystore
+*.p8
+*.p12
+*.key
+*.pem
+*.mobileprovision
+android/keys/
+eas-credentials.json
+signing.properties
+
+# ----------------------------------------------------------------- tests / build
+coverage/
+*.tsbuildinfo
+*.log
+log.txt
+
+# ------------------------------------------------------------------------ Amplify
+# Config con credenciales: se genera en tiempo de build/CI, no se versiona.
+amplifyconfiguration.json
+amplifyconfiguration.dart
+aws-exports.js
+awsconfiguration.json
+
+#amplify-do-not-edit-begin
+amplify/\#current-cloud-backend
+amplify/.config/local-*
+amplify/logs
+amplify/mock-data
+amplify/mock-api-resources
+amplify/backend/amplify-meta.json
+amplify/backend/.temp
+build/
+dist/
+node_modules/
+aws-exports.js
+awsconfiguration.json
+amplifyconfiguration.json
+amplifyconfiguration.dart
+amplify-build-config.json
+amplify-gradle-config.json
+amplifytools.xcconfig
+.secret-*
+**.sample
+#amplify-do-not-edit-end
+
+# Copias que crea el CLI de Amplify al hacer pull/push.
+# Fuera del bloque #amplify-do-not-edit para que el CLI no las borre.
+amplify-backup*/
+
+# ---------------------------------------------------------------------- entorno
+.env
+.env*.local
+
+# ------------------------------------------------------------- editores / SO
+.DS_Store
+Thumbs.db
+.idea/
+.history/*
+*.sw[mnpcod]
+*~
+/.lh
+/.lh/*
+
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# ------------------------------------------------------------------ temporales
+tmp/
+temp/
+*.tmp
+*.tmp.*
+
+# --- Artefactos que NO se versionan (heredado del .gitignore Ionic, acotado) ---
+# Sesiones de Playwright (capturas de QA locales)
+.playwright/
+.playwright-cli/
+# Archivos comprimidos (docs/evidence.zip pesa 29 MB)
+*.zip
+# Capturas de evidencia: solo se versionan a mano con `git add -f` las que
+# referencian los docs; el resto se queda local. Las ya versionadas no se ven
+# afectadas por esta regla.
+docs/evidence/**/*.png

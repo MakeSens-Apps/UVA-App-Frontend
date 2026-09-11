@@ -1,0 +1,797 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`RichText component — render without crash matches snapshot for guide HTML fixture 1`] = `
+<View
+  style={
+    [
+      {
+        "width": "100%",
+      },
+      undefined,
+    ]
+  }
+>
+  <View
+    style={
+      [
+        {},
+        undefined,
+        undefined,
+      ]
+    }
+    testID="html"
+  >
+    <View
+      style={
+        [
+          {},
+          undefined,
+          undefined,
+        ]
+      }
+      testID="body"
+    >
+      <View
+        style={
+          [
+            {},
+            undefined,
+            undefined,
+          ]
+        }
+        testID="div"
+      >
+        <View
+          accessibilityLabel="¿Cómo medir la temperatura?"
+          accessibilityRole="header"
+          accessible={true}
+          style={
+            [
+              {
+                "marginBottom": 8,
+                "marginTop": 11.62,
+              },
+              undefined,
+              undefined,
+            ]
+          }
+          testID="h2"
+        >
+          <Text
+            allowFontScaling={true}
+            selectable={false}
+            style={
+              [
+                {
+                  "color": "#1097AA",
+                  "fontFamily": "Montserrat-Bold",
+                  "fontSize": 18,
+                  "fontWeight": "normal",
+                },
+                undefined,
+                undefined,
+              ]
+            }
+          >
+            ¿Cómo medir la temperatura?
+          </Text>
+        </View>
+        <View
+          style={
+            [
+              {
+                "marginBottom": 4,
+                "marginTop": 4,
+              },
+              undefined,
+              undefined,
+            ]
+          }
+          testID="p"
+        >
+          <Text
+            allowFontScaling={true}
+            selectable={false}
+            style={
+              [
+                {
+                  "color": "#171717",
+                  "fontFamily": "Montserrat-Regular",
+                  "fontSize": 16,
+                },
+                undefined,
+                undefined,
+              ]
+            }
+          >
+            <Text
+              allowFontScaling={true}
+              selectable={false}
+              style={
+                [
+                  {
+                    "color": "#171717",
+                    "fontFamily": "Montserrat-Regular",
+                    "fontSize": 16,
+                  },
+                  undefined,
+                  undefined,
+                ]
+              }
+            >
+              Coloca el termómetro 
+            </Text>
+            <Text
+              allowFontScaling={true}
+              selectable={false}
+              style={
+                [
+                  {
+                    "color": "#171717",
+                    "fontFamily": "Montserrat-Bold",
+                    "fontSize": 16,
+                    "fontWeight": "normal",
+                  },
+                  undefined,
+                  undefined,
+                ]
+              }
+              testID="strong"
+            >
+              a la sombra
+            </Text>
+            <Text
+              allowFontScaling={true}
+              selectable={false}
+              style={
+                [
+                  {
+                    "color": "#171717",
+                    "fontFamily": "Montserrat-Regular",
+                    "fontSize": 16,
+                  },
+                  undefined,
+                  undefined,
+                ]
+              }
+            >
+               y espera 
+            </Text>
+            <Text
+              allowFontScaling={true}
+              selectable={false}
+              style={
+                [
+                  {
+                    "color": "#171717",
+                    "fontFamily": "Montserrat-Italic",
+                    "fontSize": 16,
+                    "fontStyle": "normal",
+                  },
+                  undefined,
+                  undefined,
+                ]
+              }
+              testID="em"
+            >
+              2 minutos
+            </Text>
+            <Text
+              allowFontScaling={true}
+              selectable={false}
+              style={
+                [
+                  {
+                    "color": "#171717",
+                    "fontFamily": "Montserrat-Regular",
+                    "fontSize": 16,
+                  },
+                  undefined,
+                  undefined,
+                ]
+              }
+            >
+              .
+            </Text>
+          </Text>
+        </View>
+        <View
+          style={
+            [
+              {
+                "marginBottom": 4,
+                "marginTop": 4,
+              },
+              undefined,
+              undefined,
+            ]
+          }
+          testID="p"
+        >
+          <Text
+            allowFontScaling={true}
+            selectable={false}
+            style={
+              [
+                {
+                  "color": "#171717",
+                  "fontFamily": "Montserrat-Regular",
+                  "fontSize": 16,
+                },
+                undefined,
+                undefined,
+              ]
+            }
+          >
+            <Text
+              allowFontScaling={true}
+              selectable={false}
+              style={
+                [
+                  {
+                    "color": "#171717",
+                    "fontFamily": "Montserrat-Regular",
+                    "fontSize": 16,
+                  },
+                  undefined,
+                  undefined,
+                ]
+              }
+            >
+              La temperatura debe registrarse 
+            </Text>
+            <Text
+              allowFontScaling={true}
+              selectable={false}
+              style={
+                [
+                  {
+                    "color": "#171717",
+                    "fontFamily": "Montserrat-Bold",
+                    "fontSize": 16,
+                    "fontWeight": "normal",
+                  },
+                  undefined,
+                  undefined,
+                ]
+              }
+              testID="b"
+            >
+              en grados Celsius
+            </Text>
+            <Text
+              allowFontScaling={true}
+              selectable={false}
+              style={
+                [
+                  {
+                    "color": "#171717",
+                    "fontFamily": "Montserrat-Regular",
+                    "fontSize": 16,
+                  },
+                  undefined,
+                  undefined,
+                ]
+              }
+            >
+              .
+            </Text>
+          </Text>
+        </View>
+        <View
+          style={
+            [
+              [
+                {
+                  "marginBottom": 4,
+                  "marginTop": 4,
+                  "paddingLeft": 30,
+                },
+                null,
+                null,
+                {
+                  "paddingLeft": 0,
+                  "position": "relative",
+                },
+              ],
+              undefined,
+              undefined,
+            ]
+          }
+          testID="ul"
+        >
+          <View
+            style={
+              [
+                {
+                  "alignSelf": "stretch",
+                  "flexDirection": "row",
+                  "flexWrap": "nowrap",
+                },
+                undefined,
+              ]
+            }
+            testID="marked-list-item"
+          >
+            <View
+              style={
+                [
+                  [
+                    undefined,
+                    {
+                      "width": 30,
+                    },
+                  ],
+                  {
+                    "flexDirection": "row",
+                    "justifyContent": "flex-end",
+                  },
+                ]
+              }
+            >
+              <View
+                style={
+                  {
+                    "backgroundColor": "#171717",
+                    "borderRadius": 5.714285714285714,
+                    "height": 5.714285714285714,
+                    "top": 6.242857142857142,
+                    "width": 5.714285714285714,
+                  }
+                }
+              />
+              <Text
+                style={
+                  {
+                    "alignSelf": "flex-end",
+                    "color": "#171717",
+                    "flexGrow": 0,
+                    "flexShrink": 0,
+                    "fontFamily": "Montserrat-Regular",
+                    "fontSize": 16,
+                    "lineHeight": 18.2,
+                    "textAlign": "right",
+                  }
+                }
+              >
+                 
+              </Text>
+            </View>
+            <View
+              style={
+                {
+                  "flexShrink": 1,
+                }
+              }
+            >
+              <View
+                style={
+                  [
+                    {
+                      "marginBottom": 4,
+                    },
+                    undefined,
+                    undefined,
+                  ]
+                }
+                testID="li"
+              >
+                <Text
+                  allowFontScaling={true}
+                  selectable={false}
+                  style={
+                    [
+                      {
+                        "color": "#171717",
+                        "fontFamily": "Montserrat-Regular",
+                        "fontSize": 16,
+                      },
+                      undefined,
+                      undefined,
+                    ]
+                  }
+                >
+                  Evita la luz solar directa
+                </Text>
+              </View>
+            </View>
+          </View>
+          <View
+            style={
+              [
+                {
+                  "alignSelf": "stretch",
+                  "flexDirection": "row",
+                  "flexWrap": "nowrap",
+                },
+                undefined,
+              ]
+            }
+            testID="marked-list-item"
+          >
+            <View
+              style={
+                [
+                  [
+                    undefined,
+                    {
+                      "width": 30,
+                    },
+                  ],
+                  {
+                    "flexDirection": "row",
+                    "justifyContent": "flex-end",
+                  },
+                ]
+              }
+            >
+              <View
+                style={
+                  {
+                    "backgroundColor": "#171717",
+                    "borderRadius": 5.714285714285714,
+                    "height": 5.714285714285714,
+                    "top": 6.242857142857142,
+                    "width": 5.714285714285714,
+                  }
+                }
+              />
+              <Text
+                style={
+                  {
+                    "alignSelf": "flex-end",
+                    "color": "#171717",
+                    "flexGrow": 0,
+                    "flexShrink": 0,
+                    "fontFamily": "Montserrat-Regular",
+                    "fontSize": 16,
+                    "lineHeight": 18.2,
+                    "textAlign": "right",
+                  }
+                }
+              >
+                 
+              </Text>
+            </View>
+            <View
+              style={
+                {
+                  "flexShrink": 1,
+                }
+              }
+            >
+              <View
+                style={
+                  [
+                    {
+                      "marginBottom": 4,
+                    },
+                    undefined,
+                    undefined,
+                  ]
+                }
+                testID="li"
+              >
+                <Text
+                  allowFontScaling={true}
+                  selectable={false}
+                  style={
+                    [
+                      {
+                        "color": "#171717",
+                        "fontFamily": "Montserrat-Regular",
+                        "fontSize": 16,
+                      },
+                      undefined,
+                      undefined,
+                    ]
+                  }
+                >
+                  <Text
+                    allowFontScaling={true}
+                    selectable={false}
+                    style={
+                      [
+                        {
+                          "color": "#171717",
+                          "fontFamily": "Montserrat-Regular",
+                          "fontSize": 16,
+                        },
+                        undefined,
+                        undefined,
+                      ]
+                    }
+                  >
+                    El sensor debe estar a 
+                  </Text>
+                  <Text
+                    allowFontScaling={true}
+                    selectable={false}
+                    style={
+                      [
+                        {
+                          "color": "#171717",
+                          "fontFamily": "Montserrat-Bold",
+                          "fontSize": 16,
+                          "fontWeight": "normal",
+                        },
+                        undefined,
+                        undefined,
+                      ]
+                    }
+                    testID="strong"
+                  >
+                    1.5 m
+                  </Text>
+                  <Text
+                    allowFontScaling={true}
+                    selectable={false}
+                    style={
+                      [
+                        {
+                          "color": "#171717",
+                          "fontFamily": "Montserrat-Regular",
+                          "fontSize": 16,
+                        },
+                        undefined,
+                        undefined,
+                      ]
+                    }
+                  >
+                     del suelo
+                  </Text>
+                </Text>
+              </View>
+            </View>
+          </View>
+          <View
+            style={
+              [
+                {
+                  "alignSelf": "stretch",
+                  "flexDirection": "row",
+                  "flexWrap": "nowrap",
+                },
+                undefined,
+              ]
+            }
+            testID="marked-list-item"
+          >
+            <View
+              style={
+                [
+                  [
+                    undefined,
+                    {
+                      "width": 30,
+                    },
+                  ],
+                  {
+                    "flexDirection": "row",
+                    "justifyContent": "flex-end",
+                  },
+                ]
+              }
+            >
+              <View
+                style={
+                  {
+                    "backgroundColor": "#171717",
+                    "borderRadius": 5.714285714285714,
+                    "height": 5.714285714285714,
+                    "top": 6.242857142857142,
+                    "width": 5.714285714285714,
+                  }
+                }
+              />
+              <Text
+                style={
+                  {
+                    "alignSelf": "flex-end",
+                    "color": "#171717",
+                    "flexGrow": 0,
+                    "flexShrink": 0,
+                    "fontFamily": "Montserrat-Regular",
+                    "fontSize": 16,
+                    "lineHeight": 18.2,
+                    "textAlign": "right",
+                  }
+                }
+              >
+                 
+              </Text>
+            </View>
+            <View
+              style={
+                {
+                  "flexShrink": 1,
+                }
+              }
+            >
+              <View
+                style={
+                  [
+                    {
+                      "marginBottom": 4,
+                    },
+                    undefined,
+                    undefined,
+                  ]
+                }
+                testID="li"
+              >
+                <Text
+                  allowFontScaling={true}
+                  selectable={false}
+                  style={
+                    [
+                      {
+                        "color": "#171717",
+                        "fontFamily": "Montserrat-Regular",
+                        "fontSize": 16,
+                      },
+                      undefined,
+                      undefined,
+                    ]
+                  }
+                >
+                  <Text
+                    allowFontScaling={true}
+                    selectable={false}
+                    style={
+                      [
+                        {
+                          "color": "#171717",
+                          "fontFamily": "Montserrat-Regular",
+                          "fontSize": 16,
+                        },
+                        undefined,
+                        undefined,
+                      ]
+                    }
+                  >
+                    Anota el valor 
+                  </Text>
+                  <Text
+                    allowFontScaling={true}
+                    selectable={false}
+                    style={
+                      [
+                        {
+                          "color": "#171717",
+                          "fontFamily": "Montserrat-Italic",
+                          "fontSize": 16,
+                          "fontStyle": "normal",
+                        },
+                        undefined,
+                        undefined,
+                      ]
+                    }
+                    testID="em"
+                  >
+                    sin decimales
+                  </Text>
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+        <View
+          style={
+            [
+              {
+                "marginBottom": 4,
+                "marginTop": 4,
+              },
+              undefined,
+              undefined,
+            ]
+          }
+          testID="p"
+        >
+          <Text
+            allowFontScaling={true}
+            selectable={false}
+            style={
+              [
+                {
+                  "color": "#171717",
+                  "fontFamily": "Montserrat-Regular",
+                  "fontSize": 16,
+                },
+                undefined,
+                undefined,
+              ]
+            }
+          >
+            <Text
+              allowFontScaling={true}
+              selectable={false}
+              style={
+                [
+                  {
+                    "color": "#171717",
+                    "fontFamily": "Montserrat-Regular",
+                    "fontSize": 16,
+                  },
+                  undefined,
+                  undefined,
+                ]
+              }
+            >
+              Rango válido: 
+            </Text>
+            <Text
+              allowFontScaling={true}
+              selectable={false}
+              style={
+                [
+                  {
+                    "color": "#E58B24",
+                    "fontFamily": "Montserrat-Regular",
+                    "fontSize": 16,
+                  },
+                  undefined,
+                  undefined,
+                ]
+              }
+              testID="span"
+            >
+              10°C a 40°C
+            </Text>
+          </Text>
+        </View>
+        <View
+          style={
+            [
+              {
+                "backgroundColor": "#E5E5E5",
+                "height": 0.5,
+                "marginBottom": 7,
+                "marginLeft": "auto",
+                "marginRight": "auto",
+                "marginTop": 7,
+                "width": "100%",
+              },
+              undefined,
+              undefined,
+            ]
+          }
+          testID="hr"
+        />
+        <View
+          style={
+            [
+              {
+                "marginBottom": 4,
+                "marginTop": 4,
+              },
+              undefined,
+              undefined,
+            ]
+          }
+          testID="p"
+        >
+          <Text
+            allowFontScaling={true}
+            selectable={false}
+            style={
+              [
+                {
+                  "color": "#171717",
+                  "fontFamily": "Montserrat-Regular",
+                  "fontSize": 16,
+                },
+                undefined,
+                undefined,
+              ]
+            }
+          >
+            Si el valor está fuera de rango, confirma antes de guardar.
+          </Text>
+        </View>
+      </View>
+    </View>
+  </View>
+</View>
+`;

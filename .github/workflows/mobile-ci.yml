@@ -1,0 +1,51 @@
+# Gate de calidad de la app React Native: typecheck + lint + tests.
+# Debe estar en verde antes de mergear.
+#
+# 📁 APP_DIR parametriza el directorio de la app. Desde el cutover del
+# 2026-09-11 la app vive en la raíz del repo (`.`), así que el workflow corre
+# en todos los pushes y PRs sin filtro de rutas.
+name: Mobile CI — Typecheck + Lint + Jest
+
+on:
+  push:
+  # Sin `pull_request`: el push ya cubre todas las ramas y el run cuenta como
+  # check del PR por el SHA; con ambos eventos corría dos veces por commit.
+
+env:
+  APP_DIR: .
+
+jobs:
+  quality:
+    name: Typecheck + Lint + Jest (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: ['22']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.APP_DIR }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ env.APP_DIR }}
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: ${{ env.APP_DIR }}
+        run: npm run typecheck
+
+      - name: Lint
+        working-directory: ${{ env.APP_DIR }}
+        run: npm run lint
+
+      - name: Run tests
+        working-directory: ${{ env.APP_DIR }}
+        run: npm run test:ci

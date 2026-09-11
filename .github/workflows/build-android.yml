@@ -1,4 +1,42 @@
+# =============================================================================
+# 🚀 Build Android APK — React Native (Expo prebuild + Gradle)
+# =============================================================================
+#
+# Reemplaza el pipeline de Ionic/Capacitor (`npm run build` + `npx cap sync`)
+# por el flujo nativo de Expo:
+#
+#   npm ci  →  amplify pull  →  expo prebuild  →  ./gradlew assemble*
+#
+# No se usa EAS Build: el APK se compila con Gradle en el propio runner.
+#
+# 📁 APP_DIR
+#   Todo el pipeline es relativo a `${{ env.APP_DIR }}`. Tras el cutover del
+#   2026-09-11 la app RN vive en la RAÍZ del repo, así que `APP_DIR: .`.
+#   Se conserva la parametrización por si la app vuelve a moverse a un
+#   subdirectorio (monorepo): basta cambiar ese único valor.
+#
+# 🔐 Secrets que consume
+#   AWS_ACCESS_KEY_ID          (obligatorio) — amplify pull
+#   AWS_SECRET_ACCESS_KEY      (obligatorio) — amplify pull
+#   ANDROID_KEYSTORE_BASE64    (opcional)    — keystore de release en base64
+#   KEYSTORE_PASSWORD          (opcional)    — password del store
+#   KEY_ALIAS                  (opcional)    — alias de la clave
+#   KEY_PASSWORD               (opcional)    — password de la clave
+#   SLACK_WEBHOOK_URL          (opcional)    — notificaciones
+#
+#   Si no hay keystore configurado, el APK de release se firma con el keystore
+#   de debug (fallback del plugin `plugins/withReleaseSigning.js`): sirve para
+#   instalar y probar, pero NO para Google Play. Para Play se usa
+#   `build-android-bundle.yml`, donde la firma sí es obligatoria.
+# =============================================================================
+
 name: 🚀 Build Android APK
+
+# Un push nuevo a la misma rama cancela el build anterior: evita 3 builds de
+# Gradle en paralelo golpeando Maven Central (origen de los 403).
+concurrency:
+  group: build-apk-${{ github.ref }}
+  cancel-in-progress: true
 
 on:
   push:
@@ -9,17 +47,24 @@ on:
       - 'develop'
       - 'test'
       - 'main'
-  pull_request:
-    branches:
-      - 'develop'
-      - 'main'
+    # Un push que solo toca documentación no justifica un build nativo de ~18 min.
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  # Sin `pull_request`: el push ya cubre todas las ramas y GitHub asocia el run
+  # al PR por el SHA; escuchar ambos eventos compilaba el APK dos veces.
 
-# Variables de entorno globales
 env:
+  # 👇 La app RN vive en la raíz del repo desde el cutover del 2026-09-11.
+  APP_DIR: .
   AMPLIFY_APP_ID: d2l8hh51bqhq16
+  AMPLIFY_PROJECT_NAME: UVA
   JAVA_VERSION: '17'
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   AWS_REGION: us-east-1
+  # versionCode ya publicado en Google Play (ficha nueva). Todo build debe
+  # generar un versionCode estrictamente mayor.
+  MIN_ANDROID_VERSION_CODE: 178830096
 
 jobs:
   build:
@@ -35,6 +80,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+          cache-dependency-path: ${{ env.APP_DIR }}/package-lock.json
 
       - name: ☕ Setup Java
         uses: actions/setup-java@v4
@@ -44,22 +90,16 @@ jobs:
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          api-level: 33
-          build-tools: 33.0.0
-          ndk-version: 23.1.7779620
 
-      - name: 🔐 Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: 💾 Cache Gradle
+        uses: actions/cache@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: 📦 Install dependencies
-        run: |
-          npm ci
-          npm install -g @aws-amplify/cli@latest @ionic/cli @capacitor/cli
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles(format('{0}/package-lock.json', env.APP_DIR), format('{0}/app.json', env.APP_DIR)) }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
 
       - name: 🌍 Determine Amplify environment
         id: amplify-env
@@ -75,116 +115,226 @@ jobs:
             echo "🚧 Using DEVELOP environment for development"
           fi
 
+      - name: 🔐 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 📦 Install dependencies
+        working-directory: ${{ env.APP_DIR }}
+        run: npm ci
+
       - name: 🔄 Amplify Pull (Headless Mode)
         env:
           AMPLIFY_CLI_DISABLE_BROWSER_AUTH: true
+          AMPLIFY_ENV: ${{ steps.amplify-env.outputs.env_name }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: 'us-east-1'
         run: |
+          set -euo pipefail
           echo "🔧 Descargando configuración de Amplify en modo headless..."
-          echo "📍 App ID: ${{ env.AMPLIFY_APP_ID }}"
-          echo "🌍 Environment: ${{ steps.amplify-env.outputs.env_name }}"
-          echo "📍 Region: ${{ env.AWS_REGION }}"
+          echo "📍 App ID: $AMPLIFY_APP_ID"
+          echo "🌍 Environment: $AMPLIFY_ENV"
 
-          # Configuración JSON para modo headless
-          AMPLIFY_JSON="{\"projectName\":\"UVA\",\"appId\":\"${{ env.AMPLIFY_APP_ID }}\",\"envName\":\"${{ steps.amplify-env.outputs.env_name }}\"}"
-          PROVIDERS_JSON="{\"awscloudformation\":{\"configLevel\":\"project\",\"useProfile\":false,\"accessKeyId\":\"${{ secrets.AWS_ACCESS_KEY_ID }}\",\"secretAccessKey\":\"${{ secrets.AWS_SECRET_ACCESS_KEY }}\",\"region\":\"${{ env.AWS_REGION }}\"}}"
-          FRONTEND_JSON="{\"frontend\":\"javascript\",\"framework\":\"ionic\",\"config\":{\"SourceDir\":\"src\",\"DistributionDir\":\"www\",\"BuildCommand\":\"npm run build\",\"StartCommand\":\"ionic serve\"}}"
+          npm install -g @aws-amplify/cli@latest
 
-          echo "🚀 Ejecutando amplify pull en modo headless..."
+          # `amplify pull` se ejecuta en la raíz del repo, que es donde vive
+          # `amplify/`. Frontend `javascript` + framework `react-native`
+          # (antes era `ionic`): ya no hay BuildCommand de Angular ni
+          # DistributionDir `www` — el bundle lo produce Metro dentro de Gradle.
+          AMPLIFY_JSON="{\"projectName\":\"$AMPLIFY_PROJECT_NAME\",\"appId\":\"$AMPLIFY_APP_ID\",\"envName\":\"$AMPLIFY_ENV\"}"
+          PROVIDERS_JSON="{\"awscloudformation\":{\"configLevel\":\"project\",\"useProfile\":false,\"accessKeyId\":\"$AWS_ACCESS_KEY_ID\",\"secretAccessKey\":\"$AWS_SECRET_ACCESS_KEY\",\"region\":\"$AWS_REGION\"}}"
+          FRONTEND_JSON="{\"frontend\":\"javascript\",\"framework\":\"react-native\",\"config\":{\"SourceDir\":\"src\",\"DistributionDir\":\"/\",\"BuildCommand\":\"npm run-script build\",\"StartCommand\":\"npm run-script start\"}}"
+
           amplify pull \
             --amplify "$AMPLIFY_JSON" \
             --providers "$PROVIDERS_JSON" \
             --frontend "$FRONTEND_JSON" \
             --yes
 
-          echo "✅ Configuración de Amplify descargada exitosamente"
+          echo "✅ Configuración de Amplify descargada"
 
-      - name: 🏗️ Build web application
+      - name: 📄 Place amplifyconfiguration.json
         run: |
-          echo "🔨 Building web application..."
-          npm run build
-          echo "✅ Web build completed"
-
-      - name: 📱 Setup Android platform
-        run: |
-          echo "🔧 Setting up Android platform..."
-
-          # Sincronizar Capacitor
-          npx cap sync android
-
-          # Generar assets si es necesario
-          npx @capacitor/assets generate --android || true
-
-          # Verificar y configurar Gradle Wrapper
-          echo "🔧 Verificando Gradle Wrapper..."
-          cd android
-
-          # Verificar si existe gradlew
-          if [ ! -f "gradlew" ]; then
-            echo "⚠️ gradlew no encontrado, generando Gradle Wrapper..."
-            gradle wrapper --gradle-version 8.5
+          set -euo pipefail
+          # `src/data/amplify-bootstrap/amplify-config.ts` hace
+          #   require('../../../amplifyconfiguration.json')
+          # es decir, espera el archivo en la RAÍZ de la app RN ($APP_DIR),
+          # no en src/. Metro lo empaqueta en tiempo de build, por eso este
+          # paso debe ir SIEMPRE antes del prebuild/Gradle.
+          TARGET="$APP_DIR/amplifyconfiguration.json"
+          # Con APP_DIR=. (app en la raíz) amplify pull ya lo deja en su sitio;
+          # el find solo es el fallback para un layout con subdirectorio.
+          if [ -f "$TARGET" ]; then
+            FOUND="$TARGET"
+          else
+            FOUND=$(find . -maxdepth 3 -name 'amplifyconfiguration.json' \
+              -not -path './node_modules/*' -not -path './amplify/*' | head -n 1)
           fi
 
-          # Dar permisos de ejecución
-          chmod +x gradlew
+          if [ -z "$FOUND" ]; then
+            echo "❌ amplify pull no generó amplifyconfiguration.json"
+            exit 1
+          fi
+          echo "📍 Encontrado en: $FOUND"
 
-          # Verificar si los archivos del wrapper están completos
-          if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ] || [ ! -f "gradle/wrapper/gradle-wrapper.properties" ]; then
-            echo "⚠️ Archivos del wrapper incompletos, regenerando..."
-            gradle wrapper --gradle-version 8.5
+          if [ "$(realpath "$FOUND")" != "$(realpath -m "$TARGET")" ]; then
+            cp "$FOUND" "$TARGET"
+            echo "✅ Copiado a $TARGET"
+          else
+            echo "✅ Ya está en $TARGET"
           fi
 
-          cd ..
+          # Sanity check: debe ser JSON válido con el endpoint de AppSync.
+          node -e "const c=require('./$TARGET'); if(!c.aws_appsync_graphqlEndpoint){throw new Error('amplifyconfiguration.json sin aws_appsync_graphqlEndpoint')}; console.log('✅ Endpoint:', c.aws_appsync_graphqlEndpoint)"
 
-          echo "✅ Android platform configured"
+      - name: 🏷️ Compute version information
+        id: version
+        run: |
+          set -euo pipefail
+          # Misma estrategia que el pipeline de Ionic: timestamp reducido.
+          # date +%s / 10 → un versionCode nuevo cada 10 s, monótonamente
+          # creciente y muy por debajo del techo de Android (2147483647).
+          TIMESTAMP=$(date +%s)
+          VERSION_CODE=$(( TIMESTAMP / 10 ))
+
+          if [ "$VERSION_CODE" -gt 2147483647 ]; then
+            VERSION_CODE=$(( TIMESTAMP / 100 ))
+          fi
+
+          if [ "$VERSION_CODE" -le "$MIN_ANDROID_VERSION_CODE" ]; then
+            echo "❌ versionCode $VERSION_CODE <= $MIN_ANDROID_VERSION_CODE (ya publicado en Play)"
+            exit 1
+          fi
+
+          VERSION_NAME=$(node -p "require('./$APP_DIR/app.json').expo.version")
+
+          # Consumidos por app.config.js, que sobreescribe app.json en prebuild.
+          echo "EXPO_ANDROID_VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV
+          echo "EXPO_APP_VERSION=$VERSION_NAME" >> $GITHUB_ENV
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "✅ versionName=$VERSION_NAME versionCode=$VERSION_CODE"
+
+      - name: 🔐 Prepare release signing
+        id: signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          # El keystore ya NO se versiona (se purgará de la historia del repo).
+          # Fuente principal: secret ANDROID_KEYSTORE_BASE64.
+          # Fallback de transición: android/keys/keystore.jks si sigue en el repo.
+          KEYSTORE_TMP="$RUNNER_TEMP/release.keystore"
+
+          if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$KEYSTORE_TMP"
+            echo "🔑 Keystore desde el secret ANDROID_KEYSTORE_BASE64"
+          elif [ -f "android/keys/keystore.jks" ]; then
+            cp android/keys/keystore.jks "$KEYSTORE_TMP"
+            echo "🔑 Keystore desde android/keys/keystore.jks (fallback de transición)"
+          else
+            echo "available=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Sin keystore de release: los APK de release se firmarán con el keystore de DEBUG."
+            exit 0
+          fi
+
+          if [ -z "${KEYSTORE_PASSWORD:-}" ] || [ -z "${KEY_ALIAS:-}" ] || [ -z "${KEY_PASSWORD:-}" ]; then
+            echo "available=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Faltan KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD: se usará el keystore de DEBUG."
+            exit 0
+          fi
+
+          # `plugins/withReleaseSigning.js` copia estas variables a
+          # android/gradle.properties durante el prebuild, y el bloque Groovy
+          # que inyecta también las lee de System.getenv como respaldo.
+          # storeFile es relativo a android/app/, donde se deja el keystore.
+          echo "MYAPP_UPLOAD_STORE_FILE=release.keystore" >> $GITHUB_ENV
+          echo "MYAPP_UPLOAD_STORE_PASSWORD=$KEYSTORE_PASSWORD" >> $GITHUB_ENV
+          echo "MYAPP_UPLOAD_KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
+          echo "MYAPP_UPLOAD_KEY_PASSWORD=$KEY_PASSWORD" >> $GITHUB_ENV
+          echo "available=true" >> $GITHUB_OUTPUT
+          echo "✅ Firma de release configurada"
+
+      - name: 🛠️ Expo prebuild (generate android/)
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          EXPO_PUBLIC_AMPLIFY_ENV: ${{ steps.amplify-env.outputs.env_name }}
+        run: |
+          set -euo pipefail
+          # android/ es gitignored y se regenera entero en cada build.
+          # --no-install: las dependencias ya están instaladas por `npm ci`.
+          npx expo prebuild --platform android --clean --no-install
+          chmod +x android/gradlew
+
+      - name: 🔑 Install keystore into android/app
+        if: steps.signing.outputs.available == 'true'
+        run: |
+          set -euo pipefail
+          # Se copia DESPUÉS del prebuild porque `--clean` borra android/ entero.
+          cp "$RUNNER_TEMP/release.keystore" "$APP_DIR/android/app/release.keystore"
+          echo "✅ Keystore instalado en $APP_DIR/android/app/release.keystore"
+
+      - name: 🔍 Verify generated Gradle configuration
+        working-directory: ${{ env.APP_DIR }}/android
+        run: |
+          set -euo pipefail
+          echo "📋 versionCode / versionName generados:"
+          grep -nE 'versionCode|versionName' app/build.gradle
+
+          if ! grep -q 'MYAPP_UPLOAD_STORE_FILE' app/build.gradle; then
+            echo "❌ El plugin withReleaseSigning no inyectó signingConfigs.release"
+            exit 1
+          fi
+          echo "✅ signingConfigs.release presente en app/build.gradle"
+
+          if grep -q "versionCode $EXPO_ANDROID_VERSION_CODE" app/build.gradle; then
+            echo "✅ versionCode $EXPO_ANDROID_VERSION_CODE aplicado"
+          else
+            echo "❌ versionCode no coincide con EXPO_ANDROID_VERSION_CODE"
+            exit 1
+          fi
 
       - name: 🔨 Build Android APK
+        working-directory: ${{ env.APP_DIR }}/android
         run: |
-          echo "📱 Building Android APK..."
-
-          cd android
-
-          # Verificar que gradlew funcione, sino usar gradle directamente
-          if ! ./gradlew --version &> /dev/null; then
-            echo "⚠️ Gradle Wrapper no funciona, usando Gradle del sistema..."
-            GRADLE_CMD="gradle"
-          else
-            echo "✅ Usando Gradle Wrapper"
-            GRADLE_CMD="./gradlew"
-          fi
-
-          # Compilar APK de debug (más rápido para CI)
+          set -euo pipefail
+          # Reintentos: Maven Central / plugins.gradle.org devuelven 403/5xx de forma
+          # intermitente a los runners de GitHub (visto en el run 34549591203).
+          gradle_retry() {
+            local attempt=1 max=3
+            until "$@"; do
+              if [ $attempt -ge $max ]; then echo "❌ Gradle falló tras $max intentos"; return 1; fi
+              echo "⚠️  Gradle falló (intento $attempt/$max); reintentando en $((attempt*45)) s..."
+              sleep $((attempt*45)); attempt=$((attempt+1))
+            done
+          }
           echo "🔨 Compilando APK debug..."
-          $GRADLE_CMD assembleDebug --no-daemon --stacktrace
+          gradle_retry ./gradlew assembleDebug --no-daemon
 
-          # Compilar APK de release para branches principales
           if [[ "${{ github.ref }}" == "refs/heads/main" ]] || [[ "${{ github.ref }}" == "refs/heads/test" ]]; then
-            echo "🚀 Building release APK for ${{ github.ref }}"
-            $GRADLE_CMD assembleRelease --no-daemon --stacktrace
+            echo "🚀 Compilando APK release para ${{ github.ref }}..."
+            gradle_retry ./gradlew assembleRelease --no-daemon
           fi
-
-          cd ..
-
-          echo "✅ APK build completed"
 
       - name: 📄 List generated APKs
         run: |
-          echo "📋 Generated APK files:"
-          find android/app/build/outputs/apk -name "*.apk" -type f | while read apk; do
-            size=$(du -h "$apk" | cut -f1)
-            echo "  📄 $apk ($size)"
+          find "$APP_DIR/android/app/build/outputs/apk" -name '*.apk' -type f | while read -r apk; do
+            echo "  📄 $apk ($(du -h "$apk" | cut -f1))"
           done
 
       - name: 🏷️ Generate artifact names
         id: extract-branch
         run: |
           BRANCH_NAME=${GITHUB_REF#refs/heads/}
-          BRANCH_NAME=${BRANCH_NAME//\//-}  # Reemplazar / con -
+          BRANCH_NAME=${BRANCH_NAME//\//-}
           TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
-          # Configurar retención basada en la rama
           if [[ "$BRANCH_NAME" == "main" ]] || [[ "$BRANCH_NAME" == "test" ]] || [[ "$BRANCH_NAME" == "develop" ]]; then
             RETENTION_DAYS=90
           else
@@ -200,8 +350,8 @@ jobs:
         with:
           name: android-apk-${{ steps.extract-branch.outputs.branch }}-${{ steps.extract-branch.outputs.timestamp }}
           path: |
-            android/app/build/outputs/apk/debug/app-debug.apk
-            android/app/build/outputs/apk/release/app-release.apk
+            ${{ env.APP_DIR }}/android/app/build/outputs/apk/debug/app-debug.apk
+            ${{ env.APP_DIR }}/android/app/build/outputs/apk/release/app-release.apk
           retention-days: ${{ steps.extract-branch.outputs.retention-days }}
           if-no-files-found: ignore
 
@@ -212,53 +362,21 @@ jobs:
           status: custom
           custom_payload: |
             {
-              "text": "📱 Nueva APK generada para UVA App",
+              "text": "📱 Nueva APK generada para UVA App (React Native)",
               "attachments": [
                 {
                   "color": "good",
                   "fields": [
-                    {
-                      "title": "Rama",
-                      "value": "${{ steps.extract-branch.outputs.branch }}",
-                      "short": true
-                    },
-                    {
-                      "title": "Commit",
-                      "value": "${{ github.sha }}",
-                      "short": true
-                    },
-                    {
-                      "title": "Autor",
-                      "value": "${{ github.actor }}",
-                      "short": true
-                    },
-                    {
-                      "title": "Ambiente",
-                      "value": "${{ steps.amplify-env.outputs.env_name }}",
-                      "short": true
-                    },
-                    {
-                      "title": "APK Debug",
-                      "value": "✅ Generado",
-                      "short": true
-                    },
-                    {
-                      "title": "APK Release",
-                      "value": "${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test') && '✅ Generado' || '❌ Solo para main/test' }}",
-                      "short": true
-                    }
+                    { "title": "Rama", "value": "${{ steps.extract-branch.outputs.branch }}", "short": true },
+                    { "title": "Versión", "value": "v${{ steps.version.outputs.version_name }} (${{ steps.version.outputs.version_code }})", "short": true },
+                    { "title": "Commit", "value": "${{ github.sha }}", "short": true },
+                    { "title": "Autor", "value": "${{ github.actor }}", "short": true },
+                    { "title": "Ambiente", "value": "${{ steps.amplify-env.outputs.env_name }}", "short": true },
+                    { "title": "Firma release", "value": "${{ steps.signing.outputs.available == 'true' && '🔐 keystore de producción' || '⚠️ keystore de debug' }}", "short": true }
                   ],
                   "actions": [
-                    {
-                      "type": "button",
-                      "text": "📥 Descargar APK",
-                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-                    },
-                    {
-                      "type": "button",
-                      "text": "📋 Ver Commit",
-                      "url": "${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
-                    }
+                    { "type": "button", "text": "📥 Descargar APK", "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" },
+                    { "type": "button", "text": "📋 Ver Commit", "url": "${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}" }
                   ]
                 }
               ]
@@ -273,38 +391,18 @@ jobs:
           status: custom
           custom_payload: |
             {
-              "text": "❌ Error al generar APK para UVA App",
+              "text": "❌ Error al generar APK para UVA App (React Native)",
               "attachments": [
                 {
                   "color": "danger",
                   "fields": [
-                    {
-                      "title": "Rama",
-                      "value": "${{ steps.extract-branch.outputs.branch }}",
-                      "short": true
-                    },
-                    {
-                      "title": "Commit",
-                      "value": "${{ github.sha }}",
-                      "short": true
-                    },
-                    {
-                      "title": "Autor",
-                      "value": "${{ github.actor }}",
-                      "short": true
-                    },
-                    {
-                      "title": "Error",
-                      "value": "Falló la compilación de APK",
-                      "short": false
-                    }
+                    { "title": "Rama", "value": "${{ github.ref_name }}", "short": true },
+                    { "title": "Commit", "value": "${{ github.sha }}", "short": true },
+                    { "title": "Autor", "value": "${{ github.actor }}", "short": true },
+                    { "title": "Error", "value": "Falló la compilación de APK", "short": false }
                   ],
                   "actions": [
-                    {
-                      "type": "button",
-                      "text": "🔍 Ver Logs",
-                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-                    }
+                    { "type": "button", "text": "🔍 Ver Logs", "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" }
                   ]
                 }
               ]
@@ -315,33 +413,30 @@ jobs:
       - name: 📊 Build summary
         if: always()
         run: |
-          echo "## 🚀 Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Branch**: ${{ github.ref }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Amplify Environment**: ${{ steps.amplify-env.outputs.env_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Node Version**: ${{ env.NODE_VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Java Version**: ${{ env.JAVA_VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **AWS Region**: ${{ env.AWS_REGION }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📱 Generated APKs" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## 🚀 Build Summary (React Native)"
+            echo ""
+            echo "- **App dir**: \`$APP_DIR\`"
+            echo "- **Branch**: ${{ github.ref }}"
+            echo "- **Amplify Environment**: ${{ steps.amplify-env.outputs.env_name }}"
+            echo "- **Version**: v${{ steps.version.outputs.version_name }} (code ${{ steps.version.outputs.version_code }})"
+            echo "- **Node**: ${{ env.NODE_VERSION }} · **Java**: ${{ env.JAVA_VERSION }}"
+            echo "- **Firma release**: ${{ steps.signing.outputs.available == 'true' && 'keystore de producción' || 'keystore de debug (no apto para Play)' }}"
+            echo ""
+            echo "### 📱 APKs generadas"
+            echo ""
+          } >> $GITHUB_STEP_SUMMARY
 
-          if [ -f "android/app/build/outputs/apk/debug/app-debug.apk" ]; then
-            DEBUG_SIZE=$(du -h android/app/build/outputs/apk/debug/app-debug.apk | cut -f1)
-            echo "- ✅ **Debug APK**: $DEBUG_SIZE" >> $GITHUB_STEP_SUMMARY
+          DEBUG_APK="$APP_DIR/android/app/build/outputs/apk/debug/app-debug.apk"
+          RELEASE_APK="$APP_DIR/android/app/build/outputs/apk/release/app-release.apk"
+
+          if [ -f "$DEBUG_APK" ]; then
+            echo "- ✅ **Debug APK**: $(du -h "$DEBUG_APK" | cut -f1)" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ -f "$RELEASE_APK" ]; then
+            echo "- ✅ **Release APK**: $(du -h "$RELEASE_APK" | cut -f1)" >> $GITHUB_STEP_SUMMARY
           fi
 
-          if [ -f "android/app/build/outputs/apk/release/app-release.apk" ]; then
-            RELEASE_SIZE=$(du -h android/app/build/outputs/apk/release/app-release.apk | cut -f1)
-            echo "- ✅ **Release APK**: $RELEASE_SIZE" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🎯 Environment Configuration" >> $GITHUB_STEP_SUMMARY
-          echo "- **App ID**: ${{ env.AMPLIFY_APP_ID }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Backend**: ${{ steps.amplify-env.outputs.env_name }}" >> $GITHUB_STEP_SUMMARY
-
-  # Job adicional para notificar el estado del build
   notify:
     name: 📢 Notify Build Status
     runs-on: ubuntu-latest
