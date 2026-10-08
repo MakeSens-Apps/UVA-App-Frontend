@@ -405,7 +405,7 @@ function isSecretGlob(t) {
   return ['.env', '.env.local', '.env.production', '.envrc'].some((x) => re.test(x))
 }
 
-const GUARDED = /(^|\/)(\.claude\/?$|\.claude\/hooks(\/|$)|\.claude\/settings(\.local)?\.json$|\.claude\/racimo-harness-layer\.json$|\.claude\/evidence\/[^/]+\/(pids|[^/]+\.pid)$|\.git\/(config|hooks)(\/|$))/
+const GUARDED = /(^|\/)(\.claude\/?$|\.claude\/hooks(\/|$)|\.claude\/settings(\.local)?\.json$|\.claude\/racimo-harness-layer\.json$|\.claude\/evidence\/[^/]+\/(pids|[^/]+\.pid|android-(serial|package))$|\.git\/(config|hooks)(\/|$))/
 const isGuardedPath = (t) => GUARDED.test(t || '')
 
 function readFileSafe(p) {
@@ -469,8 +469,10 @@ const SAFE_WITH_SECRET = new Set(['ls', 'test', '[', '[[', 'rm', 'stat', 'touch'
 const SHELLS = new Set(['bash', 'sh', 'zsh', 'dash', 'ksh', 'fish', 'csh', 'tcsh'])
 const SCRIPT_RUNNERS = new Set(['node', 'python', 'python3', 'ruby', 'perl', 'php', 'deno', 'tsx', 'ts-node', 'zx', 'osascript', 'pwsh', 'powershell', 'expect', 'awk', 'gawk', 'nawk'])
 const BANNED_ENV = /^(GIT_CONFIG.*|GIT_SSH_COMMAND|GIT_SSH|GIT_EXEC_PATH|GIT_ASKPASS|SSH_ASKPASS|GIT_PROXY_COMMAND|GIT_EXTERNAL_DIFF|GIT_EDITOR|GIT_SEQUENCE_EDITOR|GIT_PAGER|GIT_TEMPLATE_DIR|GIT_DIR|GIT_WORK_TREE|BASH_ENV|ENV|ZDOTDIR|PROMPT_COMMAND|LD_PRELOAD|LD_LIBRARY_PATH|DYLD_.*|NODE_OPTIONS|NODE_PATH|npm_config_.*|NPM_CONFIG_.*|RACIMO_HARNESS_SANDBOX|GH_HOST|GH_TOKEN|GITHUB_TOKEN|GH_ENTERPRISE_TOKEN|GH_CONFIG_DIR|AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|AWS_SESSION_TOKEN)$/
-// npx/pnpx package -> the binary it runs.
-const NPX_BIN = { '@aws-amplify/backend-cli': 'ampx', 'aws-cdk': 'cdk', 'eas-cli': 'eas', 'netlify-cli': 'netlify', 'firebase-tools': 'firebase', 'serverless': 'serverless', 'vercel': 'vercel', 'dotenv-cli': 'dotenv', '@dotenvx/dotenvx': 'dotenvx', 'kill-port': 'kill-port', 'fkill-cli': 'fkill' }
+// npx/pnpx package -> the binary it runs. Scoped packages must be listed:
+// without an entry the scope is dropped (@aws-amplify/cli would become cli).
+const NPX_BIN = { '@aws-amplify/cli': 'amplify', '@aws-amplify/cli-internal': 'amplify', '@aws-amplify/backend-cli': 'ampx', 'aws-cdk': 'cdk', 'eas-cli': 'eas', 'netlify-cli': 'netlify', 'firebase-tools': 'firebase', 'serverless': 'serverless', 'vercel': 'vercel', 'dotenv-cli': 'dotenv', '@dotenvx/dotenvx': 'dotenvx', 'kill-port': 'kill-port', 'fkill-cli': 'fkill' }
+const npxBin = (spec) => { const pkg = spec.replace(/(.)@[^/@]*$/, '$1'); return NPX_BIN[pkg] ?? pkg.replace(/^@[^/]+\//, '') }
 
 // Files a command line writes before running something: path -> content
 // (a heredoc written with cat) or null (changed in a way the guard cannot
@@ -667,9 +669,7 @@ function analyzeCommand(cmd, ctx) {
       while (ws.length && ws[0].text.startsWith('-') && !['-c', '--call'].includes(ws[0].text)) { if (ws[0].text === '-p' || ws[0].text === '--package') ws = ws.slice(1); ws = ws.slice(1) }
       if (!ws.length) return
       if (ws[0].text === '-c' || ws[0].text === '--call') { const code = ws[1]; if (code?.dyn && live) unverifiable(`${name} -c con código que sale de una variable`, ''); if (code) analyze(code.text, { ...ctx, depth: ctx.depth + 1 }); return }
-      const pkg = ws[0].text.replace(/(.)@[^/@]*$/, '$1')
-      const bin = NPX_BIN[pkg] ?? pkg.replace(/^@[^/]+\//, '')
-      ws = [{ ...ws[0], text: bin }, ...ws.slice(1)]
+      ws = [{ ...ws[0], text: npxBin(ws[0].text) }, ...ws.slice(1)]
       words = ws; continue
     }
     if (name === 'find') {
@@ -810,6 +810,7 @@ function checkShell(cmd, words, ctx) {
     return analyze(s.text, { ...ctx, depth: ctx.depth + 1 })
   }
   if (base(file.text) === 'serve.sh') checkServeArgs(words.slice(j), ctx)
+  if (base(file.text) === 'gradlew') checkDeploy('gradlew', argv.slice(j), ctx)
   return inspectShellFile(file, ctx, base(argv[0]), words.slice(j + 1))
 }
 
@@ -837,6 +838,23 @@ function checkServeArgs(words, ctx) {
   if (sep !== -1) analyzeCommand({ words: words.slice(sep + 1), redirs: [], pipeIn: null }, { ...ctx, depth: ctx.depth + 1 })
 }
 
+// The Gradle wrapper (gradlew, Gradle 7+) ends with one eval that rebuilds
+// the JVM options: its input goes through sed, which backslash-escapes every
+// shell metacharacter, so it cannot run anything. That exact block (and only
+// that one) is replaced with ':' and the rest of the script is still checked;
+// a changed block, another eval or an older wrapper is still blocked.
+const GRADLEW_EVAL = /^eval "set -- \$\(\s*printf '%s\\n' "\$DEFAULT_JVM_OPTS \$JAVA_OPTS \$GRADLE_OPTS" \|\s*xargs -n1 \|\s*sed ' s~\[\^-\[:alnum:\]\+,\.\/:=@_\]~\\\\&~g; ' \|\s*tr '\\n' ' '\s*\)" '"\$@"'[ \t]*$/m
+// The escaping only holds if sed, xargs, tr and printf are the real ones and
+// the options are literal: a wrapper that redefines a command, changes PATH,
+// sources another file or builds DEFAULT_JVM_OPTS from $ or ` keeps its eval.
+const GRADLEW_TAMPERED = /^\s*(function\s+)?(sed|xargs|tr|printf|set|eval|command|builtin|exec)\s*\(\s*\)|^\s*function\s+(sed|xargs|tr|printf|set|eval|command|builtin|exec)\b|^\s*(alias|enable|hash|source|\.)\s|(^|[\s;])(export\s+|declare\s+[-\w]*\s+|readonly\s+)?(PATH|BASH_ENV|ENV|IFS|BASH_FUNC_[\w%]*)=|^\s*DEFAULT_JVM_OPTS=.*[$`]/m
+function scriptText(word, text) {
+  if (base(word.text) !== 'gradlew' || !text.includes('org.gradle.wrapper.GradleWrapperMain') && !text.includes('gradle-wrapper.jar')) return text
+  const hits = text.match(new RegExp(GRADLEW_EVAL.source, 'gm')) ?? []
+  if (hits.length !== 1 || GRADLEW_TAMPERED.test(text)) return text
+  return text.replace(GRADLEW_EVAL, ':')
+}
+
 function inspectShellFile(word, ctx, how, args = []) {
   if (!word) return
   if (word.dyn) {
@@ -848,7 +866,7 @@ function inspectShellFile(word, ctx, how, args = []) {
   const f = readForRun(word, ctx)
   if (!f) unverifiable(`no puedo revisar ${word.text}: no existe o no se puede leer`, 'Crea el archivo primero y ejecútalo en otro comando')
   if (f.tooBig) deny(`${word.text} es demasiado grande para revisarlo`, '')
-  analyze(f.text, { ...ctx, mode: 'file', depth: ctx.depth + 1, cwd: ctx.cwd, vars: new Map() })
+  analyze(scriptText(word, f.text), { ...ctx, mode: 'file', depth: ctx.depth + 1, cwd: ctx.cwd, vars: new Map() })
   checkScriptArgs(f.text, args, ctx)
 }
 
@@ -862,7 +880,7 @@ function inspectScriptFile(word, ctx, args = []) {
   if (ctx.depth >= MAX_DEPTH) deny('demasiados scripts anidados para revisarlos', 'Ejecuta el script final directamente')
   const first = f.text.split('\n', 1)[0]
   if (/^#!.*\b(bash|sh|zsh|dash|ksh)\b/.test(first) || /\.(sh|bash|zsh)$/.test(p)) {
-    analyze(f.text, { ...ctx, mode: 'file', depth: ctx.depth + 1, vars: new Map() })
+    analyze(scriptText(word, f.text), { ...ctx, mode: 'file', depth: ctx.depth + 1, vars: new Map() })
     checkScriptArgs(f.text, args, ctx)
   } else looseScan(f.text, { ...ctx, mode: 'file', depth: ctx.depth + 1 })
   return 'ok'
@@ -1463,8 +1481,7 @@ function checkPackageManager(name, words, ctx) {
     }
     cmdWords = cmdWords.filter((w) => w.text !== '--')
     if (!cmdWords.length) return
-    const pkg = cmdWords[0].text.replace(/(.)@[^/@]*$/, '$1')
-    cmdWords[0] = { ...cmdWords[0], text: NPX_BIN[pkg] ?? pkg.replace(/^@[^/]+\//, '') }
+    cmdWords[0] = { ...cmdWords[0], text: npxBin(cmdWords[0].text) }
     return analyzeCommand({ words: cmdWords, redirs: [], pipeIn: null }, { ...ctx, depth: ctx.depth + 1 })
   }
   if (name === 'bun' && sub && !builtinsBun.has(sub) && readFileSafe(resolvePath(ctx, sub))) return checkScriptRunner('node', { words, redirs: [], pipeIn: null }, words, ctx)
@@ -1549,12 +1566,38 @@ function checkDeploy(name, argv, ctx) {
   if (name === 'vercel' && (!loose || /^(deploy|--prod|promote|alias|rm|remove)$/.test(a1 ?? ''))) d(name)
   if (name === 'netlify' && (loose ? /^(deploy|sites:delete)$/.test(a1 ?? '') : a1 !== 'status')) d(name)
   if (name === 'firebase' && /^(deploy|hosting)/.test(a1 ?? '') || name === 'eb' && a1 === 'deploy' || name === 'copilot' && /deploy/.test(rest.join(' '))) d(name)
-  if ((name === 'gradlew' || name === 'gradle') && rest.some((t) => /publish|upload|release/i.test(t))) d(`${name} ${rest.join(' ')}`)
+  if (name === 'gradlew' || name === 'gradle' || name === 'gradlew.bat') checkGradle(name, rest, d)
   if (name === 'docker' && ['push'].includes(a1)) d('docker push')
   if (name === 'docker' && (a1 === 'compose' && ['down', 'rm', 'stop', 'kill'].includes(argv[2]) || a1 === 'container' && ['stop', 'rm', 'kill', 'prune'].includes(argv[2]) || a1 === 'system' && argv[2] === 'prune') && ctx.mode === 'live') deny(`docker ${a1} ${argv[2]} detiene o borra contenedores de otras sesiones`, '')
   if (name === 'xcrun' && a1 === 'simctl' && ['shutdown', 'erase', 'delete'].includes(argv[2])) deny(`xcrun simctl ${argv[2]} apaga o borra simuladores de otras sesiones`, '')
   if (name === 'kubectl' && ['apply', 'create', 'delete', 'replace', 'patch', 'scale', 'rollout', 'set', 'edit', 'label', 'annotate'].includes(a1)) d(`kubectl ${a1}`)
   if (name === 'helm' && ['install', 'upgrade', 'uninstall', 'rollback', 'delete'].includes(a1)) d(`helm ${a1}`)
+}
+
+// Gradle: only a list of debug, lint and unit-test tasks runs. It is a list
+// of exact names because Gradle also accepts camelCase abbreviations (aR is
+// assembleRelease, pubDebug a publish task): any other name is blocked.
+// Release, signing, publishing and uploads, the tasks that build every
+// variant (assemble, build, bundle) and the ones that install on or test in
+// whatever device is plugged in (installDebug, uninstall*, connected*: the
+// emulator is android.sh's job) are not on it.
+const GRADLE_VALUE_OPTS = new Set(['-p', '--project-dir', '-b', '--build-file', '-c', '--settings-file', '-g', '--gradle-user-home', '-x', '--exclude-task', '--console', '--warning-mode', '--max-workers', '--priority', '--include-build', '--project-cache-dir', '-F', '--dependency-verification', '-M', '--write-verification-metadata', '--update-locks'])
+const GRADLE_SAFE_TASKS = new Set(['assembleDebug', 'bundleDebug', 'compileDebugSources', 'compileDebugJavaWithJavac', 'compileDebugKotlin', 'compileDebugUnitTestSources', 'assembleDebugUnitTest', 'assembleDebugAndroidTest', 'lint', 'lintDebug', 'lintFix', 'lintVitalDebug', 'test', 'testDebugUnitTest', 'check', 'clean', 'tasks', 'help', 'projects', 'dependencies', 'androidDependencies', 'buildEnvironment', 'outgoingVariants'])
+const GRADLE_BAD = /release|publish|upload|sign|deploy|distribut|promote|appcenter|firebase|crashlytics|sentry|bugsnag|play|store/i
+function checkGradle(name, rest, d) {
+  for (let q = 0; q < rest.length; q++) {
+    const t = rest[q]
+    // By prefix: Gradle also takes -Ix.gradle glued and short forms of long options.
+    if (/^(-I|--init|--sc)/.test(t)) deny(`${name} ${t} ${t.startsWith('--sc') ? 'publica el build en scans.gradle.com' : 'carga código de Gradle que el guard no revisa'}`, 'Usa solo tareas de debug, lint y pruebas')
+    if (/-javaagent|-agentpath|-agentlib/.test(t)) deny(`${name} ${t} carga un agente en la JVM de Gradle`, 'Usa solo tareas de debug, lint y pruebas')
+    if (GRADLE_VALUE_OPTS.has(t)) { q++; continue }
+    if (/^-[PD]$/.test(t)) { if (GRADLE_BAD.test(rest[q + 1] ?? '')) d(`${name} ${t} ${rest[q + 1]}`); q++; continue }
+    if (/^-[PD]./.test(t)) { if (GRADLE_BAD.test(t)) d(`${name} ${t}`); continue }
+    if (t.startsWith('-')) continue
+    const task = t.split(':').pop()
+    if (GRADLE_BAD.test(task)) d(`${name} ${t}`)
+    if (!GRADLE_SAFE_TASKS.has(task)) deny(`${name} ${t}: solo se permiten tareas de debug, lint y pruebas escritas completas (Gradle acepta abreviaturas, así que otro nombre puede ser un release, una firma o una publicación)`, `Usa una de: ${[...GRADLE_SAFE_TASKS].slice(0, 6).join(', ')}... y android.sh para el emulador`)
+  }
 }
 
 function checkProcess(name, argv, words, ctx) {
@@ -1563,6 +1606,9 @@ function checkProcess(name, argv, words, ctx) {
   if (name === 'pm2' && ['kill', 'delete', 'stop', 'restart'].includes(argv[1])) deny(`pm2 ${argv[1]} detiene procesos de otras sesiones`, '')
   if (name === 'launchctl' && ['bootout', 'kill', 'stop', 'unload', 'remove'].includes(argv[1])) deny(`launchctl ${argv[1]} detiene servicios del sistema`, '')
   if (name === 'adb' && argv.includes('emu') && argv.includes('kill') && ctx.mode === 'live') deny('adb emu kill puede apagar el emulador de otra sesión', 'Usa android.sh stop <n>')
+  // The AVDs of a person may have the real app with its data: nobody
+  // uninstalls or clears an app by hand (android.sh only touches its own build).
+  if (name === 'adb' && ctx.mode === 'live' && (/(^|[\s;&|'"])(uninstall|root|(pm|package)\s+(clear|reset-permissions))([\s;&|'"]|$)/.test(argv.slice(1).join(' ')) || /\/data\/(data|user(_de)?\/\d+)\/|\/Android\/data\//.test(argv.join(' ')) || argv[argv.length - 1] === 'shell')) deny('adb desinstala o borra los datos de una app del emulador o del teléfono (puede ser la app real con datos)', 'Usa android.sh, que solo instala y abre la build de debug del ticket')
   if (name === 'adb' && (argv.includes('kill-server') || argv.includes('reboot')) && ctx.mode === 'live') deny(`adb ${argv.includes('reboot') ? 'reboot' : 'kill-server'} corta los emuladores y dispositivos de otras sesiones`, '')
   if (name !== 'kill') return
   if (ctx.mode !== 'live') return

@@ -1,10 +1,12 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.1",
   "guard": 2,
   "profile": "UVA-App-Frontend",
   "source": "https://github.com/MakeSens-Apps/racimo-harness",
   "managed": {
     "deny": [
+      "Bash(./gradlew assembleRelease*)",
+      "Bash(./gradlew bundleRelease*)",
       "Bash(./gradlew publish*)",
       "Bash(amplify publish*)",
       "Bash(amplify push*)",
@@ -38,9 +40,12 @@
       "Bash(git push origin main*)",
       "Bash(git push origin test*)",
       "Bash(git worktree unlock *)",
+      "Bash(gradle -p android assembleRelease*)",
+      "Bash(gradle -p android bundleRelease*)",
       "Bash(killall *)",
       "Bash(npm publish*)",
       "Bash(npm run amplify-push*)",
+      "Bash(npm run android:bundle*)",
       "Bash(npm run android:prod*)",
       "Bash(npx ampx pipeline-deploy *)",
       "Bash(npx cdk deploy*)",
@@ -94,21 +99,21 @@
       "Write(~/.claude/settings.json)"
     ],
     "allow": [
+      "Bash(gh issue comment *)",
+      "Bash(gh issue view *)",
+      "Bash(gh pr checks *)",
+      "Bash(gh pr comment *)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr diff *)",
+      "Bash(gh pr edit *)",
+      "Bash(gh pr view *)",
+      "Bash(git fetch *)",
+      "Bash(git push --force-with-lease origin feature/*)",
+      "Bash(git push -u origin feature/*)",
+      "Bash(npm install)",
       "Bash(npm run *)",
       "Bash(npm test)",
-      "Bash(npm install)",
-      "Bash(npx npm@11 install)",
-      "Bash(gh issue view *)",
-      "Bash(gh issue comment *)",
-      "Bash(gh pr view *)",
-      "Bash(gh pr checks *)",
-      "Bash(gh pr diff *)",
-      "Bash(gh pr create *)",
-      "Bash(gh pr edit *)",
-      "Bash(gh pr comment *)",
-      "Bash(git fetch *)",
-      "Bash(git push -u origin feature/*)",
-      "Bash(git push --force-with-lease origin feature/*)"
+      "Bash(npx npm@11 install)"
     ]
   }
 }

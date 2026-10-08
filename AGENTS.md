@@ -18,7 +18,7 @@ App móvil **UVA** para Android: Ionic 8 + Angular 18 (componentes standalone) +
 Reglas para personas y agentes:
 
 - **Nadie publica la app ni ejecuta builds de release o firmados.** Ni `gh workflow run`, ni `npm run android:prod*` / `android:bundle`, ni `./gradlew assembleRelease` / `bundleRelease` / `publish*`, ni `eas build` / `eas submit` / `fastlane` (este repo no usa EAS; el guard bloquea `eas` igual), ni `amplify push` / `npm run amplify-push`. Tampoco se crean tags ni releases.
-- **Cada push a `feature/**` compila un APK en Actions** (consume minutos y avisa en Slack). Agrupa los pushes: haz todos los commits en local y publica **una o dos veces por PR**. No hagas pushes de prueba ni dispares builds para obtener un APK: el APK de la evidencia se compila en local.
+- **Cada push a `feature/**` compila un APK en Actions** (consume minutos y avisa en Slack). Abrir o actualizar un PR dispara otra corrida (`pull_request`). Hoy el build está roto por causa ajena ([#65](https://github.com/MakeSens-Apps/UVA-App-Frontend/issues/65): `setup-android@v3` no encuentra el paquete `tools`): se declara y no se trata como regresión del ticket. Agrupa los pushes: haz todos los commits en local y publica **una o dos veces por PR**. No hagas pushes de prueba ni dispares builds para obtener un APK: el APK de la evidencia se compila en local.
 - Los PRs van a `develop`. Los agentes nunca integran (GUIA §6).
 
 ## Comandos verificados en local
@@ -27,16 +27,16 @@ Verificados el 2026-10-07 en `develop` (c7de93e) con macOS, Node 24.21, npm 11.1
 
 | Paso | Comando | Resultado en `develop` |
 |---|---|---|
-| Instalar | `npm ci` | OK (unos 15 s). `npm install` también sirve, pero no cambies el lockfile sin motivo |
+| Instalar | `npm ci` | OK (unos 15 s). No cambies el lockfile sin motivo |
 | Configuración local | `src/amplifyconfiguration.json` (ignorado por git) | **Obligatorio para compilar** (`src/main.ts` lo importa). Ver "Configuración sintética" abajo |
-| Lint | `npm run lint` | **Falla en develop**: 15 errores y 10 avisos preexistentes en 10 archivos. En un ticket, no agregues errores nuevos: compara con `npx eslint <archivos tocados>` |
-| Pruebas | `npm run test:ci` | **Falla en develop**: `karma.conf.js` no registra el navegador `ChromeHeadlessCI` |
-| Pruebas (alternativa que corre) | `npx ng test --no-watch --browsers=ChromeHeadlessLinux` | Corre 6 pruebas; 5 fallan en develop |
+| Lint | `npm run lint` | **En rojo conocido en develop** ([#66](https://github.com/MakeSens-Apps/UVA-App-Frontend/issues/66)): 15 errores y 10 avisos preexistentes en 10 archivos. No es una regresión del ticket; solo no agregues errores nuevos (`npx eslint <archivos tocados>`) |
+| Pruebas | `npm run test:ci` | **En rojo conocido en develop** ([#66](https://github.com/MakeSens-Apps/UVA-App-Frontend/issues/66)): `karma.conf.js` no registra el navegador `ChromeHeadlessCI` |
+| Pruebas (alternativa que corre) | `npx ng test --no-watch --browsers=ChromeHeadlessLinux` | Corre 6 pruebas; 5 fallan en develop (#66) |
 | Build web | `npm run build` | OK (unos 20 s) con la configuración local |
 | Servidor web | `npm start -- --port $PORT` | OK (`ng serve`); solo para revisar en el navegador |
-| APK de debug | `npx cap sync android` y luego `JAVA_HOME=<JDK 17> gradle -p android assembleDebug` (Gradle del sistema, por ejemplo `brew install gradle`) | OK (menos de 2 min). Sale en `android/app/build/outputs/apk/debug/app-debug.apk` (27 MB) |
+| APK de debug | `npx cap sync android` y luego `JAVA_HOME=<JDK 17> gradle -p android assembleDebug` o `cd android && ./gradlew assembleDebug` | OK (1 a 2 min). Sale en `android/app/build/outputs/apk/debug/app-debug.apk` (27 MB) |
 
-En una sesión de agente el guard bloquea `./gradlew` (el script del wrapper usa `eval`, que el guard no puede revisar); por eso se usa `gradle -p android` directamente. Una persona también puede usar `cd android && ./gradlew assembleDebug`, pero el repo no versiona `android/gradle/wrapper/gradle-wrapper.jar` (lo ignora la regla `*.jar`): la primera vez, en `android/`, `gradle wrapper --gradle-version 8.2.1` (la CI hace lo mismo con 8.5). No cambia archivos versionados.
+Las dos formas pasan el guard desde racimo-harness v1.0.1; las tareas de release (`assembleRelease`, `bundleRelease`, `publish*` y sus abreviaturas) quedan bloqueadas. `gradle -p android` usa el Gradle del sistema (`brew install gradle`). Para `./gradlew`, el repo no versiona `android/gradle/wrapper/gradle-wrapper.jar` (lo ignora la regla `*.jar`): la primera vez, en `android/`, `gradle wrapper --gradle-version 8.2.1` (la CI hace lo mismo con 8.5). No cambia archivos versionados.
 
 ### Configuración sintética
 
@@ -60,18 +60,18 @@ Sin `aws_mobile_analytics_app_id`, Amplify Analytics lanza `NoAppId` al arrancar
 
 ## Evidencia en el emulador
 
-Requisitos: Android SDK con `adb` y `emulator`, un AVD, JDK 17 y `ffmpeg`. Pasos con `android.sh` del plugin (GUIA §3):
+Requisitos: Android SDK con `adb`, `emulator` y `aapt2`, un AVD, JDK 17 y `ffmpeg`. Pasos con `android.sh` del plugin (GUIA §3):
 
-1. Compila el APK de debug en local (tabla de arriba).
-2. `android.sh start <n> <avd>`, `android.sh install <n> <apk>` y abre la app.
-3. `android.sh shot <n> <vista> light|dark` y `android.sh record <n> <vista> <s>` en segundo plano mientras abres o manejas la app.
-4. `android.sh stop <n>` al terminar.
+1. Compila el APK de debug en local (tabla de arriba). Nunca dispares un build de Actions para obtenerlo.
+2. `android.sh start <n> [avd]`: arranca siempre con `-read-only -no-snapshot` (el AVD no se modifica) y GPU por software (`--gpu host` solo si hace falta).
+3. `android.sh install <n> <apk>` y `android.sh launch <n>` (usa `am start`). `install` rechaza builds de release y un paquete que el AVD ya tenía, porque puede ser la app real con una sesión.
+4. `android.sh shot <n> <vista> light|dark` y `android.sh record <n> <vista> <s>` en segundo plano mientras manejas la app con `android.sh input`.
+5. `android.sh stop <n>` al terminar.
 
 Lo que se aprendió en la prueba en seco (F0-12d, #63):
 
-- **Usa un AVD con GPU por software.** En `Medium_Phone_API_36.0` (Android 16, GPU del host) `screencap` y el WebView salen en blanco. `UVA_API35` (Android 15, `hw.gpu.enabled = no`) funciona.
-- **El AVD puede tener la app real instalada con una sesión.** No la abras. El APK de debug tiene otra firma, así que hay que desinstalar la app del AVD; si el AVD arranca en frío, eso borra los datos de la app real para siempre. Lo seguro es un AVD dedicado a agentes, sin la app real (lo crea una persona en Android Studio), o arrancar el emulador con `-read-only -no-snapshot`, que descarta los cambios al apagarlo.
-- `android.sh launch` usa `monkey`, que en Android 15 no abrió la app. Usa `adb -s <serial> shell am start -n com.makesens.uvaapp/.MainActivity`.
+- Con GPU del host, en un AVD Android 16 (`Medium_Phone_API_36.0`), `screencap` y el WebView salen en blanco. Por eso `android.sh` usa GPU por software por defecto.
+- Los AVD de esta máquina tienen instalada la app real (firma de producción). Nunca la abras; lo ideal es un AVD dedicado a agentes, sin la app real (lo crea una persona en Android Studio).
 - La pantalla de inicio de sesión usa colores propios: en oscuro se ve igual que en claro.
 - Nunca escribas teléfonos ni códigos reales: si un flujo requiere sesión, usa datos sintéticos y decláralo.
 
@@ -90,10 +90,10 @@ Claves fijas que lee el harness de Claude (`/racimo-harness:ticket`, `doctor`). 
 |---|---|
 | Rama base | `develop` |
 | Cuenta de gh | `jlsaco` |
-| Instalar | `npm install` |
-| Verificar (en orden) | `npm run lint`, `npm run test:ci`, `npm run build` (confirmar en F0-12d) |
-| Check de CI | build de Android APK (`build-android.yml`, corre en cada push a `feature/**`: agrupa los pushes) |
-| Tipo de evidencia | móvil (emulador Android: claro y oscuro, GIF con screenrecord) |
+| Instalar | `npm ci` (y `src/amplifyconfiguration.json` sintético, ver "Configuración sintética") |
+| Verificar (en orden) | `npm run build`; APK de debug: `npx cap sync android` y `gradle -p android assembleDebug` (o `cd android && ./gradlew assembleDebug`). Verificación conocida en rojo, ver #66: `npm run lint` y `npm run test:ci` fallan en `develop` antes de cualquier ticket; no es una regresión del ticket, solo no agregues errores nuevos (`npx eslint <archivos tocados>`) |
+| Check de CI | `📱 Build APK` (`build-android.yml`, en cada push a `feature/**`: agrupa los pushes). Roto por causa ajena hasta #65: se declara, no se trata como regresión |
+| Tipo de evidencia | móvil (emulador Android con `android.sh`: claro y oscuro, GIF con screenrecord) |
 | Servidor local | `npm start -- --port $PORT` (solo para revisar en el navegador; la evidencia es del emulador) |
-| Despliegues prohibidos | `gh workflow run` (build-android-bundle firma producción), `./gradlew publish*`, `npm run amplify-push`, `amplify push` |
+| Despliegues prohibidos | builds de release y firmados (`./gradlew assembleRelease`/`bundleRelease`/`publish*`, cualquier tarea de firma o subida), `npm run android:prod*`, `npm run android:bundle`, `npm run amplify-push`, `amplify push`, `gh workflow run` (build-android-bundle firma producción), tags y releases |
 <!-- racimo-harness:perfil:fin -->
