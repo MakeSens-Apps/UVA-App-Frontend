@@ -1,5 +1,7 @@
 # UVA App Frontend - Claude Code Context
 
+> **Lee primero [AGENTS.md](../AGENTS.md)**: ramas y builds, comandos verificados en local, evidencia en el emulador, seguridad y el perfil del harness de Claude (`/racimo-harness:ticket`). Nadie publica la app ni ejecuta builds de release; cada push a `feature/**` compila un APK en GitHub Actions, así que se agrupan los pushes (1 o 2 por PR). Los cambios en `.claude/settings.json` y `.claude/hooks/` se hacen en el repo racimo-harness y se copian con `scripts/sync-repo-layer.sh`.
+
 ## Project Overview
 
 **UVA App** is a generic hybrid mobile application developed for environmental measurements and monitoring. The app serves as a flexible platform for collecting various environmental data points. In this initial version, the application focuses on measuring **temperature**, **humidity**, and **rain**, but the architecture is designed to support additional environmental measurements in future versions.
