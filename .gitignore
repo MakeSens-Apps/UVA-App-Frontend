@@ -237,3 +237,8 @@ amplifytools.xcconfig
 .secret-*
 **.sample
 #amplify-do-not-edit-end
+
+# racimo-harness (Claude Code)
+.claude/worktrees/
+.claude/settings.local.json
+.claude/evidence/
