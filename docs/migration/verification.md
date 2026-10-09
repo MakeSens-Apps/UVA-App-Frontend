@@ -2,9 +2,9 @@
 
 > **Post-cutover (2026-09-11):** las rutas `mobile/...` de este documento son históricas; la app vive ahora en la raíz del repo.
 
-**Fase:** 6 (paridad visual) / 8 (hardening B19) — en curso.
-**Última actualización:** 2026-09-08.
-**Rama:** `feature/ionic-to-react-native`.
+**Fase:** cierre de la migración e integración a `develop` ([#67](https://github.com/MakeSens-Apps/UVA-App-Frontend/issues/67), PR [#58](https://github.com/MakeSens-Apps/UVA-App-Frontend/pull/58)). B19 cerrado salvo el smoke del AAB y los gates que exigen device con SIM (§3, §5 y §6).
+**Última actualización:** 2026-10-08.
+**Rama:** `feature/ionic-to-react-native` (los cambios de #67 llegan desde `feature/67-close-react-native-migration`, con `develop` ya integrado por merge).
 
 Este documento se actualiza a medida que avanza la ronda de verificación en
 device real y el hardening de B19 (`docs/migration/plan.md` §B19). No
@@ -18,9 +18,13 @@ reemplaza la evidencia cruda (`docs/evidence/`, **archivada fuera del repo el 20
   pantallas B01–B18, SLICE de demo B13) — **hechas**. Todas las pantallas y
   servicios de la matriz de portabilidad tienen su contraparte RN portada y
   con Jest verde.
-- **B19** (hardening + paridad visual Fase 6 + cutover final) — **pendiente**.
-  Este documento cubre la porción de hardening de TypeScript/código muerto
-  hecha en esta ronda; el resto del checklist de B19 (§4) sigue abierto.
+- **B19** (hardening + paridad visual Fase 6 + cutover final) — **hecho**
+  (cutover del 2026-09-11 y checklist de §5), salvo el smoke del AAB en un
+  device y los gates de §3 que exigen SIM.
+- **Cierre (#67, 2026-10-08):** la auditoría de solo lectura antes de integrar
+  a `develop` encontró dos hallazgos funcionales, ya corregidos con prueba
+  (§6): la telemetría de navegación (`AppUsageEvent`) no se registraba y el
+  botón atrás al final del registro permitía crear una segunda UVA.
 - **Primera ronda de verificación en device físico real:** 2026-09-07, sobre
   un Redmi Note 10S (Android 13, MIUI 14, 1080×2400 @440dpi). Produjo:
   - `docs/migration/evidence-notes/device-findings-2026-09-07.md` (hallazgos F-01…F-11 del
@@ -143,8 +147,11 @@ Estado actual de cada ítem del checklist de B19:
       `src/native/minimize/useAppMinimize.ts` (cadena: registro Expo →
       `NativeModules.AppMinimize` → `BackHandler.exitApp()`). El módulo nativo
       (`android/`) NO se tocó.
-- [ ] **Fase 6 paridad** (capturas Ionic `open_browser` S8 360×740 vs RN dev
-      build, pantalla-por-pantalla) — pendiente, es el grueso de B19.
+- [x] **Fase 6 paridad**: cerrada con el OK general del usuario del
+      2026-09-10 (ver "Validación en device — 2026-09-10") y la auditoría de
+      paridad funcional del 2026-10-08 (#67: todas las pantallas y servicios de
+      V2.2.11 tienen su equivalente en React Native). No se hizo la comparación
+      de capturas pantalla por pantalla del plan original.
 - [x] **Workflows de build** (2026-09-11, decisión: Gradle en Actions, sin EAS):
       `build-android.yml` (APK, ~18 min, verde) y `build-android-bundle.yml`
       (AAB firmado + `deploy-play`, verde); `test-secrets.yml` eliminado.
@@ -153,16 +160,20 @@ Estado actual de cada ítem del checklist de B19:
       jest) verde en todos los pushes de la rama.
 - [x] **Husky 9 + lint-staged (R-49)**: `mobile/.husky/pre-commit` +
       `lint-staged` en `mobile/package.json`.
-- [ ] **Scripts build/setup → expo prebuild/eas** (eliminar 6 `.sh` macOS y
-      amplify-modelgen/push rotos) — pendiente.
+- [x] **Scripts build/setup → expo prebuild** (eliminar 6 `.sh` macOS y
+      amplify-modelgen/push rotos): hecho en el cutover (`e99854f` borra
+      `scripts/*.sh`); el `package.json` de la raíz ya no tiene los scripts de
+      amplify-modelgen/push. No se usa EAS.
 - [x] **Docs de proceso reescritas para Expo/Gradle (R-49)**:
       `docs/android-build.md`, `docs/release-workflow.md`,
       `docs/github-actions-pipeline.md`.
-- [ ] **Eliminar deps muertas** (sweetalert2+ngx-sweetalert2 R-45,
+- [x] **Eliminar deps muertas** (sweetalert2+ngx-sweetalert2 R-45,
       ini/inquirer, `@types/date-fns`, plugins Capacitor sin uso, zone.js,
-      cordova-res) — pendiente (estas dependencias viven en el Ionic raíz, no en
-      `mobile/`, y se eliminan recién en el cutover).
-- [ ] **Excluir CreationPage QA y manifest huérfano (R-43)** — pendiente.
+      cordova-res): hecho en el cutover; ninguna está en el `package.json` de la
+      raíz.
+- [x] **Excluir CreationPage QA y manifest huérfano (R-43)**: `CreationPage`
+      no tiene ruta en React Navigation (`src/navigation/types.ts`) y el cutover
+      (`e99854f`) borró `src/manifest.webmanifest`.
 - [x] **Medir bundle** (R-50): `docs/migration/bundle-report.md` — descarga
       en Play 16.5 MiB arm64 (bundletool), R8 + shrinkResources, ABIs
       armeabi-v7a/arm64-v8a.
@@ -179,7 +190,52 @@ Estado actual de cada ítem del checklist de B19:
       general del usuario 2026-09-10); jest+eslint verdes en CI (OK); AAB de
       producción firmado con el keystore del secret (OK, en Play interno);
       árbol RN limpio en root (OK); keystore purgado (OK); smoke test
-      end-to-end del AAB en device (pendiente: instalar desde el track interno).
+      end-to-end del AAB en device (pendiente: instalar desde el track interno;
+      fuera del alcance de #67, lo hace una persona con un device con SIM antes
+      de pasar a producción).
+
+---
+
+## 6. Cierre de la migración e integración a `develop` (#67, 2026-10-08)
+
+Auditoría de solo lectura de la rama antes de integrarla a `develop`. En verde
+sobre la rama: `npm ci`, `tsc`, `lint` (0 errores), `jest`, `expo prebuild` y
+`assembleDebug`. Paridad funcional completa con V2.2.11. La rama de React
+Native es la única que tiene V2.2.5 a V2.2.11 (producción); `develop` seguía
+siendo Ionic.
+
+### Hallazgos y arreglos
+
+| Hallazgo                                                                                                                                                                                                                                                                                                                       | Arreglo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Prueba                                                                                         |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| **Telemetría de uso:** React Native no registraba ningún `AppUsageEvent` al navegar (`RootNavigator.handleStateChange` era un TODO y `trackNavigation` no tenía llamadas). El dashboard RACIMO usa estos eventos para la actividad de los usuarios.                                                                            | `RootNavigator` registra un `AppUsageEvent` (`action: 'navigate'`) en `onReady` (pantalla inicial de cada stack, como el primer `NavigationEnd` de Ionic) y en cada cambio de la pantalla enfocada. El `screenName` es el slug de la URL de Ionic (`Home` → `home`, `Historical` → `history`, `Measurement` → `register`…, en `src/data/view/screen-names.ts`), para no cortar la serie histórica ni la agrupación del dashboard. Las rutas sin URL en Ionic van en kebab-case, `DevGate` no se registra y `Otp`/`ValidateCode` usan un slug fijo (en Ionic el último segmento de esas URL era el número de teléfono). Sin usuario autenticado o sin RACIMO en la sesión no se registra nada, igual que en Ionic. | `src/__tests__/fix-67-navigation-usage-tracking.test.tsx`                                      |
+| **Botón atrás en el registro:** Ionic minimizaba en todas las subrutas de `/register` y `/otp` (coincidencia por subcadena); React Native solo en nombres exactos. En "Registro completado", volver atrás durante los 3 s previos a la redirección y reenviar el formulario creaba una **segunda UVA** (mismo síntoma de #50). | Igual que Ionic (decisión del usuario): el atrás minimiza en todas las pantallas de registro y OTP (`src/native/minimize/routesToMinimize.ts`). Además, `RegisterProjectFormScreen` crea la UVA como mucho una vez: descarta un segundo envío mientras el primero sigue en curso, no vuelve a crearla si ya la creó y, antes de crear, pregunta otra vez al backend si el usuario ya tiene UVA (si la tiene, solo actualiza sus campos).                                                                                                                                                                                                                                                                          | `src/__tests__/fix-67-register-no-duplicate-uva.test.tsx` y `src/__tests__/b17-native.test.ts` |
+
+Las UVAs duplicadas que ya existen en el backend no se corrigen desde la app
+(#50 sigue abierto para eso).
+
+### Decisiones
+
+- **Analytics (Pinpoint):** no se conecta el `autoTrack` que tenía Ionic
+  (sesiones y páginas). Solo se registra `AppUsageEvent`, que es el dato que usa
+  el dashboard RACIMO. Decisión del usuario en #67.
+- **Integración:** #58 entra a `develop` con **merge commit** (excepción a la
+  convención de squash) para conservar la historia de la migración y que
+  `develop` quede como antecesor de los tags de producción `V2.2.5` a
+  `V2.2.11`. Al integrar solo se compila el APK de debug y se avisa a Slack;
+  nada se publica en Play (el AAB solo corre con un tag de versión o a mano).
+
+### Pendiente de device (fuera del alcance de #67)
+
+No bloquean la integración a `develop`, pero sí el paso a producción. Los hace
+una persona con un device con SIM:
+
+- Smoke del AAB instalado desde el track interno de Play.
+- OTP real (SMS) y vinculación real a un RACIMO.
+- El botón atrás en el registro con un usuario real, de punta a punta.
+- Ver los `AppUsageEvent` de la app React Native en UVA develop y en el
+  dashboard RACIMO.
+- Doze / exact-alarm, sync offline real y theming con varios RACIMOS (§3).
 
 ---
 
