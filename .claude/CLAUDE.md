@@ -117,7 +117,7 @@ Pure, RN-independent logic — fully testable with Jest without platform mocks: 
 
 ### Build and Deployment
 
-- **Development**: `npm start` (`expo start --dev-client`), or `npx expo start --port $PORT` for the debug APK on an emulator (see AGENTS.md)
+- **Development**: `npm start` (`expo start --dev-client`), or `npx expo start --port 8081` for the debug APK on an emulator (it fetches the JS from `10.0.2.2:8081`; see AGENTS.md)
 - **Debug APK (agents and people)**: `npx expo prebuild --no-install --platform android` then `cd android && ./gradlew assembleDebug` — see `docs/android-build.md`
 - **Never from an agent session**: `npm run android` / `expo run:android` (builds and installs on the connected device, same package as production), `npm run build:android:*`, `./gradlew assembleRelease` / `bundleRelease` / `publish*`, tags `V*.*.*` or `gh workflow run`. Release builds and Play uploads are done by a person through the workflows (AGENTS.md, "Ramas, builds y publicación")
 - **Linting**: `npm run lint` (fix with `npm run lint:fix`)

@@ -45,7 +45,7 @@ Verificados el 2026-10-08 en `feature/67-close-react-native-migration` (React Na
 | Pruebas | `npm run test:ci` | OK: 60 suites, 1110 pruebas, con cobertura. `npm test` corre lo mismo sin cobertura |
 | Generar `android/` | `npx expo prebuild --no-install --platform android` | OK. `android/` no se versiona y se regenera entero (`--clean` lo borra antes). Lo nativo se cambia con un config plugin en `plugins/`, nunca a mano en `android/` |
 | APK de debug | `cd android && ./gradlew assembleDebug` | OK. Sale en `android/app/build/outputs/apk/debug/app-debug.apk`. El wrapper lo genera `expo prebuild`. El guard deja pasar `assembleDebug` y bloquea las tareas de release y firma |
-| Servidor de JS (Metro) | `npx expo start --port $PORT` | El APK de debug carga el JS desde Metro: en el emulador, `adb -s <serial> reverse tcp:8081 tcp:$PORT` |
+| Servidor de JS (Metro) | `npx expo start --port 8081` | OK. El APK de debug carga el JS desde Metro, y **en el emulador lo pide a `10.0.2.2:8081`** (el puerto 8081 de la máquina): `adb reverse` hacia otro puerto no alcanza, así que Metro debe escuchar en 8081 (comprueba antes que esté libre). En un teléfono por USB, `adb -s <serial> reverse tcp:8081 tcp:8081` |
 
 ### Configuración sintética
 
@@ -71,8 +71,8 @@ Con esta configuración la app arranca, no encuentra sesión y muestra la pantal
 
 Requisitos: Android SDK con `adb`, `emulator` y `aapt2`, un AVD, JDK 17 y `ffmpeg`. Pasos con `android.sh` del plugin (GUIA §3):
 
-1. Compila el APK de debug en local (tabla de arriba) y levanta Metro con `npx expo start --port $PORT`. Nunca dispares un build de Actions para obtenerlo.
-2. `android.sh start <n> [avd]`: arranca siempre con `-read-only -no-snapshot` (el AVD no se modifica) y GPU por software (`--gpu host` solo si hace falta). Luego `adb -s <serial> reverse tcp:8081 tcp:$PORT`.
+1. Compila el APK de debug en local (tabla de arriba) y levanta Metro con `serve.sh` en el puerto 8081 (`npx expo start --port 8081`, ver la tabla). Nunca dispares un build de Actions para obtenerlo.
+2. `android.sh start <n> [avd]`: arranca siempre con `-read-only -no-snapshot` (el AVD no se modifica) y GPU por software. Con GPU por software, la app React Native sale en negro en el AVD Android 15 (`UVA_API35`, verificado el 2026-10-08): ahí usa `--gpu host`.
 3. `android.sh install <n> <apk>` y `android.sh launch <n>`. `install` rechaza builds de release y un paquete que el AVD ya tenía.
 4. `android.sh shot <n> <vista> light|dark` y `android.sh record <n> <vista> <s>` en segundo plano mientras manejas la app con `android.sh input`.
 5. `android.sh stop <n>` al terminar.
