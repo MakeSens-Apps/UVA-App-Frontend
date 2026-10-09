@@ -117,12 +117,13 @@ Pure, RN-independent logic — fully testable with Jest without platform mocks: 
 
 ### Build and Deployment
 
-- **Development**: `npm start` (`expo start --dev-client`)
-- **Local Android run**: `npm run android` (`expo run:android`)
-- **Native build**: `npx expo prebuild --platform android` then Gradle (`./gradlew assembleRelease` / `bundleRelease`) — see `docs/android-build.md`
+- **Development**: `npm start` (`expo start --dev-client`), or `npx expo start --port $PORT` for the debug APK on an emulator (see AGENTS.md)
+- **Debug APK (agents and people)**: `npx expo prebuild --no-install --platform android` then `cd android && ./gradlew assembleDebug` — see `docs/android-build.md`
+- **Never from an agent session**: `npm run android` / `expo run:android` (builds and installs on the connected device, same package as production), `npm run build:android:*`, `./gradlew assembleRelease` / `bundleRelease` / `publish*`, tags `V*.*.*` or `gh workflow run`. Release builds and Play uploads are done by a person through the workflows (AGENTS.md, "Ramas, builds y publicación")
 - **Linting**: `npm run lint` (fix with `npm run lint:fix`)
 - **Formatting**: `npm run format`
 - Release/signing/versioning: see `docs/release-workflow.md`; CI process: see `docs/github-actions-pipeline.md`
+- **Usage telemetry**: `RootNavigator` records an `AppUsageEvent` (action `navigate`) on every focused screen through `trackNavigation`, with the Ionic slug as `screenName` (`src/data/view/screen-names.ts`). The RACIMO dashboard reads these events; keep the slugs stable. There is no Pinpoint/Analytics autoTrack (decision in #67)
 
 ## AWS Amplify Configuration
 
@@ -186,12 +187,11 @@ Pure, RN-independent logic — fully testable with Jest without platform mocks: 
 ```bash
 # Development
 npm start                    # expo start --dev-client
-npm run android               # expo run:android
 npm run web                    # expo start --web
 
-# Native build (no EAS)
-npx expo prebuild --platform android --clean
-cd android && ./gradlew assembleRelease   # or bundleRelease
+# Native debug build (no EAS). Release builds: only a person, through the workflows
+npx expo prebuild --no-install --platform android
+cd android && ./gradlew assembleDebug
 
 # Quality Assurance
 npm run lint

@@ -1,0 +1,10 @@
+# racimo-harness layer: these files are written by sync-repo-layer.sh from the
+# racimo-harness repo. Reformatting them here (lint-staged runs prettier on
+# staged *.md and *.json) would make the next sync produce a spurious diff and
+# would alter the "Perfil del harness" section of AGENTS.md, which the harness
+# parses as written.
+AGENTS.md
+.claude/settings.json
+.claude/racimo-harness-layer.json
+.claude/hooks/
+.github/pull_request_template.md
