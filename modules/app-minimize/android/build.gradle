@@ -1,0 +1,36 @@
+plugins {
+  id 'com.android.library'
+  id 'org.jetbrains.kotlin.android'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.appminimize'
+version = '1.0.0'
+
+android {
+  namespace 'expo.modules.appminimize'
+
+  defaultConfig {
+    minSdkVersion 24
+    targetSdkVersion 35
+    versionCode 1
+    versionName '1.0.0'
+  }
+
+  buildFeatures {
+    buildConfig true
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+
+  kotlinOptions {
+    jvmTarget = JavaVersion.VERSION_17
+  }
+}
+
+dependencies {
+  implementation project(':expo-modules-core')
+}

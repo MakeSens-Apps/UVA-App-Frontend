@@ -1,482 +1,119 @@
-# UVA-App-Frontend
+# UVA App
 
-Aplicación móvil híbrida desarrollada con **Ionic/Angular** para medición y monitoreo de radiación UV, utilizando **AWS Amplify** como backend y **Capacitor** para funcionalidad nativa.
+Aplicación móvil para la recolección y monitoreo de datos ambientales comunitarios (temperatura, humedad, lluvia), con fase lunar y gamificación. Los usuarios son colaboradores de campo agrupados en **RACIMOS** (proyectos); la app funciona **sin conexión** y sincroniza en segundo plano cuando hay red.
 
-## 📋 Tabla de Contenidos
+## Stack
 
-- [Requisitos del Sistema](#-requisitos-del-sistema)
-- [Instalación Paso a Paso](#-instalación-paso-a-paso)
-- [Configuración del Proyecto](#-configuración-del-proyecto)
-- [Comandos de Desarrollo](#-comandos-de-desarrollo)
-- [Troubleshooting](#-troubleshooting)
-- [Arquitectura](#-arquitectura)
+- **React Native 0.85** + **Expo SDK 56** (Dev Client, sin EAS Build)
+- **TypeScript** estricto
+- **React Navigation** (native-stack + bottom-tabs)
+- **React Context** para estado global (sesión, sincronización, configuración, notificaciones) — sin Redux/MobX
+- **AWS Amplify** (`aws-amplify` + `@aws-amplify/datastore`) — mismo backend GraphQL/AppSync/Cognito/S3 que la app Ionic
+- **AsyncStorage** como adaptador de almacenamiento local de DataStore, con el límite de base de datos SQLite elevado a **200 MB** vía config plugin (ver `docs/arquitectura.md`)
+- **react-native-svg** para gráficas (sin Chart.js, sin Skia, sin victory-native)
+- **Jest** (`jest-expo`) + **@testing-library/react-native** para pruebas
+- Build nativo: `expo prebuild` (Continuous Native Generation) + **Gradle** en GitHub Actions — **no se usa EAS Build/Submit**
 
-## 🖥️ Requisitos del Sistema
+## Estructura
 
-### Sistemas Operativos Soportados
-
-- **macOS**: 10.15 (Catalina) o superior
-- **Linux**: Ubuntu 18.04+ / Debian 10+ / CentOS 8+
-
-### Hardware Mínimo
-
-- **RAM**: 8GB (16GB recomendado)
-- **Espacio en disco**: 10GB libres
-- **Procesador**: Intel i5 / AMD Ryzen 5 o superior
-
-## 🚀 Instalación Paso a Paso
-
-### Paso 1: Node.js y npm
-
-#### En macOS (usando Homebrew - Recomendado)
-
-```bash
-# Instalar Homebrew si no está instalado
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# Instalar Node.js (versión LTS)
-brew install node@20
-
-# Verificar instalación
-node -v  # Debe mostrar v20.x.x o superior
-npm -v   # Debe mostrar 9.x.x o superior
+```
+├── App.tsx                 # Composición raíz: polyfills → Amplify/DataStore → Context providers → RootNavigator
+├── index.ts                # Entry point de Expo
+├── app.json                # Configuración de Expo (nombre, versión, permisos, plugins)
+├── plugins/                # Config plugins de Expo (prebuild)
+│   └── withAsyncStorageDbSize.js   # Eleva el cap de AsyncStorage/SQLite a 200MB
+├── modules/                 # Módulos nativos propios (si aplica)
+├── assets/                  # Iconos, splash, fuentes de nivel app
+├── src/
+│   ├── screens/             # Pantallas, agrupadas por flujo (auth, home, measurement, historical, moon, profile, configuration, splash, dev)
+│   ├── navigation/          # RootNavigator, AuthStack, AppStack, AppTabs, gates de navegación
+│   ├── components/          # Componentes de UI reutilizables (calendar, header, moon-card, areachart, sync-action, ui/, icons/, rich-text)
+│   ├── state/                # Contexts: SessionContext, SyncContext, ConfigContext, notification/
+│   ├── data/                 # Acceso a datos
+│   │   ├── amplify-bootstrap/  # Amplify.configure + DataStore.configure + Hub (sync-monitor)
+│   │   ├── api/                 # Llamadas directas a GraphQL (racimo, uva, user, user-progress, moon-phase)
+│   │   ├── auth/                 # Autenticación (Cognito, OTP, test-users)
+│   │   ├── datastore/            # Wrappers de DataStore por modelo (measurement, racimo, uva, user, user-progress, gamification-event)
+│   │   ├── graphql/               # Queries/mutations/subscriptions generadas
+│   │   ├── models/                 # Esquema DataStore (schema.js/.d.ts) y modelos
+│   │   ├── session/                 # Persistencia de sesión (SecureStore/AsyncStorage)
+│   │   └── storage/                  # file-system, preferences, S3
+│   ├── domain/               # Lógica de negocio pura (testeable sin RN): measurement-engine, gamification, moon, report, aggregations, setup
+│   ├── native/                # Envoltorios de módulos nativos: back handler, minimizar app, notificaciones locales, device/apiLevel, clipboard, share, filesystem
+│   ├── theme/                 # ThemeProvider, tokens de diseño (colores, tipografía) — theming por RACIMO
+│   ├── types/                 # Tipos compartidos
+│   └── __tests__/             # Suite Jest (unit + component, RNTL)
+└── package.json
 ```
 
-#### En Linux (Ubuntu/Debian)
+Ver `docs/arquitectura.md` para el detalle de la arquitectura (navegación, Contexts, DataStore/AsyncStorage, módulos nativos) y `.claude/CLAUDE.md` / `CLAUDE.md` para las convenciones de trabajo con Claude Code en este repo.
+
+## Requisitos
+
+- Node.js 20+ y npm
+- Java 17 (para builds nativos Android)
+- Android SDK / Android Studio (para `expo prebuild` + Gradle local, o para el emulador)
+- Un dispositivo o emulador Android (el target actual es **solo Android**)
+
+## Cómo correr la app
 
 ```bash
-# Actualizar repositorios
-sudo apt update
-
-# Instalar Node.js 20.x
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Verificar instalación
-node -v
-npm -v
-```
-
-### Paso 2: Git (si no está instalado)
-
-#### macOS
-
-```bash
-# Git viene preinstalado, pero puedes actualizarlo
-brew install git
-```
-
-#### Linux
-
-```bash
-sudo apt install git
-```
-
-### Paso 3: Herramientas de Desarrollo Global
-
-```bash
-# Instalar CLIs necesarios globalmente
-npm install -g @ionic/cli @capacitor/cli @angular/cli @aws-amplify/cli
-
-# Verificar instalaciones
-ionic --version    # Debe mostrar 7.x.x o superior
-npx cap --version  # Debe mostrar 6.x.x o superior
-ng version         # Debe mostrar 18.x.x o superior
-amplify --version  # Debe mostrar 12.x.x o superior
-```
-
-### Paso 4: Desarrollo Android (Opcional)
-
-#### Java Development Kit (JDK)
-
-**macOS:**
-
-```bash
-# Usando Homebrew
-brew install openjdk@17
-
-# Configurar JAVA_HOME
-echo 'export JAVA_HOME=$(/usr/libexec/java_home)' >> ~/.zshrc
-source ~/.zshrc
-```
-
-**Linux:**
-
-```bash
-sudo apt install openjdk-17-jdk
-
-# Configurar JAVA_HOME
-echo 'export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64' >> ~/.bashrc
-echo 'export PATH=$PATH:$JAVA_HOME/bin' >> ~/.bashrc
-source ~/.bashrc
-```
-
-#### Android Studio
-
-1. **Descargar** desde [developer.android.com/studio](https://developer.android.com/studio)
-2. **Instalar** siguiendo el asistente de instalación
-3. **Configurar SDK** (Android SDK 33 o superior)
-4. **Configurar variables de entorno:**
-
-```bash
-# Agregar al archivo ~/.zshrc (macOS) o ~/.bashrc (Linux)
-export ANDROID_HOME=$HOME/Library/Android/sdk  # macOS
-export ANDROID_HOME=$HOME/Android/Sdk          # Linux
-export PATH=$PATH:$ANDROID_HOME/emulator
-export PATH=$PATH:$ANDROID_HOME/platform-tools
-```
-
-## 📦 Configuración del Proyecto
-
-### Opción 1: Configuración Automática (Recomendada) 🚀
-
-```bash
-# Clonar el proyecto
-git clone [URL_DEL_REPOSITORIO]
-cd UVA-App-Frontend
-
-# Ejecutar script de configuración automática
-./scripts/setup-dev-environment.sh
-```
-
-### Opción 2: Configuración Manual
-
-#### Paso 1: Clonar el Repositorio
-
-```bash
-# Clonar el proyecto
-git clone [URL_DEL_REPOSITORIO]
-cd UVA-App-Frontend
-
-# Verificar rama actual
-git branch
-```
-
-#### Paso 2: Instalación de Dependencias
-
-```bash
-# Instalar todas las dependencias del proyecto
 npm install
 
-# Si hay errores, limpiar cache y reintentar
-npm cache clean --force
-npm install
+# Servidor de desarrollo (requiere un Dev Client instalado en el dispositivo/emulador,
+# no funciona con Expo Go porque el proyecto usa módulos nativos custom)
+npm start                 # expo start --dev-client
+
+# Generar y correr un Dev Client / build local en Android
+npx expo prebuild --platform android
+npm run android           # expo run:android
+
+# Vista rápida en navegador (solo para layouts que soportan react-native-web)
+npm run web
 ```
 
-#### Paso 3: Configuración de AWS Amplify
+`amplifyconfiguration.json` es necesario para que la app arranque contra el backend real; está en `.gitignore` (se distribuye fuera del repo). Sin él, Metro falla al resolver el import en `src/data/amplify-bootstrap/amplify-config.ts`.
+
+## Build local (APK/AAB) sin EAS
+
+El pipeline de release usa `expo prebuild` para generar `android/` (Continuous Native Generation) y compila con Gradle directamente — no hay `eas build`/`eas submit` en el flujo de CI. Para reproducir localmente:
 
 ```bash
-# Configurar Amplify CLI con tus credenciales AWS omitir este paso si no realizara acciones de administracion
-amplify configure
-
-# Inicializar Amplify en el proyecto (solo primera vez)
-amplify init
-
-# Obtener configuración del ambiente de desarrollo
-amplify pull --appId [APP_ID] --envName develop
-
-# Esto descargará automáticamente:
-# - src/amplifyconfiguration.json
-# - src/aws-exports.js
-# - amplify/ (carpeta con configuración del backend)
+npx expo prebuild --platform android --clean
+cd android
+./gradlew assembleRelease     # APK
+./gradlew bundleRelease       # AAB (Google Play)
 ```
 
-> **Nota**: Solicita al administrador del proyecto el `APP_ID` de Amplify para el ambiente de desarrollo.
+La firma de release se resuelve mediante un config plugin de Expo (inyecta el keystore/`signingConfigs` durante el prebuild) — ver `docs/android-build.md` y `docs/release-workflow.md` para el detalle de secrets y variables usadas en CI.
 
-#### Paso 4: Configuración de Capacitor
-
-```bash
-# Sincronizar Capacitor con las plataformas
-npx cap sync
-
-# Agregar plataforma Android (si planeas desarrollar para móvil)
-npx cap add android
-```
-
-#### Paso 5: Verificación de la Instalación
+## Tests
 
 ```bash
-# Ejecutar tests de configuración
-npm run lint          # Verificar código
-npm run test           # Ejecutar tests unitarios
-ionic serve --dry-run  # Verificar configuración de Ionic
-```
-
-### 🔍 Verificación Rápida del Entorno
-
-Para verificar que todo está configurado correctamente, ejecuta:
-
-```bash
-# Verificar versiones de herramientas
-node -v        # Debe mostrar v20.x.x o superior
-npm -v         # Debe mostrar 9.x.x o superior
-ionic --version # Debe mostrar 7.x.x o superior
-ng version     # Debe mostrar Angular 18.x.x
-amplify --version # Debe mostrar 12.x.x o superior
-
-# Verificar archivos de configuración
-ls src/amplifyconfiguration.json  # Debe existir
-ls amplify/                       # Debe existir
-
-# Test rápido del proyecto
-npm run lint   # Sin errores de linting
-ionic serve --dry-run # Sin errores de configuración
-```
-
-Si algún comando falla, revisa la sección de [Troubleshooting](#-troubleshooting).
-
-## ⚡ Comandos de Desarrollo
-
-### Desarrollo Web
-
-```bash
-# Servidor de desarrollo con hot reload
-ionic serve
-# o
-npm start
-
-# Servidor con puerto específico
-ionic serve --port 8100
-
-# Servidor accesible desde red local
-ionic serve --external
-```
-
-### Desarrollo Móvil
-
-```bash
-# Construir para Android
-ionic capacitor build android
-
-# Ejecutar en Android Studio
-ionic capacitor run android
-
-# Ejecutar en dispositivo específico
-ionic capacitor run android --target [device-id]
-
-# Live reload en dispositivo
-ionic capacitor run android --livereload --external
-```
-
-### Testing y Quality
-
-```bash
-# Tests unitarios
-npm run test
-
-# Tests con coverage
-npm run test:ci
-
-# Linting
+npm run test        # jest
+npm run test:watch
+npm run test:ci      # jest --ci --coverage (el que corre en GitHub Actions)
+npx tsc --noEmit      # chequeo de tipos, sin emitir output
 npm run lint
-
-# Formatear código
-npm run format
-
-# Build de producción
-npm run build
 ```
 
-### Amplify Commands
+La suite cubre lógica de dominio pura (`src/domain/`), los Contexts de estado, componentes de UI con `@testing-library/react-native`, y bootstrap de Amplify/DataStore con mocks. Una nota conocida: el snapshot de `MoonCard` en `b11-components.test.tsx` embebe una ruta de asset relativa al directorio del proyecto — si se ejecuta desde un _worktree_ de git con un path distinto al checkout normal, ese snapshot específico falla por la diferencia de ruta, no por una regresión real.
 
-```bash
-# Ver estado del backend
-amplify status
+## Estado de la migración
 
-# Actualizar backend
-amplify push
+El proyecto migró de Ionic/Angular a React Native (Expo); el cutover se ejecutó el 2026-09-11 y el árbol Ionic fue eliminado (código disponible en el tag `pre-cutover-2026-09-11` y en los tags `V2.x`). El plan completo, bloque por bloque, y el estado de verificación viven en:
 
-# Generar modelos GraphQL
-amplify codegen models
+- `docs/migration/plan.md` — roadmap completo (B01…B19) y decisiones
+- `docs/migration/verification.md` — estado de gates y pendientes de validación en dispositivo
+- `docs/migration/portability-matrix.md` — mapeo pantalla-por-pantalla y dependencia-por-dependencia Ionic → RN
+- `docs/migration/bundle-report.md` — medición de tamaño del bundle Metro/Hermes vs. la referencia Ionic
 
-# Cambiar de ambiente
-amplify env checkout [nombre-ambiente]
+Pendiente de producto (no técnico): issue #57 — logos institucionales Natura/ISAGEN en las pantallas correspondientes; no se tocan assets como parte de este trabajo de hardening/documentación.
 
-# Ver logs de funciones
-amplify function logs [nombre-funcion]
-```
+## Documentación
 
-## 🔧 Troubleshooting
-
-### Problemas Comunes
-
-#### Error: "Command not found"
-
-```bash
-# Verificar instalación global
-npm list -g --depth=0
-
-# Reinstalar CLI faltante
-npm install -g @ionic/cli @capacitor/cli
-```
-
-#### Error: "Cannot resolve dependency"
-
-```bash
-# Limpiar node_modules y reinstalar
-rm -rf node_modules package-lock.json
-npm cache clean --force
-npm install
-```
-
-#### Error: "JAVA_HOME not set"
-
-```bash
-# Verificar JAVA_HOME
-echo $JAVA_HOME
-
-# Si está vacío, configurar según tu SO (ver Paso 4)
-```
-
-#### Error: "SDK not found" (Android)
-
-```bash
-# Verificar Android SDK
-echo $ANDROID_HOME
-
-# Listar SDKs instalados
-sdkmanager --list
-
-# Instalar SDK faltante
-sdkmanager "platforms;android-33"
-```
-
-#### Error: "Amplify configuration not found"
-
-```bash
-# Verificar configuración de Amplify
-amplify status
-
-# Si no está inicializado
-amplify init
-
-# Obtener configuración del ambiente
-amplify pull --appId [APP_ID] --envName dev
-```
-
-#### Error de permisos
-
-```bash
-# Cambiar ownership de npm folders
-sudo chown -R $(whoami) ~/.npm
-sudo chown -R $(whoami) /usr/local/lib/node_modules
-```
-
-### Logs y Debugging
-
-```bash
-# Ver logs detallados de Ionic
-ionic serve --verbose
-
-# Ver logs de Capacitor
-npx cap open android  # Abre Android Studio con logs
-
-# Logs de Amplify
-amplify status --verbose
-```
-
-### Limpiar Proyecto
-
-```bash
-# Limpiar completamente el proyecto
-npm run clean:all
-
-# O manualmente:
-rm -rf node_modules
-rm -rf www
-rm -rf .angular
-npm cache clean --force
-npm install
-npx cap sync
-```
-
-## 🏗️ Arquitectura
-
-### Stack Tecnológico
-
-- **Frontend**: Angular 18 + Ionic 8
-- **Móvil**: Capacitor 6
-- **Backend**: AWS Amplify (GraphQL + Cognito)
-- **Base de Datos**: DynamoDB
-- **Lenguaje**: TypeScript 5.5
-
-### Estructura del Proyecto
-
-```
-src/
-├── app/
-│   ├── components/          # Componentes reutilizables
-│   ├── core/               # Servicios centrales
-│   │   ├── services/       # Auth, API, Storage
-│   │   └── pipes/          # Pipes personalizados
-│   ├── pages/              # Páginas de la aplicación
-│   │   ├── auth/           # Autenticación
-│   │   ├── home/           # Página principal
-│   │   ├── measurement/    # Mediciones UV
-│   │   └── tabs/           # Navegación
-│   └── Interfaces/         # Tipos TypeScript
-├── assets/                 # Recursos estáticos
-├── environments/           # Configuraciones de entorno
-├── amplifyconfiguration.json # Configuración de Amplify
-└── theme/                 # Estilos globales
-```
-
-### Comandos de Arquitectura
-
-```bash
-# Generar nuevo componente
-ionic generate component components/mi-componente
-
-# Generar nueva página
-ionic generate page pages/mi-pagina
-
-# Generar servicio
-ionic generate service core/services/mi-servicio
-```
-
-## 📚 Recursos Adicionales
-
-### Documentación
-
-- [Ionic Documentation](https://ionicframework.com/docs)
-- [Angular Documentation](https://angular.io/docs)
-- [Capacitor Documentation](https://capacitorjs.com/docs)
-- [AWS Amplify Documentation](https://docs.amplify.aws/)
-
-### Comunidad
-
-- [Ionic Forum](https://forum.ionicframework.com/)
-- [Stack Overflow - ionic](https://stackoverflow.com/questions/tagged/ionic-framework)
-
-## 🤝 Contribución
-
-1. **Fork** el proyecto
-2. **Crear** rama feature (`git checkout -b feature/nueva-funcionalidad`)
-3. **Commit** cambios (`git commit -m 'Agregar nueva funcionalidad'`)
-4. **Push** a la rama (`git push origin feature/nueva-funcionalidad`)
-5. **Abrir** Pull Request
-
-### Estándares de Código
-
-- Usar **Prettier** para formateo
-- Seguir **ESLint** rules
-- Escribir **tests** para nuevas funcionalidades
-- Documentar **funciones públicas**
-
----
-
-## 📄 Licencia
-
-Este proyecto está bajo la Licencia GPL-3.0. Ver el archivo [LICENSE](LICENSE) para más detalles.
-
-## 📞 Soporte
-
-Para soporte técnico o preguntas sobre el desarrollo:
-
-- **Email**: desarrollo@makesens.com
-- **Slack**: #uva-app-dev
-- **Issues**: [GitHub Issues](https://github.com/tu-organizacion/UVA-App-Frontend/issues)
-
----
-
-_Última actualización: Diciembre 2024 - Versión 2.1_
+- [`docs/arquitectura.md`](docs/arquitectura.md) — arquitectura de la app RN
+- [`docs/android-build.md`](docs/android-build.md) — build Android local y en CI
+- [`docs/release-workflow.md`](docs/release-workflow.md) — flujo de release (versionado, firma, Google Play)
+- [`docs/github-actions-pipeline.md`](docs/github-actions-pipeline.md) — pipeline de CI/CD
+- [`docs/README-PIPELINE.md`](docs/README-PIPELINE.md) — resumen operativo del pipeline y secrets

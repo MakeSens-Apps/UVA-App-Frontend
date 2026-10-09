@@ -1,0 +1,188 @@
+/**
+ * B04 — UvaAPIService
+ * Ported from: src/app/core/services/api/uva-api.service.ts
+ * Classification: Minor adaptation
+ * Changes:
+ *   - Removed @Injectable({ providedIn: 'root' }) — exported singleton instance
+ *   - Import paths updated to mobile/ structure
+ */
+
+import { generateClient } from 'aws-amplify/api';
+import { createUVA, updateUVA } from '@/data/graphql/mutations';
+import { UVAbyUserID, UVAsByRacimoID } from '@/data/graphql/queries';
+import {
+  CreateUVAInput,
+  CreateUVAMutation,
+  UpdateUVAInput,
+  UpdateUVAMutation,
+  UVAbyUserIDQuery,
+  UVAbyUserIDQueryVariables,
+  UVAsByRacimoIDQuery,
+  UVAsByRacimoIDQueryVariables,
+} from '@/data/graphql/API';
+import { handleAPIError, APIErrorResponse } from './errors-handle/errors';
+
+const client = generateClient();
+
+// Tipo para la respuesta exitosa
+interface UVASuccessResponse<T> {
+  success: true;
+  data: T;
+}
+
+// Unión de ambos tipos en la interfaz principal
+export type APIUVAResponse<T> = UVASuccessResponse<T> | APIErrorResponse;
+
+/** Result of findUVAByUser: found, confirmed none, or could not check. */
+export type UVALookupResult =
+  | { status: 'found'; data: UVAbyUserIDQuery }
+  | { status: 'none' }
+  | { status: 'error'; error: APIErrorResponse['error'] };
+
+/**
+ * Service class for interacting with the UVA API.
+ * This class provides methods to retrieve and create UVA data.
+ */
+class UvaAPIService {
+  /**
+   * Retrieves UVA data for a specific user based on the provided variables.
+   * @param {UVAbyUserIDQueryVariables} variables - The variables to filter UVA by user ID.
+   * @returns {Promise<APIUVAResponse<UVAbyUserIDQuery>>} - A promise that resolves to the API response,
+   * which includes success status, data, or error information.
+   */
+  async getUVAByUser(
+    variables: UVAbyUserIDQueryVariables,
+  ): Promise<APIUVAResponse<UVAbyUserIDQuery>> {
+    // Same query and contract as before #67 (success:false for "no items" and
+    // for errors alike), derived from findUVAByUser so there is one query path.
+    const result = await this.findUVAByUser(variables);
+    if (result.status === 'found') {
+      return { success: true, data: result.data };
+    }
+    if (result.status === 'none') {
+      return { success: false, error: handleAPIError('No UVA found') };
+    }
+    return { success: false, error: result.error };
+  }
+
+  /**
+   * Looks up the UVAs of a user telling "the user has none" apart from "the
+   * query failed". getUVAByUser returns success:false for both, which is not
+   * enough to decide whether a new UVA may be created (#67).
+   * @param {UVAbyUserIDQueryVariables} variables - The variables to filter UVA by user ID.
+   * @returns {Promise<UVALookupResult>} 'found' with the data, 'none' when the
+   * query answered with no items, or 'error' when it failed or threw.
+   */
+  async findUVAByUser(
+    variables: UVAbyUserIDQueryVariables,
+  ): Promise<UVALookupResult> {
+    try {
+      const response = await client.graphql({
+        query: UVAbyUserID,
+        variables: variables,
+      });
+
+      if (response.errors) {
+        return { status: 'error', error: handleAPIError(response.errors) };
+      }
+
+      const items = response.data?.UVAbyUserID?.items;
+      if (items && items.length > 0) {
+        return { status: 'found', data: response.data };
+      }
+      return { status: 'none' };
+    } catch (err) {
+      return { status: 'error', error: handleAPIError(err) };
+    }
+  }
+
+  /**
+   * Retrieves UVA data for a specific Racimo based on the provided variables.
+   * @param {UVAsByRacimoIDQueryVariables} variables - The variables to filter UVAs by Racimo ID.
+   * @returns {Promise<APIUVAResponse<UVAsByRacimoIDQuery>>} - A promise that resolves to the API response,
+   * which includes success status, data, or error information.
+   */
+  async getUVAByRACIMO(
+    variables: UVAsByRacimoIDQueryVariables,
+  ): Promise<APIUVAResponse<UVAsByRacimoIDQuery>> {
+    try {
+      const response = await client.graphql({
+        query: UVAsByRacimoID,
+        variables: variables,
+      });
+
+      if (response.errors) {
+        return { success: false, error: handleAPIError(response.errors) };
+      }
+
+      const items = response.data?.UVAsByRacimoID?.items;
+      if (items && items.length > 0) {
+        return { success: true, data: response.data };
+      } else {
+        return { success: false, error: handleAPIError('No UVA found') };
+      }
+    } catch (err) {
+      return { success: false, error: handleAPIError(err) };
+    }
+  }
+
+  /**
+   * Creates a new UVA.
+   * @param {CreateUVAInput} uva - The input data for creating the UVA.
+   * @returns {Promise<APIUVAResponse<CreateUVAMutation>>} - A promise that resolves to the API response,
+   * which includes success status, data, or error information.
+   */
+  async createUVA(
+    uva: CreateUVAInput,
+  ): Promise<APIUVAResponse<CreateUVAMutation>> {
+    try {
+      const response = await client.graphql({
+        query: createUVA,
+        variables: {
+          input: uva,
+        },
+      });
+      if (response.data.createUVA) {
+        return { success: true, data: response.data };
+      }
+      if (response.errors) {
+        return { success: false, error: handleAPIError(response.errors) };
+      }
+      return { success: false, error: handleAPIError('No create uva') };
+    } catch (err) {
+      return { success: false, error: handleAPIError(err) };
+    }
+  }
+
+  /**
+   * Updates UVA (Unit Value Added) information by sending a GraphQL mutation request.
+   * @async
+   * @param {UpdateUVAInput} uva - The UVA data to be updated.
+   * @returns {Promise<APIUVAResponse<UpdateUVAMutation>>} - A promise that resolves to an object containing
+   *          the success status and data of the mutation if successful, or an error message if it fails.
+   */
+  async updateUVA(
+    uva: UpdateUVAInput,
+  ): Promise<APIUVAResponse<UpdateUVAMutation>> {
+    try {
+      const response = await client.graphql({
+        query: updateUVA,
+        variables: {
+          input: uva,
+        },
+      });
+      if (response.data.updateUVA) {
+        return { success: true, data: response.data };
+      }
+      if (response.errors) {
+        return { success: false, error: handleAPIError(response.errors) };
+      }
+      return { success: false, error: handleAPIError('No create uva') };
+    } catch (err) {
+      return { success: false, error: handleAPIError(err) };
+    }
+  }
+}
+
+/** Singleton — import-level DI replacement (portability-matrix §4.1) */
+export const uvaAPIService = new UvaAPIService();

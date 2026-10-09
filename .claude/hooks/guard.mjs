@@ -957,7 +957,7 @@ function checkScriptRunner(name, cmd, words, ctx) {
 // Loose scan for code in other languages (JS, Python...): quotes and
 // punctuation become spaces and every risky program name found anywhere is
 // checked with the words that follow it.
-const RISKY = new Set(['gh', 'git', 'aws', 'amplify', 'ampx', 'sam', 'cdk', 'serverless', 'sls', 'terraform', 'tofu', 'pulumi', 'eas', 'fastlane', 'vercel', 'netlify', 'firebase', 'kubectl', 'helm', 'pkill', 'killall', 'fuser', 'kill-port', 'docker', 'npm', 'pnpm', 'yarn'])
+const RISKY = new Set(['gh', 'git', 'aws', 'amplify', 'ampx', 'sam', 'cdk', 'serverless', 'sls', 'terraform', 'tofu', 'pulumi', 'eas', 'expo', 'fastlane', 'vercel', 'netlify', 'firebase', 'kubectl', 'helm', 'pkill', 'killall', 'fuser', 'kill-port', 'docker', 'npm', 'pnpm', 'yarn'])
 function looseScan(text, ctx, inline = false) {
   if (/\bmutation\b/.test(text) && /graphql/i.test(text)) checkGraphqlText(text, ctx)
   // Comment lines of JS/TS/Python/shell are text, not code.
@@ -1561,6 +1561,11 @@ function checkDeploy(name, argv, ctx) {
   if ((name === 'terraform' || name === 'tofu') && ['apply', 'destroy', 'import'].includes(a1)) d(name)
   if (name === 'pulumi' && ['up', 'destroy', 'update'].includes(a1)) d(name)
   if (name === 'eas' && ['build', 'submit', 'update'].includes(a1)) d(`eas ${a1}`)
+  // expo run:android / run:ios compile the app and install it on whatever
+  // device or emulator is connected (the debug package is the production
+  // one, so it can replace the real app) and accept --variant release. The
+  // loose scan splits "run:android" into "run android".
+  if (name === 'expo' && (/^run:/.test(a1 ?? '') || a1 === 'run' && /^(android|ios)$/.test(argv[2] ?? ''))) deny(`expo ${a1 === 'run' ? `run:${argv[2]}` : a1} compila la app e instala en el dispositivo o emulador conectado (el paquete de debug es el de producción) y acepta --variant release`, 'Compila el APK de debug con expo prebuild y ./gradlew assembleDebug, e instálalo con android.sh')
   const loose = ctx.mode === 'loose'
   if (name === 'fastlane' && (!loose || /^[a-z_]+$/.test(a1 ?? ''))) d(name)
   if (name === 'vercel' && (!loose || /^(deploy|--prod|promote|alias|rm|remove)$/.test(a1 ?? ''))) d(name)

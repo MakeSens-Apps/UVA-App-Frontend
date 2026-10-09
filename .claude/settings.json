@@ -13,6 +13,7 @@
       "Bash(aws amplify update-branch *)",
       "Bash(aws cognito-idp admin-*)",
       "Bash(cdk deploy*)",
+      "Bash(expo run:android*)",
       "Bash(gh auth switch*)",
       "Bash(gh auth token*)",
       "Bash(gh pr review * --approve*)",
@@ -42,10 +43,13 @@
       "Bash(killall *)",
       "Bash(npm publish*)",
       "Bash(npm run amplify-push*)",
+      "Bash(npm run android*)",
       "Bash(npm run android:bundle*)",
       "Bash(npm run android:prod*)",
+      "Bash(npm run build:android*)",
       "Bash(npx ampx pipeline-deploy *)",
       "Bash(npx cdk deploy*)",
+      "Bash(npx expo run:android*)",
       "Bash(pkill *)",
       "Bash(sam deploy*)",
       "Edit(**/.claude/evidence/*/pids)",
@@ -148,6 +152,7 @@
     }
   },
   "enabledPlugins": {
-    "racimo-harness@makesens": true
+    "racimo-harness@makesens": true,
+    "expo@claude-plugins-official": true
   }
 }

@@ -1,7 +1,0 @@
-{
-  "name": "UVA",
-  "integrations": {
-    "capacitor": {}
-  },
-  "type": "angular-standalone"
-}

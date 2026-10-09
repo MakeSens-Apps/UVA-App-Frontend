@@ -1,0 +1,102 @@
+/**
+ * B17 — routesToMinimize
+ *
+ * Ported from: AppMinimizeService.routesToMinimize (app-minimize.service.ts)
+ * Classification: Rewrite (data extracted from Angular service)
+ *
+ * These are the screen names (React Navigation route names) where pressing
+ * the Android hardware back button should MINIMIZE the app instead of
+ * navigating back to a previous screen.
+ *
+ * Original routes were Ionic paths (e.g. '/home', '/login').
+ * Mapped to React Navigation screen names used in AppStack/AuthStack/AppTabs.
+ *
+ * Portability matrix: app-minimize.service.ts → routesToMinimize + useBackHandler
+ * Risks: R-14, R-07
+ */
+
+/**
+ * Screen names (React Navigation route names) where the back button should
+ * minimize the app. These correspond to "root" screens — screens the user
+ * should not navigate back from (would result in a blank stack).
+ *
+ * Ionic path → React Navigation screen name mapping:
+ *   '/pre-register'          → 'PreRegister'
+ *   '/register'              → 'Register'
+ *   '/home'                  → 'Home'  (inside HomeStack)
+ *   '/login'                 → 'Login'
+ *   '/otp'                   → 'Otp'
+ *   '/app/tabs/register'     → 'Measurement'  (register tab)
+ *
+ * SUB-ROUTE PARITY WITH THE ORIGINAL (#67, user decision 2026-10-08)
+ *   The original matched with `route.includes(...)`, so it also minimized on every
+ *   sub-route of '/register/*' and '/otp/*', and on '/register-success' (it contains
+ *   '/register'). This Set matches exact names, so they are listed one by one:
+ *   '/register/set-phone-register'        → 'SetPhoneRegister'
+ *   '/register/project-vinculation'       → 'ProjectVinculation'
+ *   '/register/validate-project'          → 'ValidateProject'
+ *   '/register/project-vinculation-done'  → 'ProjectVinculationDone'
+ *   '/register/register-project-form'     → 'RegisterProjectForm'
+ *   '/register/register-completed'        → 'RegisterCompleted'
+ *   '/otp/:type/:phone/validate-code'     → 'ValidateCode'
+ *   '/register-success'                   → 'RegisterSuccess'
+ *   Without them, back on 'RegisterCompleted' returned to the form during the 3 s
+ *   before the redirect, and a second submit created another UVA.
+ *
+ * DESVIACIÓN DEL ORIGINAL A PETICIÓN DEL USUARIO (2026-09-10)
+ *   'RegisterMeasurement' y 'GuideMeasurement' NO están en la lista del original
+ *   (app-minimize.service.ts sólo declara /home, /login, /otp, /pre-register,
+ *   /register y /app/tabs/register). El usuario pidió explícitamente que el botón
+ *   atrás del sistema MINIMICE la app durante el flujo de registro de una medición,
+ *   igual que en Inicio, porque en el device el atrás devolvía al formulario de un
+ *   flujo YA GUARDADO (máximos) y permitía duplicar el registro.
+ *   'GuideMeasurement' se incluye porque la guía se presenta ENCIMA del formulario
+ *   (transparentModal): sin ella, el atrás sobre la guía seguiría cayendo en la pila.
+ *   El botón de volver del header del formulario sigue funcionando igual.
+ */
+import type {
+  AppStackParamList,
+  AppTabsParamList,
+  AuthStackParamList,
+  HomeStackParamList,
+} from '@/navigation/types';
+
+/**
+ * Every Auth stack screen is a login, register or OTP screen, and the original
+ * minimized on all of them. Typed as a Record over AuthStackParamList so that a
+ * new Auth screen fails to compile until it is listed here (#67: the bug came
+ * from a hand-written list that missed 8 of them).
+ */
+const AUTH_ROUTES_TO_MINIMIZE: Record<keyof AuthStackParamList, true> = {
+  Login: true,
+  Otp: true,
+  ValidateCode: true,
+  PreRegister: true,
+  Register: true,
+  SetPhoneRegister: true,
+  ProjectVinculation: true,
+  ValidateProject: true,
+  ProjectVinculationDone: true,
+  RegisterProjectForm: true,
+  RegisterCompleted: true,
+  RegisterSuccess: true,
+};
+
+/** Authenticated screens that minimize. Typed so a misspelled name fails to compile. */
+const APP_ROUTES_TO_MINIMIZE: readonly (
+  | keyof HomeStackParamList
+  | keyof AppTabsParamList
+  | keyof AppStackParamList
+)[] = [
+  'Home',
+  'Measurement',
+  // Desviación del original a petición del usuario (2026-09-10)
+  'RegisterMeasurement',
+  // Desviación del original a petición del usuario (2026-09-10)
+  'GuideMeasurement',
+];
+
+export const ROUTES_TO_MINIMIZE: ReadonlySet<string> = new Set<string>([
+  ...Object.keys(AUTH_ROUTES_TO_MINIMIZE),
+  ...APP_ROUTES_TO_MINIMIZE,
+]);

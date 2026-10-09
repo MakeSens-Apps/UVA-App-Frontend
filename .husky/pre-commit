@@ -1,0 +1,19 @@
+# Gate de pre-commit: eslint --fix + prettier sobre los archivos en staging.
+#
+# Git ejecuta los hooks con cwd = raíz del repositorio, pero la app RN (y su
+# node_modules / configuración de eslint) viven en `mobile/`. Resolvemos el
+# directorio de la app de forma que esto siga funcionando tal cual después del
+# cutover, cuando `mobile/` pase a ser la raíz.
+ROOT="$(git rev-parse --show-toplevel)" || exit 1
+
+if [ -d "$ROOT/mobile" ]; then
+  APP_DIR="$ROOT/mobile"
+else
+  APP_DIR="$ROOT"
+fi
+
+cd "$APP_DIR" || exit 1
+
+# lint-staged sólo procesa los archivos en staging que cuelgan de este
+# directorio; la configuración está en `.lintstagedrc.json`.
+npx --no-install lint-staged
