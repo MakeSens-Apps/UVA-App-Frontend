@@ -10,10 +10,13 @@
  *  - destination === 'validate-project' → Auth stack (ProjectVinculation as initial route)
  *  - destination === 'app' → App stack
  *
- * Navigation tracking:
- *  - onStateChange fires on every route change
- *  - __getCurrentRoute helper (mirrors initializeNavigationTracking pattern from original)
+ * Navigation tracking (mirrors initializeNavigationTracking from app.component.ts):
+ *  - onReady records the initial screen (Ionic recorded the first NavigationEnd too)
+ *  - onStateChange records every change of the focused leaf route
+ *  - each record is an AppUsageEvent (action 'navigate') via trackNavigation, with
+ *    the Ionic URL slug as screenName (see src/data/view/screen-names.ts)
  *  - No window.location — pure React Navigation state (R-30)
+ *  - No Pinpoint autoTrack: only AppUsageEvent is recorded (decision in #67)
  *
  * Portability matrix: Sistema de rutas/navegación → B12
  * Risks: R-15, R-43, R-30, R-04, R-12, R-41, R-23
@@ -34,6 +37,8 @@ import { useAuthGate } from './useAuthGate';
 import type { AuthGateDestination } from './useAuthGate';
 import { registerGateSetter } from './navigationGate';
 import { useBackHandler } from '@/native/back/useBackHandler';
+import { trackNavigation } from '@/data/view/app-usage';
+import { toUsageScreenName } from '@/data/view/screen-names';
 
 const Root = createNativeStackNavigator<RootStackParamList>();
 
@@ -55,7 +60,10 @@ export function getCurrentRoute(
 export function RootNavigator(): React.JSX.Element {
   const navigationRef =
     useRef<NavigationContainerRef<RootStackParamList> | null>(null);
-  const routeNameRef = useRef<string | undefined>(undefined);
+  // Key of the last focused leaf route already recorded. Keys (not names) are
+  // compared so that pushing another instance of the same screen is recorded,
+  // as each NavigationEnd was in Ionic.
+  const routeKeyRef = useRef<string | undefined>(undefined);
 
   // destination is lifted from SplashScreen's useAuthGate via onAuthResolved callback.
   // null = splash still showing; non-null = navigate to the resolved stack.
@@ -75,26 +83,33 @@ export function RootNavigator(): React.JSX.Element {
     };
   }, [setDestination]);
 
-  // ─── onReady: capture initial route name ─────────────────────────────────
+  // ─── Navigation tracking: one AppUsageEvent per focused screen ───────────
 
-  const handleReady = useCallback(() => {
-    routeNameRef.current = navigationRef.current?.getCurrentRoute()?.name;
+  const recordCurrentRoute = useCallback(() => {
+    const route = navigationRef.current?.getCurrentRoute();
+    if (!route || route.key === routeKeyRef.current) {
+      return;
+    }
+    routeKeyRef.current = route.key;
+
+    const screenName = toUsageScreenName(route.name);
+    if (screenName) {
+      // Fire and forget: trackNavigation never throws and skips silently when
+      // there is no authenticated user or RACIMO in the session.
+      void trackNavigation(screenName);
+    }
   }, []);
 
-  // ─── onStateChange: track navigation (no window.location) ────────────────
+  // onReady fires on every mount of NavigationContainer (it remounts on each gate
+  // flip, key={destination}), so the first screen of each stack is recorded.
+  const handleReady = useCallback(() => {
+    routeKeyRef.current = undefined;
+    recordCurrentRoute();
+  }, [recordCurrentRoute]);
 
   const handleStateChange = useCallback(() => {
-    const previousRouteName = routeNameRef.current;
-    const currentRouteName = navigationRef.current?.getCurrentRoute()?.name;
-
-    if (previousRouteName !== currentRouteName) {
-      // Analytics/Pinpoint tracking hook (R-30: no window.location)
-      // TODO (B19): wire to AWS Pinpoint recordEvent here
-      // console.log('Navigation:', previousRouteName, '→', currentRouteName);
-    }
-
-    routeNameRef.current = currentRouteName;
-  }, []);
+    recordCurrentRoute();
+  }, [recordCurrentRoute]);
 
   // ─── Hardware back button (Android) ──────────────────────────────────────
   //

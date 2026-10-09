@@ -95,6 +95,12 @@ jest.mock('@/screens/splash/SplashScreen', () => {
   };
 });
 
+// RootNavigator records AppUsageEvent on navigation (#67); the telemetry pulls in
+// DataStore and is covered by fix-67-navigation-usage-tracking.test.tsx.
+jest.mock('@/data/view/app-usage', () => ({
+  trackNavigation: jest.fn().mockResolvedValue(undefined),
+}));
+
 // useAuthGate pulls in DataStore/auth services — not needed here.
 jest.mock('@/navigation/useAuthGate', () => ({
   useAuthGate: () => ({
