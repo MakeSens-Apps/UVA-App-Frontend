@@ -147,11 +147,12 @@ Estado actual de cada ítem del checklist de B19:
       `src/native/minimize/useAppMinimize.ts` (cadena: registro Expo →
       `NativeModules.AppMinimize` → `BackHandler.exitApp()`). El módulo nativo
       (`android/`) NO se tocó.
-- [x] **Fase 6 paridad**: cerrada con el OK general del usuario del
-      2026-09-10 (ver "Validación en device — 2026-09-10") y la auditoría de
-      paridad funcional del 2026-10-08 (#67: todas las pantallas y servicios de
-      V2.2.11 tienen su equivalente en React Native). No se hizo la comparación
-      de capturas pantalla por pantalla del plan original.
+- [x] **Fase 6 paridad**: cerrada por decisión, no por la comparación del
+      plan. La comparación de capturas pantalla por pantalla no se hizo; se
+      cierra con el OK general del usuario del 2026-09-10 (ver "Validación en
+      device — 2026-09-10") y la auditoría de paridad funcional del 2026-10-08
+      (#67: todas las pantallas y servicios de V2.2.11 tienen su equivalente en
+      React Native).
 - [x] **Workflows de build** (2026-09-11, decisión: Gradle en Actions, sin EAS):
       `build-android.yml` (APK, ~18 min, verde) y `build-android-bundle.yml`
       (AAB firmado + `deploy-play`, verde); `test-secrets.yml` eliminado.
@@ -206,10 +207,43 @@ siendo Ionic.
 
 ### Hallazgos y arreglos
 
-| Hallazgo                                                                                                                                                                                                                                                                                                                       | Arreglo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Prueba                                                                                         |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| **Telemetría de uso:** React Native no registraba ningún `AppUsageEvent` al navegar (`RootNavigator.handleStateChange` era un TODO y `trackNavigation` no tenía llamadas). El dashboard RACIMO usa estos eventos para la actividad de los usuarios.                                                                            | `RootNavigator` registra un `AppUsageEvent` (`action: 'navigate'`) en `onReady` (pantalla inicial de cada stack, como el primer `NavigationEnd` de Ionic) y en cada cambio de la pantalla enfocada. El `screenName` es el slug de la URL de Ionic (`Home` → `home`, `Historical` → `history`, `Measurement` → `register`…, en `src/data/view/screen-names.ts`), para no cortar la serie histórica ni la agrupación del dashboard. Las rutas sin URL en Ionic van en kebab-case, `DevGate` no se registra y `Otp`/`ValidateCode` usan un slug fijo (en Ionic el último segmento de esas URL era el número de teléfono). Sin usuario autenticado o sin RACIMO en la sesión no se registra nada, igual que en Ionic. | `src/__tests__/fix-67-navigation-usage-tracking.test.tsx`                                      |
-| **Botón atrás en el registro:** Ionic minimizaba en todas las subrutas de `/register` y `/otp` (coincidencia por subcadena); React Native solo en nombres exactos. En "Registro completado", volver atrás durante los 3 s previos a la redirección y reenviar el formulario creaba una **segunda UVA** (mismo síntoma de #50). | Igual que Ionic (decisión del usuario): el atrás minimiza en todas las pantallas de registro y OTP (`src/native/minimize/routesToMinimize.ts`). Además, `RegisterProjectFormScreen` crea la UVA como mucho una vez: descarta un segundo envío mientras el primero sigue en curso, no vuelve a crearla si ya la creó y, antes de crear, pregunta otra vez al backend si el usuario ya tiene UVA (si la tiene, solo actualiza sus campos).                                                                                                                                                                                                                                                                          | `src/__tests__/fix-67-register-no-duplicate-uva.test.tsx` y `src/__tests__/b17-native.test.ts` |
+#### Telemetría de uso
+
+- **Hallazgo:** React Native no registraba ningún `AppUsageEvent` al navegar
+  (`RootNavigator.handleStateChange` era un TODO y `trackNavigation` no tenía
+  llamadas). El dashboard RACIMO usa estos eventos para la actividad de los
+  usuarios.
+- **Arreglo:** `RootNavigator` registra un `AppUsageEvent`
+  (`action: 'navigate'`) en `onReady` (la pantalla inicial de cada stack, como
+  el primer `NavigationEnd` de Ionic) y en cada cambio de la pantalla
+  enfocada. El `screenName` es el slug de la URL de Ionic (`Home` → `home`,
+  `Historical` → `history`, `Measurement` → `register`…, en
+  `src/data/view/screen-names.ts`), para no cortar la serie histórica ni la
+  agrupación del dashboard. Las rutas sin URL en Ionic van en kebab-case,
+  `DevGate` no se registra y `Otp`/`ValidateCode` usan un slug fijo (en Ionic
+  el último segmento de esas URL era el número de teléfono). Sin usuario
+  autenticado o sin RACIMO en la sesión no se registra nada, igual que en
+  Ionic.
+- **Prueba:** `src/__tests__/fix-67-navigation-usage-tracking.test.tsx`.
+
+#### Botón atrás en el registro
+
+- **Hallazgo:** Ionic minimizaba en todas las subrutas de `/register` y
+  `/otp` (coincidencia por subcadena); React Native solo en nombres exactos.
+  En "Registro completado", volver atrás durante los 3 s previos a la
+  redirección y reenviar el formulario creaba una **segunda UVA** (mismo
+  síntoma de #50).
+- **Arreglo:** igual que Ionic (decisión del usuario), el atrás minimiza en
+  todas las pantallas de registro y OTP (`src/native/minimize/routesToMinimize.ts`,
+  tipado para que una pantalla nueva del stack de autenticación no compile
+  hasta que se agregue). Además, `RegisterProjectFormScreen` crea la UVA como
+  mucho una vez: descarta un segundo envío mientras el primero sigue en
+  curso, no vuelve a crearla si ya la creó y, antes de crear, pregunta otra
+  vez al backend si el usuario ya tiene UVA (`SetupRacimoService.lookupUVA`).
+  Si la tiene, solo actualiza sus campos; si la consulta falla (sin red o
+  error de la API), no crea nada y pide reintentar.
+- **Prueba:** `src/__tests__/fix-67-register-no-duplicate-uva.test.tsx`,
+  `src/__tests__/fix-67-lookup-uva.test.ts` y `src/__tests__/b17-native.test.ts`.
 
 Las UVAs duplicadas que ya existen en el backend no se corrigen desde la app
 (#50 sigue abierto para eso).
