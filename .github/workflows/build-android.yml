@@ -89,7 +89,14 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
 
       - name: 🤖 Setup Android SDK
-        uses: android-actions/setup-android@v3
+        # Pinned to the commit of v3.2.2. Its default `packages` is
+        # `tools platform-tools`, and the legacy `tools` package no longer
+        # exists in Google's SDK repository (sdkmanager fails with
+        # "Failed to find package 'tools'"). Only platform-tools is requested;
+        # Gradle downloads the platforms and build-tools it needs.
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2
+        with:
+          packages: 'platform-tools'
 
       - name: 💾 Cache Gradle
         uses: actions/cache@v4
