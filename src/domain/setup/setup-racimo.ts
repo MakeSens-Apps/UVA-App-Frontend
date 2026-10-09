@@ -122,6 +122,23 @@ export class SetupRacimoService {
   }
 
   /**
+   * Stores a found UVA in session (racimoID, uvaID and racimoLinkCode).
+   * Shared by getUVA and lookupUVA so both keep the same session contract.
+   * @private
+   */
+  private static async storeUVAInSession(
+    racimoID: string,
+    uvaID: string,
+  ): Promise<void> {
+    await sessionService.setInfoField('racimoID', racimoID);
+    await sessionService.setInfoField('uvaID', uvaID);
+    await sessionService.setInfoField(
+      'racimoLinkCode',
+      await this.getCodeRacimo(racimoID),
+    );
+  }
+
+  /**
    * Searches for an active UVA associated with a user and stores its IDs in session.
    * @param {string} userId
    * @returns {Promise<boolean>} True if an active UVA was found.
@@ -137,12 +154,7 @@ export class SetupRacimoService {
           const { racimoID, id: uvaID } = uvaItems[0] || {};
 
           if (racimoID && uvaID) {
-            await sessionService.setInfoField('racimoID', racimoID);
-            await sessionService.setInfoField('uvaID', uvaID);
-            await sessionService.setInfoField(
-              'racimoLinkCode',
-              await this.getCodeRacimo(racimoID),
-            );
+            await this.storeUVAInSession(racimoID, uvaID);
             return true;
           }
         }
@@ -183,12 +195,7 @@ export class SetupRacimoService {
         return 'error';
       }
 
-      await sessionService.setInfoField('racimoID', racimoID);
-      await sessionService.setInfoField('uvaID', uvaID);
-      await sessionService.setInfoField(
-        'racimoLinkCode',
-        await this.getCodeRacimo(racimoID),
-      );
+      await this.storeUVAInSession(racimoID, uvaID);
       return 'found';
     } catch (error) {
       console.error('Error looking up UVA by user:', error);

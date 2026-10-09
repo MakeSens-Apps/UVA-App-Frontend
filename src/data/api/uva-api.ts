@@ -53,25 +53,16 @@ class UvaAPIService {
   async getUVAByUser(
     variables: UVAbyUserIDQueryVariables,
   ): Promise<APIUVAResponse<UVAbyUserIDQuery>> {
-    try {
-      const response = await client.graphql({
-        query: UVAbyUserID,
-        variables: variables,
-      });
-
-      if (response.errors) {
-        return { success: false, error: handleAPIError(response.errors) };
-      }
-
-      const items = response.data?.UVAbyUserID?.items;
-      if (items && items.length > 0) {
-        return { success: true, data: response.data };
-      } else {
-        return { success: false, error: handleAPIError('No UVA found') };
-      }
-    } catch (err) {
-      return { success: false, error: handleAPIError(err) };
+    // Same query and contract as before #67 (success:false for "no items" and
+    // for errors alike), derived from findUVAByUser so there is one query path.
+    const result = await this.findUVAByUser(variables);
+    if (result.status === 'found') {
+      return { success: true, data: result.data };
     }
+    if (result.status === 'none') {
+      return { success: false, error: handleAPIError('No UVA found') };
+    }
+    return { success: false, error: result.error };
   }
 
   /**

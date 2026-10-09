@@ -42,7 +42,7 @@ Verificados el 2026-10-08 en `feature/67-close-react-native-migration` (React Na
 | Configuración local | `amplifyconfiguration.json` en la **raíz** (ignorado por git) | Obligatorio para Metro, `expo prebuild` y el APK: `src/data/amplify-bootstrap/amplify-config.ts` hace `require('../../../amplifyconfiguration.json')`. Jest no lo necesita (usa `src/__tests__/__mocks__/amplify-config-mock.json`). Ver "Configuración sintética" |
 | Tipos | `npm run typecheck` | OK, 0 errores |
 | Lint | `npm run lint` | OK, 0 errores (hay avisos heredados; no agregues errores). `.claude/` está excluido: es la capa del harness, no código de la app |
-| Pruebas | `npm run test:ci` | OK: 60 suites, 1110 pruebas, con cobertura. `npm test` corre lo mismo sin cobertura |
+| Pruebas | `npm run test:ci` | OK: 61 suites, 1120 pruebas, con cobertura. `npm test` corre lo mismo sin cobertura |
 | Generar `android/` | `npx expo prebuild --no-install --platform android` | OK. `android/` no se versiona y se regenera entero (`--clean` lo borra antes). Lo nativo se cambia con un config plugin en `plugins/`, nunca a mano en `android/` |
 | APK de debug | `cd android && ./gradlew assembleDebug` | OK. Sale en `android/app/build/outputs/apk/debug/app-debug.apk`. El wrapper lo genera `expo prebuild`. El guard deja pasar `assembleDebug` y bloquea las tareas de release y firma |
 | Servidor de JS (Metro) | `npx expo start --port 8081` | OK. El APK de debug carga el JS desde Metro, y **en el emulador lo pide a `10.0.2.2:8081`** (el puerto 8081 de la máquina): `adb reverse` hacia otro puerto no alcanza, así que Metro debe escuchar en 8081 (comprueba antes que esté libre). En un teléfono por USB, `adb -s <serial> reverse tcp:8081 tcp:8081` |
