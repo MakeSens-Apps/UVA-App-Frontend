@@ -160,6 +160,43 @@ export class SetupRacimoService {
   }
 
   /**
+   * Checks whether the user already has a UVA before creating one (#67).
+   * Unlike getUVA, a failed query is reported as 'error' instead of "no UVA",
+   * so the caller never creates a UVA it could not rule out. On 'found' it
+   * stores the UVA in session exactly like getUVA (racimoID, uvaID and
+   * racimoLinkCode), so updateUVA targets the existing UVA.
+   * @param {string} userId
+   * @returns {Promise<'found' | 'none' | 'error'>}
+   */
+  static async lookupUVA(userId: string): Promise<'found' | 'none' | 'error'> {
+    try {
+      const response = await uvaAPIService.findUVAByUser({ userID: userId });
+      if (response.status !== 'found') {
+        return response.status;
+      }
+
+      const { racimoID, id: uvaID } =
+        response.data.UVAbyUserID?.items?.[0] || {};
+      if (!racimoID || !uvaID) {
+        // An item without its ids cannot be targeted by updateUVA: treat it
+        // as unverifiable rather than as "no UVA".
+        return 'error';
+      }
+
+      await sessionService.setInfoField('racimoID', racimoID);
+      await sessionService.setInfoField('uvaID', uvaID);
+      await sessionService.setInfoField(
+        'racimoLinkCode',
+        await this.getCodeRacimo(racimoID),
+      );
+      return 'found';
+    } catch (error) {
+      console.error('Error looking up UVA by user:', error);
+      return 'error';
+    }
+  }
+
+  /**
    * Creates a new UVA record with a sequentially generated ID.
    * The ID follows the pattern: UVA_<racimoCode>_<NNNNN>
    * @returns {Promise<boolean>} True if UVA creation succeeded.

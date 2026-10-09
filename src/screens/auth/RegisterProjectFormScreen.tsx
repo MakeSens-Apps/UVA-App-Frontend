@@ -17,7 +17,8 @@
  * once per screen. A synchronous ref drops a second tap while the first one is still
  * running (the `loading` state renders too late), and before creating it asks the
  * backend again whether the user already has a UVA (the init check only runs on
- * mount). If one exists, only its fields are updated.
+ * mount). If one exists, only its fields are updated; if the check fails, nothing
+ * is created and the user is asked to retry.
  *
  * Visual ref: docs/evidence/register/screen-16
  *   - Title: "Datos de ubicación"
@@ -47,6 +48,7 @@ import type { AuthStackParamList } from '@/navigation/types';
 import type { Field } from '@/data/models/configuration/config.model';
 import { SetupService } from '@/domain/setup/setup';
 import { SetupRacimoService } from '@/domain/setup/setup-racimo';
+import { showToast } from '@/components/ui/Toast';
 import { useConfigContext } from '@/state/ConfigContext';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';
@@ -169,11 +171,21 @@ export function RegisterProjectFormScreen({
       });
 
       // Create the UVA only if this screen did not create it already and the
-      // backend has none for the user (getUVA also stores its uvaID in session,
-      // so updateUVA below targets the existing UVA).
+      // backend confirms the user has none. lookupUVA stores an existing UVA in
+      // session, so updateUVA below targets it. If the check fails (network or
+      // API error) nothing is created: the form stays and the user retries.
       let hasUVA = uvaCreatedRef.current;
       if (!hasUVA) {
-        hasUVA = await SetupRacimoService.getUVA(userIdRef.current);
+        const lookup = await SetupRacimoService.lookupUVA(userIdRef.current);
+        if (lookup === 'error') {
+          showToast({
+            message:
+              'No pudimos verificar tu registro. Revisa tu conexión e inténtalo de nuevo.',
+            type: 'error',
+          });
+          return;
+        }
+        hasUVA = lookup === 'found';
       }
       if (!hasUVA) {
         hasUVA = await SetupRacimoService.createNewUVA();

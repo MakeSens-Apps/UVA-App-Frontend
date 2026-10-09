@@ -54,24 +54,49 @@
  *   (transparentModal): sin ella, el atrás sobre la guía seguiría cayendo en la pila.
  *   El botón de volver del header del formulario sigue funcionando igual.
  */
-export const ROUTES_TO_MINIMIZE: ReadonlySet<string> = new Set([
-  'PreRegister',
-  'Register',
+import type {
+  AppStackParamList,
+  AppTabsParamList,
+  AuthStackParamList,
+  HomeStackParamList,
+} from '@/navigation/types';
+
+/**
+ * Every Auth stack screen is a login, register or OTP screen, and the original
+ * minimized on all of them. Typed as a Record over AuthStackParamList so that a
+ * new Auth screen fails to compile until it is listed here (#67: the bug came
+ * from a hand-written list that missed 8 of them).
+ */
+const AUTH_ROUTES_TO_MINIMIZE: Record<keyof AuthStackParamList, true> = {
+  Login: true,
+  Otp: true,
+  ValidateCode: true,
+  PreRegister: true,
+  Register: true,
+  SetPhoneRegister: true,
+  ProjectVinculation: true,
+  ValidateProject: true,
+  ProjectVinculationDone: true,
+  RegisterProjectForm: true,
+  RegisterCompleted: true,
+  RegisterSuccess: true,
+};
+
+/** Authenticated screens that minimize. Typed so a misspelled name fails to compile. */
+const APP_ROUTES_TO_MINIMIZE: readonly (
+  | keyof HomeStackParamList
+  | keyof AppTabsParamList
+  | keyof AppStackParamList
+)[] = [
   'Home',
-  'Login',
-  'Otp',
   'Measurement',
-  // Register and OTP sub-routes (parity with the original `includes`, #67)
-  'SetPhoneRegister',
-  'ProjectVinculation',
-  'ValidateProject',
-  'ProjectVinculationDone',
-  'RegisterProjectForm',
-  'RegisterCompleted',
-  'ValidateCode',
-  'RegisterSuccess',
   // Desviación del original a petición del usuario (2026-09-10)
   'RegisterMeasurement',
   // Desviación del original a petición del usuario (2026-09-10)
   'GuideMeasurement',
+];
+
+export const ROUTES_TO_MINIMIZE: ReadonlySet<string> = new Set<string>([
+  ...Object.keys(AUTH_ROUTES_TO_MINIMIZE),
+  ...APP_ROUTES_TO_MINIMIZE,
 ]);

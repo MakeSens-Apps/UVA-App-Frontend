@@ -15,43 +15,64 @@
  *  - DevGate (QA-only screen) is never recorded.
  */
 
-/** React Navigation route name → Ionic URL slug. */
-export const IONIC_SCREEN_SLUGS: Readonly<Record<string, string>> = {
-  // App tabs (/app/tabs/*). 'Measurement' and 'Register' share the slug
-  // 'register' exactly as in Ionic ('/app/tabs/register' and '/register').
-  Home: 'home',
-  MoonPhase: 'moon-phase',
-  Measurement: 'register',
-  Historical: 'history',
-  // App pages outside the tab bar
-  Profile: 'profile',
-  PersonalInfo: 'personal-info',
-  Achievement: 'achievement',
-  Alerts: 'alerts',
-  Configuration: 'configuration',
-  MeasurementDetail: 'measurement-detail',
-  RegisterMeasurement: 'register-measurement',
-  RegisterSuccess: 'register-success',
-  // Auth
-  Login: 'login',
-  Otp: 'otp',
-  ValidateCode: 'validate-code',
-  PreRegister: 'pre-register',
-  Register: 'register',
-  SetPhoneRegister: 'set-phone-register',
-  ProjectVinculation: 'project-vinculation',
-  ValidateProject: 'validate-project',
-  ProjectVinculationDone: 'project-vinculation-done',
-  RegisterProjectForm: 'register-project-form',
-  RegisterCompleted: 'register-completed',
-};
+import type {
+  AppStackParamList,
+  AppTabsParamList,
+  AuthStackParamList,
+  HomeStackParamList,
+  RootStackParamList,
+} from '@/navigation/types';
+
+/** Every route name of the app's navigators. */
+type RouteName =
+  | keyof RootStackParamList
+  | keyof AppStackParamList
+  | keyof AppTabsParamList
+  | keyof HomeStackParamList
+  | keyof AuthStackParamList;
+
+/**
+ * React Navigation route name → Ionic URL slug. Typed over RouteName so that a
+ * misspelled or renamed route fails to compile instead of silently falling back
+ * to kebab-case and breaking the series the dashboard reads.
+ */
+export const IONIC_SCREEN_SLUGS: Readonly<Partial<Record<RouteName, string>>> =
+  {
+    // App tabs (/app/tabs/*). 'Measurement' and 'Register' share the slug
+    // 'register' exactly as in Ionic ('/app/tabs/register' and '/register').
+    Home: 'home',
+    MoonPhase: 'moon-phase',
+    Measurement: 'register',
+    Historical: 'history',
+    // App pages outside the tab bar
+    Profile: 'profile',
+    PersonalInfo: 'personal-info',
+    Achievement: 'achievement',
+    Alerts: 'alerts',
+    Configuration: 'configuration',
+    MeasurementDetail: 'measurement-detail',
+    RegisterMeasurement: 'register-measurement',
+    RegisterSuccess: 'register-success',
+    // Auth
+    Login: 'login',
+    Otp: 'otp',
+    ValidateCode: 'validate-code',
+    PreRegister: 'pre-register',
+    Register: 'register',
+    SetPhoneRegister: 'set-phone-register',
+    ProjectVinculation: 'project-vinculation',
+    ValidateProject: 'validate-project',
+    ProjectVinculationDone: 'project-vinculation-done',
+    RegisterProjectForm: 'register-project-form',
+    RegisterCompleted: 'register-completed',
+  };
 
 /**
  * Routes that never produce an AppUsageEvent: the QA-only DevGate screen and the
  * navigator routes, which are containers and never the focused leaf screen once
  * their child navigator has mounted.
  */
-export const UNTRACKED_ROUTES: ReadonlySet<string> = new Set([
+export const UNTRACKED_ROUTES: ReadonlySet<string> = new Set<RouteName>([
   'DevGate',
   'Auth',
   'App',
@@ -77,5 +98,5 @@ export function toUsageScreenName(
   if (!routeName || UNTRACKED_ROUTES.has(routeName)) {
     return null;
   }
-  return IONIC_SCREEN_SLUGS[routeName] ?? toKebabCase(routeName);
+  return IONIC_SCREEN_SLUGS[routeName as RouteName] ?? toKebabCase(routeName);
 }

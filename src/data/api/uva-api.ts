@@ -33,6 +33,12 @@ interface UVASuccessResponse<T> {
 // Unión de ambos tipos en la interfaz principal
 export type APIUVAResponse<T> = UVASuccessResponse<T> | APIErrorResponse;
 
+/** Result of findUVAByUser: found, confirmed none, or could not check. */
+export type UVALookupResult =
+  | { status: 'found'; data: UVAbyUserIDQuery }
+  | { status: 'none' }
+  | { status: 'error'; error: APIErrorResponse['error'] };
+
 /**
  * Service class for interacting with the UVA API.
  * This class provides methods to retrieve and create UVA data.
@@ -65,6 +71,37 @@ class UvaAPIService {
       }
     } catch (err) {
       return { success: false, error: handleAPIError(err) };
+    }
+  }
+
+  /**
+   * Looks up the UVAs of a user telling "the user has none" apart from "the
+   * query failed". getUVAByUser returns success:false for both, which is not
+   * enough to decide whether a new UVA may be created (#67).
+   * @param {UVAbyUserIDQueryVariables} variables - The variables to filter UVA by user ID.
+   * @returns {Promise<UVALookupResult>} 'found' with the data, 'none' when the
+   * query answered with no items, or 'error' when it failed or threw.
+   */
+  async findUVAByUser(
+    variables: UVAbyUserIDQueryVariables,
+  ): Promise<UVALookupResult> {
+    try {
+      const response = await client.graphql({
+        query: UVAbyUserID,
+        variables: variables,
+      });
+
+      if (response.errors) {
+        return { status: 'error', error: handleAPIError(response.errors) };
+      }
+
+      const items = response.data?.UVAbyUserID?.items;
+      if (items && items.length > 0) {
+        return { status: 'found', data: response.data };
+      }
+      return { status: 'none' };
+    } catch (err) {
+      return { status: 'error', error: handleAPIError(err) };
     }
   }
 

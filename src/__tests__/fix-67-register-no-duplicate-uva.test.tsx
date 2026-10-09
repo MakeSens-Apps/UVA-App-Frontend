@@ -82,14 +82,21 @@ jest.mock('@/domain/setup/setup', () => ({
 }));
 
 const mockGetUVA = jest.fn();
+const mockLookupUVA = jest.fn();
 const mockCreateNewUVA = jest.fn();
 const mockUpdateUVA = jest.fn();
 jest.mock('@/domain/setup/setup-racimo', () => ({
   SetupRacimoService: {
     getUVA: (...a: unknown[]) => mockGetUVA(...a),
+    lookupUVA: (...a: unknown[]) => mockLookupUVA(...a),
     createNewUVA: (...a: unknown[]) => mockCreateNewUVA(...a),
     updateUVA: (...a: unknown[]) => mockUpdateUVA(...a),
   },
+}));
+
+const mockShowToast = jest.fn();
+jest.mock('@/components/ui/Toast', () => ({
+  showToast: (...a: unknown[]) => mockShowToast(...a),
 }));
 
 const mockGetConfigurationApp = jest.fn();
@@ -216,6 +223,7 @@ function setupForm(): void {
     },
   });
   mockGetUVA.mockResolvedValue(false);
+  mockLookupUVA.mockResolvedValue('none');
   mockCreateNewUVA.mockResolvedValue(true);
   mockUpdateUVA.mockResolvedValue(true);
 }
@@ -229,18 +237,28 @@ function deferred<T>(): { promise: Promise<T>; resolve: (v: T) => void } {
 }
 
 type FiberLike = {
-  memoizedProps?: { onPress?: () => void };
+  memoizedProps?: { onPress?: () => void; testID?: string };
   return: FiberLike | null;
 };
 
-/** Finds the onPress of the composite that owns a host element (as RNTL does). */
-function getPressHandler(instance: unknown): () => void {
+/**
+ * Finds the onPress of the composite that owns a host element, as RNTL's
+ * fireEvent does (unstable_fiber is RNTL/React internals). The handler must
+ * belong to the element with the expected testID, so a change in those
+ * internals fails loudly instead of silently testing another handler.
+ */
+function getPressHandler(instance: unknown, testID: string): () => void {
   let fiber = (instance as { unstable_fiber: FiberLike | null }).unstable_fiber;
   while (fiber && !fiber.memoizedProps?.onPress) {
     fiber = fiber.return;
   }
   if (!fiber?.memoizedProps?.onPress) {
     throw new Error('onPress handler not found');
+  }
+  if (fiber.memoizedProps.testID !== testID) {
+    throw new Error(
+      `onPress found on ${fiber.memoizedProps.testID}, not on ${testID}`,
+    );
   }
   return fiber.memoizedProps.onPress;
 }
@@ -344,7 +362,10 @@ describe('#67 — RegisterProjectForm never creates a second UVA', () => {
     // Two taps delivered before React commits `loading` (as on a device): call
     // the TouchableOpacity onPress twice in the same act, so the disabled prop
     // cannot drop the second one and only the synchronous guard is tested.
-    const onPress = getPressHandler(getByTestId('submit-button'));
+    const onPress = getPressHandler(
+      getByTestId('submit-button'),
+      'submit-button',
+    );
     await act(async () => {
       onPress();
       onPress();
@@ -363,7 +384,7 @@ describe('#67 — RegisterProjectForm never creates a second UVA', () => {
 
     await fireEvent.press(getByTestId('submit-button'));
     // The backend index may not return the new UVA yet (eventual consistency).
-    mockGetUVA.mockResolvedValue(false);
+    mockLookupUVA.mockResolvedValue('none');
     await fireEvent.changeText(getByTestId('field-vereda'), 'Otra vereda');
     await fireEvent.press(getByTestId('submit-button'));
 
@@ -377,11 +398,11 @@ describe('#67 — RegisterProjectForm never creates a second UVA', () => {
 
   it('the backend already has a UVA for the user when submitting: does not create another', async () => {
     const { getByTestId, navigate } = await renderForm();
-    mockGetUVA.mockResolvedValue(true);
+    mockLookupUVA.mockResolvedValue('found');
 
     await fireEvent.press(getByTestId('submit-button'));
 
-    expect(mockGetUVA).toHaveBeenLastCalledWith(SYNTHETIC_USER.userID);
+    expect(mockLookupUVA).toHaveBeenLastCalledWith(SYNTHETIC_USER.userID);
     expect(mockCreateNewUVA).not.toHaveBeenCalled();
     expect(mockUpdateUVA).toHaveBeenCalledTimes(1);
     expect(navigate).toHaveBeenCalledWith('RegisterCompleted');
@@ -399,6 +420,26 @@ describe('#67 — RegisterProjectForm never creates a second UVA', () => {
     await fireEvent.press(getByTestId('submit-button'));
 
     expect(mockCreateNewUVA).toHaveBeenCalledTimes(2);
+    expect(navigate).toHaveBeenLastCalledWith('RegisterCompleted');
+  });
+
+  it('the check fails (network or API error): creates nothing, stays on the form and asks to retry', async () => {
+    mockLookupUVA.mockResolvedValueOnce('error');
+    const { getByTestId, navigate } = await renderForm();
+
+    await fireEvent.press(getByTestId('submit-button'));
+
+    expect(mockCreateNewUVA).not.toHaveBeenCalled();
+    expect(mockUpdateUVA).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(mockShowToast).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'error' }),
+    );
+
+    // The retry, once the check answers, proceeds normally.
+    await fireEvent.press(getByTestId('submit-button'));
+
+    expect(mockCreateNewUVA).toHaveBeenCalledTimes(1);
     expect(navigate).toHaveBeenLastCalledWith('RegisterCompleted');
   });
 });
