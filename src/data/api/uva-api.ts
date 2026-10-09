@@ -33,6 +33,12 @@ interface UVASuccessResponse<T> {
 // Unión de ambos tipos en la interfaz principal
 export type APIUVAResponse<T> = UVASuccessResponse<T> | APIErrorResponse;
 
+/** Result of findUVAByUser: found, confirmed none, or could not check. */
+export type UVALookupResult =
+  | { status: 'found'; data: UVAbyUserIDQuery }
+  | { status: 'none' }
+  | { status: 'error'; error: APIErrorResponse['error'] };
+
 /**
  * Service class for interacting with the UVA API.
  * This class provides methods to retrieve and create UVA data.
@@ -47,6 +53,29 @@ class UvaAPIService {
   async getUVAByUser(
     variables: UVAbyUserIDQueryVariables,
   ): Promise<APIUVAResponse<UVAbyUserIDQuery>> {
+    // Same query and contract as before #67 (success:false for "no items" and
+    // for errors alike), derived from findUVAByUser so there is one query path.
+    const result = await this.findUVAByUser(variables);
+    if (result.status === 'found') {
+      return { success: true, data: result.data };
+    }
+    if (result.status === 'none') {
+      return { success: false, error: handleAPIError('No UVA found') };
+    }
+    return { success: false, error: result.error };
+  }
+
+  /**
+   * Looks up the UVAs of a user telling "the user has none" apart from "the
+   * query failed". getUVAByUser returns success:false for both, which is not
+   * enough to decide whether a new UVA may be created (#67).
+   * @param {UVAbyUserIDQueryVariables} variables - The variables to filter UVA by user ID.
+   * @returns {Promise<UVALookupResult>} 'found' with the data, 'none' when the
+   * query answered with no items, or 'error' when it failed or threw.
+   */
+  async findUVAByUser(
+    variables: UVAbyUserIDQueryVariables,
+  ): Promise<UVALookupResult> {
     try {
       const response = await client.graphql({
         query: UVAbyUserID,
@@ -54,17 +83,16 @@ class UvaAPIService {
       });
 
       if (response.errors) {
-        return { success: false, error: handleAPIError(response.errors) };
+        return { status: 'error', error: handleAPIError(response.errors) };
       }
 
       const items = response.data?.UVAbyUserID?.items;
       if (items && items.length > 0) {
-        return { success: true, data: response.data };
-      } else {
-        return { success: false, error: handleAPIError('No UVA found') };
+        return { status: 'found', data: response.data };
       }
+      return { status: 'none' };
     } catch (err) {
-      return { success: false, error: handleAPIError(err) };
+      return { status: 'error', error: handleAPIError(err) };
     }
   }
 

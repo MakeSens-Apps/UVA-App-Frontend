@@ -551,7 +551,7 @@ describe('ROUTES_TO_MINIMIZE', () => {
     expect(ROUTES_TO_MINIMIZE.has('PersonalInfo')).toBe(false);
   });
 
-  it('pins the exact list (original 6 + the 2 user-requested deviations)', () => {
+  it('pins the exact list (original 6 + their register/OTP sub-routes + the 2 user-requested deviations)', () => {
     expect([...ROUTES_TO_MINIMIZE].sort()).toEqual(
       [
         'GuideMeasurement',
@@ -562,6 +562,15 @@ describe('ROUTES_TO_MINIMIZE', () => {
         'PreRegister',
         'Register',
         'RegisterMeasurement',
+        // #67: sub-routes the original matched through route.includes(...)
+        'SetPhoneRegister',
+        'ProjectVinculation',
+        'ValidateProject',
+        'ProjectVinculationDone',
+        'RegisterProjectForm',
+        'RegisterCompleted',
+        'ValidateCode',
+        'RegisterSuccess',
       ].sort(),
     );
   });
@@ -585,7 +594,6 @@ describe('minimizeApp', () => {
     delete RNMock.NativeModules.AppMinimize;
 
     jest.isolateModules(() => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { minimizeApp: minimizeAppFresh } =
         require('@/native/minimize/useAppMinimize') as {
           minimizeApp: () => void;
@@ -600,7 +608,6 @@ describe('minimizeApp', () => {
     RNMock.Platform.OS = 'ios';
 
     jest.isolateModules(() => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { minimizeApp: minimizeAppFresh } =
         require('@/native/minimize/useAppMinimize') as {
           minimizeApp: () => void;

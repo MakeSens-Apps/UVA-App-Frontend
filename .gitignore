@@ -120,3 +120,7 @@ temp/
 # Capturas de evidencia de la migración: se archivan fuera del repo
 # (ver docs/migration/evidence-notes/README.md), nunca se versionan.
 docs/evidence/
+# racimo-harness (Claude Code)
+.claude/worktrees/
+.claude/settings.local.json
+.claude/evidence/

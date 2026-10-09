@@ -1,6 +1,9 @@
 {
-  "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "permissions": {
+  "version": "1.1.1",
+  "guard": 2,
+  "profile": "UVA-App-Frontend",
+  "source": "https://github.com/MakeSens-Apps/racimo-harness",
+  "managed": {
     "deny": [
       "Bash(./gradlew assembleRelease*)",
       "Bash(./gradlew bundleRelease*)",
@@ -116,43 +119,5 @@
       "Bash(npm test)",
       "Bash(npx npm@11 install)"
     ]
-  },
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.sh\"",
-            "timeout": 15
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Bash|Monitor|mcp__.*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-bash.sh\" || exit 2",
-            "timeout": 20
-          }
-        ]
-      }
-    ]
-  },
-  "extraKnownMarketplaces": {
-    "makesens": {
-      "source": {
-        "source": "github",
-        "repo": "MakeSens-Apps/racimo-harness",
-        "ref": "v1"
-      }
-    }
-  },
-  "enabledPlugins": {
-    "racimo-harness@makesens": true,
-    "expo@claude-plugins-official": true
   }
 }

@@ -1,5 +1,7 @@
 # UVA App Frontend - Claude Code Context
 
+> **Lee primero [AGENTS.md](../AGENTS.md)**: ramas y builds, comandos verificados en local, evidencia en el emulador, seguridad y el perfil del harness de Claude (`/racimo-harness:ticket`). Nadie publica la app ni ejecuta builds de release; cada push a `feature/**` compila un APK en GitHub Actions, así que se agrupan los pushes (1 o 2 por PR). Los cambios en `.claude/settings.json` y `.claude/hooks/` se hacen en el repo racimo-harness y se copian con `scripts/sync-repo-layer.sh`.
+
 ## Project Overview
 
 **UVA App** is a mobile application for community environmental monitoring, built in **React Native (Expo, Android target)**. Field collaborators register environmental measurements — currently **temperature**, **humidity**, and **rain** — from their phones. Each user belongs to a **RACIMO** (group/project), linked during registration. The app is **offline-first** and syncs in the background when a connection is available.
@@ -115,12 +117,13 @@ Pure, RN-independent logic — fully testable with Jest without platform mocks: 
 
 ### Build and Deployment
 
-- **Development**: `npm start` (`expo start --dev-client`)
-- **Local Android run**: `npm run android` (`expo run:android`)
-- **Native build**: `npx expo prebuild --platform android` then Gradle (`./gradlew assembleRelease` / `bundleRelease`) — see `docs/android-build.md`
+- **Development**: `npm start` (`expo start --dev-client`), or `npx expo start --port 8081` for the debug APK on an emulator (it fetches the JS from `10.0.2.2:8081`; see AGENTS.md)
+- **Debug APK (agents and people)**: `npx expo prebuild --no-install --platform android` then `cd android && ./gradlew assembleDebug` — see `docs/android-build.md`
+- **Never from an agent session**: `npm run android` / `expo run:android` (builds and installs on the connected device, same package as production), `npm run build:android:*`, `./gradlew assembleRelease` / `bundleRelease` / `publish*`, tags `V*.*.*` or `gh workflow run`. Release builds and Play uploads are done by a person through the workflows (AGENTS.md, "Ramas, builds y publicación")
 - **Linting**: `npm run lint` (fix with `npm run lint:fix`)
 - **Formatting**: `npm run format`
 - Release/signing/versioning: see `docs/release-workflow.md`; CI process: see `docs/github-actions-pipeline.md`
+- **Usage telemetry**: `RootNavigator` records an `AppUsageEvent` (action `navigate`) on every focused screen through `trackNavigation`, with the Ionic slug as `screenName` (`src/data/view/screen-names.ts`). The RACIMO dashboard reads these events; keep the slugs stable. There is no Pinpoint/Analytics autoTrack (decision in #67)
 
 ## AWS Amplify Configuration
 
@@ -184,12 +187,11 @@ Pure, RN-independent logic — fully testable with Jest without platform mocks: 
 ```bash
 # Development
 npm start                    # expo start --dev-client
-npm run android               # expo run:android
 npm run web                    # expo start --web
 
-# Native build (no EAS)
-npx expo prebuild --platform android --clean
-cd android && ./gradlew assembleRelease   # or bundleRelease
+# Native debug build (no EAS). Release builds: only a person, through the workflows
+npx expo prebuild --no-install --platform android
+cd android && ./gradlew assembleDebug
 
 # Quality Assurance
 npm run lint

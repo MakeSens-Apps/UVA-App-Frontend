@@ -4,7 +4,17 @@ const expoConfig = require('eslint-config-expo/flat');
 module.exports = defineConfig([
   ...expoConfig,
   {
-    ignores: ['node_modules/', 'android/', 'ios/', 'dist/', '.expo/'],
+    // .claude/ holds the racimo-harness layer (hooks copied by sync-repo-layer.sh
+    // from the racimo-harness repo, plus local worktrees and evidence). It is not
+    // app code: the expo rules misread its plain Node scripts (e.g. `useVar`).
+    ignores: [
+      'node_modules/',
+      'android/',
+      'ios/',
+      'dist/',
+      '.expo/',
+      '.claude/',
+    ],
   },
   // Jest setup files and test helpers: allow Jest globals
   {

@@ -28,6 +28,21 @@
  *   '/otp'                   → 'Otp'
  *   '/app/tabs/register'     → 'Measurement'  (register tab)
  *
+ * SUB-ROUTE PARITY WITH THE ORIGINAL (#67, user decision 2026-10-08)
+ *   The original matched with `route.includes(...)`, so it also minimized on every
+ *   sub-route of '/register/*' and '/otp/*', and on '/register-success' (it contains
+ *   '/register'). This Set matches exact names, so they are listed one by one:
+ *   '/register/set-phone-register'        → 'SetPhoneRegister'
+ *   '/register/project-vinculation'       → 'ProjectVinculation'
+ *   '/register/validate-project'          → 'ValidateProject'
+ *   '/register/project-vinculation-done'  → 'ProjectVinculationDone'
+ *   '/register/register-project-form'     → 'RegisterProjectForm'
+ *   '/register/register-completed'        → 'RegisterCompleted'
+ *   '/otp/:type/:phone/validate-code'     → 'ValidateCode'
+ *   '/register-success'                   → 'RegisterSuccess'
+ *   Without them, back on 'RegisterCompleted' returned to the form during the 3 s
+ *   before the redirect, and a second submit created another UVA.
+ *
  * DESVIACIÓN DEL ORIGINAL A PETICIÓN DEL USUARIO (2026-09-10)
  *   'RegisterMeasurement' y 'GuideMeasurement' NO están en la lista del original
  *   (app-minimize.service.ts sólo declara /home, /login, /otp, /pre-register,
@@ -39,15 +54,49 @@
  *   (transparentModal): sin ella, el atrás sobre la guía seguiría cayendo en la pila.
  *   El botón de volver del header del formulario sigue funcionando igual.
  */
-export const ROUTES_TO_MINIMIZE: ReadonlySet<string> = new Set([
-  'PreRegister',
-  'Register',
+import type {
+  AppStackParamList,
+  AppTabsParamList,
+  AuthStackParamList,
+  HomeStackParamList,
+} from '@/navigation/types';
+
+/**
+ * Every Auth stack screen is a login, register or OTP screen, and the original
+ * minimized on all of them. Typed as a Record over AuthStackParamList so that a
+ * new Auth screen fails to compile until it is listed here (#67: the bug came
+ * from a hand-written list that missed 8 of them).
+ */
+const AUTH_ROUTES_TO_MINIMIZE: Record<keyof AuthStackParamList, true> = {
+  Login: true,
+  Otp: true,
+  ValidateCode: true,
+  PreRegister: true,
+  Register: true,
+  SetPhoneRegister: true,
+  ProjectVinculation: true,
+  ValidateProject: true,
+  ProjectVinculationDone: true,
+  RegisterProjectForm: true,
+  RegisterCompleted: true,
+  RegisterSuccess: true,
+};
+
+/** Authenticated screens that minimize. Typed so a misspelled name fails to compile. */
+const APP_ROUTES_TO_MINIMIZE: readonly (
+  | keyof HomeStackParamList
+  | keyof AppTabsParamList
+  | keyof AppStackParamList
+)[] = [
   'Home',
-  'Login',
-  'Otp',
   'Measurement',
   // Desviación del original a petición del usuario (2026-09-10)
   'RegisterMeasurement',
   // Desviación del original a petición del usuario (2026-09-10)
   'GuideMeasurement',
+];
+
+export const ROUTES_TO_MINIMIZE: ReadonlySet<string> = new Set<string>([
+  ...Object.keys(AUTH_ROUTES_TO_MINIMIZE),
+  ...APP_ROUTES_TO_MINIMIZE,
 ]);
