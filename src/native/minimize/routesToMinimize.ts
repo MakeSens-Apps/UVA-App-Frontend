@@ -28,6 +28,21 @@
  *   '/otp'                   → 'Otp'
  *   '/app/tabs/register'     → 'Measurement'  (register tab)
  *
+ * SUB-ROUTE PARITY WITH THE ORIGINAL (#67, user decision 2026-10-08)
+ *   The original matched with `route.includes(...)`, so it also minimized on every
+ *   sub-route of '/register/*' and '/otp/*', and on '/register-success' (it contains
+ *   '/register'). This Set matches exact names, so they are listed one by one:
+ *   '/register/set-phone-register'        → 'SetPhoneRegister'
+ *   '/register/project-vinculation'       → 'ProjectVinculation'
+ *   '/register/validate-project'          → 'ValidateProject'
+ *   '/register/project-vinculation-done'  → 'ProjectVinculationDone'
+ *   '/register/register-project-form'     → 'RegisterProjectForm'
+ *   '/register/register-completed'        → 'RegisterCompleted'
+ *   '/otp/:type/:phone/validate-code'     → 'ValidateCode'
+ *   '/register-success'                   → 'RegisterSuccess'
+ *   Without them, back on 'RegisterCompleted' returned to the form during the 3 s
+ *   before the redirect, and a second submit created another UVA.
+ *
  * DESVIACIÓN DEL ORIGINAL A PETICIÓN DEL USUARIO (2026-09-10)
  *   'RegisterMeasurement' y 'GuideMeasurement' NO están en la lista del original
  *   (app-minimize.service.ts sólo declara /home, /login, /otp, /pre-register,
@@ -46,6 +61,15 @@ export const ROUTES_TO_MINIMIZE: ReadonlySet<string> = new Set([
   'Login',
   'Otp',
   'Measurement',
+  // Register and OTP sub-routes (parity with the original `includes`, #67)
+  'SetPhoneRegister',
+  'ProjectVinculation',
+  'ValidateProject',
+  'ProjectVinculationDone',
+  'RegisterProjectForm',
+  'RegisterCompleted',
+  'ValidateCode',
+  'RegisterSuccess',
   // Desviación del original a petición del usuario (2026-09-10)
   'RegisterMeasurement',
   // Desviación del original a petición del usuario (2026-09-10)

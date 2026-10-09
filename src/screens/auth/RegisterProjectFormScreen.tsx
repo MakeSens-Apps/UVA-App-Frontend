@@ -13,6 +13,12 @@
  *   - goToCompleted(): createNewUVA() + updateUVA(formValues) → RegisterCompleted | back
  *   - If no configModel → show empty state (screen-16: "sin campos dinámicos")
  *
+ * Fix #67 (second UVA, same symptom as #50): goToCompleted creates the UVA at most
+ * once per screen. A synchronous ref drops a second tap while the first one is still
+ * running (the `loading` state renders too late), and before creating it asks the
+ * backend again whether the user already has a UVA (the init check only runs on
+ * mount). If one exists, only its fields are updated.
+ *
  * Visual ref: docs/evidence/register/screen-16
  *   - Title: "Datos de ubicación"
  *   - Message: "{name} por favor completa los siguientes datos:"
@@ -22,7 +28,7 @@
  * Tokens: blue gradient, white card, blue[500] inputs
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -71,6 +77,13 @@ export function RegisterProjectFormScreen({
 
   const { getConfigurationApp, loadImage } = useConfigContext();
 
+  // userID resolved in init; reused by goToCompleted to re-check the UVA.
+  const userIdRef = useRef('');
+  // true while goToCompleted runs: blocks a second tap before `loading` renders.
+  const submittingRef = useRef(false);
+  // true once this screen created the UVA: a resubmission never creates another.
+  const uvaCreatedRef = useRef(false);
+
   // ─── Init ──────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -79,6 +92,7 @@ export function RegisterProjectFormScreen({
     const init = async (): Promise<void> => {
       const user = await SetupService.getParametersUser();
       if (!cancelled) setUserName(user.name ?? '');
+      userIdRef.current = user.userID ?? '';
 
       // If user already has a UVA, skip to RegisterCompleted
       const hasUVA = await SetupRacimoService.getUVA(user.userID ?? '');
@@ -144,8 +158,9 @@ export function RegisterProjectFormScreen({
 
   const goToCompleted = async (): Promise<void> => {
     Keyboard.dismiss();
-    if (!isFormValid()) return;
+    if (!isFormValid() || submittingRef.current) return;
 
+    submittingRef.current = true;
     setLoading(true);
     try {
       const formValues: Record<string, string> = {};
@@ -153,12 +168,23 @@ export function RegisterProjectFormScreen({
         formValues[f.fieldId] = fieldValues[f.fieldId]?.value ?? '';
       });
 
-      const newUVAResponse = await SetupRacimoService.createNewUVA();
-      const updateUVAResponse = await SetupRacimoService.updateUVA(
-        JSON.stringify(formValues),
-      );
+      // Create the UVA only if this screen did not create it already and the
+      // backend has none for the user (getUVA also stores its uvaID in session,
+      // so updateUVA below targets the existing UVA).
+      let hasUVA = uvaCreatedRef.current;
+      if (!hasUVA) {
+        hasUVA = await SetupRacimoService.getUVA(userIdRef.current);
+      }
+      if (!hasUVA) {
+        hasUVA = await SetupRacimoService.createNewUVA();
+        uvaCreatedRef.current = hasUVA;
+      }
 
-      if (newUVAResponse && updateUVAResponse) {
+      const updateUVAResponse = hasUVA
+        ? await SetupRacimoService.updateUVA(JSON.stringify(formValues))
+        : false;
+
+      if (hasUVA && updateUVAResponse) {
         navigation.navigate('RegisterCompleted');
       } else {
         navigation.navigate('RegisterProjectForm', { racimoCode: '' });
@@ -166,6 +192,7 @@ export function RegisterProjectFormScreen({
     } catch (err) {
       console.error('goToCompleted error:', err);
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
