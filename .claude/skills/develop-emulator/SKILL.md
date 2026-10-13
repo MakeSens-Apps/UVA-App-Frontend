@@ -7,7 +7,7 @@ description: Probar la app UVA (React Native) contra el backend develop en el em
 
 El procedimiento vigente está en la sección **"Probar contra develop"** de `AGENTS.md`. Léelo entero y síguelo paso a paso: esta skill solo lo señala, para que no haya dos versiones.
 
-Resumen de lo que no cambia:
+Este resumen no reemplaza la sección; si difieren, prevalece `AGENTS.md`:
 
 - Solo develop, solo en local. Nunca `test`, `main` ni producción.
 - `amplifyconfiguration.json` real: se genera en una carpeta temporal, se comprueba sin imprimir valores que apunta a develop y se copia a la raíz (está en `.gitignore`). Nunca se abre, se cita ni se versiona, y se borra al terminar.
@@ -15,4 +15,4 @@ Resumen de lo que no cambia:
 - Cuenta: la de agentes, `+573000000010`, que existe solo en develop. Un agente no crea cuentas.
 - Vinculación: solo al RACIMO de prueba "Prueba dashboard", con el código que da el orquestador, que no se escribe en el repo.
 
-La app ya no corre en el navegador: la skill de Playwright de la versión Ionic se retiró en #77.
+La skill de Playwright que había aquí apuntaba al servidor de la versión Ionic (`localhost:4200`), que ya no existe; se retiró en #77. La evidencia de este repo se toma en el emulador.

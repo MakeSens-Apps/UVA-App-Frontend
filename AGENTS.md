@@ -94,59 +94,61 @@ Cuidados:
 - La cuenta de agentes **`+573000000010`** ("Agente Prueba"). Existe solo en el pool de develop, está en la lista de prueba de la app (`src/data/auth/test-users.ts`) y entra sin código SMS. No uses la cuenta de revisión de Play (`+573000000002`): en develop ya tiene una UVA en otro RACIMO. Si la cuenta de agentes no entra, comenta en el issue y detente: un agente no crea cuentas ni por la app ni por comandos de administración.
 - Para vincular la cuenta: el código del RACIMO de prueba del dashboard ("Prueba dashboard"). Lo da el orquestador; no se escribe en el repo, ni en PRs, issues o evidencias. Nunca se vincula a un RACIMO real.
 
-**Pasos.** `<n>` es el número del ticket y `<raíz>` la raíz de tu worktree.
+**Pasos.** `<n>` es el número del ticket, `<raíz>` la ruta absoluta de tu worktree y `<tmp>` la ruta absoluta de una carpeta nueva y vacía fuera del repo (por ejemplo, en tu scratchpad). Escribe las rutas completas en cada comando: en un agente, el directorio y las variables del shell no se conservan entre llamadas.
 
-1. **Configuración de develop**, en una carpeta temporal fuera del repo. Así el pull no toca los archivos versionados de `amplify/`:
+1. **Configuración de develop**, en `<tmp>`. Así el pull no toca los archivos versionados de `amplify/`:
 
    ```bash
-   TMP=$(mktemp -d) && cd "$TMP"
-   AWS_REGION=us-east-1 AMPLIFY_CLI_DISABLE_BROWSER_AUTH=true npx -y @aws-amplify/cli@12.14.4 pull \
+   mkdir -p <tmp> && (cd <tmp> && AWS_REGION=us-east-1 AMPLIFY_CLI_DISABLE_BROWSER_AUTH=true npx -y @aws-amplify/cli@12.14.4 pull \
      --amplify '{"projectName":"UVA","appId":"d2l8hh51bqhq16","envName":"develop"}' \
      --providers '{"awscloudformation":{"configLevel":"project","useProfile":true,"profileName":"<perfil>"}}' \
      --frontend '{"frontend":"javascript","framework":"react-native","config":{"SourceDir":"src","DistributionDir":"/","BuildCommand":"npm run-script build","StartCommand":"npm run-script start"}}' \
-     --yes
+     --yes)
    ```
 
-   `appId` y `projectName` son los de `.github/workflows/build-android.yml`. Deja el archivo en `$TMP/src/amplifyconfiguration.json`. Nunca lo abras, imprimas ni cites.
+   El `cd` va entre paréntesis para que el shell no quede dentro de `<tmp>`, que el paso 3 borra. `appId` y `projectName` son los de `.github/workflows/build-android.yml`. Deja el archivo en `<tmp>/src/amplifyconfiguration.json`. Nunca lo abras, imprimas ni cites.
 
 2. **Comprueba que es develop sin imprimir valores.** Estos comandos solo muestran el nombre del recurso al que apunta el archivo:
 
    ```bash
-   node -p "require('$TMP/amplify/.config/local-env-info.json').envName"   # develop
+   node -p "require('<tmp>/amplify/.config/local-env-info.json').envName"   # develop
    aws appsync list-graphql-apis --profile <perfil> --region us-east-1 --output json \
-     | node -e 'const c=require(process.argv[1]);const l=JSON.parse(require("fs").readFileSync(0,"utf8")).graphqlApis;const a=l.find(x=>x.uris.GRAPHQL===c.aws_appsync_graphqlEndpoint);console.log(a?a.name:"no-encontrada")' "$TMP/src/amplifyconfiguration.json"   # UVAv2-develop
+     | node -e 'const c=require(process.argv[1]);const l=JSON.parse(require("fs").readFileSync(0,"utf8")).graphqlApis;const a=l.find(x=>x.uris.GRAPHQL===c.aws_appsync_graphqlEndpoint);console.log(a?a.name:"no-encontrada")' <tmp>/src/amplifyconfiguration.json   # UVAv2-develop
    aws cognito-idp list-user-pools --max-results 60 --profile <perfil> --region us-east-1 --output json \
-     | node -e 'const c=require(process.argv[1]);const l=JSON.parse(require("fs").readFileSync(0,"utf8")).UserPools;const p=l.find(x=>x.Id===c.aws_user_pools_id);console.log(p?p.Name:"no-encontrado")' "$TMP/src/amplifyconfiguration.json"   # termina en -develop
+     | node -e 'const c=require(process.argv[1]);const l=JSON.parse(require("fs").readFileSync(0,"utf8")).UserPools;const p=l.find(x=>x.Id===c.aws_user_pools_id);console.log(p?p.Name:"no-encontrado")' <tmp>/src/amplifyconfiguration.json   # termina en -develop
    ```
 
-   Si alguno no dice develop, borra `$TMP`, no sigas y comenta en el issue.
+   Si alguno no dice develop, borra `<tmp>`, no sigas y comenta en el issue.
 
-3. **Copia el archivo a la raíz y borra la carpeta temporal:** `cp "$TMP/src/amplifyconfiguration.json" <raíz>/ && rm -rf "$TMP"`. Comprueba que git lo ignora: `git check-ignore amplifyconfiguration.json`. Nunca lo agregues a un commit.
+3. **Copia el archivo a la raíz y borra la carpeta temporal:** `cp <tmp>/src/amplifyconfiguration.json <raíz>/ && rm -rf <tmp>`. Comprueba que git lo ignora: `git -C <raíz> check-ignore amplifyconfiguration.json`. Nunca lo agregues a un commit.
 
 4. **APK, Metro y emulador**, con los pasos de "Evidencia en el emulador". Levanta Metro **después** de copiar el archivo: Metro lo empaqueta en el JS. Si Metro ya corría con la configuración sintética, reinícialo con `--clear`. El APK de debug pide el JS a Metro, así que no hace falta recompilarlo al cambiar de configuración.
 
 5. **Inicia sesión** con `android.sh input`. Para encontrar cada control, `adb -s <serial> exec-out uiautomator dump /dev/tty` lista los `testID` de React Native como `resource-id`, con sus `bounds`. El `<serial>` está en `.claude/evidence/<n>/android-serial`.
-   - Toca `phone-input`, escribe el número sin `+57` (`android.sh input <n> text 3000000010`), cierra el teclado (`keyevent KEYCODE_BACK`) y toca `submit-button`.
+   - Toca `phone-input`, escribe el número sin `+57` (`android.sh input <n> text 3000000010`), cierra el teclado (`android.sh input <n> keyevent KEYCODE_BACK`) y toca `submit-button`. `android.sh input` no acepta espacios: en `text`, cada espacio se escribe `%s`.
    - En el diálogo de confirmación, toca "Sí, Continuar". No aparece la pantalla del código SMS.
-   - Si la cuenta ya tiene UVA, la app pasa por "Vinculando al proyecto" y llega a Inicio. Si no tiene, pide el código del RACIMO: escribe el de "Prueba dashboard" en `code-input` y toca `submit-button`. La app muestra "¡Vinculación exitosa! Vinculado al proyecto: Prueba dashboard" y luego pide los datos de ubicación de la UVA: complétalos con valores sintéticos ("Finca de prueba", "Vereda de prueba", "Municipio de prueba"), cerrando el teclado entre campos porque tapa el siguiente.
+   - Si la cuenta ya tiene UVA, la app pasa por "Vinculando al proyecto" y llega a Inicio. Si no tiene, pide el código del RACIMO: escribe el de "Prueba dashboard" en `code-input` y toca `submit-button`. La app muestra "¡Vinculación exitosa! Vinculado al proyecto: Prueba dashboard" y luego pide los datos de ubicación de la UVA: complétalos con valores sintéticos (`android.sh input <n> text Finca%sde%sprueba`, y lo mismo con `Vereda%sde%sprueba` y `Municipio%sde%sprueba`), cerrando el teclado entre campos porque tapa el siguiente.
    - Después de vincularla por primera vez, la app llega a Inicio, pero "Perfil > Información personal" sale vacío hasta que la app se reinicia: cierra tu build (`adb -s <serial> shell am force-stop com.makesens.appuva`, sin borrar datos) y ábrela con `android.sh launch <n>`. La sesión se conserva y la app entra directo a Inicio. Ahí "Información personal" muestra la UVA (finca, vereda y municipio).
    - Si la primera vez aparece "System UI isn't responding", toca "Wait". Los avisos de desarrollo de la parte de abajo se cierran con su X.
 
-6. **Comprueba el RACIMO sin imprimir valores.** La app guarda el código del RACIMO vinculado en su almacenamiento local. Con el build de debug se puede comparar así, y solo se imprime 1 o 0:
+6. **Comprueba el RACIMO sin imprimir valores.** La app guarda el código del RACIMO vinculado en su almacenamiento local, que también tiene la sesión. Con el build de debug se compara así, en una carpeta `<tmp2>` nueva fuera del repo y de `.claude/evidence/` (la evidencia se publica), que se borra en el mismo comando. Se copian también los archivos `-wal` y `-shm`, porque las escrituras recientes pueden estar solo ahí. El código va en mayúsculas, como lo guarda la app:
 
    ```bash
-   adb -s <serial> exec-out run-as com.makesens.appuva cat databases/RKStorage > <carpeta-temporal>/RKStorage.db
-   sqlite3 <carpeta-temporal>/RKStorage.db "select value = '<código>' from catalystLocalStorage where key = 'session_racimoLinkCode';"
+   mkdir -p <tmp2> \
+     && for f in RKStorage RKStorage-wal RKStorage-shm; do adb -s <serial> exec-out run-as com.makesens.appuva cat databases/$f > <tmp2>/$f 2>/dev/null; done \
+     && sqlite3 <tmp2>/RKStorage "select count(*) from catalystLocalStorage where key = 'session_racimoLinkCode' and value = '<CÓDIGO>';"; rm -rf <tmp2>
    ```
 
-   Si sale 0, la cuenta está vinculada a otro RACIMO: no sigas, comenta en el issue y detente. Borra la copia al terminar.
+   Debe imprimir `1`. Cualquier otra salida (0, vacío o un error) quiere decir que no se pudo comprobar o que la cuenta está en otro RACIMO: no sigas, comenta en el issue y detente.
 
-7. **Al terminar**, `android.sh stop <n>` (el AVD arranca en solo lectura, así que la sesión y los datos locales se descartan) y `serve.sh stop <n>`. **Borra `amplifyconfiguration.json` de la raíz** (o reemplázalo por la configuración sintética). La vinculación de la cuenta queda guardada en develop: la próxima vez la app pasa directo a Inicio.
+7. **Al terminar**, `android.sh stop <n>` (el AVD arranca en solo lectura, así que la sesión y los datos locales se descartan) y `serve.sh stop <n>`. **Borra `amplifyconfiguration.json` de la raíz** y vuelve a la configuración sintética. Metro guarda en su caché una copia transformada del archivo: levántalo una vez con la configuración sintética y `--clear` (`serve.sh start <n> metro 8081 -- npx expo start --port 8081 --clear`) y apágalo. La vinculación de la cuenta queda guardada en develop: la próxima vez la app pasa directo a Inicio.
 
 **Cuidados.**
 
 - La configuración real, el código del RACIMO y los datos de develop no salen en commits, PRs, issues, comentarios, evidencias ni logs. Las capturas se toman solo del RACIMO de prueba, y el número de la cuenta se difumina si aparece en pantalla.
 - Develop es compartido: no registres mediciones ni cambies datos más allá de lo que el ticket pide comprobar.
+- La cuenta de agentes, su UVA y "Prueba dashboard" los comparten todos los agentes. Si el ticket los cambia (por ejemplo, deshabilita o corrige la UVA o el RACIMO), al terminar déjalos como estaban (habilitados y con datos sintéticos) y decláralo en la evidencia. Dos tickets no usan la cuenta al mismo tiempo: el orquestador los ordena.
+- Las cuentas de prueba saltan la restricción de horario de las tareas en "Registros", así que esa parte no se ve igual que la ve un campesino. Si el ticket depende de ella, la comprueba una persona.
 
 ## Seguridad
 
