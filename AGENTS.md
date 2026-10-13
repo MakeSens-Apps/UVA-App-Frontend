@@ -88,10 +88,10 @@ Cuidados:
 
 **Requisitos.**
 
-- Autorización escrita para el `amplify pull` de develop en el ticket ("Decisiones para la implementación") o en el prompt del orquestador. Sin ella, se usa la configuración sintética.
+- **Autorización permanente** (product owner, 2026-10-13, #77): cualquier agente puede ejecutar el `amplify pull` de **develop** de este procedimiento, solo en local. El archivo que genera no se versiona, no se abre ni se cita, y se borra al terminar. Nunca se hace pull de `test`, `main` ni producción.
 - Credenciales de AWS de la cuenta MakeSens en `us-east-1`, con el perfil que indique la persona responsable. Solo se usan para leer: `amplify pull` y listados.
 - Un AVD sin la app real (ver "Evidencia en el emulador") y lo de la tabla de comandos.
-- Una cuenta de la lista de prueba (`src/data/auth/test-users.ts`, solo las `+5730000000NN`) que exista en develop. Hoy existe `+573000000002`, la de revisión de Play (`docs/play-store/README.md`). Estas cuentas entran sin código SMS. Si ninguna existe o sirve, comenta en el issue y detente: un agente no crea cuentas ni por la app ni por comandos de administración.
+- La cuenta de agentes **`+573000000010`** ("Agente Prueba"). Existe solo en el pool de develop, está en la lista de prueba de la app (`src/data/auth/test-users.ts`) y entra sin código SMS. No uses la cuenta de revisión de Play (`+573000000002`): en develop ya tiene una UVA en otro RACIMO. Si la cuenta de agentes no entra, comenta en el issue y detente: un agente no crea cuentas ni por la app ni por comandos de administración.
 - Para vincular la cuenta: el código del RACIMO de prueba del dashboard ("Prueba dashboard"). Lo da el orquestador; no se escribe en el repo, ni en PRs, issues o evidencias. Nunca se vincula a un RACIMO real.
 
 **Pasos.** `<n>` es el número del ticket y `<raíz>` la raíz de tu worktree.
@@ -107,7 +107,7 @@ Cuidados:
      --yes
    ```
 
-   Deja el archivo en `$TMP/src/amplifyconfiguration.json`. Nunca lo abras, imprimas ni cites.
+   `appId` y `projectName` son los de `.github/workflows/build-android.yml`. Deja el archivo en `$TMP/src/amplifyconfiguration.json`. Nunca lo abras, imprimas ni cites.
 
 2. **Comprueba que es develop sin imprimir valores.** Estos comandos solo muestran el nombre del recurso al que apunta el archivo:
 
@@ -126,9 +126,10 @@ Cuidados:
 4. **APK, Metro y emulador**, con los pasos de "Evidencia en el emulador". Levanta Metro **después** de copiar el archivo: Metro lo empaqueta en el JS. Si Metro ya corría con la configuración sintética, reinícialo con `--clear`. El APK de debug pide el JS a Metro, así que no hace falta recompilarlo al cambiar de configuración.
 
 5. **Inicia sesión** con `android.sh input`. Para encontrar cada control, `adb -s <serial> exec-out uiautomator dump /dev/tty` lista los `testID` de React Native como `resource-id`, con sus `bounds`. El `<serial>` está en `.claude/evidence/<n>/android-serial`.
-   - Toca `phone-input`, escribe el número sin `+57` (`android.sh input <n> text 3000000002`), cierra el teclado (`keyevent KEYCODE_BACK`) y toca `submit-button`.
+   - Toca `phone-input`, escribe el número sin `+57` (`android.sh input <n> text 3000000010`), cierra el teclado (`keyevent KEYCODE_BACK`) y toca `submit-button`.
    - En el diálogo de confirmación, toca "Sí, Continuar". No aparece la pantalla del código SMS.
-   - Si la cuenta ya tiene UVA, la app pasa por "Vinculando al proyecto" y llega a Inicio. Si no tiene, pide el código del RACIMO: escribe el de "Prueba dashboard" en `code-input`, toca `submit-button` y completa los datos de la UVA con valores sintéticos (por ejemplo "Finca de prueba").
+   - Si la cuenta ya tiene UVA, la app pasa por "Vinculando al proyecto" y llega a Inicio. Si no tiene, pide el código del RACIMO: escribe el de "Prueba dashboard" en `code-input` y toca `submit-button`. La app muestra "¡Vinculación exitosa! Vinculado al proyecto: Prueba dashboard" y luego pide los datos de ubicación de la UVA: complétalos con valores sintéticos ("Finca de prueba", "Vereda de prueba", "Municipio de prueba"), cerrando el teclado entre campos porque tapa el siguiente.
+   - Después de vincularla por primera vez, la app llega a Inicio, pero "Perfil > Información personal" sale vacío hasta que la app se reinicia: cierra tu build (`adb -s <serial> shell am force-stop com.makesens.appuva`, sin borrar datos) y ábrela con `android.sh launch <n>`. La sesión se conserva y la app entra directo a Inicio. Ahí "Información personal" muestra la UVA (finca, vereda y municipio).
    - Si la primera vez aparece "System UI isn't responding", toca "Wait". Los avisos de desarrollo de la parte de abajo se cierran con su X.
 
 6. **Comprueba el RACIMO sin imprimir valores.** La app guarda el código del RACIMO vinculado en su almacenamiento local. Con el build de debug se puede comparar así, y solo se imprime 1 o 0:
@@ -138,9 +139,9 @@ Cuidados:
    sqlite3 <carpeta-temporal>/RKStorage.db "select value = '<código>' from catalystLocalStorage where key = 'session_racimoLinkCode';"
    ```
 
-   Si sale 0, la cuenta está vinculada a otro RACIMO: no sigas con esa cuenta (prueba otra de la lista, o comenta y detente). Borra la copia al terminar.
+   Si sale 0, la cuenta está vinculada a otro RACIMO: no sigas, comenta en el issue y detente. Borra la copia al terminar.
 
-7. **Al terminar**, `android.sh stop <n>` (el AVD arranca en solo lectura, así que la sesión y los datos locales se descartan) y `serve.sh stop <n>`. Borra `amplifyconfiguration.json` de la raíz o vuelve a la configuración sintética. La vinculación de la cuenta queda guardada en develop para la próxima prueba.
+7. **Al terminar**, `android.sh stop <n>` (el AVD arranca en solo lectura, así que la sesión y los datos locales se descartan) y `serve.sh stop <n>`. **Borra `amplifyconfiguration.json` de la raíz** (o reemplázalo por la configuración sintética). La vinculación de la cuenta queda guardada en develop: la próxima vez la app pasa directo a Inicio.
 
 **Cuidados.**
 

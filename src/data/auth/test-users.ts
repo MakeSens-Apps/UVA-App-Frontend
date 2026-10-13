@@ -20,6 +20,8 @@ const testUsers: string[] = [
   '+573000000001',
   '+573000000002',
   '+573000000003',
+  // Agent test account: exists only in the develop user pool (AGENTS.md, "Probar contra develop").
+  '+573000000010',
   '+573007586230',
 
   // ...add more test users as needed
