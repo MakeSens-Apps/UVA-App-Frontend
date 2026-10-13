@@ -49,7 +49,7 @@ Verificados el 2026-10-08 en `feature/67-close-react-native-migration` (React Na
 
 ### Configuración sintética
 
-Para compilar sin tocar el backend real, crea `amplifyconfiguration.json` en la raíz con valores de ejemplo. No copies el archivo real de otro clon ni ejecutes `amplify pull`:
+Para compilar sin tocar el backend real, crea `amplifyconfiguration.json` en la raíz con valores de ejemplo. No copies el archivo real de otro clon ni ejecutes `amplify pull` (la única excepción es "Probar contra develop", más abajo):
 
 ```json
 {
@@ -80,13 +80,78 @@ Requisitos: Android SDK con `adb`, `emulator` y `aapt2`, un AVD, JDK 17 y `ffmpe
 Cuidados:
 
 - **El paquete del APK de debug es el mismo que el de producción (`com.makesens.appuva`).** Instalarlo en un AVD o teléfono que tenga la app real la reemplaza y puede borrar su sesión y sus mediciones sin sincronizar. Usa solo un AVD sin la app real (lo crea una persona en Android Studio); si `install` se niega, pide uno en el issue. Nunca abras, desinstales ni limpies la app que ya estaba.
-- Nunca escribas teléfonos ni códigos reales: si un flujo requiere sesión, usa datos sintéticos y decláralo. Lo que exige SIM (OTP real, vinculación real a un RACIMO) lo prueba una persona.
+- Nunca escribas teléfonos ni códigos reales: si un flujo requiere sesión, usa datos sintéticos y decláralo. La única excepción son las cuentas de prueba `+5730000000NN` de `src/data/auth/test-users.ts`, y solo contra develop con el procedimiento "Probar contra develop". Lo que exige SIM (OTP real) o un RACIMO real lo prueba una persona.
+
+## Probar contra develop
+
+**Cuándo.** Solo cuando un ticket necesita comprobar de punta a punta, con datos de develop, lo que ve el campesino: iniciar sesión, la vinculación a un RACIMO o los cambios que hace el dashboard RACIMO (por ejemplo, corregir o deshabilitar una UVA). Para todo lo demás, incluida la evidencia de pantallas sin datos, sigue valiendo la "Configuración sintética". El procedimiento es **solo para develop**: nunca `test`, `main` ni producción.
+
+**Requisitos.**
+
+- Autorización escrita para el `amplify pull` de develop en el ticket ("Decisiones para la implementación") o en el prompt del orquestador. Sin ella, se usa la configuración sintética.
+- Credenciales de AWS de la cuenta MakeSens en `us-east-1`, con el perfil que indique la persona responsable. Solo se usan para leer: `amplify pull` y listados.
+- Un AVD sin la app real (ver "Evidencia en el emulador") y lo de la tabla de comandos.
+- Una cuenta de la lista de prueba (`src/data/auth/test-users.ts`, solo las `+5730000000NN`) que exista en develop. Hoy existe `+573000000002`, la de revisión de Play (`docs/play-store/README.md`). Estas cuentas entran sin código SMS. Si ninguna existe o sirve, comenta en el issue y detente: un agente no crea cuentas ni por la app ni por comandos de administración.
+- Para vincular la cuenta: el código del RACIMO de prueba del dashboard ("Prueba dashboard"). Lo da el orquestador; no se escribe en el repo, ni en PRs, issues o evidencias. Nunca se vincula a un RACIMO real.
+
+**Pasos.** `<n>` es el número del ticket y `<raíz>` la raíz de tu worktree.
+
+1. **Configuración de develop**, en una carpeta temporal fuera del repo. Así el pull no toca los archivos versionados de `amplify/`:
+
+   ```bash
+   TMP=$(mktemp -d) && cd "$TMP"
+   AWS_REGION=us-east-1 AMPLIFY_CLI_DISABLE_BROWSER_AUTH=true npx -y @aws-amplify/cli@12.14.4 pull \
+     --amplify '{"projectName":"UVA","appId":"d2l8hh51bqhq16","envName":"develop"}' \
+     --providers '{"awscloudformation":{"configLevel":"project","useProfile":true,"profileName":"<perfil>"}}' \
+     --frontend '{"frontend":"javascript","framework":"react-native","config":{"SourceDir":"src","DistributionDir":"/","BuildCommand":"npm run-script build","StartCommand":"npm run-script start"}}' \
+     --yes
+   ```
+
+   Deja el archivo en `$TMP/src/amplifyconfiguration.json`. Nunca lo abras, imprimas ni cites.
+
+2. **Comprueba que es develop sin imprimir valores.** Estos comandos solo muestran el nombre del recurso al que apunta el archivo:
+
+   ```bash
+   node -p "require('$TMP/amplify/.config/local-env-info.json').envName"   # develop
+   aws appsync list-graphql-apis --profile <perfil> --region us-east-1 --output json \
+     | node -e 'const c=require(process.argv[1]);const l=JSON.parse(require("fs").readFileSync(0,"utf8")).graphqlApis;const a=l.find(x=>x.uris.GRAPHQL===c.aws_appsync_graphqlEndpoint);console.log(a?a.name:"no-encontrada")' "$TMP/src/amplifyconfiguration.json"   # UVAv2-develop
+   aws cognito-idp list-user-pools --max-results 60 --profile <perfil> --region us-east-1 --output json \
+     | node -e 'const c=require(process.argv[1]);const l=JSON.parse(require("fs").readFileSync(0,"utf8")).UserPools;const p=l.find(x=>x.Id===c.aws_user_pools_id);console.log(p?p.Name:"no-encontrado")' "$TMP/src/amplifyconfiguration.json"   # termina en -develop
+   ```
+
+   Si alguno no dice develop, borra `$TMP`, no sigas y comenta en el issue.
+
+3. **Copia el archivo a la raíz y borra la carpeta temporal:** `cp "$TMP/src/amplifyconfiguration.json" <raíz>/ && rm -rf "$TMP"`. Comprueba que git lo ignora: `git check-ignore amplifyconfiguration.json`. Nunca lo agregues a un commit.
+
+4. **APK, Metro y emulador**, con los pasos de "Evidencia en el emulador". Levanta Metro **después** de copiar el archivo: Metro lo empaqueta en el JS. Si Metro ya corría con la configuración sintética, reinícialo con `--clear`. El APK de debug pide el JS a Metro, así que no hace falta recompilarlo al cambiar de configuración.
+
+5. **Inicia sesión** con `android.sh input`. Para encontrar cada control, `adb -s <serial> exec-out uiautomator dump /dev/tty` lista los `testID` de React Native como `resource-id`, con sus `bounds`. El `<serial>` está en `.claude/evidence/<n>/android-serial`.
+   - Toca `phone-input`, escribe el número sin `+57` (`android.sh input <n> text 3000000002`), cierra el teclado (`keyevent KEYCODE_BACK`) y toca `submit-button`.
+   - En el diálogo de confirmación, toca "Sí, Continuar". No aparece la pantalla del código SMS.
+   - Si la cuenta ya tiene UVA, la app pasa por "Vinculando al proyecto" y llega a Inicio. Si no tiene, pide el código del RACIMO: escribe el de "Prueba dashboard" en `code-input`, toca `submit-button` y completa los datos de la UVA con valores sintéticos (por ejemplo "Finca de prueba").
+   - Si la primera vez aparece "System UI isn't responding", toca "Wait". Los avisos de desarrollo de la parte de abajo se cierran con su X.
+
+6. **Comprueba el RACIMO sin imprimir valores.** La app guarda el código del RACIMO vinculado en su almacenamiento local. Con el build de debug se puede comparar así, y solo se imprime 1 o 0:
+
+   ```bash
+   adb -s <serial> exec-out run-as com.makesens.appuva cat databases/RKStorage > <carpeta-temporal>/RKStorage.db
+   sqlite3 <carpeta-temporal>/RKStorage.db "select value = '<código>' from catalystLocalStorage where key = 'session_racimoLinkCode';"
+   ```
+
+   Si sale 0, la cuenta está vinculada a otro RACIMO: no sigas con esa cuenta (prueba otra de la lista, o comenta y detente). Borra la copia al terminar.
+
+7. **Al terminar**, `android.sh stop <n>` (el AVD arranca en solo lectura, así que la sesión y los datos locales se descartan) y `serve.sh stop <n>`. Borra `amplifyconfiguration.json` de la raíz o vuelve a la configuración sintética. La vinculación de la cuenta queda guardada en develop para la próxima prueba.
+
+**Cuidados.**
+
+- La configuración real, el código del RACIMO y los datos de develop no salen en commits, PRs, issues, comentarios, evidencias ni logs. Las capturas se toman solo del RACIMO de prueba, y el número de la cuenta se difumina si aparece en pantalla.
+- Develop es compartido: no registres mediciones ni cambies datos más allá de lo que el ticket pide comprobar.
 
 ## Seguridad
 
 - **El repositorio es público.** Todo lo que se versiona, y todo PR, issue o comentario, lo puede leer cualquiera: solo datos sintéticos y ningún detalle explotable.
 - No leas ni cites `.env*`, keystores (`*.jks`, `*.keystore`), `signing.properties`, `amplify/team-provider-info.json` ni un `amplifyconfiguration.json` real. Las credenciales de firma viven solo en los secrets de GitHub Actions. El keystore se purgó de la historia en el cutover: no lo reintroduzcas ni reescribas la historia compartida (`feature/ionic-to-react-native` se integra con merge, sin rebase).
-- No uses credenciales de AWS para compilar ni para capturas: la configuración sintética basta.
+- No uses credenciales de AWS para compilar ni para capturas: la configuración sintética basta. La única excepción es "Probar contra develop": solo lectura (`amplify pull` y listados), solo develop.
 - Datos de personas, UVAs y RACIMOS: siempre sintéticos en pruebas, capturas y ejemplos (IDs `00000000-0000-4000-8000-…`).
 
 <!-- racimo-harness:perfil:inicio (lo escribe sync-repo-layer.sh del repo racimo-harness; no lo edites a mano) -->
