@@ -6,7 +6,7 @@
  *   - Removed @Injectable({ providedIn: 'root' }) — exported plain function
  *   - Exported as `isTestUser` function (plan.md B04: "export const isTestUser")
  *
- * PRESERVED: list of test user phone numbers exactly as in original.
+ * List ported from the Ionic app, plus the develop-only agent account (#77).
  * phone 3000000002 (+573000000002) skips OTP flow in B13.
  */
 
@@ -20,6 +20,8 @@ const testUsers: string[] = [
   '+573000000001',
   '+573000000002',
   '+573000000003',
+  // Agent test account: exists only in the develop user pool (AGENTS.md, "Probar contra develop").
+  '+573000000010',
   '+573007586230',
 
   // ...add more test users as needed

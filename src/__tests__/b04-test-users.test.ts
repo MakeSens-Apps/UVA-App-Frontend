@@ -26,6 +26,10 @@ describe('B04 — isTestUser', () => {
     expect(isTestUser('+570000000000')).toBe(true);
   });
 
+  it('+573000000010 (agent account, develop only) is a test user', () => {
+    expect(isTestUser('+573000000010')).toBe(true);
+  });
+
   it('a random production phone is NOT a test user', () => {
     expect(isTestUser('+573001234567')).toBe(false);
   });
