@@ -53,13 +53,13 @@ GestureHandlerRootView
 El estado global se maneja con **React Context**, uno por dominio, cada uno envolviendo un servicio/singleton de acceso a datos para no duplicar lógica de I/O:
 
 - **`SessionContext`** — envuelve el singleton `sessionService` (`src/data/session/session.ts`); expone la sesión de forma reactiva a la UI (carga, actualiza campo, limpia) sin que los componentes tengan que hacer polling.
-- **`SyncContext`** — puente reactivo hacia el estado de `DataStore` (estados `NOINIT`/`UNSYNC`/`SYNC`), suscrito a `Hub` de Amplify para eventos de red y de sincronización de modelos; expone `waitForSync()` basado en el evento de Hub en vez de polling por intervalo.
+- **`SyncContext`** — puente reactivo hacia el estado de `DataStore` (estados `NOINIT`/`UNSYNC`/`SYNC`), suscrito a `Hub` de Amplify para eventos de red y de sincronización de modelos; expone `waitForSync()` basado en el evento de Hub en vez de polling por intervalo, y `hasPendingChanges`, que viene del rastreador de pendientes (ver "Cambios pendientes de subir").
 - **`ConfigContext`** — configuración persistida del dispositivo (branding activo, recordatorios, etc.).
 - **`state/notification/NotificationContext`** — estado de alertas y notificaciones locales, coordinado con `src/native/notifications/LocalRemindersService.ts`.
 
 ## Acceso a datos (`src/data/`)
 
-- **`amplify-bootstrap/`** — arranque de Amplify (`amplify-config.ts`) y monitor de sincronización sobre `Hub` (`sync-monitor.ts`).
+- **`amplify-bootstrap/`** — arranque de Amplify (`amplify-config.ts`), monitor de sincronización sobre `Hub` (`sync-monitor.ts`) y rastreador de cambios pendientes de subir (`pending-sync-tracker.ts`).
 - **`models/`** — esquema de DataStore (`schema.js`/`schema.d.ts`), generado desde el mismo backend GraphQL que la app Ionic.
 - **`datastore/`** — un wrapper por modelo de dominio (`measurement-ds`, `racimo-ds`, `uva-ds`, `user-ds`, `user-progress-ds`, `gamification-event-ds`) que encapsula las queries/mutaciones de DataStore para cada entidad.
 - **`api/`** — llamadas directas a GraphQL para operaciones que no pasan por DataStore (racimo, uva, user, user-progress, moon-phase), con manejo de errores centralizado en `api/errors-handle/`.
@@ -71,6 +71,17 @@ El estado global se maneja con **React Context**, uno por dominio, cada uno envo
 ### DataStore + AsyncStorage (offline-first)
 
 DataStore usa **AsyncStorage** como adaptador de almacenamiento local en Android. El límite por defecto de la base SQLite interna de `@react-native-async-storage/async-storage` es de 6 MB (`AsyncStorage_db_size_in_MB` en su `config.gradle`) — insuficiente para el histórico de mediciones que acumula DataStore en el tiempo, lo que producía `SQLiteFullException` en dispositivos reales. Como `android/` es generado por `expo prebuild` (no se versiona ni se edita a mano), ese límite se eleva a **200 MB** mediante un config plugin de Expo, `plugins/withAsyncStorageDbSize.js`, que inyecta la propiedad Gradle correspondiente en cada prebuild vía `withGradleProperties`.
+
+### Cambios pendientes de subir
+
+"Con sincronizaciones pendientes" en Configuración sale de `pendingSyncTracker` (`src/data/amplify-bootstrap/pending-sync-tracker.ts`, #79), que cuenta los cambios de la persona que siguen en la cola de salida de DataStore: mediciones, progreso de racha y logros, UVA y perfil. La telemetría de uso (`AppUsageEvent`) no cuenta.
+
+- Escucha los eventos de Hub del motor de sincronización: `outboxMutationEnqueued` suma, `outboxMutationProcessed` resta y `outboxStatus` con `isEmpty: true` (al arrancar y cuando la cola se vacía) lo deja en cero, lo que también corrige las mutaciones que la cola fusiona o descarta sin evento de procesado.
+- Persiste el conteo en AsyncStorage (`pendingSyncCount`) para que sobreviva a un reinicio, y lo borra al cerrar sesión (`signedOut`), porque `DataStore.clear()` vacía la cola.
+- Sin conteo guardado (la primera vez que corre esta versión, por ejemplo justo después de actualizar con cosas en la cola), una cola no vacía cuenta como pendiente hasta que se vacía.
+- `SyncContext` lo expone como `hasPendingChanges` con `useSyncExternalStore`, así la pantalla cambia en vivo sin reenfocarla. El estado `UNSYNC` y `synchronizedData()` no cambian: `UNSYNC` se activa con cualquier mutación, incluida la telemetría, y solo se limpia cuando DataStore arranca de nuevo, por eso el aviso no se iba sin reiniciar la app.
+
+Subida en segundo plano: la app no tiene una tarea nativa de sincronización (ni WorkManager ni tareas sin interfaz). La cola la sube DataStore desde el JS mientras el proceso está vivo y `NetInfo` informa conexión. Lo observado al salir del ahorro de batería (Doze) está en `docs/migration/verification.md` §3.
 
 ## Lógica de dominio (`src/domain/`)
 
