@@ -80,6 +80,13 @@ export interface SystemStatus {
  * the OS-level alarms were never cancelled, so notifications kept firing).
  */
 class LocalRemindersService {
+  /**
+   * F4-05 (#60): true while registering is blocked (UVA disabled or update required).
+   * Scheduling becomes a no-op; the person's preference is left as it is.
+   * Owned by RegistrationLockService.
+   */
+  private remindersPaused = false;
+
   constructor() {
     // Initialize notification channels on service creation (Android only)
     if (Platform.OS === 'android') {
@@ -140,6 +147,11 @@ class LocalRemindersService {
     morningTimeHour = 6,
     afternoonTimeHour = 18,
   ): Promise<void> {
+    if (this.remindersPaused) {
+      console.warn('Recordatorios en pausa: el registro está bloqueado.');
+      return;
+    }
+
     const hasPermission = await this.requestPermissions();
     if (!hasPermission) {
       console.error('Permisos denegados para notificaciones.');
@@ -207,6 +219,18 @@ class LocalRemindersService {
     } catch (error) {
       console.error('Error al programar notificaciones diarias:', error);
     }
+  }
+
+  // ─── Pause (F4-05, #60) ───────────────────────────────────────────────────────
+
+  /** Pauses or resumes scheduling without changing the stored preference. */
+  setRemindersPaused(paused: boolean): void {
+    this.remindersPaused = paused;
+  }
+
+  /** Whether scheduling is paused because registering is blocked. */
+  areRemindersPaused(): boolean {
+    return this.remindersPaused;
   }
 
   // ─── cancelAllNotifications ── BUG R-48 FIX ─────────────────────────────────

@@ -180,9 +180,16 @@ export class UserProgressDSService {
    *
    * @returns {Promise<UserProgress | null>} The current day's UserProgress entry.
    */
-  static async recalculateDailyProgress(): Promise<
-    UserProgress | undefined | null
-  > {
+  static async recalculateDailyProgress(
+    options: {
+      /**
+       * F4-05 (#60): false while the station is disabled. The streak still resets as
+       * today, but the "Recupera tu racha" alert is not created (P34).
+       */
+      proposeStreakRecovery?: boolean;
+    } = {},
+  ): Promise<UserProgress | undefined | null> {
+    const { proposeStreakRecovery = true } = options;
     const lastsProgress = await this.getUserProgress(
       1,
       SortDirection.DESCENDING,
@@ -210,7 +217,11 @@ export class UserProgressDSService {
         Streak:
           lastProgress.completedTasks === 0 ? 0 : (lastProgress.Streak ?? 0),
       });
-      if (lastProgress.completedTasks === 0 && (lastProgress.Streak ?? 0) > 0) {
+      if (
+        proposeStreakRecovery &&
+        lastProgress.completedTasks === 0 &&
+        (lastProgress.Streak ?? 0) > 0
+      ) {
         await GamificationAlertsService.createStreakRecoveryAlert();
       }
       return newUserProgress;

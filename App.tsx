@@ -87,6 +87,10 @@ import { NotificationProvider } from '@/state/notification/NotificationContext';
 // eslint-disable-next-line import/first
 import { RootNavigator } from '@/navigation/RootNavigator';
 
+// ─── F4-05 (#60) registration lock: UVA disabled / minimum version ───────────
+// eslint-disable-next-line import/first
+import { RegistrationLockProvider } from '@/state/RegistrationLockContext';
+
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -96,7 +100,9 @@ export default function App() {
             <ConfigProvider>
               <ThemeProvider>
                 <NotificationProvider>
-                  <RootNavigator />
+                  <RegistrationLockProvider>
+                    <RootNavigator />
+                  </RegistrationLockProvider>
                   <ToastHost />
                   <StatusBar style="auto" />
                 </NotificationProvider>

@@ -82,6 +82,9 @@ import type {
 } from '@/data/models/configuration/measurements.model';
 import type { MeasurementValue } from '@/domain/measurement-engine/measurement-engine';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { showToast } from '@/components/ui/Toast';
+import { useRegistrationLock } from '@/state/RegistrationLockContext';
+import { LOCK_MESSAGES } from '@/components/registration-lock/RegistrationLockNotice';
 import { ConfigIcon } from './ConfigIcon';
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
@@ -155,6 +158,7 @@ export function RegisterMeasurementScreen({
   // bottom — i.e. UNDER the Android system navigation bar. Pad by the bottom inset.
   const insets = useSafeAreaInsets();
   const { configMeasurement, countTasks, loadImage } = useConfigContext();
+  const { refresh: refreshRegistrationLock } = useRegistrationLock();
 
   const {
     taskId,
@@ -266,6 +270,30 @@ export function RegisterMeasurementScreen({
     },
     [loadImage, navigation, taskId],
   );
+
+  // ─── F4-05 (#60): registration lock, checked on entry and again on save ──
+
+  /**
+   * Re-evaluates the lock. If registering is blocked, tells the person why and returns to
+   * the Measurement tab, which shows the notice.
+   * @returns true when registering is blocked.
+   */
+  const leaveIfRegistrationLocked = useCallback(async (): Promise<boolean> => {
+    const lock = await refreshRegistrationLock();
+    if (!lock.reason) return false;
+    setModalStage('none');
+    showToast({ message: LOCK_MESSAGES[lock.reason], type: 'info' });
+    navigation.navigate('AppTabs', { screen: 'Measurement' });
+    return true;
+  }, [refreshRegistrationLock, navigation]);
+
+  useEffect(() => {
+    void (async () => {
+      await leaveIfRegistrationLocked();
+    })();
+    // Only on entry; the save path checks again in confirmSave.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ─── Init: load flow from config ─────────────────────────────────────────
 
@@ -554,6 +582,9 @@ export function RegisterMeasurementScreen({
     setSaving(true);
 
     try {
+      // F4-05 (#60): the lock is checked again right before writing.
+      if (await leaveIfRegistrationLocked()) return;
+
       const measurementData: Record<string, number> = measurements.reduce(
         (acc, m) => {
           if (m.id) acc[m.id.toString()] = m.value ?? 0;
@@ -653,7 +684,14 @@ export function RegisterMeasurementScreen({
     } finally {
       setSaving(false);
     }
-  }, [flowId, taskId, measurements, saving, goToNextFlowOrSavePreference]);
+  }, [
+    flowId,
+    taskId,
+    measurements,
+    saving,
+    goToNextFlowOrSavePreference,
+    leaveIfRegistrationLocked,
+  ]);
 
   // ─── goToComplete (from saved modal Siguiente button) ─────────────────────
 

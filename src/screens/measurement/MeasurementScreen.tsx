@@ -70,6 +70,8 @@ import { MeasurementDSService } from '@/data/datastore/measurement-ds';
 import { GamificationService } from '@/domain/gamification/gamification';
 import { isTestUser } from '@/data/auth/test-users';
 import { useSessionContext } from '@/state/SessionContext';
+import { useRegistrationLockNotice } from '@/state/RegistrationLockContext';
+import { RegistrationLockNotice } from '@/components/registration-lock/RegistrationLockNotice';
 
 import type {
   Task,
@@ -212,6 +214,10 @@ export function MeasurementScreen(): React.JSX.Element {
   const navigation = useNavigation<MeasurementNavigation>();
   const { configMeasurement, countTasks } = useConfigContext();
   const { session } = useSessionContext();
+  // F4-05 (#60): with the station disabled or an update required, the notice goes on top
+  // and every task stays visible in grey without opening (decision in #60).
+  const lockNotice = useRegistrationLockNotice();
+  const registrationLocked = lockNotice.reason !== null;
 
   // ─── State ─────────────────────────────────────────────────────────────────
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -409,6 +415,8 @@ export function MeasurementScreen(): React.JSX.Element {
 
   const goToRegister = useCallback(
     (task: Task) => {
+      // F4-05 (#60): blocked for everyone, test users included.
+      if (registrationLocked) return;
       const phone = session?.phone ?? '';
       if (hasRestrictionTimeTask(task) && !isTestUser(phone)) {
         return;
@@ -434,7 +442,7 @@ export function MeasurementScreen(): React.JSX.Element {
         });
       }
     },
-    [navigation, session],
+    [navigation, session, registrationLocked],
   );
 
   // ─── responseBonus ─────────────────────────────────────────────────────────
@@ -461,6 +469,13 @@ export function MeasurementScreen(): React.JSX.Element {
       />
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* F4-05 (#60): UVA disabled / update required / reactivated (once) */}
+        <RegistrationLockNotice
+          reason={lockNotice.reason}
+          showReactivated={lockNotice.showReactivated}
+          testID="measurement-registration-lock"
+        />
+
         {/* Progress card */}
         <View style={styles.card}>
           {/* Title row with semilla icon — mirrors Ionic: ion-icon src="semilla.svg" next to "+2" */}
@@ -545,7 +560,11 @@ export function MeasurementScreen(): React.JSX.Element {
                  * users (goToRegister / measurement.page.ts:388-394), never the styling,
                  * and the test user 3000000002 is exactly who ran the device session.
                  */
-                const canNavigate = !restricted || isTest;
+                const canNavigate =
+                  !registrationLocked && (!restricted || isTest);
+                // F4-05 (#60): a blocked registration greys the row like a task outside
+                // its schedule.
+                const greyed = restricted || registrationLocked;
                 return (
                   <TouchableOpacity
                     key={task.id}
@@ -587,7 +606,7 @@ export function MeasurementScreen(): React.JSX.Element {
                         inline
                         baseFontSize={14}
                         baseColor={
-                          restricted
+                          greyed
                             ? theme.colors.gray[400]
                             : theme.colors.gray[700]
                         }
