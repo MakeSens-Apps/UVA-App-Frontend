@@ -15,15 +15,23 @@
  *  - outboxMutationEnqueued (not telemetry) → +1
  *  - outboxMutationProcessed (not telemetry) → −1 (never below 0)
  *  - outboxStatus { isEmpty: true }          → 0. The sync engine emits it at
- *    start and when the outbox drains; it also resets the drift of mutations
- *    that the outbox merges or drops without a processed event.
+ *    start and when the outbox drains. It also clears the drift of mutations
+ *    the outbox merges (create + update offline: two enqueued, one processed).
  *  - auth signedOut                          → 0 and the persisted value is removed
  *    (DataStore.clear() empties the outbox on sign-out).
  *
  * The count is persisted in AsyncStorage so it survives an app restart. When
- * there is no persisted value (first run of this version, e.g. right after an
- * app update with items already in the outbox) the baseline is unknown: a
- * non-empty outbox is reported as pending until the outbox drains.
+ * there is no persisted value (right after an app update with items already in
+ * the outbox, or after a sign-out until the outbox is seen empty) the baseline
+ * is unknown: a non-empty outbox is reported as pending until it drains. The
+ * first outboxStatus { isEmpty: true } saves the known baseline (0).
+ *
+ * Known limits (both clear on the next drain of the outbox or a restart):
+ *  - A mutation that fails for good is dropped by DataStore without any event,
+ *    so it stays counted until the next drain.
+ *  - A save that lands between the engine's dequeue and its late
+ *    outboxStatus { isEmpty: true } is reset to 0 while still queued; it is
+ *    uploaded right away online, so it only shows if the network drops then.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -125,6 +133,13 @@ export function createPendingSyncTracker(
           const { isEmpty } = data;
           run(() => {
             if (isEmpty) {
+              if (unknownBaseline && count === 0) {
+                // setCount(0) would not write: save the now-known baseline so
+                // the next restart does not count telemetry as pending.
+                persist(() =>
+                  deps.storage.setItem(PENDING_SYNC_STORAGE_KEY, '0'),
+                );
+              }
               unknownBaseline = false;
               setCount(0);
             } else if (unknownBaseline && count === 0) {

@@ -37,6 +37,7 @@ jest.mock('../data/models', () => ({
 import {
   createPendingSyncTracker,
   PENDING_SYNC_STORAGE_KEY,
+  pendingSyncTracker,
   type PendingSyncTracker,
 } from '../data/amplify-bootstrap/pending-sync-tracker';
 
@@ -228,6 +229,21 @@ describe('pending-sync tracker — persistence', () => {
     expect(tracker.getCount()).toBe(0);
   });
 
+  it('saves the baseline once the outbox is seen empty, so an offline restart with only telemetry is not pending', async () => {
+    const storage = makeStorage();
+    await startTracker(storage);
+    outboxStatus(true); // fresh install: empty outbox at start
+    await flush();
+    expect(storage.data[PENDING_SYNC_STORAGE_KEY]).toBe('0');
+
+    // Restart offline with only telemetry left in the outbox.
+    mockHubListeners.datastore = [];
+    mockHubListeners.auth = [];
+    const { tracker } = await startTracker(storage);
+    outboxStatus(false);
+    expect(tracker.getCount()).toBe(0);
+  });
+
   it('treats a storage read failure as an unknown baseline', async () => {
     const storage = makeStorage();
     storage.getItem.mockRejectedValueOnce(new Error('disk'));
@@ -254,10 +270,53 @@ describe('pending-sync tracker — sign-out', () => {
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
+  it('after sign-out, the next start saves the baseline when the outbox is empty', async () => {
+    const storage = makeStorage({ [PENDING_SYNC_STORAGE_KEY]: '2' });
+    await startTracker(storage);
+    auth('signedOut');
+    await flush();
+    expect(storage.data[PENDING_SYNC_STORAGE_KEY]).toBeUndefined();
+
+    // Restart: DataStore.clear() left the outbox empty.
+    mockHubListeners.datastore = [];
+    mockHubListeners.auth = [];
+    await startTracker(storage);
+    outboxStatus(true);
+    await flush();
+    expect(storage.data[PENDING_SYNC_STORAGE_KEY]).toBe('0');
+
+    // Another restart offline with only telemetry queued.
+    mockHubListeners.datastore = [];
+    mockHubListeners.auth = [];
+    const { tracker } = await startTracker(storage);
+    outboxStatus(false);
+    expect(tracker.getCount()).toBe(0);
+  });
+
   it('ignores other auth events', async () => {
     const { tracker } = await startTracker();
     enqueued(Measurement);
     auth('signedIn');
     expect(tracker.getCount()).toBe(1);
+  });
+});
+
+describe('pendingSyncTracker (app singleton)', () => {
+  it('ignores the real AppUsageEvent model and counts the person’s models', async () => {
+    const models = jest.requireMock('../data/models') as {
+      Measurement: new () => unknown;
+      AppUsageEvent: new () => unknown;
+    };
+    pendingSyncTracker.start();
+    await pendingSyncTracker.ready();
+
+    enqueued(models.AppUsageEvent);
+    expect(pendingSyncTracker.getCount()).toBe(0);
+    enqueued(models.Measurement);
+    expect(pendingSyncTracker.getCount()).toBe(1);
+    processed(models.AppUsageEvent);
+    expect(pendingSyncTracker.getCount()).toBe(1);
+    processed(models.Measurement);
+    expect(pendingSyncTracker.getCount()).toBe(0);
   });
 });

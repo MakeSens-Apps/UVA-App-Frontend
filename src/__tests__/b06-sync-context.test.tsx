@@ -366,7 +366,7 @@ describe('B06 — SyncContext', () => {
     expect(result.current.hasPendingChanges).toBe(false);
   });
 
-  it('#79 — telemetry keeps UNSYNC but does not make hasPendingChanges true', async () => {
+  it('#79 — UNSYNC is unchanged: any enqueued mutation still sets it (O6)', async () => {
     const { result } = await renderSyncHook();
 
     await act(async () => {
@@ -376,7 +376,10 @@ describe('B06 — SyncContext', () => {
       });
     });
 
+    // hasPendingChanges comes only from the tracker (mocked here); the
+    // telemetry filter is covered on the real singleton in
+    // pending-sync-tracker.test.ts.
     expect(result.current.state).toBe(STATE_SYNC_DS.UNSYNC);
-    expect(result.current.hasPendingChanges).toBe(false);
+    expect(result.current.synchronizedData()).toBe(false);
   });
 });
