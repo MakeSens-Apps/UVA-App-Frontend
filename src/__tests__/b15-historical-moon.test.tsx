@@ -426,10 +426,13 @@ const mockMeasurementConfig = {
   ],
 };
 
+// F4-05: a test can raise the task count to get an 'incomplete' day.
+const mockTaskCount = { current: 1 };
+
 jest.mock('@/state/ConfigContext', () => ({
   useConfigContext: () => ({
     configMeasurement: mockMeasurementConfig,
-    countTasks: () => 1,
+    countTasks: () => mockTaskCount.current,
     loadImage: jest.fn().mockResolvedValue(null),
     getConfigurationMeasurement: jest
       .fn()
@@ -460,13 +463,11 @@ jest.mock('@/data/datastore/user-progress-ds', () => ({
       mockGetCountTasksByMonthYear(...a),
     getUserProgress: jest.fn().mockResolvedValue([]),
     recalculateDailyProgress: jest.fn().mockResolvedValue(undefined),
-    getCompleteTaskWeek: jest
-      .fn()
-      .mockResolvedValue({
-        daysComplete: [],
-        daysIncomplete: [],
-        daysSaveStreak: [],
-      }),
+    getCompleteTaskWeek: jest.fn().mockResolvedValue({
+      daysComplete: [],
+      daysIncomplete: [],
+      daysSaveStreak: [],
+    }),
   },
 }));
 
@@ -1480,5 +1481,95 @@ describe('MeasurementDetailScreen — Day states: saveStreak, today, complete', 
         expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
       );
     });
+  });
+});
+
+// ─── F4-05 (#60): no streak recovery while the station is disabled (P34) ─────
+
+describe('MeasurementDetailScreen — F4-05 streak recovery with the registration lock', () => {
+  const lockMock = jest.requireMock('@/state/RegistrationLockContext') as {
+    UNLOCKED: Record<string, unknown>;
+    mockRegistrationLockState: { current: Record<string, unknown> };
+  };
+
+  function yesterdayAtNoon(): Date {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    d.setHours(12, 0, 0, 0);
+    return d;
+  }
+
+  async function renderYesterdayIncomplete() {
+    const day = yesterdayAtNoon();
+    // One of two tasks done yesterday → 'incomplete'; 10 seeds → recovery affordable.
+    mockTaskCount.current = 2;
+    mockGetLastUserProgressPure.mockResolvedValue({ Seed: 10, Streak: 3 });
+    const {
+      UserProgressDSService,
+    } = require('@/data/datastore/user-progress-ds');
+    UserProgressDSService.getUserProgress = jest.fn().mockResolvedValue([]);
+    mockGetMeasurementsByDay.mockResolvedValue([
+      {
+        data: JSON.stringify({ temperatura: 25 }),
+        task: 'task1',
+        ts: day.toISOString(),
+        id: 'm1',
+        type: 'RAW',
+        uvaID: 'uva-1',
+        logs: '{}',
+      },
+    ]);
+    return render(
+      <MeasurementDetailScreen
+        route={
+          {
+            params: { calendar: day.toISOString(), origin: 'historical' },
+          } as any
+        }
+        navigation={{} as any}
+      />,
+    );
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    lockMock.mockRegistrationLockState.current = { ...lockMock.UNLOCKED };
+  });
+
+  afterEach(() => {
+    mockTaskCount.current = 1;
+    lockMock.mockRegistrationLockState.current = { ...lockMock.UNLOCKED };
+  });
+
+  it('unlocked: proposes recovering the streak (control)', async () => {
+    const { findByTestId } = await renderYesterdayIncomplete();
+    expect(await findByTestId('recover-streak-btn')).toBeTruthy();
+  });
+
+  it('station disabled: the day still shows, but recovery is not proposed', async () => {
+    lockMock.mockRegistrationLockState.current = {
+      uvaId: 'uva-0001',
+      uvaStatus: 'disabled',
+      reason: 'uva-disabled',
+      reactivationPending: false,
+    };
+    const { findByTestId, queryByTestId, queryByText } =
+      await renderYesterdayIncomplete();
+    expect(
+      await findByTestId('day-cell-' + yesterdayAtNoon().getDate()),
+    ).toBeTruthy();
+    expect(queryByTestId('recover-streak-btn')).toBeNull();
+    expect(queryByText(/recuperar tu racha/)).toBeNull();
+  });
+
+  it('update required only: recovery is still proposed (O6)', async () => {
+    lockMock.mockRegistrationLockState.current = {
+      uvaId: 'uva-0001',
+      uvaStatus: 'enabled',
+      reason: 'update-required',
+      reactivationPending: false,
+    };
+    const { findByTestId } = await renderYesterdayIncomplete();
+    expect(await findByTestId('recover-streak-btn')).toBeTruthy();
   });
 });

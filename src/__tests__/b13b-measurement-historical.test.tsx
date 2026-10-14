@@ -432,13 +432,11 @@ jest.mock('@/data/datastore/user-progress-ds', () => ({
     getCountTasksByMonthYear: (...a: unknown[]) =>
       mockGetCountTasksByMonthYear(...a),
     recalculateDailyProgress: jest.fn().mockResolvedValue(undefined),
-    getCompleteTaskWeek: jest
-      .fn()
-      .mockResolvedValue({
-        daysComplete: [],
-        daysIncomplete: [],
-        daysSaveStreak: [],
-      }),
+    getCompleteTaskWeek: jest.fn().mockResolvedValue({
+      daysComplete: [],
+      daysIncomplete: [],
+      daysSaveStreak: [],
+    }),
   },
 }));
 
@@ -1157,5 +1155,169 @@ describe('RegisterMeasurementScreen — multi-flow advance (BUG 1)', () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+});
+
+// ─── ════════════════════════════════════════════════════════════════════════ ───
+//     F4-05 (#60) — registration lock in Measurement and RegisterMeasurement
+// ─── ════════════════════════════════════════════════════════════════════════ ───
+
+describe('F4-05 — registration lock (UVA disabled / update required)', () => {
+  const lockMock = jest.requireMock('@/state/RegistrationLockContext') as {
+    UNLOCKED: Record<string, unknown>;
+    mockRegistrationLockState: { current: Record<string, unknown> };
+    mockRegistrationLockRefresh: jest.Mock;
+    mockReactivatedShown: { current: boolean };
+  };
+  const DISABLED = {
+    uvaId: 'uva-0001',
+    uvaStatus: 'disabled',
+    reason: 'uva-disabled',
+    reactivationPending: false,
+  };
+
+  function makeRegisterProps() {
+    const navigation = {
+      navigate: mockNavigate,
+      goBack: mockGoBack,
+      push: mockPush,
+      replace: mockReplace,
+    };
+    const route = {
+      params: {
+        taskId: 'task1',
+        taskName: 'Temperatura y Humedad',
+        flowId: 'flow2',
+      },
+    };
+    return { navigation, route } as unknown as React.ComponentProps<
+      typeof RegisterMeasurementScreen
+    >;
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    lockMock.mockRegistrationLockState.current = { ...lockMock.UNLOCKED };
+    lockMock.mockReactivatedShown.current = false;
+    mockAddMeasurement.mockResolvedValue(undefined);
+    mockGetLastUserProgressPure.mockResolvedValue({ Seed: 12, Streak: 3 });
+    mockGetMeasurementsByDay.mockResolvedValue([]);
+  });
+
+  afterAll(() => {
+    lockMock.mockRegistrationLockState.current = { ...lockMock.UNLOCKED };
+    lockMock.mockReactivatedShown.current = false;
+  });
+
+  it('Measurement with the UVA disabled: notice on top, task greyed and it does not open', async () => {
+    lockMock.mockRegistrationLockState.current = DISABLED;
+    const { getByTestId, getByText } = await render(<MeasurementScreen />);
+    await waitFor(() => {
+      expect(
+        getByTestId('measurement-registration-lock-uva-disabled'),
+      ).toBeTruthy();
+    });
+    expect(
+      getByText(
+        'Tu estación fue deshabilitada por el administrador de tu RACIMO. Puedes ver tu histórico. Si crees que es un error, comunícate con él.',
+      ),
+    ).toBeTruthy();
+    await waitFor(() => expect(getByTestId('task-row-task1')).toBeTruthy());
+    await act(async () => {
+      fireEvent.press(getByTestId('task-row-task1'));
+    });
+    expect(mockNavigate).not.toHaveBeenCalledWith(
+      'RegisterMeasurement',
+      expect.anything(),
+    );
+  });
+
+  it('Measurement with an update required: same notice place, "Actualizar" button, task blocked', async () => {
+    lockMock.mockRegistrationLockState.current = {
+      ...DISABLED,
+      uvaStatus: 'enabled',
+      reason: 'update-required',
+    };
+    const { getByTestId, getByText } = await render(<MeasurementScreen />);
+    await waitFor(() => {
+      expect(
+        getByText('Actualiza la app para seguir registrando'),
+      ).toBeTruthy();
+    });
+    expect(
+      getByTestId('measurement-registration-lock-update-button'),
+    ).toBeTruthy();
+    await waitFor(() => expect(getByTestId('task-row-task1')).toBeTruthy());
+    await act(async () => {
+      fireEvent.press(getByTestId('task-row-task1'));
+    });
+    expect(mockNavigate).not.toHaveBeenCalledWith(
+      'RegisterMeasurement',
+      expect.anything(),
+    );
+  });
+
+  it('Measurement unlocked after reactivating: green notice, task opens the register', async () => {
+    lockMock.mockReactivatedShown.current = true;
+    const { getByTestId, queryByTestId, getByText } = await render(
+      <MeasurementScreen />,
+    );
+    await waitFor(() => expect(getByTestId('task-row-task1')).toBeTruthy());
+    expect(
+      getByText('Tu estación fue reactivada, ya puedes registrar'),
+    ).toBeTruthy();
+    expect(
+      queryByTestId('measurement-registration-lock-uva-disabled'),
+    ).toBeNull();
+    await act(async () => {
+      fireEvent.press(getByTestId('task-row-task1'));
+    });
+    expect(mockNavigate).toHaveBeenCalledWith(
+      'RegisterMeasurement',
+      expect.objectContaining({ taskId: 'task1' }),
+    );
+  });
+
+  it('RegisterMeasurement checks the lock on entry and leaves to the Measurement tab', async () => {
+    lockMock.mockRegistrationLockState.current = DISABLED;
+    await render(<RegisterMeasurementScreen {...makeRegisterProps()} />);
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('AppTabs', {
+        screen: 'Measurement',
+      });
+    });
+    expect(lockMock.mockRegistrationLockRefresh).toHaveBeenCalled();
+    expect(mockAddMeasurement).not.toHaveBeenCalled();
+  });
+
+  it('RegisterMeasurement checks again on save: disabled while the form was open → nothing is written', async () => {
+    const { getByTestId } = await render(
+      <RegisterMeasurementScreen {...makeRegisterProps()} />,
+    );
+    await waitFor(() => {
+      expect(getByTestId('digit-input-0-0')).toBeTruthy();
+    });
+    expect(mockNavigate).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.changeText(getByTestId('digit-input-0-0'), '6');
+      fireEvent.changeText(getByTestId('digit-input-0-1'), '0');
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId('save-button'));
+    });
+
+    // The next sync disables the UVA before the person confirms.
+    lockMock.mockRegistrationLockState.current = DISABLED;
+    await act(async () => {
+      fireEvent.press(getByTestId('confirm-save-button'));
+    });
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('AppTabs', {
+        screen: 'Measurement',
+      });
+    });
+    expect(mockAddMeasurement).not.toHaveBeenCalled();
   });
 });
