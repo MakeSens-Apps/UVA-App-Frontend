@@ -1176,18 +1176,21 @@ describe('F4-05 — registration lock (UVA disabled / update required)', () => {
     reactivationPending: false,
   };
 
-  function makeRegisterProps() {
+  const mockPopTo = jest.fn();
+
+  function makeRegisterProps(flowId = 'flow2') {
     const navigation = {
       navigate: mockNavigate,
       goBack: mockGoBack,
       push: mockPush,
       replace: mockReplace,
+      popTo: mockPopTo,
     };
     const route = {
       params: {
         taskId: 'task1',
         taskName: 'Temperatura y Humedad',
-        flowId: 'flow2',
+        flowId,
       },
     };
     return { navigation, route } as unknown as React.ComponentProps<
@@ -1278,16 +1281,69 @@ describe('F4-05 — registration lock (UVA disabled / update required)', () => {
     );
   });
 
-  it('RegisterMeasurement checks the lock on entry and leaves to the Measurement tab', async () => {
+  it('RegisterMeasurement checks the lock on entry and returns to the existing Measurement tab', async () => {
     lockMock.mockRegistrationLockState.current = DISABLED;
     await render(<RegisterMeasurementScreen {...makeRegisterProps()} />);
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('AppTabs', {
+      expect(mockPopTo).toHaveBeenCalledWith('AppTabs', {
         screen: 'Measurement',
       });
     });
+    // popTo, not navigate: no second AppTabs is pushed over the blocked form.
+    expect(mockNavigate).not.toHaveBeenCalledWith('AppTabs', expect.anything());
     expect(lockMock.mockRegistrationLockRefresh).toHaveBeenCalled();
     expect(mockAddMeasurement).not.toHaveBeenCalled();
+  });
+
+  it('RegisterMeasurement blocked on entry does not open the automatic guide (B1)', async () => {
+    jest.useFakeTimers();
+    const guide = mockMeasurementConfig.guides.guide1;
+    guide.showAutomatic = true;
+    try {
+      lockMock.mockRegistrationLockState.current = DISABLED;
+      await render(
+        <RegisterMeasurementScreen {...makeRegisterProps('flow1')} />,
+      );
+      await waitFor(() => {
+        expect(mockPopTo).toHaveBeenCalledWith('AppTabs', {
+          screen: 'Measurement',
+        });
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2000);
+      });
+      expect(mockNavigate).not.toHaveBeenCalledWith(
+        'GuideMeasurement',
+        expect.anything(),
+      );
+    } finally {
+      guide.showAutomatic = false;
+      jest.useRealTimers();
+    }
+  });
+
+  it('RegisterMeasurement unlocked with an automatic guide still opens it (control)', async () => {
+    jest.useFakeTimers();
+    const guide = mockMeasurementConfig.guides.guide1;
+    guide.showAutomatic = true;
+    try {
+      await render(
+        <RegisterMeasurementScreen {...makeRegisterProps('flow1')} />,
+      );
+      await act(async () => {
+        jest.advanceTimersByTime(2000);
+      });
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith(
+          'GuideMeasurement',
+          expect.anything(),
+        );
+      });
+      expect(mockPopTo).not.toHaveBeenCalled();
+    } finally {
+      guide.showAutomatic = false;
+      jest.useRealTimers();
+    }
   });
 
   it('RegisterMeasurement checks again on save: disabled while the form was open → nothing is written', async () => {
@@ -1297,7 +1353,7 @@ describe('F4-05 — registration lock (UVA disabled / update required)', () => {
     await waitFor(() => {
       expect(getByTestId('digit-input-0-0')).toBeTruthy();
     });
-    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockPopTo).not.toHaveBeenCalled();
 
     await act(async () => {
       fireEvent.changeText(getByTestId('digit-input-0-0'), '6');
@@ -1314,7 +1370,7 @@ describe('F4-05 — registration lock (UVA disabled / update required)', () => {
     });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('AppTabs', {
+      expect(mockPopTo).toHaveBeenCalledWith('AppTabs', {
         screen: 'Measurement',
       });
     });

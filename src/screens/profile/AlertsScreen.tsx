@@ -48,6 +48,8 @@ import { Header } from '@/components/header';
 
 import { useNotificationContext } from '@/state/notification/NotificationContext';
 import { GamificationService } from '@/domain/gamification/gamification';
+import { useRegistrationLock } from '@/state/RegistrationLockContext';
+import { withoutStreakRecoveryProposals } from '@/domain/registration-lock/registration-lock';
 import type { GamificationNotification } from '@/domain/gamification/gamification-alerts-types';
 
 // Deep import — see the note in GuideMeasurementScreen.tsx / bundle-report.md.
@@ -114,6 +116,8 @@ function getNotificationIconBg(notification: GamificationNotification): string {
 export function AlertsScreen({ navigation }: Props): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const { updateUnreadCount } = useNotificationContext();
+  // F4-05 (#60): no "Recupera tu racha" while the station is disabled (P34).
+  const { refresh: refreshRegistrationLock } = useRegistrationLock();
 
   const [notifications, setNotifications] = React.useState<
     GamificationNotification[]
@@ -125,7 +129,11 @@ export function AlertsScreen({ navigation }: Props): React.JSX.Element {
     useCallback(() => {
       void (async () => {
         try {
-          const loaded = await GamificationService.getNotifications();
+          const [all, lock] = await Promise.all([
+            GamificationService.getNotifications(),
+            refreshRegistrationLock(),
+          ]);
+          const loaded = withoutStreakRecoveryProposals(all, lock.uvaStatus);
           setNotifications(loaded);
           const unread = loaded.filter((n) => n.data.isUnread).length;
           updateUnreadCount(unread);
@@ -133,7 +141,7 @@ export function AlertsScreen({ navigation }: Props): React.JSX.Element {
           console.error('AlertsScreen load error:', err);
         }
       })();
-    }, [updateUnreadCount]),
+    }, [updateUnreadCount, refreshRegistrationLock]),
   );
 
   // ─── updateUnreadCount helper ──────────────────────────────────────────────

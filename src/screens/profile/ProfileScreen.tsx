@@ -61,6 +61,8 @@ import { useNavigationGate } from '@/navigation/useNavigationGate';
 import { UserDSService } from '@/data/datastore/user-ds';
 import { UserProgressDSService } from '@/data/datastore/user-progress-ds';
 import { GamificationService } from '@/domain/gamification/gamification';
+import { useRegistrationLock } from '@/state/RegistrationLockContext';
+import { withoutStreakRecoveryProposals } from '@/domain/registration-lock/registration-lock';
 import { SetupService } from '@/domain/setup/setup';
 
 import { useTheme } from '@/theme/ThemeProvider';
@@ -109,6 +111,9 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
   // bottom — i.e. UNDER the Android system navigation bar. Pad by the bottom inset.
   const insets = useSafeAreaInsets();
   const { unreadCount, updateUnreadCount } = useNotificationContext();
+  // F4-05 (#60): the unread count leaves out "Recupera tu racha" while the station is
+  // disabled, like the alert list (P34).
+  const { refresh: refreshRegistrationLock } = useRegistrationLock();
   const { clearSession } = useSessionContext();
   const { getConfigurationApp, loadImage } = useConfigContext();
   const { goToAuth } = useNavigationGate();
@@ -130,16 +135,21 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
       let isMounted = true;
       void (async () => {
         try {
-          const [user, userProgress, notifications, configModel] =
+          const [user, userProgress, allNotifications, configModel, lock] =
             await Promise.all([
               UserDSService.getUser(),
               UserProgressDSService.getLastUserProgressPure(),
               GamificationService.getNotifications(),
               getConfigurationApp(),
+              refreshRegistrationLock(),
             ]);
           if (!isMounted) return;
           setName(user?.Name);
           setSeed(userProgress?.Seed ?? 0);
+          const notifications = withoutStreakRecoveryProposals(
+            allNotifications,
+            lock.uvaStatus,
+          );
           const unread = notifications.filter((n) => n.data.isUnread).length;
           updateUnreadCount(unread);
 
@@ -159,7 +169,12 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
       return () => {
         isMounted = false;
       };
-    }, [updateUnreadCount, getConfigurationApp, loadImage]),
+    }, [
+      updateUnreadCount,
+      getConfigurationApp,
+      loadImage,
+      refreshRegistrationLock,
+    ]),
   );
 
   // ─── Share actions (original shareOptions[]) ──────────────────────────────

@@ -180,7 +180,7 @@ export function MeasurementDetailScreen({ route }: Props): React.JSX.Element {
   // F4-05 (#60): no streak recovery is proposed while the station is disabled (P34).
   const { state: registrationLock } = useRegistrationLock();
   const streakRecoveryAllowed = canProposeStreakRecovery(
-    registrationLock.reason,
+    registrationLock.uvaStatus,
   );
   const navigation = useNavigation();
   const { getConfigurationMeasurement, countTasks } = useConfigContext();

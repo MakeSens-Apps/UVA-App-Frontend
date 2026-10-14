@@ -13,6 +13,7 @@ import {
   parseVersionPolicy,
   resolveRegistrationLock,
   shouldPauseReminders,
+  withoutStreakRecoveryProposals,
 } from '@/domain/registration-lock/registration-lock';
 
 // ─── Mocks for the service ───────────────────────────────────────────────────
@@ -34,20 +35,25 @@ jest.mock('@/data/storage/preferences', () => ({
   },
 }));
 
-const mockSession: { uvaID?: string } = { uvaID: 'uva-0001' };
+const mockSession: { uvaID?: string; userID?: string } = {
+  uvaID: 'uva-0001',
+  userID: 'user-0001',
+};
 jest.mock('@/data/session/session', () => ({
   sessionService: { getInfo: jest.fn(() => Promise.resolve(mockSession)) },
 }));
 
 const mockUvas = new Map<string, { id: string; enabled?: boolean | null }>();
-jest.mock('@aws-amplify/datastore', () => ({
-  DataStore: {
-    query: jest.fn((_model: unknown, id: string) =>
-      Promise.resolve(mockUvas.get(id)),
-    ),
-  },
+const mockGetUVA = jest.fn((id: string) => Promise.resolve(mockUvas.get(id)));
+jest.mock('@/data/datastore/uva-ds', () => ({
+  UvaDSService: { getUVA: (id: string) => mockGetUVA(id) },
 }));
-jest.mock('@/data/models', () => ({ UVA: function UVA() {} }));
+const mockEnsureSessionUvaID = jest.fn(() =>
+  Promise.resolve<string | undefined>(undefined),
+);
+jest.mock('@/data/datastore/user-ds', () => ({
+  UserDSService: { ensureSessionUvaID: () => mockEnsureSessionUvaID() },
+}));
 
 jest.mock('@/native/notifications/LocalRemindersService', () => {
   const reminders = {
@@ -191,9 +197,23 @@ describe('resolveRegistrationLock', () => {
     expect(shouldPauseReminders('uva-disabled')).toBe(true);
     expect(shouldPauseReminders('update-required')).toBe(true);
     expect(shouldPauseReminders(null)).toBe(false);
-    expect(canProposeStreakRecovery('uva-disabled')).toBe(false);
-    expect(canProposeStreakRecovery('update-required')).toBe(true);
-    expect(canProposeStreakRecovery(null)).toBe(true);
+    // Decided on the UVA status, so it holds whatever reason #61 puts first.
+    expect(canProposeStreakRecovery('disabled')).toBe(false);
+    expect(canProposeStreakRecovery('enabled')).toBe(true);
+    expect(canProposeStreakRecovery('unknown')).toBe(true);
+  });
+
+  it('hides existing "Recupera tu racha" alerts only with the station disabled (P34)', () => {
+    const alerts = [
+      { id: 'a1', subtype: 'streak_recovery' },
+      { id: 'a2', subtype: 'streak_lost' },
+      { id: 'a3' },
+    ];
+    expect(
+      withoutStreakRecoveryProposals(alerts, 'disabled').map((a) => a.id),
+    ).toEqual(['a2', 'a3']);
+    expect(withoutStreakRecoveryProposals(alerts, 'enabled')).toBe(alerts);
+    expect(withoutStreakRecoveryProposals(alerts, 'unknown')).toBe(alerts);
   });
 });
 
@@ -285,6 +305,7 @@ describe('RegistrationLockService', () => {
     mockStorage.clear();
     mockUvas.clear();
     mockSession.uvaID = 'uva-0001';
+    mockSession.userID = 'user-0001';
     mockInstalledVersion = '2.3.1';
     mockReminders.paused = false;
     jest.clearAllMocks();
@@ -426,15 +447,57 @@ describe('RegistrationLockService', () => {
     expect(state.reactivationPending).toBe(false);
   });
 
-  it('a DataStore read error counts as unknown and does not lock', async () => {
-    const { DataStore } = jest.requireMock('@aws-amplify/datastore') as {
-      DataStore: { query: jest.Mock };
-    };
-    DataStore.query.mockRejectedValueOnce(new Error('boom'));
+  it('a DataStore read error before any read counts as unknown and does not lock', async () => {
+    mockGetUVA.mockRejectedValueOnce(new Error('boom'));
     const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const state = await service.evaluate(AT_CUTOFF);
     spy.mockRestore();
     expect(state.reason).toBeNull();
     expect(state.uvaStatus).toBe('unknown');
+  });
+
+  it('a transient read error keeps the lock and the reminder pause (B2)', async () => {
+    mockUvas.set('uva-0001', { id: 'uva-0001', enabled: false });
+    expect((await service.evaluate(BEFORE_CUTOFF)).reason).toBe('uva-disabled');
+
+    mockGetUVA.mockRejectedValueOnce(new Error('boom'));
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const state = await service.evaluate(BEFORE_CUTOFF);
+    spy.mockRestore();
+    expect(state.reason).toBe('uva-disabled');
+    expect(mockReminders.setRemindersPaused).toHaveBeenLastCalledWith(true);
+    expect(mockReminders.scheduleDailyNotifications).not.toHaveBeenCalled();
+  });
+
+  it('a read error on a fresh app session falls back to the status remembered for the UVA', async () => {
+    mockUvas.set('uva-0001', { id: 'uva-0001', enabled: false });
+    await service.evaluate(BEFORE_CUTOFF);
+
+    const fresh = new RegistrationLockService();
+    mockGetUVA.mockRejectedValueOnce(new Error('boom'));
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const state = await fresh.evaluate(BEFORE_CUTOFF);
+    spy.mockRestore();
+    expect(state.reason).toBe('uva-disabled');
+  });
+
+  it('session without uvaID: repairs it from the local User before deciding (B4)', async () => {
+    mockSession.uvaID = undefined;
+    mockEnsureSessionUvaID.mockResolvedValueOnce('uva-0001');
+    mockUvas.set('uva-0001', { id: 'uva-0001', enabled: false });
+    const state = await service.evaluate(BEFORE_CUTOFF);
+    expect(mockEnsureSessionUvaID).toHaveBeenCalledTimes(1);
+    expect(state.uvaId).toBe('uva-0001');
+    expect(state.reason).toBe('uva-disabled');
+  });
+
+  it('signed out (no userID): no repair, no lock, and the policy is not read from S3', async () => {
+    mockSession.uvaID = undefined;
+    mockSession.userID = undefined;
+    const state = await service.evaluate(BEFORE_CUTOFF);
+    expect(mockEnsureSessionUvaID).not.toHaveBeenCalled();
+    expect(state.reason).toBeNull();
+    await service.refreshVersionPolicy();
+    expect(mockGetFile).not.toHaveBeenCalled();
   });
 });

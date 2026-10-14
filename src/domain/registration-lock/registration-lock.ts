@@ -135,11 +135,25 @@ export function shouldPauseReminders(
   return reason !== null;
 }
 
-/** Streak recovery is hidden only while the station itself is blocked (decision O6). */
-export function canProposeStreakRecovery(
-  reason: RegistrationLockReason | null,
-): boolean {
-  return reason !== 'uva-disabled';
+/**
+ * Streak recovery is hidden only while the station is disabled (P34, decision O6).
+ * Decided on the UVA status, not on the prioritized reason, so it still holds when #61
+ * puts 'racimo-inactive' ahead of 'uva-disabled'.
+ */
+export function canProposeStreakRecovery(uvaStatus: UvaStatus): boolean {
+  return uvaStatus !== 'disabled';
+}
+
+/**
+ * Hides the "Recupera tu racha" alerts created before the station was disabled, so the
+ * alert list does not propose it either (P34). They come back if the station is re-enabled.
+ */
+export function withoutStreakRecoveryProposals<T extends { subtype?: string }>(
+  alerts: T[],
+  uvaStatus: UvaStatus,
+): T[] {
+  if (canProposeStreakRecovery(uvaStatus)) return alerts;
+  return alerts.filter((alert) => alert.subtype !== 'streak_recovery');
 }
 
 // ─── Reactivation notice ─────────────────────────────────────────────────────

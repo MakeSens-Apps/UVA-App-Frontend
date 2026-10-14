@@ -150,6 +150,27 @@ describe('RegistrationLockContext', () => {
     expect(mockEvaluate).toHaveBeenCalledTimes(3);
   });
 
+  it('after each full sync it observes the UVA again and reads the policy (B3)', async () => {
+    const { DataStore } = jest.requireMock('@aws-amplify/datastore') as {
+      DataStore: { observe: jest.Mock };
+    };
+    await render(
+      <RegistrationLockProvider>
+        <StateProbe />
+      </RegistrationLockProvider>,
+    );
+    await waitFor(() => expect(mockEvaluate).toHaveBeenCalled());
+    expect(DataStore.observe).toHaveBeenCalledTimes(1);
+    mockRefreshVersionPolicy.mockClear();
+
+    // DataStore.clear() at sign-out closed the observer; the next login syncs again.
+    await act(async () => {
+      mockHubListeners.datastore({ payload: { event: 'ready' } });
+    });
+    expect(DataStore.observe).toHaveBeenCalledTimes(2);
+    expect(mockRefreshVersionPolicy).toHaveBeenCalledTimes(1);
+  });
+
   it('sign-out forgets the per-UVA memory and unlocks the state', async () => {
     mockEvaluate.mockResolvedValue({
       uvaId: 'uva-0001',

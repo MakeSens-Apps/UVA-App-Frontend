@@ -15,9 +15,9 @@
  * connection, even if the UVA is disabled (ADR-005 decision 6).
  */
 
-import { DataStore } from '@aws-amplify/datastore';
-import { UVA } from '@/data/models';
 import { sessionService } from '@/data/session/session';
+import { UvaDSService } from '@/data/datastore/uva-ds';
+import { UserDSService } from '@/data/datastore/user-ds';
 import { localRemindersService } from '@/native/notifications/LocalRemindersService';
 import { getInstalledAppVersion } from '@/native/device/appVersion';
 import {
@@ -28,6 +28,7 @@ import {
   shouldPauseReminders,
 } from '@/domain/registration-lock/registration-lock';
 import type {
+  KnownUvaStatus,
   RegistrationLockReason,
   UvaStatus,
 } from '@/domain/registration-lock/registration-lock';
@@ -58,6 +59,8 @@ export class RegistrationLockService {
   private minimumVersion: string | null | undefined = undefined;
   /** undefined = no decision taken yet in this app session. */
   private remindersPaused: boolean | undefined = undefined;
+  /** Last status read from DataStore in this app session, per UVA. */
+  private lastKnown = new Map<string, KnownUvaStatus>();
   /** Serializes evaluations so concurrent callers do not race on storage and reminders. */
   private queue: Promise<unknown> = Promise.resolve();
 
@@ -75,8 +78,13 @@ export class RegistrationLockService {
     return this.enqueue(() => this.doEvaluate(now));
   }
 
-  /** Reads the minimum-version policy from S3 (falls back to the last known value). */
+  /**
+   * Reads the minimum-version policy from S3 (falls back to the last known value).
+   * Only with a signed-in person: registering needs a session, and before signing in the
+   * read has no credentials.
+   */
   async refreshVersionPolicy(): Promise<void> {
+    if (!(await sessionService.getInfo()).userID) return;
     const minimumVersion = await refreshMinimumVersion();
     await this.enqueue(async () => {
       this.minimumVersion = minimumVersion;
@@ -94,23 +102,43 @@ export class RegistrationLockService {
   clearForSignOut(): Promise<void> {
     return this.enqueue(async () => {
       await uvaStatusStore.clear();
+      this.lastKnown.clear();
       this.remindersPaused = undefined;
       localRemindersService.setRemindersPaused(false);
     });
   }
 
-  private async doEvaluate(now: Date): Promise<RegistrationLockState> {
-    const uvaId = (await sessionService.getInfo()).uvaID || null;
+  private async resolveUvaId(): Promise<string | null> {
+    const info = await sessionService.getInfo();
+    if (info.uvaID) return info.uvaID;
+    // The session can lose uvaID while staying signed in (session.ts:27): repair it from the
+    // local User, as the auth gate does, instead of treating the UVA as unknown all session.
+    if (!info.userID) return null;
+    return (await UserDSService.ensureSessionUvaID()) ?? null;
+  }
 
-    let uva: UVA | undefined;
+  private async doEvaluate(now: Date): Promise<RegistrationLockState> {
+    const uvaId = await this.resolveUvaId();
+
+    let uvaStatus: UvaStatus = 'unknown';
+    let readFailed = false;
     if (uvaId) {
       try {
-        uva = await DataStore.query(UVA, uvaId);
+        uvaStatus = getEffectiveUvaStatus(
+          await UvaDSService.getUVA(uvaId),
+          now,
+        );
       } catch (error) {
+        // A read error is not "not synced yet" (decision 12): keep the last known status
+        // so a transient failure neither lifts the lock nor reschedules reminders.
         console.error('Error reading the UVA for the registration lock', error);
+        readFailed = true;
+        uvaStatus = await this.lastKnownStatus(uvaId);
       }
     }
-    const uvaStatus = getEffectiveUvaStatus(uva, now);
+    if (uvaId && uvaStatus !== 'unknown' && !readFailed) {
+      this.lastKnown.set(uvaId, uvaStatus);
+    }
 
     if (this.minimumVersion === undefined) {
       this.minimumVersion = await getCachedMinimumVersion();
@@ -122,12 +150,23 @@ export class RegistrationLockService {
     const reason = resolveRegistrationLock({ uvaStatus, updateRequired });
 
     const reactivationPending = uvaId
-      ? await this.trackReactivation(uvaId, uvaStatus)
+      ? await this.trackReactivation(uvaId, readFailed ? 'unknown' : uvaStatus)
       : false;
 
     await this.applyReminders(reason);
 
     return { uvaId, uvaStatus, reason, reactivationPending };
+  }
+
+  /** Last status seen in this app session, else the one remembered for this UVA. */
+  private async lastKnownStatus(uvaId: string): Promise<UvaStatus> {
+    const inMemory = this.lastKnown.get(uvaId);
+    if (inMemory) return inMemory;
+    try {
+      return (await uvaStatusStore.get(uvaId)).lastStatus ?? 'unknown';
+    } catch {
+      return 'unknown';
+    }
   }
 
   private async trackReactivation(

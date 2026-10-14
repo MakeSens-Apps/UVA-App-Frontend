@@ -283,23 +283,20 @@ export function RegisterMeasurementScreen({
     if (!lock.reason) return false;
     setModalStage('none');
     showToast({ message: LOCK_MESSAGES[lock.reason], type: 'info' });
-    navigation.navigate('AppTabs', { screen: 'Measurement' });
+    // popTo returns to the AppTabs already in the stack instead of pushing a new one on
+    // top of this blocked form.
+    navigation.popTo('AppTabs', { screen: 'Measurement' });
     return true;
   }, [refreshRegistrationLock, navigation]);
-
-  useEffect(() => {
-    void (async () => {
-      await leaveIfRegistrationLocked();
-    })();
-    // Only on entry; the save path checks again in confirmSave.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // ─── Init: load flow from config ─────────────────────────────────────────
 
   useEffect(() => {
     const init = async () => {
       if (!configMeasurement) return;
+      // F4-05 (#60): entry check BEFORE loading the flow, so a blocked registration never
+      // opens the automatic guide on top of the Measurement tab.
+      if (await leaveIfRegistrationLocked()) return;
       setTotalTask(countTasks(configMeasurement));
 
       const task = configMeasurement.tasks[taskId];
@@ -344,6 +341,7 @@ export function RegisterMeasurementScreen({
     countTasks,
     initialFlowId,
     initialHasBackButton,
+    leaveIfRegistrationLocked,
   ]);
 
   // ─── Digit input helpers ──────────────────────────────────────────────────

@@ -228,11 +228,6 @@ class LocalRemindersService {
     this.remindersPaused = paused;
   }
 
-  /** Whether scheduling is paused because registering is blocked. */
-  areRemindersPaused(): boolean {
-    return this.remindersPaused;
-  }
-
   // ─── cancelAllNotifications ── BUG R-48 FIX ─────────────────────────────────
 
   /**

@@ -158,7 +158,9 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
   // F4-05 (#60): one notice at the top, reminders paused and no streak recovery while the
   // station is blocked (ADR-005).
   const { refresh: refreshRegistrationLock } = useRegistrationLock();
-  const lockNotice = useRegistrationLockNotice();
+  // The focus effect below already re-evaluates the lock (it needs the result for the
+  // streak), so the notice hook does not read it again.
+  const lockNotice = useRegistrationLockNotice({ refreshOnFocus: false });
 
   // ─── State ─────────────────────────────────────────────────────────────
 
@@ -283,7 +285,7 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
           // while the station is disabled (P34).
           const lock = await refreshRegistrationLock();
           await UserProgressDSService.recalculateDailyProgress({
-            proposeStreakRecovery: canProposeStreakRecovery(lock.reason),
+            proposeStreakRecovery: canProposeStreakRecovery(lock.uvaStatus),
           });
 
           // getLastUserProgressPure: pure read, no side-effects (R-28)

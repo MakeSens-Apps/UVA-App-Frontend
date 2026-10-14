@@ -103,7 +103,10 @@ export function RegistrationLockProvider({
         data?: { model?: { name?: string }; active?: boolean };
       };
       if (event === 'ready') {
-        void refresh();
+        // DataStore.clear() at sign-out closes every observer: subscribe again after each
+        // full sync, and read the policy now that there may be a session.
+        observeUva();
+        void refreshVersionPolicy();
       } else if (event === 'modelSynced' && data?.model?.name === 'UVA') {
         void refresh();
       } else if (event === 'networkStatus' && data?.active) {
@@ -119,19 +122,24 @@ export function RegistrationLockProvider({
     });
 
     let uvaSubscription: { unsubscribe: () => void } | undefined;
-    try {
-      uvaSubscription = DataStore.observe(UVA).subscribe({
-        next: ({ element }) => {
-          const current = stateRef.current.uvaId;
-          if (!current || element?.id === current) void refresh();
-        },
-        error: (error: unknown) => {
-          console.error('Error observing the UVA', error);
-        },
-      });
-    } catch (error) {
-      console.error('Error observing the UVA', error);
+    function observeUva(): void {
+      uvaSubscription?.unsubscribe();
+      try {
+        uvaSubscription = DataStore.observe(UVA).subscribe({
+          next: ({ element }) => {
+            const current = stateRef.current.uvaId;
+            if (!current || element?.id === current) void refresh();
+          },
+          error: (error: unknown) => {
+            console.error('Error observing the UVA', error);
+          },
+        });
+      } catch (error) {
+        uvaSubscription = undefined;
+        console.error('Error observing the UVA', error);
+      }
     }
+    observeUva();
 
     return () => {
       appStateSub.remove();
@@ -174,8 +182,13 @@ export interface RegistrationLockNotice {
  * Notice for Home and Measurement. Re-evaluates the lock on every focus and, the first time
  * either screen is focused after a reactivation, shows the green notice and consumes it, so
  * it never appears again (decision in #60).
+ * @param options.refreshOnFocus - false when the screen already re-evaluates on focus
+ *   itself (Home does, to decide the streak), so the lock is not read twice.
  */
-export function useRegistrationLockNotice(): RegistrationLockNotice {
+export function useRegistrationLockNotice(
+  options: { refreshOnFocus?: boolean } = {},
+): RegistrationLockNotice {
+  const { refreshOnFocus = true } = options;
   const { state, refresh, consumeReactivationNotice } = useRegistrationLock();
   const [focused, setFocused] = useState(false);
   const [showReactivated, setShowReactivated] = useState(false);
@@ -185,13 +198,13 @@ export function useRegistrationLockNotice(): RegistrationLockNotice {
     useCallback(() => {
       focusedRef.current = true;
       setFocused(true);
-      void refresh();
+      if (refreshOnFocus) void refresh();
       return () => {
         focusedRef.current = false;
         setFocused(false);
         setShowReactivated(false);
       };
-    }, [refresh]),
+    }, [refresh, refreshOnFocus]),
   );
 
   useEffect(() => {

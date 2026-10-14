@@ -334,7 +334,6 @@ describe('F4-05 (#60) — reminder pause while registering is blocked', () => {
 
     await localRemindersService.scheduleDailyNotifications();
 
-    expect(localRemindersService.areRemindersPaused()).toBe(true);
     expect(NotificationsMock.scheduleNotificationAsync).not.toHaveBeenCalled();
   });
 
