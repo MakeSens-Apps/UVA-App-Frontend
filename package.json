@@ -16,6 +16,7 @@
     "aws-amplify": "^6.18.0",
     "date-fns": "^4.4.0",
     "expo": "~56.0.11",
+    "expo-application": "~56.0.3",
     "expo-blur": "~56.0.3",
     "expo-build-properties": "^56.0.18",
     "expo-clipboard": "~56.0.4",
