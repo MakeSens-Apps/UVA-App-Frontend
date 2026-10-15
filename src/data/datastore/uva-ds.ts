@@ -42,6 +42,15 @@ export class UvaDSService {
   }
 
   /**
+   * Retrieves a UVA by its own id (F4-05, #60: the registration lock already has the id).
+   * @param {string} uvaID - ID of the UVA.
+   * @returns {Promise<UVA | undefined>} The UVA, or undefined if it is not on the phone yet.
+   */
+  static async getUVA(uvaID: string): Promise<UVA | undefined> {
+    return DataStore.query(UVA, uvaID);
+  }
+
+  /**
    * Retrieves a UVA by its userID.
    * @param {string} userID - ID of the User.
    * @returns {Promise<UVA | undefined>} The UVA object.

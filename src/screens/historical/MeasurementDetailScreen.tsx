@@ -64,6 +64,8 @@ import { RichText } from '@/components/rich-text/RichText';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 import { useConfigContext } from '@/state/ConfigContext';
+import { useRegistrationLock } from '@/state/RegistrationLockContext';
+import { canProposeStreakRecovery } from '@/domain/registration-lock/registration-lock';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';
 
@@ -175,6 +177,11 @@ export function groupRemainingLazyMeasurements(
  */
 export function MeasurementDetailScreen({ route }: Props): React.JSX.Element {
   const { theme } = useTheme();
+  // F4-05 (#60): no streak recovery is proposed while the station is disabled (P34).
+  const { state: registrationLock } = useRegistrationLock();
+  const streakRecoveryAllowed = canProposeStreakRecovery(
+    registrationLock.uvaStatus,
+  );
   const navigation = useNavigation();
   const { getConfigurationMeasurement, countTasks } = useConfigContext();
 
@@ -552,7 +559,7 @@ export function MeasurementDetailScreen({ route }: Props): React.JSX.Element {
           </View>
 
           {/* Alert: insufficient seeds — original: showAlert_incomplete && isYesterday */}
-          {showAlertIncomplete && isYest && (
+          {streakRecoveryAllowed && showAlertIncomplete && isYest && (
             <View
               style={[
                 styles.alert,
@@ -617,26 +624,29 @@ export function MeasurementDetailScreen({ route }: Props): React.JSX.Element {
           )}
 
           {/* Button: Recover streak — only when incomplete + yesterday + seeds >= 5 */}
-          {dayState === 'incomplete' && isYest && !showAlertIncomplete && (
-            <TouchableOpacity
-              style={[
-                styles.recoverBtn,
-                { backgroundColor: theme.colors.orange[500] },
-              ]}
-              onPress={() => setModalVisible(true)}
-              testID="recover-streak-btn"
-            >
-              <Text
+          {streakRecoveryAllowed &&
+            dayState === 'incomplete' &&
+            isYest &&
+            !showAlertIncomplete && (
+              <TouchableOpacity
                 style={[
-                  styles.recoverBtnText,
-                  { fontFamily: fontFamilyForWeight('500') },
+                  styles.recoverBtn,
+                  { backgroundColor: theme.colors.orange[500] },
                 ]}
+                onPress={() => setModalVisible(true)}
+                testID="recover-streak-btn"
               >
-                Recupera tu racha
-              </Text>
-              <FireIcon width={20} height={20} />
-            </TouchableOpacity>
-          )}
+                <Text
+                  style={[
+                    styles.recoverBtnText,
+                    { fontFamily: fontFamilyForWeight('500') },
+                  ]}
+                >
+                  Recupera tu racha
+                </Text>
+                <FireIcon width={20} height={20} />
+              </TouchableOpacity>
+            )}
 
           <View style={styles.bottomPadding} />
         </ScrollView>

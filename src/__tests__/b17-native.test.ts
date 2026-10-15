@@ -323,6 +323,94 @@ describe('cancelAllNotifications — R-48 fix', () => {
 // 3. scheduleDailyNotifications — DAILY trigger
 // =============================================================================
 
+describe('F4-05 (#60) — reminder pause while registering is blocked', () => {
+  afterEach(() => {
+    localRemindersService.setRemindersPaused(false);
+  });
+
+  it('paused: scheduling is a no-op', async () => {
+    PreferencesMock.get.mockResolvedValue({ value: null });
+    localRemindersService.setRemindersPaused(true);
+
+    await localRemindersService.scheduleDailyNotifications();
+
+    expect(NotificationsMock.scheduleNotificationAsync).not.toHaveBeenCalled();
+  });
+
+  it('paused: turning reminders on keeps the preference but schedules nothing', async () => {
+    PreferencesMock.get.mockResolvedValue({ value: null });
+    localRemindersService.setRemindersPaused(true);
+
+    await localRemindersService.setEnableNotifications(true);
+
+    expect(PreferencesMock.set).toHaveBeenCalledWith({
+      key: 'notificationPermissionGrantedUser',
+      value: JSON.stringify({ enableNotifications: true }),
+    });
+    expect(NotificationsMock.scheduleNotificationAsync).not.toHaveBeenCalled();
+  });
+
+  it('a pause that lands while the permission dialog is open schedules nothing (B7)', async () => {
+    PreferencesMock.get.mockResolvedValue({ value: null });
+    NotificationsMock.getPermissionsAsync.mockResolvedValueOnce({
+      status: 'undetermined',
+      granted: false,
+      expires: 'never',
+      canAskAgain: true,
+    });
+    let grant: (value: unknown) => void = () => {};
+    NotificationsMock.requestPermissionsAsync.mockReturnValueOnce(
+      new Promise((resolve) => {
+        grant = resolve;
+      }),
+    );
+
+    const scheduling = localRemindersService.scheduleDailyNotifications();
+    await Promise.resolve();
+    localRemindersService.setRemindersPaused(true);
+    await localRemindersService.cancelAllNotifications();
+    grant({
+      status: 'granted',
+      granted: true,
+      expires: 'never',
+      canAskAgain: true,
+    });
+    await scheduling;
+
+    expect(NotificationsMock.scheduleNotificationAsync).not.toHaveBeenCalled();
+    expect(PreferencesMock.set).not.toHaveBeenCalled();
+  });
+
+  it('a pause that lands between the two reminders undoes them (B7)', async () => {
+    PreferencesMock.get.mockResolvedValue({ value: null });
+    NotificationsMock.scheduleNotificationAsync.mockImplementationOnce(
+      async () => {
+        localRemindersService.setRemindersPaused(true);
+        return 'test-id';
+      },
+    );
+
+    await localRemindersService.scheduleDailyNotifications();
+
+    expect(
+      NotificationsMock.cancelAllScheduledNotificationsAsync,
+    ).toHaveBeenCalled();
+    expect(PreferencesMock.set).not.toHaveBeenCalled();
+  });
+
+  it('resumed: schedules again', async () => {
+    PreferencesMock.get.mockResolvedValue({ value: null });
+    localRemindersService.setRemindersPaused(true);
+    localRemindersService.setRemindersPaused(false);
+
+    await localRemindersService.scheduleDailyNotifications();
+
+    expect(NotificationsMock.scheduleNotificationAsync).toHaveBeenCalledTimes(
+      2,
+    );
+  });
+});
+
 describe('scheduleDailyNotifications', () => {
   it('schedules two notifications (morning + afternoon) when not programmed', async () => {
     PreferencesMock.get.mockResolvedValue({ value: null });

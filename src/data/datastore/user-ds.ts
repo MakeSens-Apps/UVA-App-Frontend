@@ -58,12 +58,17 @@ export class UserDSService {
    */
   static async ensureSessionUvaID(): Promise<string | undefined> {
     try {
-      const sessionUvaID = (await this.session.getInfo()).uvaID;
-      if (sessionUvaID) return sessionUvaID;
+      const session = await this.session.getInfo();
+      if (session.uvaID) return session.uvaID;
 
       const user = await this.getUser();
       const localUvaID = user?.uvaID ?? undefined;
       if (localUvaID) {
+        // The session may have been cleared (sign-out) while the User was read: only write
+        // the uvaID back if it is still the same account (F4-05, #60).
+        const current = await this.session.getInfo();
+        if (!current.userID || current.userID !== session.userID)
+          return undefined;
         await this.session.setInfoField('uvaID', localUvaID);
         return localUvaID;
       }

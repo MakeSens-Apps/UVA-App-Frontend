@@ -26,6 +26,12 @@ jest.mock('@react-native-community/netinfo', () => ({
   fetch: jest.fn(() => Promise.resolve({ isConnected: true, type: 'wifi' })),
 }));
 
+// F4-05 (#60): screens read the registration lock; keep it unlocked unless a test drives it
+// (see __mocks__/registration-lock-context.js). Lock tests unmock it.
+jest.mock('@/state/RegistrationLockContext', () =>
+  require('./__mocks__/registration-lock-context'),
+);
+
 // react-native-gesture-handler: official jest setup. Required since the bottom sheets
 // host themselves in a full-window RN Modal (D-13) with a nested GestureHandlerRootView,
 // which calls RNGestureHandlerModule.install() at render time.

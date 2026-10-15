@@ -790,3 +790,114 @@ describe('HomeScreen — germination modal trigger tests', () => {
     expect(mockScheduleDailyNotifications).toHaveBeenCalledTimes(1);
   });
 });
+
+// ─── F4-05 (#60): HomeScreen with the registration lock ──────────────────────
+
+describe('HomeScreen — F4-05 registration lock', () => {
+  const lockMock = jest.requireMock('@/state/RegistrationLockContext') as {
+    UNLOCKED: Record<string, unknown>;
+    mockRegistrationLockState: { current: Record<string, unknown> };
+    mockReactivatedShown: { current: boolean };
+  };
+  const DISABLED = {
+    uvaId: 'uva-0001',
+    uvaStatus: 'disabled',
+    reason: 'uva-disabled',
+    reactivationPending: false,
+  };
+
+  beforeEach(() => {
+    resetMocks();
+    lockMock.mockRegistrationLockState.current = { ...lockMock.UNLOCKED };
+    lockMock.mockReactivatedShown.current = false;
+  });
+
+  afterAll(() => {
+    lockMock.mockRegistrationLockState.current = { ...lockMock.UNLOCKED };
+    lockMock.mockReactivatedShown.current = false;
+  });
+
+  it('UVA disabled: shows the notice and does not reschedule the reminders on open', async () => {
+    lockMock.mockRegistrationLockState.current = DISABLED;
+    mockGetEnableNotifications.mockResolvedValue(true);
+    const nav = makeHomeNav();
+    const { findByTestId, getByText } = await render(
+      <HomeScreen navigation={nav as never} route={{} as never} />,
+    );
+
+    expect(
+      await findByTestId('home-registration-lock-uva-disabled'),
+    ).toBeTruthy();
+    expect(
+      getByText(
+        'Tu estación fue deshabilitada por el administrador de tu RACIMO. Puedes ver tu histórico. Si crees que es un error, comunícate con él.',
+      ),
+    ).toBeTruthy();
+    await waitFor(() => {
+      expect(mockRecalculateDailyProgress).toHaveBeenCalled();
+    });
+    expect(mockScheduleDailyNotifications).not.toHaveBeenCalled();
+    // The preference is only read, never written.
+    expect(mockGetEnableNotifications).not.toHaveBeenCalled();
+  });
+
+  it('UVA disabled: the streak rolls over but no recovery is proposed (P34)', async () => {
+    lockMock.mockRegistrationLockState.current = DISABLED;
+    const nav = makeHomeNav();
+    await render(<HomeScreen navigation={nav as never} route={{} as never} />);
+    await waitFor(() => {
+      expect(mockRecalculateDailyProgress).toHaveBeenCalledWith({
+        proposeStreakRecovery: false,
+      });
+    });
+  });
+
+  it('update required: recovery is still proposed (O6) and the notice has the "Actualizar" button', async () => {
+    lockMock.mockRegistrationLockState.current = {
+      ...DISABLED,
+      uvaStatus: 'enabled',
+      reason: 'update-required',
+    };
+    const nav = makeHomeNav();
+    const { findByTestId } = await render(
+      <HomeScreen navigation={nav as never} route={{} as never} />,
+    );
+    expect(
+      await findByTestId('home-registration-lock-update-button'),
+    ).toBeTruthy();
+    await waitFor(() => {
+      expect(mockRecalculateDailyProgress).toHaveBeenCalledWith({
+        proposeStreakRecovery: true,
+      });
+    });
+    expect(mockScheduleDailyNotifications).not.toHaveBeenCalled();
+  });
+
+  it('unlocked: no notice; reactivated once: green notice', async () => {
+    mockGetEnableNotifications.mockResolvedValue(true);
+    const nav = makeHomeNav();
+    const first = await render(
+      <HomeScreen navigation={nav as never} route={{} as never} />,
+    );
+    await waitFor(() => {
+      expect(mockScheduleDailyNotifications).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      first.queryByTestId('home-registration-lock-uva-disabled'),
+    ).toBeNull();
+    expect(
+      first.queryByTestId('home-registration-lock-reactivated'),
+    ).toBeNull();
+    first.unmount();
+
+    lockMock.mockReactivatedShown.current = true;
+    const second = await render(
+      <HomeScreen navigation={nav as never} route={{} as never} />,
+    );
+    expect(
+      await second.findByText(
+        'Tu estación fue reactivada, ya puedes registrar',
+      ),
+    ).toBeTruthy();
+  });
+});

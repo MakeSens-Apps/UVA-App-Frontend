@@ -80,6 +80,13 @@ export interface SystemStatus {
  * the OS-level alarms were never cancelled, so notifications kept firing).
  */
 class LocalRemindersService {
+  /**
+   * F4-05 (#60): true while registering is blocked (UVA disabled or update required).
+   * Scheduling becomes a no-op; the person's preference is left as it is.
+   * Owned by RegistrationLockService.
+   */
+  private remindersPaused = false;
+
   constructor() {
     // Initialize notification channels on service creation (Android only)
     if (Platform.OS === 'android') {
@@ -140,6 +147,11 @@ class LocalRemindersService {
     morningTimeHour = 6,
     afternoonTimeHour = 18,
   ): Promise<void> {
+    if (this.remindersPaused) {
+      console.warn('Recordatorios en pausa: el registro está bloqueado.');
+      return;
+    }
+
     const hasPermission = await this.requestPermissions();
     if (!hasPermission) {
       console.error('Permisos denegados para notificaciones.');
@@ -156,6 +168,13 @@ class LocalRemindersService {
         console.warn('Notificaciones ya programadas.');
         return;
       }
+    }
+
+    // F4-05 (#60): the pause can land while the permission dialog is open; check again so
+    // a pause + cancel in that window does not end with the reminders scheduled.
+    if (this.remindersPaused) {
+      console.warn('Recordatorios en pausa: el registro está bloqueado.');
+      return;
     }
 
     try {
@@ -198,6 +217,12 @@ class LocalRemindersService {
         },
       });
 
+      // A pause that arrived while scheduling undoes it instead of marking it as done.
+      if (this.remindersPaused) {
+        await this.cancelAllNotifications();
+        return;
+      }
+
       await Preferences.set({
         key: NOTIFICATION_PROGRAMMED_KEY,
         value: JSON.stringify({ programmed: true }),
@@ -207,6 +232,13 @@ class LocalRemindersService {
     } catch (error) {
       console.error('Error al programar notificaciones diarias:', error);
     }
+  }
+
+  // ─── Pause (F4-05, #60) ───────────────────────────────────────────────────────
+
+  /** Pauses or resumes scheduling without changing the stored preference. */
+  setRemindersPaused(paused: boolean): void {
+    this.remindersPaused = paused;
   }
 
   // ─── cancelAllNotifications ── BUG R-48 FIX ─────────────────────────────────

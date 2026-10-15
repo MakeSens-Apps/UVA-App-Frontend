@@ -56,6 +56,7 @@ El estado global se maneja con **React Context**, uno por dominio, cada uno envo
 - **`SyncContext`** — puente reactivo hacia el estado de `DataStore` (estados `NOINIT`/`UNSYNC`/`SYNC`), suscrito a `Hub` de Amplify para eventos de red y de sincronización de modelos; expone `waitForSync()` basado en el evento de Hub en vez de polling por intervalo, y `hasPendingChanges`, que viene del rastreador de pendientes (ver "Cambios pendientes de subir").
 - **`ConfigContext`** — configuración persistida del dispositivo (branding activo, recordatorios, etc.).
 - **`state/notification/NotificationContext`** — estado de alertas y notificaciones locales, coordinado con `src/native/notifications/LocalRemindersService.ts`.
+- **`RegistrationLockContext`** — bloqueo del registro (UVA deshabilitada o versión mínima, ADR-005 del dashboard, #60). Envuelve `registrationLockService` y se vuelve a evaluar con cada sincronización y en cada foco de Inicio y Medición. `useRegistrationLockNotice` da el aviso único de esas pantallas y el aviso verde de reactivación. Perfil, Alertas y el detalle del día solo leen el estado de la UVA para no proponer "Recupera tu racha" con la estación deshabilitada. Es el punto de extensión de #61 (RACIMO no activo).
 
 ## Acceso a datos (`src/data/`)
 
@@ -67,6 +68,7 @@ El estado global se maneja con **React Context**, uno por dominio, cada uno envo
 - **`session/`** — persistencia de sesión (con variante `.web.ts` para la validación en navegador).
 - **`storage/`** — `file-system` (archivos locales, con variante web), `preferences` (config del dispositivo) y `s3` (almacenamiento en la nube, con variante web).
 - **`graphql/`** — queries/mutations/subscriptions generadas desde el esquema del backend.
+- **`registration-lock/`** — servicio que decide si se puede registrar con lo último sincronizado: la UVA en DataStore y la versión mínima de `public/app/version-policy.json`, guardada como última conocida. También recuerda el estado de cada UVA para el aviso de reactivación, y lo borra al cerrar sesión. Es un servicio de aplicación: coordina además la pausa de `native/notifications` y lee la versión instalada de `native/device/appVersion.ts`, la única dependencia de `data/` hacia `native/`.
 
 ### DataStore + AsyncStorage (offline-first)
 
@@ -94,6 +96,7 @@ Código puro, sin dependencias de React Native, pensado para ser 100% testeable 
 - **`report/`** — construcción del reporte ambiental y generación del archivo compartible (`environmental-report.ts`, `report-file.ts`).
 - **`aggregations/`** — agregaciones históricas para las vistas de gráficas.
 - **`setup/`** — inicialización de sesión/usuario y vinculación a RACIMO/UVA.
+- **`registration-lock/`** — regla del ADR-005: estado efectivo de la UVA con el corte del 2026-11-25 y el estado desconocido, versión mínima, orden de los avisos, reactivación, pausa de recordatorios y racha. #61 la reutiliza.
 
 ## Módulos nativos (`src/native/`)
 
@@ -103,6 +106,7 @@ Envoltorios delgados sobre APIs nativas/Expo, aislados del resto del código par
 - **`minimize/useAppMinimize.ts`** — comportamiento al minimizar la app.
 - **`notifications/LocalRemindersService.ts`** — notificaciones push locales (`expo-notifications`), incluyendo el diagnóstico de exact-alarm/optimización de batería en Android.
 - **`device/apiLevel.ts`** — lectura del nivel de API de Android para lógica condicional por versión.
+- **`device/appVersion.ts`** — versión instalada (`versionName`, con `expo-application`) y enlace a la ficha de la tienda.
 - **`clipboard/`, `share/`, `filesystem/`** — envoltorios sobre `expo-clipboard`, `expo-sharing`/`react-native-view-shot`, y el sistema de archivos.
 
 ## Componentes de UI (`src/components/`)

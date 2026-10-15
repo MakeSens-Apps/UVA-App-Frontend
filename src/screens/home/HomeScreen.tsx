@@ -93,6 +93,15 @@ import type { CompletedTask } from '@/data/datastore/user-progress-ds';
 import { MoonPhaseService, LunarPhase } from '@/domain/moon/moon-phase';
 import { useConfigContext } from '@/state/ConfigContext';
 import { localRemindersService } from '@/native/notifications/LocalRemindersService';
+import {
+  useRegistrationLock,
+  useRegistrationLockNotice,
+} from '@/state/RegistrationLockContext';
+import {
+  canProposeStreakRecovery,
+  shouldPauseReminders,
+} from '@/domain/registration-lock/registration-lock';
+import { RegistrationLockNotice } from '@/components/registration-lock/RegistrationLockNotice';
 
 import { useTheme } from '@/theme/ThemeProvider';
 import { fontFamilyForWeight } from '@/theme/theme';
@@ -146,6 +155,12 @@ type Props = NativeStackScreenProps<HomeStackParamList, 'Home'>;
 export function HomeScreen({ navigation }: Props): React.JSX.Element {
   const { theme } = useTheme();
   const { getConfigurationMeasurement, countTasks } = useConfigContext();
+  // F4-05 (#60): one notice at the top, reminders paused and no streak recovery while the
+  // station is blocked (ADR-005).
+  const { refresh: refreshRegistrationLock } = useRegistrationLock();
+  // The focus effect below already re-evaluates the lock (it needs the result for the
+  // streak), so the notice hook does not read it again.
+  const lockNotice = useRegistrationLockNotice({ refreshOnFocus: false });
 
   // ─── State ─────────────────────────────────────────────────────────────
 
@@ -219,6 +234,10 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
    *   }
    */
   async function setNotifications(): Promise<void> {
+    // F4-05 (#60): while registering is blocked the reminders stay paused, so Home does not
+    // reschedule them on open. The preference is not touched.
+    const lock = await refreshRegistrationLock();
+    if (shouldPauseReminders(lock.reason)) return;
     const enableNotifications =
       await localRemindersService.getEnableNotifications();
     if (enableNotifications) {
@@ -262,7 +281,12 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
           // (measurement.page.html:17 → `tasksCompleted.length`). Rolling over first, on
           // every focus, restores the original ordering and also handles a midnight
           // rollover while the app stays open. It is a no-op once today's row exists.
-          await UserProgressDSService.recalculateDailyProgress();
+          // F4-05 (#60): the streak still breaks as today, but no recovery is proposed
+          // while the station is disabled (P34).
+          const lock = await refreshRegistrationLock();
+          await UserProgressDSService.recalculateDailyProgress({
+            proposeStreakRecovery: canProposeStreakRecovery(lock.uvaStatus),
+          });
 
           // getLastUserProgressPure: pure read, no side-effects (R-28)
           const up = await UserProgressDSService.getLastUserProgressPure();
@@ -283,7 +307,7 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
       return () => {
         mounted = false;
       };
-    }, [totalTask]),
+    }, [totalTask, refreshRegistrationLock]),
   );
 
   // ─── Navigation handlers ──────────────────────────────────────────────
@@ -359,6 +383,13 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* F4-05 (#60): UVA disabled / update required / reactivated (once) */}
+        <RegistrationLockNotice
+          reason={lockNotice.reason}
+          showReactivated={lockNotice.showReactivated}
+          testID="home-registration-lock"
+        />
+
         {/* Date header */}
         {/* Original: color: --Colors-Blue-900 = #164551; font-size: 16px; font-weight: 700;
             text-align: center; NO textTransform (original string "Hoy, lunes 11 de junio" is lowercase) */}

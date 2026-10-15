@@ -82,6 +82,9 @@ import type {
 } from '@/data/models/configuration/measurements.model';
 import type { MeasurementValue } from '@/domain/measurement-engine/measurement-engine';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { showToast } from '@/components/ui/Toast';
+import { useRegistrationLock } from '@/state/RegistrationLockContext';
+import { LOCK_TOAST_MESSAGES } from '@/components/registration-lock/RegistrationLockNotice';
 import { ConfigIcon } from './ConfigIcon';
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
@@ -155,6 +158,7 @@ export function RegisterMeasurementScreen({
   // bottom — i.e. UNDER the Android system navigation bar. Pad by the bottom inset.
   const insets = useSafeAreaInsets();
   const { configMeasurement, countTasks, loadImage } = useConfigContext();
+  const { refresh: refreshRegistrationLock } = useRegistrationLock();
 
   const {
     taskId,
@@ -194,6 +198,16 @@ export function RegisterMeasurementScreen({
   // Input refs — Map<string, TextInput | null> keyed by "measIdx_digitIdx"
   // Populated via ref-callback (never accessed during render, only in callbacks/effects)
   const inputRefs = useRef<Map<string, TextInput | null>>(new Map());
+
+  // The init awaits the lock check and the icons; if the person leaves meanwhile, nothing
+  // navigates from this unmounted screen (F4-05, #60).
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // ─── loadFlowById (declared before useEffect that calls it) ──────────────
 
@@ -252,6 +266,7 @@ export function RegisterMeasurementScreen({
         const firstGuideKey = flowData.guides[0];
         if (config.guides[firstGuideKey]?.showAutomatic !== false) {
           setTimeout(() => {
+            if (!isMountedRef.current) return;
             navigation.navigate('GuideMeasurement', {
               taskId,
               guideKey: firstGuideKey,
@@ -267,11 +282,34 @@ export function RegisterMeasurementScreen({
     [loadImage, navigation, taskId],
   );
 
+  // ─── F4-05 (#60): registration lock, checked on entry and again on save ──
+
+  /**
+   * Re-evaluates the lock. If registering is blocked, tells the person why and returns to
+   * the Measurement tab, which shows the notice.
+   * @returns true when registering must stop (blocked, or the screen is already gone).
+   */
+  const leaveIfRegistrationLocked = useCallback(async (): Promise<boolean> => {
+    const lock = await refreshRegistrationLock();
+    // Unmounted while checking: stop here, without a toast or navigation from a gone screen.
+    if (!isMountedRef.current) return true;
+    if (!lock.reason) return false;
+    setModalStage('none');
+    showToast({ message: LOCK_TOAST_MESSAGES[lock.reason], type: 'info' });
+    // popTo returns to the AppTabs already in the stack instead of pushing a new one on
+    // top of this blocked form.
+    navigation.popTo('AppTabs', { screen: 'Measurement' });
+    return true;
+  }, [refreshRegistrationLock, navigation]);
+
   // ─── Init: load flow from config ─────────────────────────────────────────
 
   useEffect(() => {
     const init = async () => {
       if (!configMeasurement) return;
+      // F4-05 (#60): entry check BEFORE loading the flow, so a blocked registration never
+      // opens the automatic guide on top of the Measurement tab.
+      if (await leaveIfRegistrationLocked()) return;
       setTotalTask(countTasks(configMeasurement));
 
       const task = configMeasurement.tasks[taskId];
@@ -316,6 +354,7 @@ export function RegisterMeasurementScreen({
     countTasks,
     initialFlowId,
     initialHasBackButton,
+    leaveIfRegistrationLocked,
   ]);
 
   // ─── Digit input helpers ──────────────────────────────────────────────────
@@ -554,6 +593,9 @@ export function RegisterMeasurementScreen({
     setSaving(true);
 
     try {
+      // F4-05 (#60): the lock is checked again right before writing.
+      if (await leaveIfRegistrationLocked()) return;
+
       const measurementData: Record<string, number> = measurements.reduce(
         (acc, m) => {
           if (m.id) acc[m.id.toString()] = m.value ?? 0;
@@ -653,7 +695,14 @@ export function RegisterMeasurementScreen({
     } finally {
       setSaving(false);
     }
-  }, [flowId, taskId, measurements, saving, goToNextFlowOrSavePreference]);
+  }, [
+    flowId,
+    taskId,
+    measurements,
+    saving,
+    goToNextFlowOrSavePreference,
+    leaveIfRegistrationLocked,
+  ]);
 
   // ─── goToComplete (from saved modal Siguiente button) ─────────────────────
 

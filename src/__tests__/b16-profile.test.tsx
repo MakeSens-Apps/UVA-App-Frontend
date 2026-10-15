@@ -12,6 +12,7 @@
  */
 
 import React from 'react';
+import { Text } from 'react-native';
 import {
   render,
   fireEvent,
@@ -253,14 +254,12 @@ jest.mock('@/data/auth/auth', () => ({
 
 // ─── Domain / data mocks ──────────────────────────────────────────────────────
 
-const mockGetUser = jest
-  .fn()
-  .mockResolvedValue({
-    Name: 'María esperanza',
-    LastName: 'Gil',
-    PhoneNumber: '+573000000002',
-    Email: '',
-  });
+const mockGetUser = jest.fn().mockResolvedValue({
+  Name: 'María esperanza',
+  LastName: 'Gil',
+  PhoneNumber: '+573000000002',
+  Email: '',
+});
 jest.mock('@/data/datastore/user-ds', () => ({
   UserDSService: {
     getUser: (...a: unknown[]) => mockGetUser(...a),
@@ -1006,5 +1005,121 @@ describe('AlertsScreen — markAsRead decrements unreadCount', () => {
     );
     // streak_lost must be #737373
     expect(getColor('streak', 'streak_lost')).toBe('#737373');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// F4-05 (#60): no "Recupera tu racha" while the station is disabled (P34)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('F4-05 — Profile and Alerts hide "Recupera tu racha" with the station disabled', () => {
+  const lockMock = jest.requireMock('@/state/RegistrationLockContext') as {
+    UNLOCKED: Record<string, unknown>;
+    mockRegistrationLockState: { current: Record<string, unknown> };
+  };
+
+  function UnreadProbe(): React.JSX.Element {
+    const { unreadCount } = useNotificationContext();
+    return <Text testID="unread-probe">{String(unreadCount)}</Text>;
+  }
+
+  function setUvaStatus(uvaStatus: 'enabled' | 'disabled'): void {
+    lockMock.mockRegistrationLockState.current = {
+      ...lockMock.UNLOCKED,
+      uvaId: 'uva-0001',
+      uvaStatus,
+      reason: uvaStatus === 'disabled' ? 'uva-disabled' : null,
+    };
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetNotifications.mockResolvedValue([
+      {
+        id: 'r1',
+        type: 'streak',
+        subtype: 'streak_recovery',
+        data: {
+          title: 'Recupera tu racha',
+          description: 'Registra hoy para recuperar tu racha',
+          isUnread: true,
+        },
+        timestamp: 'Hoy',
+        isUnclean: false,
+      },
+      {
+        id: 'n1',
+        type: 'seeds',
+        subtype: 'first_task',
+        data: {
+          title: 'Primera tarea',
+          description: 'Primera tarea completada',
+          isUnread: true,
+        },
+        timestamp: 'Hoy',
+        isUnclean: false,
+      },
+    ]);
+  });
+
+  afterAll(() => {
+    lockMock.mockRegistrationLockState.current = { ...lockMock.UNLOCKED };
+  });
+
+  it('Alerts with the station disabled: the alert is not listed and does not count', async () => {
+    setUvaStatus('disabled');
+    const props = makeNavProps() as Parameters<typeof AlertsScreen>[0];
+    const { findByTestId, queryByTestId, getByTestId } = await render(
+      <Wrapper>
+        <AlertsScreen {...props} />
+        <UnreadProbe />
+      </Wrapper>,
+    );
+    await findByTestId('notification-item-n1');
+    expect(queryByTestId('notification-item-r1')).toBeNull();
+    await waitFor(() => {
+      expect(getByTestId('unread-probe').props.children).toBe('1');
+    });
+  });
+
+  it('Alerts with the station enabled (control): the alert is listed and counts', async () => {
+    setUvaStatus('enabled');
+    const props = makeNavProps() as Parameters<typeof AlertsScreen>[0];
+    const { findByTestId, getByTestId } = await render(
+      <Wrapper>
+        <AlertsScreen {...props} />
+        <UnreadProbe />
+      </Wrapper>,
+    );
+    await findByTestId('notification-item-r1');
+    await waitFor(() => {
+      expect(getByTestId('unread-probe').props.children).toBe('2');
+    });
+  });
+
+  it('Profile unread count leaves the alert out only with the station disabled', async () => {
+    setUvaStatus('disabled');
+    const props = makeNavProps() as Parameters<typeof ProfileScreen>[0];
+    const disabled = await render(
+      <Wrapper>
+        <ProfileScreen {...props} />
+        <UnreadProbe />
+      </Wrapper>,
+    );
+    await waitFor(() => {
+      expect(disabled.getByTestId('unread-probe').props.children).toBe('1');
+    });
+    disabled.unmount();
+
+    setUvaStatus('enabled');
+    const enabled = await render(
+      <Wrapper>
+        <ProfileScreen {...props} />
+        <UnreadProbe />
+      </Wrapper>,
+    );
+    await waitFor(() => {
+      expect(enabled.getByTestId('unread-probe').props.children).toBe('2');
+    });
   });
 });
