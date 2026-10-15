@@ -103,14 +103,15 @@ jest.mock('@aws-amplify/datastore', () => ({
   },
 }));
 
-// SyncContext mock — injectable networkStatus and synchronizedData
+// SyncContext mock — injectable networkStatus and hasPendingChanges
 let mockNetworkStatus = false;
-let mockSynchronizedData = true;
+let mockHasPendingChanges = false;
 
 jest.mock('@/state/SyncContext', () => ({
   useSyncContext: () => ({
     networkStatus: mockNetworkStatus,
-    synchronizedData: () => mockSynchronizedData,
+    hasPendingChanges: mockHasPendingChanges,
+    synchronizedData: () => true,
     state: 'READY',
     waitForSync: jest.fn().mockResolvedValue(undefined),
   }),
@@ -228,7 +229,7 @@ beforeEach(() => {
 
   // Reset injectable state
   mockNetworkStatus = false;
-  mockSynchronizedData = true;
+  mockHasPendingChanges = false;
   mockGetEnableNotificationsResult = false;
   mockGetSystemStatusResult = {
     canSchedule: false,
@@ -450,7 +451,7 @@ describe('notifications toggle — OFF', () => {
 describe('updateConfiguration', () => {
   it('calls downLoadData() and downloadAndStoreMoonPhaseData() and loadBranding()', async () => {
     mockNetworkStatus = true;
-    mockSynchronizedData = false; // so isConfigurationAvailable=true → button enabled
+    mockHasPendingChanges = true;
 
     // Re-mock to expose isConfigurationAvailable = true
     // SyncContext injection: networkStatus=true → isConfigurationAvailable=true
@@ -529,7 +530,7 @@ describe('updateConfiguration', () => {
 describe('syncData', () => {
   it('shows "Necesita internet para ejecutar esta accion" toast when no network', async () => {
     mockNetworkStatus = false;
-    mockSynchronizedData = false; // isDataStoreSyncPending=true → button enabled
+    mockHasPendingChanges = true; // pending → button enabled
 
     const { getAllByTestId } = await render(
       <ConfigurationScreen {...makeProps()} />,
@@ -555,7 +556,7 @@ describe('syncData', () => {
 
   it('calls DataStore.start() when network is available', async () => {
     mockNetworkStatus = true;
-    mockSynchronizedData = false; // isDataStoreSyncPending=true
+    mockHasPendingChanges = true; // pending → button enabled
 
     const { getAllByTestId } = await render(
       <ConfigurationScreen {...makeProps()} />,
@@ -785,5 +786,44 @@ describe('screen structure', () => {
       <ConfigurationScreen {...makeProps()} />,
     );
     expect(getByText(/Al mantener las notificaciones activas/)).toBeTruthy();
+  });
+});
+
+// =============================================================================
+// 10. #79 — "Sincronizar mediciones" shows the real pending state, live
+// =============================================================================
+
+describe('#79 — sync pending status', () => {
+  it('shows "Sin sincronizaciones pendientes" when nothing is pending', async () => {
+    mockHasPendingChanges = false;
+    const { getByText, queryByText } = await render(
+      <ConfigurationScreen {...makeProps()} />,
+    );
+    expect(getByText('Sin sincronizaciones pendientes')).toBeTruthy();
+    expect(queryByText('Con sincronizaciones pendientes')).toBeNull();
+  });
+
+  it('shows "Con sincronizaciones pendientes" while changes are pending', async () => {
+    mockHasPendingChanges = true;
+    const { getByText, queryByText } = await render(
+      <ConfigurationScreen {...makeProps()} />,
+    );
+    expect(getByText('Con sincronizaciones pendientes')).toBeTruthy();
+    expect(queryByText('Sin sincronizaciones pendientes')).toBeNull();
+  });
+
+  it('clears the warning as soon as the upload finishes, without leaving the screen', async () => {
+    mockHasPendingChanges = true;
+    const { getByText, queryByText, rerender } = await render(
+      <ConfigurationScreen {...makeProps()} />,
+    );
+    expect(getByText('Con sincronizaciones pendientes')).toBeTruthy();
+
+    // The tracker reports the outbox drained; the screen stays focused.
+    mockHasPendingChanges = false;
+    await rerender(<ConfigurationScreen {...makeProps()} />);
+
+    expect(getByText('Sin sincronizaciones pendientes')).toBeTruthy();
+    expect(queryByText('Con sincronizaciones pendientes')).toBeNull();
   });
 });

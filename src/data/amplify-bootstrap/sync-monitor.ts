@@ -19,6 +19,7 @@
 import { DataStore } from '@aws-amplify/datastore';
 import { Hub } from 'aws-amplify/utils';
 import { AppUsageEvent } from '../models';
+import { pendingSyncTracker } from './pending-sync-tracker';
 
 export enum STATE_SYNC_DS {
   NOINIT = 'NOINIT',
@@ -95,6 +96,10 @@ function isAppUsageEventMutation(data: unknown): data is {
  */
 export function subscribeToSync(): void {
   if (_state.isSubscribed) return;
+
+  // #79: counts the person's changes still in the outbox (no telemetry).
+  // Must listen before DataStore starts so no outbox event is missed.
+  pendingSyncTracker.start();
 
   Hub.listen('datastore', (hubData) => {
     const { event, data } = hubData.payload;

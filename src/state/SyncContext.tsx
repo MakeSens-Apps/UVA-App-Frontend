@@ -13,7 +13,9 @@
  *  - AppUsageEvent cleanup delegated to AppUsageService (cleanupSyncedRecord)
  *  - NetInfo dependency handled by @aws-amplify/react-native + @react-native-community/netinfo
  *    (already installed/configured in B03)
- *  - Exposes: { state, networkStatus, synchronizedData(), waitForSync() }
+ *  - Exposes: { state, networkStatus, hasPendingChanges, synchronizedData(), waitForSync() }
+ *  - #79: hasPendingChanges comes from the pending-sync tracker (outbox events
+ *    without telemetry), not from UNSYNC, which only clears on a DataStore restart
  *
  * Portability matrix: "datastore/sync-monitor-ds.service.ts" → Major → B06
  * Risks: R-27 (no reactive state), R-04 (NetInfo), R-21 (Hermes type guard)
@@ -26,11 +28,13 @@ import React, {
   useRef,
   useState,
   useCallback,
+  useSyncExternalStore,
 } from 'react';
 import { DataStore } from '@aws-amplify/datastore';
 import { Hub } from 'aws-amplify/utils';
 import { AppUsageEvent } from '@/data/models';
 import { cleanupSyncedRecord } from '@/data/view/app-usage';
+import { pendingSyncTracker } from '@/data/amplify-bootstrap/pending-sync-tracker';
 
 // ─── State enum (mirrors original) ─────────────────────────────────────────
 
@@ -88,6 +92,11 @@ export interface SyncContextValue {
   /** Whether the device has network connectivity (from Hub networkStatus event) */
   networkStatus: boolean;
   /**
+   * True while the person's changes (measurements, progress, UVA, profile) are
+   * still waiting in the outbox. Telemetry does not count. Updates live (#79).
+   */
+  hasPendingChanges: boolean;
+  /**
    * Returns true if DataStore has completed the initial sync (SYNC or READY).
    * Preserves the original synchronizedData() method signature.
    */
@@ -117,6 +126,10 @@ export function SyncProvider({
 }: SyncProviderProps): React.JSX.Element {
   const [state, setState] = useState<STATE_SYNC_DS>(STATE_SYNC_DS.NOINIT);
   const [networkStatus, setNetworkStatus] = useState<boolean>(false);
+  const pendingChangesCount = useSyncExternalStore(
+    pendingSyncTracker.subscribe,
+    pendingSyncTracker.getCount,
+  );
 
   // Listeners waiting for READY state (for waitForSync event-driven promises)
   const readyListenersRef = useRef<(() => void)[]>([]);
@@ -248,6 +261,7 @@ export function SyncProvider({
   const value: SyncContextValue = {
     state,
     networkStatus,
+    hasPendingChanges: pendingChangesCount > 0,
     synchronizedData,
     waitForSync,
   };

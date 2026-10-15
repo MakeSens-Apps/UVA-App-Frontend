@@ -84,6 +84,25 @@ jest.mock('../data/models', () => {
   };
 });
 
+// #79: controllable pending-sync tracker (the real one is covered in
+// pending-sync-tracker.test.ts).
+let mockPendingCount = 0;
+const mockPendingListeners = new Set<() => void>();
+jest.mock('../data/amplify-bootstrap/pending-sync-tracker', () => ({
+  pendingSyncTracker: {
+    getCount: () => mockPendingCount,
+    subscribe: (listener: () => void) => {
+      mockPendingListeners.add(listener);
+      return () => mockPendingListeners.delete(listener);
+    },
+  },
+}));
+
+function setPendingCount(next: number): void {
+  mockPendingCount = next;
+  mockPendingListeners.forEach((listener) => listener());
+}
+
 jest.mock('../data/view/app-usage', () => ({
   cleanupSyncedRecord: jest.fn(() => Promise.resolve()),
   appUsageSyncExpression: { model: jest.fn(), fn: jest.fn() },
@@ -330,5 +349,37 @@ describe('B06 — SyncContext', () => {
     const listenersAfter =
       mockHubListeners.datastore.length + mockHubListeners.auth.length;
     expect(listenersAfter).toBeLessThan(listenersBefore);
+  });
+
+  it('#79 — hasPendingChanges follows the pending-sync tracker live', async () => {
+    const { result } = await renderSyncHook();
+    expect(result.current.hasPendingChanges).toBe(false);
+
+    await act(async () => {
+      setPendingCount(2);
+    });
+    expect(result.current.hasPendingChanges).toBe(true);
+
+    await act(async () => {
+      setPendingCount(0);
+    });
+    expect(result.current.hasPendingChanges).toBe(false);
+  });
+
+  it('#79 — UNSYNC is unchanged: any enqueued mutation still sets it (O6)', async () => {
+    const { result } = await renderSyncHook();
+
+    await act(async () => {
+      fireDatastoreEvent('outboxMutationEnqueued', {
+        model: AppUsageEventClass,
+        element: { id: 'telemetry-1' },
+      });
+    });
+
+    // hasPendingChanges comes only from the tracker (mocked here); the
+    // telemetry filter is covered on the real singleton in
+    // pending-sync-tracker.test.ts.
+    expect(result.current.state).toBe(STATE_SYNC_DS.UNSYNC);
+    expect(result.current.synchronizedData()).toBe(false);
   });
 });

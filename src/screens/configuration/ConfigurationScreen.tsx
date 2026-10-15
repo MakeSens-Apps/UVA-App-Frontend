@@ -30,6 +30,9 @@
  *   - ToastController → showToast()
  *   - LoadingController → LoadingOverlay
  *   - ion-chip → View+Text styled chip
+ *   - #79: "Sincronizar mediciones" reads SyncContext.hasPendingChanges live (the
+ *     person's changes still in the outbox, without telemetry) instead of
+ *     !synchronizedData() captured on focus, which stayed pending until a restart
  *
  * Visual parity (docs/evidence/profile/screen-14/15/16/17/18):
  *   - Content background: #F5F5F5
@@ -136,13 +139,12 @@ export function ConfigurationScreen({ navigation }: Props): React.JSX.Element {
   // with no tab bar underneath, so its scroll content ends flush with the window
   // bottom — i.e. UNDER the Android system navigation bar. Pad by the bottom inset.
   const insets = useSafeAreaInsets();
-  const { networkStatus, synchronizedData } = useSyncContext();
+  const { networkStatus, hasPendingChanges } = useSyncContext();
   const { downLoadData, loadBranding } = useConfigContext();
 
   // ─── State ──────────────────────────────────────────────────────────────────
 
   const [isNotificationsActive, setIsNotificationsActive] = useState(false);
-  const [isDataStoreSyncPending, setIsDataStoreSyncPending] = useState(false);
   const [isConfigurationAvailable, setIsConfigurationAvailable] =
     useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -212,7 +214,6 @@ export function ConfigurationScreen({ navigation }: Props): React.JSX.Element {
   useFocusEffect(
     useCallback(() => {
       // ionViewWillEnter equivalent
-      setIsDataStoreSyncPending(!synchronizedData());
       setIsConfigurationAvailable(networkStatus);
 
       void loadNotificationStatus();
@@ -225,12 +226,7 @@ export function ConfigurationScreen({ navigation }: Props): React.JSX.Element {
           appStateSubscription.current = null;
         }
       };
-    }, [
-      synchronizedData,
-      networkStatus,
-      loadNotificationStatus,
-      setupAppStateListener,
-    ]),
+    }, [networkStatus, loadNotificationStatus, setupAppStateListener]),
   );
 
   // ─── activeNoti ───────────────────────────────────────────────────────────
@@ -706,7 +702,7 @@ export function ConfigurationScreen({ navigation }: Props): React.JSX.Element {
             infoPendingText="Con sincronizaciones pendientes"
             noInfoPendingText="Sin sincronizaciones pendientes"
             buttonText="Sincronizacion con la nube"
-            isInfoPending={isDataStoreSyncPending}
+            isInfoPending={hasPendingChanges}
             onClickSync={syncData}
           />
 

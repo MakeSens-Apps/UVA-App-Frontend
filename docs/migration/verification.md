@@ -105,6 +105,26 @@ F-08, F-09, D2/D-18 tienen confirmación visual explícita en
 | OTP real (SMS)                                                    | Pendiente — la sesión de prueba usó el usuario de test (3000000002, sin OTP); no cubierto en `docs/evidence/device-2026-09-07/`.                                                                                         |
 | Vinculación real de RACIMO                                        | Pendiente — `review-frames-166-239.md` reporta la captura "atascada" ~29s en "Vinculando al proyecto" (D3); el flujo completo de vinculación no llegó a validarse hasta el final.                                        |
 | Agregados del histórico vs mismo dataset                          | Pendiente — D-15 (arriba) detectó discrepancias numéricas que aún no se han re-verificado tras ningún fix específico de agregación.                                                                                      |
+| Cola de sincronización al salir del ahorro de batería (#79)       | Pendiente en teléfono real — lo prueba una persona (ver "Ahorro de batería y cola de sincronización").                                                                                                                   |
+
+### Ahorro de batería y cola de sincronización (#79)
+
+En la revisión del 2026-10-14 (emulador contra develop) lo pendiente después de un período de ahorro de batería (Doze) solo se subió cuando la persona volvió a abrir la app.
+
+**Lo que dice el código.** La app no tiene una tarea nativa de sincronización (ni WorkManager ni tareas sin interfaz): la cola de salida la sube DataStore desde el JS, y solo mientras el proceso de la app está vivo y `NetInfo` informa conexión. En Doze, Android corta la red a las apps en segundo plano y difiere sus tareas hasta una ventana de mantenimiento. Por eso lo esperable es:
+
+- Si el sistema mantuvo vivo el proceso, al salir de Doze (o en una ventana de mantenimiento) vuelve la red, DataStore reanuda la cola y lo pendiente puede subir sin abrir la app.
+- Si el sistema cerró el proceso (frecuente en capas como MIUI con el ahorro de batería activo), nada corre hasta que la persona abre la app; ahí DataStore arranca y sube la cola.
+
+**Prueba en un teléfono real** (la hace una persona, con el APK de debug o de prueba en un teléfono **sin la app real**, porque comparte el paquete con producción):
+
+1. Iniciar sesión con la cuenta de prueba de develop, poner el teléfono en modo avión y registrar una medición. Configuración debe decir "Con sincronizaciones pendientes".
+2. Dejar la app en segundo plano (sin cerrarla), quitar el modo avión y apagar la pantalla. Forzar Doze por USB con `adb shell dumpsys deviceidle force-idle`, o esperar a que el teléfono entre solo (unos 30 a 60 minutos quieto y desconectado del cargador).
+3. Salir de Doze (`adb shell dumpsys deviceidle unforce` o encender la pantalla) **sin abrir la app** y esperar unos minutos.
+4. Revisar en el dashboard RACIMO de develop si la medición llegó antes de abrir la app. Después abrir la app: Configuración debe decir "Sin sincronizaciones pendientes" sin reiniciarla.
+5. Anotar el modelo, la versión de Android, la capa del fabricante y si el ahorro de batería de la app estaba activo, y comentar el resultado en #79.
+
+**Resultado en teléfono real:** pendiente.
 
 ---
 
