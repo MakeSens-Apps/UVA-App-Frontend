@@ -84,7 +84,7 @@ import type { MeasurementValue } from '@/domain/measurement-engine/measurement-e
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { showToast } from '@/components/ui/Toast';
 import { useRegistrationLock } from '@/state/RegistrationLockContext';
-import { LOCK_MESSAGES } from '@/components/registration-lock/RegistrationLockNotice';
+import { LOCK_TOAST_MESSAGES } from '@/components/registration-lock/RegistrationLockNotice';
 import { ConfigIcon } from './ConfigIcon';
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
@@ -199,6 +199,16 @@ export function RegisterMeasurementScreen({
   // Populated via ref-callback (never accessed during render, only in callbacks/effects)
   const inputRefs = useRef<Map<string, TextInput | null>>(new Map());
 
+  // The init awaits the lock check and the icons; if the person leaves meanwhile, nothing
+  // navigates from this unmounted screen (F4-05, #60).
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // ─── loadFlowById (declared before useEffect that calls it) ──────────────
 
   const loadFlowById = useCallback(
@@ -256,6 +266,7 @@ export function RegisterMeasurementScreen({
         const firstGuideKey = flowData.guides[0];
         if (config.guides[firstGuideKey]?.showAutomatic !== false) {
           setTimeout(() => {
+            if (!isMountedRef.current) return;
             navigation.navigate('GuideMeasurement', {
               taskId,
               guideKey: firstGuideKey,
@@ -276,13 +287,15 @@ export function RegisterMeasurementScreen({
   /**
    * Re-evaluates the lock. If registering is blocked, tells the person why and returns to
    * the Measurement tab, which shows the notice.
-   * @returns true when registering is blocked.
+   * @returns true when registering must stop (blocked, or the screen is already gone).
    */
   const leaveIfRegistrationLocked = useCallback(async (): Promise<boolean> => {
     const lock = await refreshRegistrationLock();
+    // Unmounted while checking: stop here, without a toast or navigation from a gone screen.
+    if (!isMountedRef.current) return true;
     if (!lock.reason) return false;
     setModalStage('none');
-    showToast({ message: LOCK_MESSAGES[lock.reason], type: 'info' });
+    showToast({ message: LOCK_TOAST_MESSAGES[lock.reason], type: 'info' });
     // popTo returns to the AppTabs already in the stack instead of pushing a new one on
     // top of this blocked form.
     navigation.popTo('AppTabs', { screen: 'Measurement' });

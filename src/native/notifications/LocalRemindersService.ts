@@ -170,6 +170,13 @@ class LocalRemindersService {
       }
     }
 
+    // F4-05 (#60): the pause can land while the permission dialog is open; check again so
+    // a pause + cancel in that window does not end with the reminders scheduled.
+    if (this.remindersPaused) {
+      console.warn('Recordatorios en pausa: el registro está bloqueado.');
+      return;
+    }
+
     try {
       // Morning: 6:00 AM daily
       await Notifications.scheduleNotificationAsync({
@@ -209,6 +216,12 @@ class LocalRemindersService {
           minute: 0,
         },
       });
+
+      // A pause that arrived while scheduling undoes it instead of marking it as done.
+      if (this.remindersPaused) {
+        await this.cancelAllNotifications();
+        return;
+      }
 
       await Preferences.set({
         key: NOTIFICATION_PROGRAMMED_KEY,

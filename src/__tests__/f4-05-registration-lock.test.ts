@@ -15,6 +15,7 @@ import {
   shouldPauseReminders,
   withoutStreakRecoveryProposals,
 } from '@/domain/registration-lock/registration-lock';
+import type { GamificationEventSubtype } from '@/domain/gamification/gamification-alerts-types';
 
 // ─── Mocks for the service ───────────────────────────────────────────────────
 
@@ -204,7 +205,7 @@ describe('resolveRegistrationLock', () => {
   });
 
   it('hides existing "Recupera tu racha" alerts only with the station disabled (P34)', () => {
-    const alerts = [
+    const alerts: { id: string; subtype?: GamificationEventSubtype }[] = [
       { id: 'a1', subtype: 'streak_recovery' },
       { id: 'a2', subtype: 'streak_lost' },
       { id: 'a3' },

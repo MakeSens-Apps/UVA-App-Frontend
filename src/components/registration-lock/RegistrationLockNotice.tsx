@@ -23,9 +23,18 @@ export const UPDATE_REQUIRED_MESSAGE =
 export const UVA_REACTIVATED_MESSAGE =
   'Tu estación fue reactivada, ya puedes registrar';
 
-/** Text for each lock reason (also used by the toast when saving is refused). */
+/** Text for each lock reason in the notice. */
 export const LOCK_MESSAGES: Record<RegistrationLockReason, string> = {
   'uva-disabled': UVA_DISABLED_MESSAGE,
+  'update-required': UPDATE_REQUIRED_MESSAGE,
+};
+
+/**
+ * Short text for the toast shown when the register is left or saving is refused. The toast
+ * fits two lines, so the full message stays in the notice the person lands on.
+ */
+export const LOCK_TOAST_MESSAGES: Record<RegistrationLockReason, string> = {
+  'uva-disabled': 'Tu estación está deshabilitada, no puedes registrar',
   'update-required': UPDATE_REQUIRED_MESSAGE,
 };
 

@@ -13,7 +13,13 @@
 
 // ─── Suppress noisy console.warn from native mocks ────────────────────────────
 import React from 'react';
-import { render, fireEvent, act, waitFor } from '@testing-library/react-native';
+import {
+  render,
+  fireEvent,
+  act,
+  waitFor,
+  within,
+} from '@testing-library/react-native';
 
 // ─── Screen imports (static — dynamic import not supported without --experimental-vm-modules) ──
 import { MeasurementScreen } from '@/screens/measurement/MeasurementScreen';
@@ -314,10 +320,21 @@ jest.mock('@/state/ConfigContext', () => ({
 
 // RichText mock
 jest.mock('@/components/rich-text/RichText', () => ({
-  RichText: ({ html }: { html: string }) => {
+  RichText: ({ html, baseColor }: { html: string; baseColor?: string }) => {
     const { Text } = require('react-native');
-    return <Text testID="rich-text">{html}</Text>;
+    return (
+      <Text testID="rich-text" style={{ color: baseColor }}>
+        {html}
+      </Text>
+    );
   },
+}));
+
+// F4-05 (#60): the "Actualizar" button of the lock notice opens the store.
+const mockOpenAppStoreListing = jest.fn(() => Promise.resolve());
+jest.mock('@/native/device/appVersion', () => ({
+  getInstalledAppVersion: () => '2.3.0',
+  openAppStoreListing: () => mockOpenAppStoreListing(),
 }));
 
 // Calendar mock
@@ -1226,6 +1243,11 @@ describe('F4-05 — registration lock (UVA disabled / update required)', () => {
       ),
     ).toBeTruthy();
     await waitFor(() => expect(getByTestId('task-row-task1')).toBeTruthy());
+    // Greyed like a task outside its schedule (gray-400 label).
+    expect(
+      within(getByTestId('task-row-task1')).getByTestId('rich-text').props
+        .style,
+    ).toEqual({ color: '#9ca3af' });
     await act(async () => {
       fireEvent.press(getByTestId('task-row-task1'));
     });
@@ -1247,9 +1269,12 @@ describe('F4-05 — registration lock (UVA disabled / update required)', () => {
         getByText('Actualiza la app para seguir registrando'),
       ).toBeTruthy();
     });
-    expect(
-      getByTestId('measurement-registration-lock-update-button'),
-    ).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(
+        getByTestId('measurement-registration-lock-update-button'),
+      );
+    });
+    expect(mockOpenAppStoreListing).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(getByTestId('task-row-task1')).toBeTruthy());
     await act(async () => {
       fireEvent.press(getByTestId('task-row-task1'));
@@ -1269,6 +1294,10 @@ describe('F4-05 — registration lock (UVA disabled / update required)', () => {
     expect(
       getByText('Tu estación fue reactivada, ya puedes registrar'),
     ).toBeTruthy();
+    expect(
+      within(getByTestId('task-row-task1')).getByTestId('rich-text').props
+        .style,
+    ).not.toEqual({ color: '#9ca3af' });
     expect(
       queryByTestId('measurement-registration-lock-uva-disabled'),
     ).toBeNull();

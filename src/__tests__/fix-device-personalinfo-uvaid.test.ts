@@ -221,6 +221,17 @@ describe('ensureSessionUvaID / SetupService.ensureUvaID — rehidratan la sesió
     expect((await sessionService.getInfo()).uvaID).toBeUndefined();
   });
 
+  it('cierre de sesión mientras se lee el User → no escribe el uvaID en la sesión limpia (F4-05, S1)', async () => {
+    await sessionService.setInfo({ userID: USER_ID });
+    mockQuery.mockImplementation(async () => {
+      await sessionService.clear();
+      return baseUser();
+    });
+
+    expect(await UserDSService.ensureSessionUvaID()).toBeUndefined();
+    expect((await sessionService.getInfo()).uvaID).toBeUndefined();
+  });
+
   it('DataStore no disponible (offline) → no propaga el error', async () => {
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     await sessionService.setInfo({ userID: USER_ID });

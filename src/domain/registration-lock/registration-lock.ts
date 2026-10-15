@@ -15,6 +15,8 @@
  * No React Native imports: this module is shared with #61 and tested in plain Jest.
  */
 
+import type { GamificationEventSubtype } from '@/domain/gamification/gamification-alerts-types';
+
 /** ADR-005 decision 1: cut-off for UVAs whose `enabled` was never set. */
 export const UVA_UNSET_ENABLED_CUTOFF = new Date('2026-11-25T05:00:00Z');
 
@@ -148,10 +150,9 @@ export function canProposeStreakRecovery(uvaStatus: UvaStatus): boolean {
  * Hides the "Recupera tu racha" alerts created before the station was disabled, so the
  * alert list does not propose it either (P34). They come back if the station is re-enabled.
  */
-export function withoutStreakRecoveryProposals<T extends { subtype?: string }>(
-  alerts: T[],
-  uvaStatus: UvaStatus,
-): T[] {
+export function withoutStreakRecoveryProposals<
+  T extends { subtype?: GamificationEventSubtype },
+>(alerts: T[], uvaStatus: UvaStatus): T[] {
   if (canProposeStreakRecovery(uvaStatus)) return alerts;
   return alerts.filter((alert) => alert.subtype !== 'streak_recovery');
 }

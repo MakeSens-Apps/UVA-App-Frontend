@@ -113,7 +113,9 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
   const { unreadCount, updateUnreadCount } = useNotificationContext();
   // F4-05 (#60): the unread count leaves out "Recupera tu racha" while the station is
   // disabled, like the alert list (P34).
-  const { refresh: refreshRegistrationLock } = useRegistrationLock();
+  const {
+    state: { uvaStatus },
+  } = useRegistrationLock();
   const { clearSession } = useSessionContext();
   const { getConfigurationApp, loadImage } = useConfigContext();
   const { goToAuth } = useNavigationGate();
@@ -135,20 +137,19 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
       let isMounted = true;
       void (async () => {
         try {
-          const [user, userProgress, allNotifications, configModel, lock] =
+          const [user, userProgress, allNotifications, configModel] =
             await Promise.all([
               UserDSService.getUser(),
               UserProgressDSService.getLastUserProgressPure(),
               GamificationService.getNotifications(),
               getConfigurationApp(),
-              refreshRegistrationLock(),
             ]);
           if (!isMounted) return;
           setName(user?.Name);
           setSeed(userProgress?.Seed ?? 0);
           const notifications = withoutStreakRecoveryProposals(
             allNotifications,
-            lock.uvaStatus,
+            uvaStatus,
           );
           const unread = notifications.filter((n) => n.data.isUnread).length;
           updateUnreadCount(unread);
@@ -169,12 +170,7 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
       return () => {
         isMounted = false;
       };
-    }, [
-      updateUnreadCount,
-      getConfigurationApp,
-      loadImage,
-      refreshRegistrationLock,
-    ]),
+    }, [updateUnreadCount, getConfigurationApp, loadImage, uvaStatus]),
   );
 
   // ─── Share actions (original shareOptions[]) ──────────────────────────────

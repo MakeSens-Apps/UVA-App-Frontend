@@ -56,7 +56,7 @@ El estado global se maneja con **React Context**, uno por dominio, cada uno envo
 - **`SyncContext`** — puente reactivo hacia el estado de `DataStore` (estados `NOINIT`/`UNSYNC`/`SYNC`), suscrito a `Hub` de Amplify para eventos de red y de sincronización de modelos; expone `waitForSync()` basado en el evento de Hub en vez de polling por intervalo.
 - **`ConfigContext`** — configuración persistida del dispositivo (branding activo, recordatorios, etc.).
 - **`state/notification/NotificationContext`** — estado de alertas y notificaciones locales, coordinado con `src/native/notifications/LocalRemindersService.ts`.
-- **`RegistrationLockContext`** — bloqueo del registro (UVA deshabilitada o versión mínima, ADR-005 del dashboard, #60). Envuelve `registrationLockService` y se vuelve a evaluar con cada sincronización y en cada foco de Inicio y Medición. `useRegistrationLockNotice` da el aviso único de esas pantallas y el aviso verde de reactivación. Es el punto de extensión de #61 (RACIMO no activo).
+- **`RegistrationLockContext`** — bloqueo del registro (UVA deshabilitada o versión mínima, ADR-005 del dashboard, #60). Envuelve `registrationLockService` y se vuelve a evaluar con cada sincronización y en cada foco de Inicio y Medición. `useRegistrationLockNotice` da el aviso único de esas pantallas y el aviso verde de reactivación. Perfil, Alertas y el detalle del día solo leen el estado de la UVA para no proponer "Recupera tu racha" con la estación deshabilitada. Es el punto de extensión de #61 (RACIMO no activo).
 
 ## Acceso a datos (`src/data/`)
 
