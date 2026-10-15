@@ -28,4 +28,13 @@ export class RacimoDSService {
       throw error;
     }
   }
+
+  /**
+   * Retrieves a RACIMO by its id (F4-06, #61: status and name for the registration lock).
+   * @param {string} racimoID - ID of the RACIMO.
+   * @returns {Promise<RACIMO | undefined>} The RACIMO, or undefined if it is not on the phone yet.
+   */
+  static async getRACIMO(racimoID: string): Promise<RACIMO | undefined> {
+    return DataStore.query(RACIMO, racimoID);
+  }
 }

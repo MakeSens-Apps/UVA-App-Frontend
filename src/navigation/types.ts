@@ -128,7 +128,12 @@ export type AuthStackParamList = {
   PreRegister: undefined;
   Register: undefined;
   SetPhoneRegister: undefined;
-  ProjectVinculation: undefined;
+  ProjectVinculation:
+    | {
+        /** F4-06 (#61): the RACIMO was deactivated while the person was registering. */
+        racimoInactive?: boolean;
+      }
+    | undefined;
   ValidateProject: {
     racimoCode: string;
   };

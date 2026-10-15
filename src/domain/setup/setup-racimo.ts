@@ -26,6 +26,7 @@
 import { sessionService } from '@/data/session/session';
 import { racimoAPIService } from '@/data/api/racimo-api';
 import { uvaAPIService } from '@/data/api/uva-api';
+import { isRacimoClosedToNewParticipants } from '@/domain/registration-lock/registration-lock';
 import type {
   UVAsByRacimoIDQueryVariables,
   ListRACIMOSQueryVariables,
@@ -37,6 +38,24 @@ export enum ModelSortDirection {
   ASC = 'ASC',
   DESC = 'DESC',
 }
+
+/**
+ * Result of looking up a RACIMO by its linkage code (F4-06, #61):
+ * - 'found': the RACIMO exists and is active; its data is now in session.
+ * - 'inactive': the RACIMO exists but is not active; nothing is written in session.
+ * - 'not-found': no RACIMO with that code, or the lookup failed.
+ */
+export type RacimoCodeLookup = 'found' | 'inactive' | 'not-found';
+
+/**
+ * Result of creating the person's UVA (F4-06, #61):
+ * - 'racimo-inactive': the backend refused it because the RACIMO was deactivated after the
+ *   code was accepted (error type RacimoInactive of UVA-App#25).
+ */
+export type CreateUVAResult = 'created' | 'racimo-inactive' | 'failed';
+
+/** Error type of createUVA when the RACIMO is not active (UVA-App#25). */
+export const RACIMO_INACTIVE_ERROR_TYPE = 'RacimoInactive';
 
 // ─── Pure UVA ID generation (testable) ───────────────────────────────────────
 
@@ -206,9 +225,10 @@ export class SetupRacimoService {
   /**
    * Creates a new UVA record with a sequentially generated ID.
    * The ID follows the pattern: UVA_<racimoCode>_<NNNNN>
-   * @returns {Promise<boolean>} True if UVA creation succeeded.
+   * @returns {Promise<CreateUVAResult>} 'created', 'racimo-inactive' if the backend refused it
+   *   because the RACIMO is not active, or 'failed'.
    */
-  static async createNewUVA(): Promise<boolean> {
+  static async createNewUVA(): Promise<CreateUVAResult> {
     const racimoID = (await sessionService.getInfo()).racimoID ?? '';
     const userId = (await sessionService.getInfo()).userID ?? '';
     const lastUVA = await this.getLastUVAId(racimoID);
@@ -220,7 +240,7 @@ export class SetupRacimoService {
       console.error(
         'No se encontró un número de 5 dígitos al final de la cadena.',
       );
-      return false;
+      return 'failed';
     }
 
     const createUVAResponse = await uvaAPIService.createUVA({
@@ -232,8 +252,11 @@ export class SetupRacimoService {
 
     if (createUVAResponse.success) {
       await sessionService.setInfoField('uvaID', newIdUVA);
+      return 'created';
     }
-    return createUVAResponse.success;
+    return createUVAResponse.error?.name === RACIMO_INACTIVE_ERROR_TYPE
+      ? 'racimo-inactive'
+      : 'failed';
   }
 
   /**
@@ -266,10 +289,12 @@ export class SetupRacimoService {
 
   /**
    * Searches for a RACIMO by its linkage code and stores its ID in session.
+   * A RACIMO that is not active does not admit new participants (F4-06, #61): it is
+   * reported as 'inactive' and nothing is written in session.
    * @param {string} linkageCode
-   * @returns {Promise<boolean>}
+   * @returns {Promise<RacimoCodeLookup>}
    */
-  static async getRACIMOByCode(linkageCode: string): Promise<boolean> {
+  static async getRACIMOByCode(linkageCode: string): Promise<RacimoCodeLookup> {
     const variables: ListRACIMOSQueryVariables = {
       filter: {
         LinkageCode: { eq: linkageCode },
@@ -281,14 +306,15 @@ export class SetupRacimoService {
       const racimoItems = responseGetRacimo.data?.listRACIMOS?.items;
 
       if (racimoItems && racimoItems.length > 0) {
-        const { id: racimoID } = racimoItems[0] || {};
-        if (racimoID) {
-          await sessionService.setInfoField('racimoID', racimoID);
-          return await this.getRACIMOByID(racimoID);
+        const racimo = racimoItems[0];
+        if (racimo?.id) {
+          if (isRacimoClosedToNewParticipants(racimo)) return 'inactive';
+          await sessionService.setInfoField('racimoID', racimo.id);
+          return (await this.getRACIMOByID(racimo.id)) ? 'found' : 'not-found';
         }
       }
     }
-    return false;
+    return 'not-found';
   }
 
   /**

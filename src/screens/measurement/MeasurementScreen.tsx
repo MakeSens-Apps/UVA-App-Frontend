@@ -469,9 +469,11 @@ export function MeasurementScreen(): React.JSX.Element {
       />
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* F4-05 (#60): UVA disabled / update required / reactivated (once) */}
+        {/* F4-05 (#60) and F4-06 (#61): RACIMO not active / UVA disabled / update required /
+            reactivated (once) */}
         <RegistrationLockNotice
           reason={lockNotice.reason}
+          racimoName={lockNotice.racimoName}
           showReactivated={lockNotice.showReactivated}
           testID="measurement-registration-lock"
         />

@@ -38,3 +38,39 @@ export function handleAPIError(err: unknown): errorAPIResponse {
   }
   return { name: 'unknownerror', mensage: 'unknown error', type: 'unknown' };
 }
+
+/**
+ * Returns the AppSync `errorType` of a failed GraphQL call, if there is one (F4-06, #61).
+ * Amplify v6 rejects with the raw response (`{ data, errors: [{ errorType, message }] }`),
+ * and `response.errors` carries the same list when it resolves.
+ * @param {unknown} err - What the call threw, or its `errors` list.
+ * @returns {string | undefined} The first errorType found.
+ */
+export function getGraphQLErrorType(err: unknown): string | undefined {
+  const errors: unknown = Array.isArray(err)
+    ? err
+    : typeof err === 'object' && err !== null
+      ? (err as { errors?: unknown }).errors
+      : undefined;
+  if (!Array.isArray(errors)) return undefined;
+  for (const item of errors) {
+    const errorType: unknown =
+      typeof item === 'object' && item !== null
+        ? (item as { errorType?: unknown }).errorType
+        : undefined;
+    if (typeof errorType === 'string' && errorType) return errorType;
+  }
+  return undefined;
+}
+
+/**
+ * Like handleAPIError, but keeps the AppSync errorType as `name`, so callers can tell a
+ * business rejection (for example RacimoInactive) from any other failure.
+ * @param {unknown} err - What the GraphQL call threw, or its `errors` list.
+ * @returns {errorAPIResponse}
+ */
+export function handleGraphQLError(err: unknown): errorAPIResponse {
+  const error = handleAPIError(err);
+  const errorType = getGraphQLErrorType(err);
+  return errorType ? { ...error, name: errorType } : error;
+}

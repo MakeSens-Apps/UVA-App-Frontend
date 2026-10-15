@@ -177,10 +177,11 @@ export function groupRemainingLazyMeasurements(
  */
 export function MeasurementDetailScreen({ route }: Props): React.JSX.Element {
   const { theme } = useTheme();
-  // F4-05 (#60): no streak recovery is proposed while the station is disabled (P34).
+  // F4-05 (#60): no streak recovery is proposed while the station is disabled (P34), also
+  // by an inactive RACIMO (#61).
   const { state: registrationLock } = useRegistrationLock();
   const streakRecoveryAllowed = canProposeStreakRecovery(
-    registrationLock.uvaStatus,
+    registrationLock.stationStatus,
   );
   const navigation = useNavigation();
   const { getConfigurationMeasurement, countTasks } = useConfigContext();

@@ -20,7 +20,11 @@ import {
   UVAsByRacimoIDQuery,
   UVAsByRacimoIDQueryVariables,
 } from '@/data/graphql/API';
-import { handleAPIError, APIErrorResponse } from './errors-handle/errors';
+import {
+  handleAPIError,
+  handleGraphQLError,
+  APIErrorResponse,
+} from './errors-handle/errors';
 
 const client = generateClient();
 
@@ -146,11 +150,12 @@ class UvaAPIService {
         return { success: true, data: response.data };
       }
       if (response.errors) {
-        return { success: false, error: handleAPIError(response.errors) };
+        return { success: false, error: handleGraphQLError(response.errors) };
       }
       return { success: false, error: handleAPIError('No create uva') };
     } catch (err) {
-      return { success: false, error: handleAPIError(err) };
+      // F4-06 (#61): keep the errorType (RacimoInactive) for the caller.
+      return { success: false, error: handleGraphQLError(err) };
     }
   }
 

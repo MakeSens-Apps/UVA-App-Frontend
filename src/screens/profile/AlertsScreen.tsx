@@ -119,7 +119,7 @@ export function AlertsScreen({ navigation }: Props): React.JSX.Element {
   // F4-05 (#60): no "Recupera tu racha" while the station is disabled (P34). Reads the
   // last evaluated status; the provider keeps it current.
   const {
-    state: { uvaStatus },
+    state: { stationStatus },
   } = useRegistrationLock();
 
   const [notifications, setNotifications] = React.useState<
@@ -134,7 +134,7 @@ export function AlertsScreen({ navigation }: Props): React.JSX.Element {
         try {
           const loaded = withoutStreakRecoveryProposals(
             await GamificationService.getNotifications(),
-            uvaStatus,
+            stationStatus,
           );
           setNotifications(loaded);
           const unread = loaded.filter((n) => n.data.isUnread).length;
@@ -143,7 +143,7 @@ export function AlertsScreen({ navigation }: Props): React.JSX.Element {
           console.error('AlertsScreen load error:', err);
         }
       })();
-    }, [updateUnreadCount, uvaStatus]),
+    }, [updateUnreadCount, stationStatus]),
   );
 
   // ─── updateUnreadCount helper ──────────────────────────────────────────────

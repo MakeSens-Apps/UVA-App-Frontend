@@ -188,7 +188,14 @@ export function RegisterProjectFormScreen({
         hasUVA = lookup === 'found';
       }
       if (!hasUVA) {
-        hasUVA = await SetupRacimoService.createNewUVA();
+        const created = await SetupRacimoService.createNewUVA();
+        if (created === 'racimo-inactive') {
+          // F4-06 (#61): the RACIMO was deactivated after its code was accepted. The
+          // backend created nothing; the code screen tells the person why.
+          navigation.navigate('ProjectVinculation', { racimoInactive: true });
+          return;
+        }
+        hasUVA = created === 'created';
         uvaCreatedRef.current = hasUVA;
       }
 

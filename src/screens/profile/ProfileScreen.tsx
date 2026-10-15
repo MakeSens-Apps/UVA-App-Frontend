@@ -114,7 +114,7 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
   // F4-05 (#60): the unread count leaves out "Recupera tu racha" while the station is
   // disabled, like the alert list (P34).
   const {
-    state: { uvaStatus },
+    state: { stationStatus },
   } = useRegistrationLock();
   const { clearSession } = useSessionContext();
   const { getConfigurationApp, loadImage } = useConfigContext();
@@ -149,7 +149,7 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
           setSeed(userProgress?.Seed ?? 0);
           const notifications = withoutStreakRecoveryProposals(
             allNotifications,
-            uvaStatus,
+            stationStatus,
           );
           const unread = notifications.filter((n) => n.data.isUnread).length;
           updateUnreadCount(unread);
@@ -170,7 +170,7 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
       return () => {
         isMounted = false;
       };
-    }, [updateUnreadCount, getConfigurationApp, loadImage, uvaStatus]),
+    }, [updateUnreadCount, getConfigurationApp, loadImage, stationStatus]),
   );
 
   // ─── Share actions (original shareOptions[]) ──────────────────────────────
