@@ -63,6 +63,20 @@ export function getGraphQLErrorType(err: unknown): string | undefined {
   return undefined;
 }
 
+/** AppSync errorType of createUVA towards a RACIMO that is not active (UVA-App#25). */
+export const RACIMO_INACTIVE_ERROR_TYPE = 'RacimoInactive';
+
+/**
+ * True when the backend refused the call because the RACIMO is not active (F4-06, #61).
+ * @param {errorAPIResponse | undefined} error - Error of a failed API response.
+ * @returns {boolean}
+ */
+export function isRacimoInactiveError(
+  error: errorAPIResponse | undefined,
+): boolean {
+  return error?.name === RACIMO_INACTIVE_ERROR_TYPE;
+}
+
 /**
  * Like handleAPIError, but keeps the AppSync errorType as `name`, so callers can tell a
  * business rejection (for example RacimoInactive) from any other failure.

@@ -26,6 +26,7 @@
 import { sessionService } from '@/data/session/session';
 import { racimoAPIService } from '@/data/api/racimo-api';
 import { uvaAPIService } from '@/data/api/uva-api';
+import { isRacimoInactiveError } from '@/data/api/errors-handle/errors';
 import { isRacimoClosedToNewParticipants } from '@/domain/registration-lock/registration-lock';
 import type {
   UVAsByRacimoIDQueryVariables,
@@ -53,9 +54,6 @@ export type RacimoCodeLookup = 'found' | 'inactive' | 'not-found';
  *   code was accepted (error type RacimoInactive of UVA-App#25).
  */
 export type CreateUVAResult = 'created' | 'racimo-inactive' | 'failed';
-
-/** Error type of createUVA when the RACIMO is not active (UVA-App#25). */
-export const RACIMO_INACTIVE_ERROR_TYPE = 'RacimoInactive';
 
 // ─── Pure UVA ID generation (testable) ───────────────────────────────────────
 
@@ -254,9 +252,21 @@ export class SetupRacimoService {
       await sessionService.setInfoField('uvaID', newIdUVA);
       return 'created';
     }
-    return createUVAResponse.error?.name === RACIMO_INACTIVE_ERROR_TYPE
-      ? 'racimo-inactive'
-      : 'failed';
+    if (isRacimoInactiveError(createUVAResponse.error)) {
+      // Nothing was created: forget the RACIMO this code pointed to, as the direct refusal
+      // in getRACIMOByCode never writes it.
+      await this.clearRacimoFromSession();
+      return 'racimo-inactive';
+    }
+    return 'failed';
+  }
+
+  /** Removes the RACIMO fields written by getRACIMOByCode / getRACIMOByID. */
+  private static async clearRacimoFromSession(): Promise<void> {
+    await sessionService.setInfoField('racimoID', undefined);
+    await sessionService.setInfoField('racimoName', undefined);
+    await sessionService.setInfoField('racimoLinkCode', undefined);
+    await sessionService.setInfoField('racimoConfiguration', undefined);
   }
 
   /**

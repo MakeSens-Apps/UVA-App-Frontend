@@ -68,6 +68,13 @@ El estado global se maneja con **React Context**, uno por dominio, cada uno envo
 - **`session/`** — persistencia de sesión (con variante `.web.ts` para la validación en navegador).
 - **`storage/`** — `file-system` (archivos locales, con variante web), `preferences` (config del dispositivo) y `s3` (almacenamiento en la nube, con variante web).
 - **`graphql/`** — queries/mutations/subscriptions generadas desde el esquema del backend. Se regeneran junto con `models/` desde UVA-App `develop` (modelos desde `amplify/backend/api/UVAv2/schema.graphql` y operaciones desde la introspección de `UVAv2-develop`, que también actualiza `schema.json`). Regenerar los modelos cambia la versión del esquema de DataStore: al abrir la app, DataStore borra su base local y vuelve a sincronizar.
+
+  Cómo se regeneraron (#61), fuera del repo y sin escribir en AWS:
+  1. `aws appsync get-introspection-schema --api-id <apiId de .graphqlconfig.yml> --format JSON schema.json` (solo lectura, API `UVAv2-develop`).
+  2. El esquema de entrada sale del clon de UVA-App: `amplify/backend/api/UVAv2/schema.graphql` en `origin/develop`.
+  3. En una carpeta temporal con `@aws-amplify/graphql-generator@0.5.4` y `@aws-amplify/graphql-directives`: `generateModels` sobre el esquema de entrada (objetivo `javascript`, directivas `DefaultDirectives`, transformador v2, `generateIndexRules`, `emitAuthProvider`, `respectPrimaryKeyAttributesOnConnectionField`, `generateModelsForLazyLoadAndCustomSelectionSet`, `addTimestampFields`, `handleListNullabilityTransparently`); `generateStatements` (objetivo `typescript`, `maxDepth: 2`) y `generateTypes` (objetivo `typescript`, `introspection: true`, `amplifyJsLibraryVersion: 6`, con las operaciones generadas en formato `graphql`) sobre la introspección.
+  4. Se copia el resultado a `src/data/models/` y `src/data/graphql/`, y la introspección a `schema.json`, y se formatea con Prettier. `schema.js` también refleja las reglas de autorización del backend.
+
 - **`registration-lock/`** — servicio que decide si se puede registrar con lo último sincronizado: el RACIMO de la UVA y la UVA en DataStore, y la versión mínima de `public/app/version-policy.json`, guardada como última conocida. También recuerda el estado de la estación (UVA y RACIMO juntos) para el aviso de reactivación, y lo borra al cerrar sesión. Es un servicio de aplicación: coordina además la pausa de `native/notifications` y lee la versión instalada de `native/device/appVersion.ts`, la única dependencia de `data/` hacia `native/`.
 
 ### DataStore + AsyncStorage (offline-first)

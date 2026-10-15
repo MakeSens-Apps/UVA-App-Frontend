@@ -21,6 +21,7 @@ import type {
 import {
   getGraphQLErrorType,
   handleGraphQLError,
+  RACIMO_INACTIVE_ERROR_TYPE,
 } from '@/data/api/errors-handle/errors';
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
@@ -123,10 +124,7 @@ import { VERSION_POLICY_CACHE_KEY } from '@/data/registration-lock/version-polic
 // eslint-disable-next-line import/first
 import { UVA_STATUS_STORE_KEY } from '@/data/registration-lock/uva-status-store';
 // eslint-disable-next-line import/first
-import {
-  RACIMO_INACTIVE_ERROR_TYPE,
-  SetupRacimoService,
-} from '@/domain/setup/setup-racimo';
+import { SetupRacimoService } from '@/domain/setup/setup-racimo';
 // eslint-disable-next-line import/first
 import { uvaAPIService } from '@/data/api/uva-api';
 
@@ -495,6 +493,38 @@ describe('RegistrationLockService con el RACIMO', () => {
     expect(state.racimoStatus).toBe('unknown');
     expect(state.racimoName).toBeNull();
   });
+
+  it('un error leyendo la UVA en una sesión nueva usa el estado propio de la UVA, no el de la estación', async () => {
+    // Session 1: UVA enabled, RACIMO inactive → the station is remembered as disabled.
+    setUva(true);
+    setRacimo(false);
+    await service.evaluate(NOW);
+
+    // The dashboard reactivates the RACIMO; the next app session cannot read the UVA once.
+    setRacimo(true);
+    const fresh = new RegistrationLockService();
+    mockGetUVA.mockRejectedValueOnce(new Error('boom'));
+    const spy = silenceConsoleError();
+    const state = await fresh.evaluate(NOW);
+    spy.mockRestore();
+    expect(state.uvaStatus).toBe('enabled');
+    expect(state.racimoStatus).toBe('active');
+    expect(state.reason).toBeNull();
+  });
+
+  it('un registro de #60 (sin campos del RACIMO) sigue sirviendo para un error de lectura de la UVA', async () => {
+    mockStorage.set(
+      UVA_STATUS_STORE_KEY,
+      JSON.stringify({ [UVA_ID]: { lastStatus: 'disabled' } }),
+    );
+    setRacimo(true);
+    mockGetUVA.mockRejectedValueOnce(new Error('boom'));
+    const spy = silenceConsoleError();
+    const state = await service.evaluate(NOW);
+    spy.mockRestore();
+    expect(state.uvaStatus).toBe('disabled');
+    expect(state.reason).toBe('uva-disabled');
+  });
 });
 
 // ─── AppSync errors ──────────────────────────────────────────────────────────
@@ -692,6 +722,15 @@ describe('SetupRacimoService.createNewUVA con el RACIMO', () => {
       'uvaID',
       expect.anything(),
     );
+    // Nothing was created: the RACIMO written when its code was accepted is forgotten.
+    for (const key of [
+      'racimoID',
+      'racimoName',
+      'racimoLinkCode',
+      'racimoConfiguration',
+    ]) {
+      expect(mockSetInfoField).toHaveBeenCalledWith(key, undefined);
+    }
     createUVA.mockRestore();
   });
 

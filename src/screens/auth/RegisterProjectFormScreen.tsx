@@ -191,8 +191,9 @@ export function RegisterProjectFormScreen({
         const created = await SetupRacimoService.createNewUVA();
         if (created === 'racimo-inactive') {
           // F4-06 (#61): the RACIMO was deactivated after its code was accepted. The
-          // backend created nothing; the code screen tells the person why.
-          navigation.navigate('ProjectVinculation', { racimoInactive: true });
+          // backend created nothing; the code screen tells the person why. popTo returns to
+          // the code screen already in the stack instead of pushing a new one on top.
+          navigation.popTo('ProjectVinculation', { racimoInactive: true });
           return;
         }
         hasUVA = created === 'created';

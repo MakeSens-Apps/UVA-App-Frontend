@@ -309,6 +309,31 @@ describe('ProjectVinculationScreen — RACIMO inactivo', () => {
     expect(mockGetRACIMOByCode).not.toHaveBeenCalled();
   });
 
+  it('la pantalla ya montada muestra el mensaje cuando el formulario vuelve con racimoInactive (popTo)', async () => {
+    const nav = makeNav();
+    const utils = await renderScreen(nav);
+    expect(utils.queryByTestId('vinculation-error')).toBeNull();
+
+    // popTo updates the params of the existing route instead of mounting a new screen.
+    await utils.rerender(
+      <ProjectVinculationScreen
+        navigation={nav as never}
+        route={{ params: { racimoInactive: true } } as never}
+      />,
+    );
+    expect(utils.getByText(RACIMO_INACTIVE_LINK_MESSAGE)).toBeTruthy();
+    expect(nav.setParams).toHaveBeenCalledWith({ racimoInactive: undefined });
+
+    // The param is cleared; a second refusal shows the message again.
+    await utils.rerender(
+      <ProjectVinculationScreen
+        navigation={nav as never}
+        route={{ params: { racimoInactive: undefined } } as never}
+      />,
+    );
+    expect(utils.getByText(RACIMO_INACTIVE_LINK_MESSAGE)).toBeTruthy();
+  });
+
   it('sin parámetros no muestra ningún error', async () => {
     const utils = await renderScreen();
     expect(utils.queryByTestId('vinculation-error')).toBeNull();
@@ -319,10 +344,10 @@ describe('ProjectVinculationScreen — RACIMO inactivo', () => {
 // ─── RegisterProjectFormScreen ───────────────────────────────────────────────
 
 describe('RegisterProjectFormScreen — RACIMO desactivado antes de crear la UVA', () => {
-  async function renderForm(navigate = jest.fn()) {
+  async function renderForm(navigate = jest.fn(), popTo = jest.fn()) {
     const utils = await render(
       <RegisterProjectFormScreen
-        navigation={{ navigate } as never}
+        navigation={{ navigate, popTo } as never}
         route={{ params: { racimoCode: 'ABC123' } } as never}
       />,
     );
@@ -333,20 +358,21 @@ describe('RegisterProjectFormScreen — RACIMO desactivado antes de crear la UVA
       utils.getByTestId('field-vereda'),
       'Vereda sintética',
     );
-    return { ...utils, navigate };
+    return { ...utils, navigate, popTo };
   }
 
-  it("createNewUVA → 'racimo-inactive': vuelve al código con racimoInactive y no guarda los campos", async () => {
+  it("createNewUVA → 'racimo-inactive': vuelve al código ya montado con racimoInactive y no guarda los campos", async () => {
     mockCreateNewUVA.mockResolvedValueOnce('racimo-inactive');
-    const { getByTestId, navigate } = await renderForm();
+    const { getByTestId, navigate, popTo } = await renderForm();
 
     await fireEvent.press(getByTestId('submit-button'));
 
     expect(mockCreateNewUVA).toHaveBeenCalledTimes(1);
-    expect(navigate).toHaveBeenCalledTimes(1);
-    expect(navigate).toHaveBeenCalledWith('ProjectVinculation', {
+    expect(popTo).toHaveBeenCalledTimes(1);
+    expect(popTo).toHaveBeenCalledWith('ProjectVinculation', {
       racimoInactive: true,
     });
+    expect(navigate).not.toHaveBeenCalled();
     expect(mockUpdateUVA).not.toHaveBeenCalled();
     expect(navigate).not.toHaveBeenCalledWith('RegisterCompleted');
   });

@@ -28,6 +28,8 @@ export type UvaStatus = 'enabled' | 'disabled' | 'unknown';
 
 export type RacimoStatus = 'active' | 'inactive' | 'unknown';
 
+export type KnownRacimoStatus = Exclude<RacimoStatus, 'unknown'>;
+
 /**
  * Why registering is blocked. Ordered by priority (ADR-005: RACIMO inactive, UVA disabled,
  * update required).

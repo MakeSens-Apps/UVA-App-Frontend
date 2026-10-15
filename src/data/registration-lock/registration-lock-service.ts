@@ -34,6 +34,7 @@ import {
 } from '@/domain/registration-lock/registration-lock';
 import type {
   KnownUvaStatus,
+  KnownRacimoStatus,
   RacimoStatus,
   RegistrationLockReason,
   UvaStatus,
@@ -46,6 +47,10 @@ import { uvaStatusStore } from './uva-status-store';
 
 export interface RegistrationLockState {
   uvaId: string | null;
+  /**
+   * The UVA's own status, without its RACIMO. Diagnostic only: decisions that depend on the
+   * station being usable (streak recovery, reactivation) must read `stationStatus`.
+   */
   uvaStatus: UvaStatus;
   /** RACIMO of the UVA (null if it could not be resolved). */
   racimoId: string | null;
@@ -90,7 +95,7 @@ export class RegistrationLockService {
   /** Last RACIMO read from DataStore in this app session, per RACIMO. */
   private lastKnownRacimo = new Map<
     string,
-    { status: Exclude<RacimoStatus, 'unknown'>; name: string | null }
+    { status: KnownRacimoStatus; name: string | null }
   >();
   /** Serializes evaluations so concurrent callers do not race on storage and reminders. */
   private queue: Promise<unknown> = Promise.resolve();
@@ -170,6 +175,7 @@ export class RegistrationLockService {
     }
     if (uvaId && uvaStatus !== 'unknown' && !readFailed) {
       this.lastKnown.set(uvaId, uvaStatus);
+      await this.rememberUva(uvaId, uvaStatus);
     }
 
     if (this.minimumVersion === undefined) {
@@ -253,7 +259,7 @@ export class RegistrationLockService {
   private async rememberRacimo(
     uvaId: string,
     racimoId: string,
-    status: Exclude<RacimoStatus, 'unknown'>,
+    status: KnownRacimoStatus,
     name: string | null,
   ): Promise<void> {
     try {
@@ -278,10 +284,7 @@ export class RegistrationLockService {
   private async rememberedRacimo(
     uvaId: string,
     racimoId: string,
-  ): Promise<
-    | { status: Exclude<RacimoStatus, 'unknown'>; name: string | null }
-    | undefined
-  > {
+  ): Promise<{ status: KnownRacimoStatus; name: string | null } | undefined> {
     try {
       const record = await uvaStatusStore.get(uvaId);
       if (record.racimoId !== racimoId || !record.racimoStatus)
@@ -297,9 +300,32 @@ export class RegistrationLockService {
     const inMemory = this.lastKnown.get(uvaId);
     if (inMemory) return inMemory;
     try {
-      return (await uvaStatusStore.get(uvaId)).lastStatus ?? 'unknown';
+      const record = await uvaStatusStore.get(uvaId);
+      // lastStatus holds the station status since #61 (an inactive RACIMO makes it
+      // 'disabled'), so it only stands for the UVA in records written before #61, which
+      // have no RACIMO fields.
+      return (
+        record.lastUvaStatus ??
+        (record.racimoStatus ? undefined : record.lastStatus) ??
+        'unknown'
+      );
     } catch {
       return 'unknown';
+    }
+  }
+
+  /** Saves the UVA's own status, only when it changed (read errors fall back to it). */
+  private async rememberUva(
+    uvaId: string,
+    status: KnownUvaStatus,
+  ): Promise<void> {
+    try {
+      const record = await uvaStatusStore.get(uvaId);
+      if (record.lastUvaStatus !== status) {
+        await uvaStatusStore.update(uvaId, { lastUvaStatus: status });
+      }
+    } catch (error) {
+      console.error('Error remembering the UVA status', error);
     }
   }
 
