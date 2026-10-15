@@ -133,7 +133,7 @@ jest.mock('@/domain/setup/setup-racimo', () => ({
   SetupRacimoService: {
     getUVA: (...a: unknown[]) => mockGetUVA(...a),
     getRACIMOByCode: (...a: unknown[]) => mockGetRACIMOByCode(...a),
-    createNewUVA: jest.fn().mockResolvedValue(true),
+    createNewUVA: jest.fn().mockResolvedValue('created'),
     updateUVA: jest.fn().mockResolvedValue(true),
   },
 }));

@@ -1548,8 +1548,10 @@ describe('MeasurementDetailScreen — F4-05 streak recovery with the registratio
 
   it('station disabled: the day still shows, but recovery is not proposed', async () => {
     lockMock.mockRegistrationLockState.current = {
+      ...lockMock.UNLOCKED,
       uvaId: 'uva-0001',
       uvaStatus: 'disabled',
+      stationStatus: 'disabled',
       reason: 'uva-disabled',
       reactivationPending: false,
     };
@@ -1564,8 +1566,10 @@ describe('MeasurementDetailScreen — F4-05 streak recovery with the registratio
 
   it('update required only: recovery is still proposed (O6)', async () => {
     lockMock.mockRegistrationLockState.current = {
+      ...lockMock.UNLOCKED,
       uvaId: 'uva-0001',
       uvaStatus: 'enabled',
+      stationStatus: 'enabled',
       reason: 'update-required',
       reactivationPending: false,
     };

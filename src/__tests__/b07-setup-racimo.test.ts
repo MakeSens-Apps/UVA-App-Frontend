@@ -212,7 +212,7 @@ describe('SetupRacimoService', () => {
   });
 
   describe('createNewUVA', () => {
-    it('returns false when createUVA API fails', async () => {
+    it("returns 'failed' when createUVA API fails", async () => {
       const { uvaAPIService } = require('@/data/api/uva-api');
       const { racimoAPIService } = require('@/data/api/racimo-api');
 
@@ -232,10 +232,10 @@ describe('SetupRacimoService', () => {
       uvaAPIService.createUVA.mockResolvedValueOnce({ success: false });
 
       const result = await SetupRacimoService.createNewUVA();
-      expect(result).toBe(false);
+      expect(result).toBe('failed');
     });
 
-    it('returns true when createUVA API succeeds', async () => {
+    it("returns 'created' when createUVA API succeeds", async () => {
       const { uvaAPIService } = require('@/data/api/uva-api');
       const { racimoAPIService } = require('@/data/api/racimo-api');
 
@@ -255,7 +255,7 @@ describe('SetupRacimoService', () => {
       });
 
       const result = await SetupRacimoService.createNewUVA();
-      expect(result).toBe(true);
+      expect(result).toBe('created');
       expect(uvaAPIService.createUVA).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'UVA_ABC_00000' }),
       );
@@ -263,7 +263,7 @@ describe('SetupRacimoService', () => {
   });
 
   describe('getRACIMOByCode', () => {
-    it('returns false when no RACIMO found with given code', async () => {
+    it("returns 'not-found' when no RACIMO found with given code", async () => {
       const { racimoAPIService } = require('@/data/api/racimo-api');
       racimoAPIService.listRACIMOS.mockResolvedValueOnce({
         success: true,
@@ -271,15 +271,15 @@ describe('SetupRacimoService', () => {
       });
 
       const result = await SetupRacimoService.getRACIMOByCode('XYZ123');
-      expect(result).toBe(false);
+      expect(result).toBe('not-found');
     });
 
-    it('returns false when list API fails', async () => {
+    it("returns 'not-found' when list API fails", async () => {
       const { racimoAPIService } = require('@/data/api/racimo-api');
       racimoAPIService.listRACIMOS.mockResolvedValueOnce({ success: false });
 
       const result = await SetupRacimoService.getRACIMOByCode('XYZ123');
-      expect(result).toBe(false);
+      expect(result).toBe('not-found');
     });
   });
 

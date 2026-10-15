@@ -800,8 +800,10 @@ describe('HomeScreen — F4-05 registration lock', () => {
     mockReactivatedShown: { current: boolean };
   };
   const DISABLED = {
+    ...lockMock.UNLOCKED,
     uvaId: 'uva-0001',
     uvaStatus: 'disabled',
+    stationStatus: 'disabled',
     reason: 'uva-disabled',
     reactivationPending: false,
   };
@@ -852,10 +854,44 @@ describe('HomeScreen — F4-05 registration lock', () => {
     });
   });
 
+  // F4-06 (#61): an inactive RACIMO takes the notice place with its current name, and its
+  // UVA behaves as disabled (no recovery proposed).
+  it('RACIMO inactive: shows its notice with the RACIMO name and proposes no recovery', async () => {
+    lockMock.mockRegistrationLockState.current = {
+      ...DISABLED,
+      uvaStatus: 'enabled',
+      racimoId: 'racimo-test-1',
+      racimoStatus: 'inactive',
+      racimoName: 'Prueba sintética',
+      stationStatus: 'disabled',
+      reason: 'racimo-inactive',
+    };
+    const nav = makeHomeNav();
+    const { findByTestId, getByText, queryByTestId } = await render(
+      <HomeScreen navigation={nav as never} route={{} as never} />,
+    );
+    expect(
+      await findByTestId('home-registration-lock-racimo-inactive'),
+    ).toBeTruthy();
+    expect(
+      getByText(
+        'Tu RACIMO Prueba sintética no está activo. Puedes ver tu histórico',
+      ),
+    ).toBeTruthy();
+    expect(queryByTestId('home-registration-lock-uva-disabled')).toBeNull();
+    await waitFor(() => {
+      expect(mockRecalculateDailyProgress).toHaveBeenCalledWith({
+        proposeStreakRecovery: false,
+      });
+    });
+    expect(mockScheduleDailyNotifications).not.toHaveBeenCalled();
+  });
+
   it('update required: recovery is still proposed (O6) and the notice has the "Actualizar" button', async () => {
     lockMock.mockRegistrationLockState.current = {
       ...DISABLED,
       uvaStatus: 'enabled',
+      stationStatus: 'enabled',
       reason: 'update-required',
     };
     const nav = makeHomeNav();

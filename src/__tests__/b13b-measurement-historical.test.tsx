@@ -1187,8 +1187,10 @@ describe('F4-05 — registration lock (UVA disabled / update required)', () => {
     mockReactivatedShown: { current: boolean };
   };
   const DISABLED = {
+    ...lockMock.UNLOCKED,
     uvaId: 'uva-0001',
     uvaStatus: 'disabled',
+    stationStatus: 'disabled',
     reason: 'uva-disabled',
     reactivationPending: false,
   };
@@ -1261,6 +1263,7 @@ describe('F4-05 — registration lock (UVA disabled / update required)', () => {
     lockMock.mockRegistrationLockState.current = {
       ...DISABLED,
       uvaStatus: 'enabled',
+      stationStatus: 'enabled',
       reason: 'update-required',
     };
     const { getByTestId, getByText } = await render(<MeasurementScreen />);
@@ -1275,6 +1278,43 @@ describe('F4-05 — registration lock (UVA disabled / update required)', () => {
       );
     });
     expect(mockOpenAppStoreListing).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(getByTestId('task-row-task1')).toBeTruthy());
+    await act(async () => {
+      fireEvent.press(getByTestId('task-row-task1'));
+    });
+    expect(mockNavigate).not.toHaveBeenCalledWith(
+      'RegisterMeasurement',
+      expect.anything(),
+    );
+  });
+
+  // F4-06 (#61): same place and same blocked task, with the RACIMO notice and its name.
+  it('Measurement with the RACIMO inactive: RACIMO notice with its name, task does not open', async () => {
+    lockMock.mockRegistrationLockState.current = {
+      ...DISABLED,
+      uvaStatus: 'enabled',
+      racimoId: 'racimo-test-1',
+      racimoStatus: 'inactive',
+      racimoName: 'Prueba sintética',
+      stationStatus: 'disabled',
+      reason: 'racimo-inactive',
+    };
+    const { getByTestId, getByText, queryByTestId } = await render(
+      <MeasurementScreen />,
+    );
+    await waitFor(() => {
+      expect(
+        getByTestId('measurement-registration-lock-racimo-inactive'),
+      ).toBeTruthy();
+    });
+    expect(
+      getByText(
+        'Tu RACIMO Prueba sintética no está activo. Puedes ver tu histórico',
+      ),
+    ).toBeTruthy();
+    expect(
+      queryByTestId('measurement-registration-lock-uva-disabled'),
+    ).toBeNull();
     await waitFor(() => expect(getByTestId('task-row-task1')).toBeTruthy());
     await act(async () => {
       fireEvent.press(getByTestId('task-row-task1'));
