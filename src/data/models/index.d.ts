@@ -21,6 +21,9 @@ type EagerRACIMO = {
   readonly Name: string;
   readonly LinkageCode: string;
   readonly Configuration?: string | null;
+  readonly enabled?: boolean | null;
+  readonly disabledAt?: string | null;
+  readonly disabledPeriods?: string | null;
   readonly UVAs?: (UVA | null)[] | null;
   readonly GamificationEvents?: (GamificationEvent | null)[] | null;
   readonly AppUsageEvents?: (AppUsageEvent | null)[] | null;
@@ -37,6 +40,9 @@ type LazyRACIMO = {
   readonly Name: string;
   readonly LinkageCode: string;
   readonly Configuration?: string | null;
+  readonly enabled?: boolean | null;
+  readonly disabledAt?: string | null;
+  readonly disabledPeriods?: string | null;
   readonly UVAs: AsyncCollection<UVA>;
   readonly GamificationEvents: AsyncCollection<GamificationEvent>;
   readonly AppUsageEvents: AsyncCollection<AppUsageEvent>;
@@ -311,6 +317,10 @@ type EagerUVA = {
   readonly altitude?: string | null;
   readonly fields?: string | null;
   readonly enabled?: boolean | null;
+  readonly disabledAt?: string | null;
+  readonly disabledPeriods?: string | null;
+  readonly appVersion?: string | null;
+  readonly appVersionReportedAt?: string | null;
   readonly createdAt?: string | null;
   readonly userID: string;
   readonly User: User;
@@ -330,6 +340,10 @@ type LazyUVA = {
   readonly altitude?: string | null;
   readonly fields?: string | null;
   readonly enabled?: boolean | null;
+  readonly disabledAt?: string | null;
+  readonly disabledPeriods?: string | null;
+  readonly appVersion?: string | null;
+  readonly appVersionReportedAt?: string | null;
   readonly createdAt?: string | null;
   readonly userID: string;
   readonly User: AsyncItem<User>;

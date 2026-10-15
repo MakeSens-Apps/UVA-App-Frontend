@@ -17,6 +17,9 @@ export const createRACIMO = /* GraphQL */ `mutation CreateRACIMO(
     Name
     LinkageCode
     Configuration
+    enabled
+    disabledAt
+    disabledPeriods
     UVAs {
       nextToken
       startedAt
@@ -53,6 +56,9 @@ export const updateRACIMO = /* GraphQL */ `mutation UpdateRACIMO(
     Name
     LinkageCode
     Configuration
+    enabled
+    disabledAt
+    disabledPeriods
     UVAs {
       nextToken
       startedAt
@@ -89,6 +95,9 @@ export const deleteRACIMO = /* GraphQL */ `mutation DeleteRACIMO(
     Name
     LinkageCode
     Configuration
+    enabled
+    disabledAt
+    disabledPeriods
     UVAs {
       nextToken
       startedAt
@@ -453,6 +462,10 @@ export const createUser = /* GraphQL */ `mutation CreateUser(
       altitude
       fields
       enabled
+      disabledAt
+      disabledPeriods
+      appVersion
+      appVersionReportedAt
       createdAt
       userID
       racimoID
@@ -508,6 +521,10 @@ export const updateUser = /* GraphQL */ `mutation UpdateUser(
       altitude
       fields
       enabled
+      disabledAt
+      disabledPeriods
+      appVersion
+      appVersionReportedAt
       createdAt
       userID
       racimoID
@@ -563,6 +580,10 @@ export const deleteUser = /* GraphQL */ `mutation DeleteUser(
       altitude
       fields
       enabled
+      disabledAt
+      disabledPeriods
+      appVersion
+      appVersionReportedAt
       createdAt
       userID
       racimoID
@@ -595,6 +616,10 @@ export const createUVA = /* GraphQL */ `mutation CreateUVA(
     altitude
     fields
     enabled
+    disabledAt
+    disabledPeriods
+    appVersion
+    appVersionReportedAt
     createdAt
     userID
     User {
@@ -640,6 +665,10 @@ export const updateUVA = /* GraphQL */ `mutation UpdateUVA(
     altitude
     fields
     enabled
+    disabledAt
+    disabledPeriods
+    appVersion
+    appVersionReportedAt
     createdAt
     userID
     User {
@@ -685,6 +714,10 @@ export const deleteUVA = /* GraphQL */ `mutation DeleteUVA(
     altitude
     fields
     enabled
+    disabledAt
+    disabledPeriods
+    appVersion
+    appVersionReportedAt
     createdAt
     userID
     User {

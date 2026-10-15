@@ -22,6 +22,9 @@ export const getRACIMO = /* GraphQL */ `query GetRACIMO($id: ID!) {
     Name
     LinkageCode
     Configuration
+    enabled
+    disabledAt
+    disabledPeriods
     UVAs {
       nextToken
       startedAt
@@ -57,6 +60,9 @@ export const listRACIMOS = /* GraphQL */ `query ListRACIMOS(
       Name
       LinkageCode
       Configuration
+      enabled
+      disabledAt
+      disabledPeriods
       createdAt
       updatedAt
       _version
@@ -90,6 +96,9 @@ export const syncRACIMOS = /* GraphQL */ `query SyncRACIMOS(
       Name
       LinkageCode
       Configuration
+      enabled
+      disabledAt
+      disabledPeriods
       createdAt
       updatedAt
       _version
@@ -756,6 +765,10 @@ export const getUser = /* GraphQL */ `query GetUser($id: ID!) {
       altitude
       fields
       enabled
+      disabledAt
+      disabledPeriods
+      appVersion
+      appVersionReportedAt
       createdAt
       userID
       racimoID
@@ -842,6 +855,10 @@ export const getUVA = /* GraphQL */ `query GetUVA($id: ID!) {
     altitude
     fields
     enabled
+    disabledAt
+    disabledPeriods
+    appVersion
+    appVersionReportedAt
     createdAt
     userID
     User {
@@ -883,6 +900,10 @@ export const listUVAS =
       altitude
       fields
       enabled
+      disabledAt
+      disabledPeriods
+      appVersion
+      appVersionReportedAt
       createdAt
       userID
       racimoID
@@ -917,6 +938,10 @@ export const syncUVAS = /* GraphQL */ `query SyncUVAS(
       altitude
       fields
       enabled
+      disabledAt
+      disabledPeriods
+      appVersion
+      appVersionReportedAt
       createdAt
       userID
       racimoID
@@ -953,6 +978,10 @@ export const UVAbyUserID = /* GraphQL */ `query UVAbyUserID(
       altitude
       fields
       enabled
+      disabledAt
+      disabledPeriods
+      appVersion
+      appVersionReportedAt
       createdAt
       userID
       racimoID
@@ -994,6 +1023,10 @@ export const UVAsByRacimoID = /* GraphQL */ `query UVAsByRacimoID(
       altitude
       fields
       enabled
+      disabledAt
+      disabledPeriods
+      appVersion
+      appVersionReportedAt
       createdAt
       userID
       racimoID
