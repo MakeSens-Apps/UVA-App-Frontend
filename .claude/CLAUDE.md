@@ -81,7 +81,7 @@ See `docs/arquitectura.md` for the full architecture writeup and `CLAUDE.md` (ro
 - **SyncContext** — reactive bridge to Amplify DataStore's sync state (`NOINIT`/`UNSYNC`/`SYNC`), subscribed to `Hub` for network/sync events.
 - **ConfigContext** — persisted device configuration (active branding, reminders, etc.).
 - **notification/NotificationContext** — local alerts/notifications state.
-- **RegistrationLockContext** — registration lock (UVA disabled or minimum version, ADR-005 of the dashboard, #60): one notice in Home and Measurement, checks on entering the register and on saving, reminders paused. Rules in `src/domain/registration-lock/`, I/O in `src/data/registration-lock/`. #61 (RACIMO not active) extends it.
+- **RegistrationLockContext** — registration lock (RACIMO not active #61, UVA disabled or minimum version #60, ADR-005 of the dashboard): one notice in Home and Measurement, checks on entering the register and on saving, reminders paused. Rules in `src/domain/registration-lock/`, I/O in `src/data/registration-lock/`. Linking to an inactive RACIMO is refused in `src/domain/setup/setup-racimo.ts`.
 
 ### Data Access (`src/data/`)
 
