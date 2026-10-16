@@ -640,6 +640,61 @@ describe('app version reporter', () => {
     expect(saved).toHaveLength(0);
   });
 
+  it('forgets the UVA of a person who signs out while the owner is being resolved', async () => {
+    let releaseOwner: (() => void) | undefined;
+    const reporter = createAppVersionReporter({
+      storage: {
+        getItem: async (k) => storage.get(k) ?? null,
+        setItem: async (k, v) => {
+          storage.set(k, v);
+        },
+        removeItem: async (k) => {
+          storage.delete(k);
+        },
+      },
+      getInstalledVersion: () => '2.3.1',
+      getOwner: () =>
+        releaseOwner
+          ? Promise.resolve(owner)
+          : new Promise((resolve) => {
+              const pendingOwner = owner;
+              releaseOwner = () => resolve(pendingOwner);
+            }),
+      readUva: async () => uva as UVA | undefined,
+      saveReport: async (u, report) => {
+        saved.push({ uva: u as unknown as FakeUva, report: { ...report } });
+      },
+      isOnline: () => true,
+      onForeground: () => undefined,
+      observeUvas: (listener) => {
+        uvaObserver = listener;
+        return () => {
+          uvaObserver = undefined;
+        };
+      },
+      now: () => clock,
+    });
+    reporter.start();
+
+    // Person A: the owner lookup is still running when A signs out.
+    const first = reporter.report();
+    await flush();
+    auth('signedOut');
+    releaseOwner?.();
+    await expect(first).resolves.toBe('no-uva');
+    expect(saved).toHaveLength(0);
+
+    // Person B signs in on the same app session and registers: the new UVA arrives by
+    // subscription and must be reported, not ignored as "another person's UVA".
+    datastore('ready');
+    owner = { userId: OTHER_USER_ID, uvaId: OTHER_UVA_ID };
+    uva = { id: OTHER_UVA_ID, userID: OTHER_USER_ID, enabled: true };
+    uvaObserver?.(OTHER_UVA_ID);
+    await flush();
+    expect(saved).toHaveLength(1);
+    expect(saved[0].uva.id).toBe(OTHER_UVA_ID);
+  });
+
   it('subscribes to the UVA again after each DataStore start', async () => {
     makeReporter();
     datastore('ready');
@@ -786,7 +841,7 @@ describe('app-wide app version reporter', () => {
 
     const logs = reportLogs();
     expect(logs).toEqual([
-      '[app-version-report] trigger=sync outcome=no-uva detail=no-uva-id write=no',
+      '[app-version-report] trigger=sync outcome=no-uva detail=no-uva-on-phone write=no',
       '[app-version-report] trigger=sync outcome=reported write=yes',
       '[app-version-report] trigger=sync outcome=up-to-date write=no',
     ]);

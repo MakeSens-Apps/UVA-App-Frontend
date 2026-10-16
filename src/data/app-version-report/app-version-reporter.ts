@@ -144,10 +144,14 @@ export function createAppVersionReporter(
       if (!appVersion) return { outcome: 'no-version' };
 
       const { userId, uvaId } = await deps.getOwner();
+      // Signed out while resolving the owner: keep knownUvaId cleared for the next person.
+      if (generation !== requestedIn) {
+        return { outcome: 'no-uva', detail: 'signed-out' };
+      }
       if (!userId || !uvaId) {
         return {
           outcome: 'no-uva',
-          detail: userId ? 'no-uva-id' : 'no-session',
+          detail: userId ? 'no-uva-on-phone' : 'no-session',
         };
       }
       knownUvaId = uvaId;
@@ -158,6 +162,8 @@ export function createAppVersionReporter(
         return { outcome: 'up-to-date' };
       }
 
+      // Read again right before writing (the UVA may have changed since getOwner). The owner
+      // check is defensive: getOwner already resolves the UVA by userID in the app.
       const uva = await deps.readUva(uvaId);
       if (!uva) return { outcome: 'no-uva', detail: 'not-on-phone' };
       // Only the owner writes these fields (UVA-App#34).
