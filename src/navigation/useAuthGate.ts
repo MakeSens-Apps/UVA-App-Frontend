@@ -20,10 +20,11 @@
  *  - console.log/error kept (verbatim from original for parity) – dev only
  *
  * Auth logic preserved verbatim from original checkUserAuthentication /
- * continueWithAuthenticatedFlow, salvo dos desviaciones documentadas en el
+ * continueWithAuthenticatedFlow, salvo tres desviaciones documentadas en el
  * cuerpo de continueWithAuthenticatedFlow (ninguna cambia el destino):
  *   - UserDSService.ensureSessionUvaID() rehidrata `session.uvaID` desde el `User` local
  *     (la sesión RN vive en dos stores distintos, ver session.ts:27)
+ *   - con varias UVAs se conserva la de la sesión si está en el teléfono (F4-06, #61)
  *   - `setSessionField('uvaID', uva.id)` se adelanta al chequeo de racimo
  *
  * Portability matrix: SplashAnimationPage → B12 → hook useAuthGate()
@@ -89,9 +90,12 @@ export function useAuthGate(): UseAuthGateResult {
         // racimoID, …), así que se puede llegar aquí autenticado pero sin uvaID.
         // Lo rehidratamos desde el `User` local antes de seguir; si no hay UVA
         // asignada devuelve undefined y el flujo continúa igual que el original.
-        await UserDSService.ensureSessionUvaID();
+        const sessionUvaID = await UserDSService.ensureSessionUvaID();
 
-        const uva = await UvaDSService.getUVAByuserID(userID);
+        // F4-06 (#61): with several UVAs, keep the session's one if the phone has it, instead
+        // of DataStore's first. Otherwise the UVA changed between the login and the next start,
+        // and a reactivation detected at open was compared against a UVA never seen disabled.
+        const uva = await UvaDSService.getUVAByuserID(userID, sessionUvaID);
         if (!uva) {
           console.log('❌ No UVA found, redirecting to project validation');
           setDestination('validate-project');

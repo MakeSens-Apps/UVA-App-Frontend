@@ -293,10 +293,10 @@ async function getSessionOwner(): Promise<ReportOwner> {
   const info = await sessionService.getInfo();
   if (!info.userID) return { userId: null, uvaId: null };
   // The person's UVA is the one DataStore has for their userID, as the auth gate resolves
-  // it. The session uvaID is not used: right after the login it holds the first item of
-  // the UVAbyUserID API query, which may be a UVA that is not on the phone (for example a
-  // deleted one), and the auth gate only replaces it after the first sync has finished.
-  const uva = await UvaDSService.getUVAByuserID(info.userID);
+  // it. The session uvaID only breaks a tie between several UVAs on the phone (#61): right
+  // after the login it holds the first item of the UVAbyUserID API query, which may be a
+  // UVA that is not on the phone (for example a deleted one), and then it is ignored.
+  const uva = await UvaDSService.getUVAByuserID(info.userID, info.uvaID);
   return { userId: info.userID, uvaId: uva?.id ?? null };
 }
 
