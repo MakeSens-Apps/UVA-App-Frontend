@@ -53,14 +53,22 @@ export class UvaDSService {
 
   /**
    * Retrieves a UVA by its userID.
+   * An account can have more than one UVA, and the login and DataStore do not list them in
+   * the same order: the preferred one (the session's) wins when it is among them, so the app
+   * keeps using the same UVA from one start to the next (F4-06, #61: the reactivation notice
+   * is remembered per UVA).
    * @param {string} userID - ID of the User.
+   * @param {string} [preferredUvaID] - UVA to keep if it belongs to this user on the phone.
    * @returns {Promise<UVA | undefined>} The UVA object.
    */
-  static async getUVAByuserID(userID: string): Promise<UVA | undefined> {
+  static async getUVAByuserID(
+    userID: string,
+    preferredUvaID?: string | null,
+  ): Promise<UVA | undefined> {
     try {
       const uvas = await DataStore.query(UVA, (c) => c.userID.eq(userID));
       if (uvas && uvas.length > 0) {
-        return uvas[0];
+        return uvas.find((uva) => uva.id === preferredUvaID) ?? uvas[0];
       }
       return undefined;
     } catch (error) {
