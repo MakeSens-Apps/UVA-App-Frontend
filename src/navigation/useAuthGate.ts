@@ -21,7 +21,8 @@
  *
  * Auth logic preserved verbatim from original checkUserAuthentication /
  * continueWithAuthenticatedFlow, salvo tres desviaciones documentadas en el
- * cuerpo de continueWithAuthenticatedFlow (ninguna cambia el destino):
+ * cuerpo de continueWithAuthenticatedFlow (con una sola UVA ninguna cambia el destino; con
+ * varias, el destino es el de la UVA de la sesión):
  *   - UserDSService.ensureSessionUvaID() rehidrata `session.uvaID` desde el `User` local
  *     (la sesión RN vive en dos stores distintos, ver session.ts:27)
  *   - con varias UVAs se conserva la de la sesión si está en el teléfono (F4-06, #61)
