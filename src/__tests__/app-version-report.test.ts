@@ -252,6 +252,8 @@ describe('app version reporter', () => {
   let saved: { uva: FakeUva; report: Record<string, string> }[];
   let saveError: Error | null;
   let foreground: (() => void) | undefined;
+  let uvaObserver: (() => void) | undefined;
+  let online: boolean;
   let storage: Map<string, string>;
 
   function makeReporter() {
@@ -276,8 +278,15 @@ describe('app version reporter', () => {
         });
         uva = { ...(u as unknown as FakeUva), ...report };
       },
+      isOnline: () => online,
       onForeground: (listener) => {
         foreground = listener;
+      },
+      observeUvas: (listener) => {
+        uvaObserver = listener;
+        return () => {
+          uvaObserver = undefined;
+        };
       },
       now: () => clock,
     });
@@ -292,12 +301,14 @@ describe('app version reporter', () => {
     saved = [];
     saveError = null;
     foreground = undefined;
+    uvaObserver = undefined;
+    online = true;
     storage = new Map();
   });
 
   it('writes the version and the date on the UVA after a sync', async () => {
     makeReporter();
-    datastore('networkStatus', { active: true });
+    online = true;
     datastore('syncQueriesReady');
     await flush();
 
@@ -355,12 +366,12 @@ describe('app version reporter', () => {
 
   it('does not write offline and reports on the next sync with connection', async () => {
     makeReporter();
-    datastore('networkStatus', { active: false });
+    online = false;
     foreground?.();
     await flush();
     expect(saved).toHaveLength(0);
 
-    datastore('networkStatus', { active: true });
+    online = true;
     datastore('syncQueriesReady');
     await flush();
     expect(saved).toHaveLength(1);
@@ -372,12 +383,12 @@ describe('app version reporter', () => {
     await flush();
 
     clock = new Date(2026, 9, 17, 8, 0);
-    datastore('networkStatus', { active: false });
+    online = false;
     foreground?.();
     await flush();
     expect(saved).toHaveLength(1);
 
-    datastore('networkStatus', { active: true });
+    online = true;
     foreground?.();
     await flush();
     expect(saved).toHaveLength(2);
@@ -454,17 +465,93 @@ describe('app version reporter', () => {
     await flush();
     expect(storage.has(LAST_APP_VERSION_REPORT_KEY)).toBe(false);
 
-    // After sign-out the reporter waits for a sync: the foreground alone does not write.
     owner = { userId: OTHER_USER_ID, uvaId: OTHER_UVA_ID };
     uva = { id: OTHER_UVA_ID, userID: OTHER_USER_ID, enabled: true };
-    foreground?.();
-    await flush();
-    expect(saved).toHaveLength(1);
-
     datastore('syncQueriesReady');
     await flush();
     expect(saved).toHaveLength(2);
     expect(saved[1].uva.id).toBe(OTHER_UVA_ID);
+  });
+
+  it('never writes the previous UVA when the person signs out mid-report', async () => {
+    let releaseRead: (() => void) | undefined;
+    const reporter = createAppVersionReporter({
+      storage: {
+        getItem: async (k) => storage.get(k) ?? null,
+        setItem: async (k, v) => {
+          storage.set(k, v);
+        },
+        removeItem: async (k) => {
+          storage.delete(k);
+        },
+      },
+      getInstalledVersion: () => '2.3.1',
+      getOwner: async () => owner,
+      readUva: () =>
+        new Promise((resolve) => {
+          releaseRead = () => resolve(uva as unknown as UVA);
+        }),
+      saveReport: async (u, report) => {
+        saved.push({ uva: u as unknown as FakeUva, report: { ...report } });
+      },
+      isOnline: () => true,
+      onForeground: () => undefined,
+      observeUvas: () => () => undefined,
+      now: () => clock,
+    });
+    reporter.start();
+
+    const outcome = reporter.report();
+    await flush();
+    auth('signedOut');
+    releaseRead?.();
+
+    await expect(outcome).resolves.toBe('no-uva');
+    await flush();
+    expect(saved).toHaveLength(0);
+    expect(storage.has(LAST_APP_VERSION_REPORT_KEY)).toBe(false);
+  });
+
+  it('reports a UVA that reaches the phone after the first sync (new registration)', async () => {
+    makeReporter();
+    datastore('ready');
+    expect(uvaObserver).toBeDefined();
+
+    // Just registered: the UVA is created by API and is not on the phone at the sync.
+    owner = { userId: USER_ID, uvaId: null };
+    uva = undefined;
+    datastore('syncQueriesReady');
+    await flush();
+    expect(saved).toHaveLength(0);
+
+    // Offline changes of the UVA do not write.
+    owner = { userId: USER_ID, uvaId: UVA_ID };
+    uva = { id: UVA_ID, userID: USER_ID, enabled: true };
+    online = false;
+    uvaObserver?.();
+    await flush();
+    expect(saved).toHaveLength(0);
+
+    // The UVA arrives by subscription while connected.
+    online = true;
+    uvaObserver?.();
+    await flush();
+    expect(saved).toHaveLength(1);
+
+    // The write itself is observed again: no second write.
+    uvaObserver?.();
+    await flush();
+    expect(saved).toHaveLength(1);
+  });
+
+  it('subscribes to the UVA again after each DataStore start', async () => {
+    makeReporter();
+    datastore('ready');
+    const first = uvaObserver;
+    auth('signedOut');
+    datastore('ready');
+    expect(uvaObserver).toBeDefined();
+    expect(uvaObserver).not.toBe(first);
   });
 });
 

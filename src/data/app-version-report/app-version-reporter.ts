@@ -5,7 +5,9 @@
  * (`appVersion` + `appVersionReportedAt`) when the app is connected:
  *   - after every sync with the backend (Hub 'syncQueriesReady', only emitted online: at
  *     start, and again each time the connection comes back), and
- *   - when the app returns to the foreground while DataStore reports a connection.
+ *   - when the app returns to the foreground while DataStore reports a connection, and
+ *   - when the UVA changes on the phone while connected (DataStore.observe, subscribed after
+ *     each 'ready'): a UVA created during registration reaches the phone after the first sync.
  * The rules (new version, or at most once per local day) are in
  * src/domain/app-version-report. Without connection nothing is written: the report goes
  * out on the next sync. It is written even if the UVA is disabled or its RACIMO inactive
@@ -17,13 +19,14 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AppState } from 'react-native';
 import { Hub } from 'aws-amplify/utils';
 import type { UVA } from '@/data/models';
 import { sessionService } from '@/data/session/session';
 import { UvaDSService } from '@/data/datastore/uva-ds';
 import { UserDSService } from '@/data/datastore/user-ds';
+import { getNetworkStatus } from '@/data/amplify-bootstrap/sync-monitor';
 import { getInstalledAppVersion } from '@/native/device/appVersion';
+import { onAppForeground } from '@/native/app-state/onAppForeground';
 import {
   buildAppVersionReport,
   parseLastAppVersionReport,
@@ -62,8 +65,12 @@ interface ReporterDeps {
   getOwner: () => Promise<ReportOwner>;
   readUva: (uvaId: string) => Promise<UVA | undefined>;
   saveReport: (uva: UVA, report: AppVersionReport) => Promise<unknown>;
+  /** Whether DataStore reports a connection (sync-monitor). */
+  isOnline: () => boolean;
   /** Calls the listener each time the app comes back to the foreground. */
   onForeground: (listener: () => void) => void;
+  /** Calls the listener on every local change of a UVA. Returns the unsubscribe function. */
+  observeUvas: (listener: () => void) => () => void;
   now?: () => Date;
 }
 
@@ -74,20 +81,16 @@ export interface AppVersionReporter {
   report: () => Promise<AppVersionReportOutcome>;
 }
 
-function isNetworkStatusData(data: unknown): data is { active: boolean } {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    typeof (data as Record<string, unknown>).active === 'boolean'
-  );
-}
-
 export function createAppVersionReporter(
   deps: ReporterDeps,
 ): AppVersionReporter {
   const now = deps.now ?? (() => new Date());
   let started = false;
-  let online = false;
+  /** Incremented at sign-out: a report started before it must not write anything. */
+  let generation = 0;
+  /** A report already queued and not started yet: new triggers join it. */
+  let pending: Promise<AppVersionReportOutcome> | null = null;
+  let stopObserving: (() => void) | undefined;
   let queue: Promise<unknown> = Promise.resolve();
 
   function enqueue<T>(task: () => Promise<T>): Promise<T> {
@@ -108,6 +111,7 @@ export function createAppVersionReporter(
   }
 
   async function doReport(): Promise<AppVersionReportOutcome> {
+    const startedIn = generation;
     try {
       const appVersion = deps.getInstalledVersion();
       if (!appVersion) return 'no-version';
@@ -126,11 +130,12 @@ export function createAppVersionReporter(
       // Only the owner writes these fields (UVA-App#34).
       if (uva.userID !== userId) return 'not-owner';
 
+      // Signed out while reading: never write the previous person's UVA.
+      if (generation !== startedIn) return 'no-uva';
       const report = buildAppVersionReport(appVersion, at);
       await deps.saveReport(uva, report);
+      if (generation !== startedIn) return 'reported';
 
-      // A sign-out during this report enqueues forget() behind it, so the record below
-      // never outlives the session.
       const record: LastAppVersionReport = {
         uvaId,
         appVersion,
@@ -148,7 +153,25 @@ export function createAppVersionReporter(
   }
 
   function report(): Promise<AppVersionReportOutcome> {
-    return enqueue(doReport);
+    if (pending) return pending;
+    const run = enqueue(() => {
+      pending = null;
+      return doReport();
+    });
+    pending = run;
+    return run;
+  }
+
+  function observeUvas(): void {
+    stopObserving?.();
+    try {
+      stopObserving = deps.observeUvas(() => {
+        if (deps.isOnline()) void report();
+      });
+    } catch (error) {
+      stopObserving = undefined;
+      console.error('Error observing the UVA for the version report', error);
+    }
   }
 
   function forget(): Promise<void> {
@@ -166,23 +189,23 @@ export function createAppVersionReporter(
       if (started) return;
       started = true;
       Hub.listen('datastore', (hubData) => {
-        const { event, data } = hubData.payload;
-        if (event === 'networkStatus' && isNetworkStatusData(data)) {
-          online = data.active;
-        } else if (event === 'syncQueriesReady') {
+        const { event } = hubData.payload;
+        if (event === 'syncQueriesReady') {
           // Sync queries only run with a connection.
-          online = true;
           void report();
+        } else if (event === 'ready') {
+          // DataStore.clear() at sign-out closes every observer: subscribe again.
+          observeUvas();
         }
       });
       Hub.listen('auth', (hubData) => {
         if (hubData.payload.event === 'signedOut') {
-          online = false;
+          generation += 1;
           void forget();
         }
       });
       deps.onForeground(() => {
-        if (online) void report();
+        if (deps.isOnline()) void report();
       });
     },
     report,
@@ -206,9 +229,9 @@ export const appVersionReporter = createAppVersionReporter({
   getOwner: getSessionOwner,
   readUva: (uvaId) => UvaDSService.getUVA(uvaId),
   saveReport: (uva, report) => UvaDSService.saveAppVersionReport(uva, report),
+  isOnline: getNetworkStatus,
   onForeground: (listener) => {
-    AppState.addEventListener('change', (next) => {
-      if (next === 'active') listener();
-    });
+    onAppForeground(listener);
   },
+  observeUvas: (listener) => UvaDSService.observeUVAs(listener),
 });
