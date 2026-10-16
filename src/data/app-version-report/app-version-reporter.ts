@@ -23,7 +23,6 @@ import { Hub } from 'aws-amplify/utils';
 import type { UVA } from '@/data/models';
 import { sessionService } from '@/data/session/session';
 import { UvaDSService } from '@/data/datastore/uva-ds';
-import { UserDSService } from '@/data/datastore/user-ds';
 import { getNetworkStatus } from '@/data/amplify-bootstrap/sync-monitor';
 import { getInstalledAppVersion } from '@/native/device/appVersion';
 import { onAppForeground } from '@/native/app-state/onAppForeground';
@@ -59,6 +58,19 @@ export type AppVersionReportOutcome =
   | 'not-owner'
   | 'failed';
 
+/** What asked for the report: shown in the diagnostic log. */
+export type AppVersionReportTrigger =
+  | 'sync'
+  | 'foreground'
+  | 'uva-change'
+  | 'manual';
+
+/** Outcome plus why nothing was written, for the diagnostic log (never personal data). */
+interface ReportResult {
+  outcome: AppVersionReportOutcome;
+  detail?: string;
+}
+
 interface ReporterDeps {
   storage: KeyValueStorage;
   getInstalledVersion: () => string | null;
@@ -81,7 +93,9 @@ export interface AppVersionReporter {
   /** Subscribes to Hub and to the app state. Idempotent. */
   start: () => void;
   /** Reports now if the rules ask for it. Serialized: concurrent calls run one by one. */
-  report: () => Promise<AppVersionReportOutcome>;
+  report: (
+    trigger?: AppVersionReportTrigger,
+  ) => Promise<AppVersionReportOutcome>;
 }
 
 export function createAppVersionReporter(
@@ -120,35 +134,42 @@ export function createAppVersionReporter(
     }
   }
 
-  async function doReport(
-    requestedIn: number,
-  ): Promise<AppVersionReportOutcome> {
+  async function doReport(requestedIn: number): Promise<ReportResult> {
     // Requested before a sign-out: never write the previous person's UVA.
-    if (generation !== requestedIn) return 'no-uva';
+    if (generation !== requestedIn) {
+      return { outcome: 'no-uva', detail: 'signed-out' };
+    }
     try {
       const appVersion = deps.getInstalledVersion();
-      if (!appVersion) return 'no-version';
+      if (!appVersion) return { outcome: 'no-version' };
 
       const { userId, uvaId } = await deps.getOwner();
-      if (!userId || !uvaId) return 'no-uva';
+      if (!userId || !uvaId) {
+        return {
+          outcome: 'no-uva',
+          detail: userId ? 'no-uva-id' : 'no-session',
+        };
+      }
       knownUvaId = uvaId;
 
       const at = now();
       const last = lastInMemory ?? (await readLast());
       if (!shouldReportAppVersion(last, uvaId, appVersion, at)) {
-        return 'up-to-date';
+        return { outcome: 'up-to-date' };
       }
 
       const uva = await deps.readUva(uvaId);
-      if (!uva) return 'no-uva';
+      if (!uva) return { outcome: 'no-uva', detail: 'not-on-phone' };
       // Only the owner writes these fields (UVA-App#34).
-      if (uva.userID !== userId) return 'not-owner';
+      if (uva.userID !== userId) return { outcome: 'not-owner' };
 
       // Signed out while reading: never write the previous person's UVA.
-      if (generation !== requestedIn) return 'no-uva';
+      if (generation !== requestedIn) {
+        return { outcome: 'no-uva', detail: 'signed-out' };
+      }
       const report = buildAppVersionReport(appVersion, at);
       await deps.saveReport(uva, report);
-      if (generation !== requestedIn) return 'reported';
+      if (generation !== requestedIn) return { outcome: 'reported' };
 
       const record: LastAppVersionReport = {
         uvaId,
@@ -165,19 +186,43 @@ export function createAppVersionReporter(
         // The UVA is already written: the in-memory record avoids writing it again.
         console.error('Error saving the last app version report', error);
       }
-      return 'reported';
+      return { outcome: 'reported' };
     } catch (error) {
       console.error('Error reporting the app version', error);
-      return 'failed';
+      return { outcome: 'failed' };
     }
   }
 
-  function report(): Promise<AppVersionReportOutcome> {
-    if (pending) return pending;
+  /**
+   * One line per attempt, without ids or personal data: what asked for it, the decision
+   * and whether the UVA was written. Makes a missing report diagnosable from logcat.
+   */
+  function logAttempt(
+    trigger: AppVersionReportTrigger,
+    { outcome, detail }: ReportResult,
+  ): void {
+    console.info(
+      `[app-version-report] trigger=${trigger} outcome=${outcome}` +
+        (detail ? ` detail=${detail}` : '') +
+        ` write=${outcome === 'reported' ? 'yes' : 'no'}`,
+    );
+  }
+
+  function report(
+    trigger: AppVersionReportTrigger = 'manual',
+  ): Promise<AppVersionReportOutcome> {
+    if (pending) {
+      console.info(
+        `[app-version-report] trigger=${trigger} joined the pending report`,
+      );
+      return pending;
+    }
     const requestedIn = generation;
-    const run = enqueue(() => {
+    const run = enqueue(async () => {
       if (pending === run) pending = null;
-      return doReport(requestedIn);
+      const result = await doReport(requestedIn);
+      logAttempt(trigger, result);
+      return result.outcome;
     });
     pending = run;
     return run;
@@ -189,7 +234,7 @@ export function createAppVersionReporter(
       stopObserving = deps.observeUvas((uvaId) => {
         // Unknown UVA yet (just registered): any UVA may be ours.
         if (knownUvaId !== null && uvaId !== knownUvaId) return;
-        if (deps.isOnline()) void report();
+        if (deps.isOnline()) void report('uva-change');
       });
     } catch (error) {
       stopObserving = undefined;
@@ -215,7 +260,7 @@ export function createAppVersionReporter(
         const { event } = hubData.payload;
         if (event === 'syncQueriesReady') {
           // Sync queries only run with a connection.
-          void report();
+          void report('sync');
         } else if (event === 'ready') {
           // DataStore.clear() at sign-out closes every observer: subscribe again.
           observeUvas();
@@ -231,7 +276,7 @@ export function createAppVersionReporter(
         }
       });
       deps.onForeground(() => {
-        if (deps.isOnline()) void report();
+        if (deps.isOnline()) void report('foreground');
       });
     },
     report,
@@ -241,11 +286,12 @@ export function createAppVersionReporter(
 async function getSessionOwner(): Promise<ReportOwner> {
   const info = await sessionService.getInfo();
   if (!info.userID) return { userId: null, uvaId: null };
-  // The session can lose uvaID while staying signed in (session.ts): repair it from the
-  // local User, as the registration lock does.
-  const uvaId =
-    info.uvaID ?? (await UserDSService.ensureSessionUvaID()) ?? null;
-  return { userId: info.userID, uvaId };
+  // The person's UVA is the one DataStore has for their userID, as the auth gate resolves
+  // it. The session uvaID is not used: right after the login it holds the first item of
+  // the UVAbyUserID API query, which may be a UVA that is not on the phone (for example a
+  // deleted one), and the auth gate only replaces it after the first sync has finished.
+  const uva = await UvaDSService.getUVAByuserID(info.userID);
+  return { userId: info.userID, uvaId: uva?.id ?? null };
 }
 
 /** App-wide reporter. Started from App.tsx, next to subscribeToSync(). */

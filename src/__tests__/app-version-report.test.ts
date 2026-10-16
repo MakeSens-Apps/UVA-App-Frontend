@@ -125,6 +125,8 @@ function auth(event: string): void {
   (mockHubListeners.auth ?? []).forEach((cb) => cb({ payload: { event } }));
 }
 
+let consoleInfo: jest.SpyInstance;
+
 /** Lets the serialized reporter tasks settle. */
 const flush = async () => {
   for (let i = 0; i < 10; i += 1) {
@@ -141,7 +143,19 @@ beforeEach(() => {
   mockQuery.mockReset();
   mockSave.mockClear();
   mockInstalledVersion.value = '2.3.1';
+  consoleInfo = jest.spyOn(console, 'info').mockImplementation(() => undefined);
 });
+
+afterEach(() => {
+  consoleInfo.mockRestore();
+});
+
+/** Diagnostic lines of the reporter (console.info). */
+function reportLogs(): string[] {
+  return consoleInfo.mock.calls
+    .map((call) => String(call[0]))
+    .filter((line) => line.startsWith('[app-version-report]'));
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1 — Pure rules
@@ -642,11 +656,56 @@ describe('app version reporter', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('app-wide app version reporter', () => {
-  it('saves only the two version fields on the session UVA after a sync', async () => {
-    const addEventListener = jest
+  /** UVAs on the phone, as DataStore returns them. */
+  let phoneUvas: FakeUva[];
+  let addEventListener: jest.SpyInstance;
+
+  beforeEach(() => {
+    phoneUvas = [];
+    // DataStore.query(UVA, id) or DataStore.query(UVA, (c) => c.<field>.eq(value)).
+    mockQuery.mockImplementation(async (_model: unknown, arg: unknown) => {
+      if (typeof arg === 'function') {
+        const matches = (arg as (c: unknown) => (u: FakeUva) => boolean)(
+          new Proxy(
+            {},
+            {
+              get: (_target, field: string) => ({
+                eq: (value: unknown) => (u: FakeUva) =>
+                  (u as unknown as Record<string, unknown>)[field] === value,
+              }),
+            },
+          ),
+        );
+        return phoneUvas.filter(matches);
+      }
+      return phoneUvas.find((u) => u.id === arg);
+    });
+    addEventListener = jest
       .spyOn(AppState, 'addEventListener')
       .mockImplementation(() => ({ remove: jest.fn() }));
-    const stored: FakeUva = {
+  });
+
+  afterEach(() => {
+    addEventListener.mockRestore();
+  });
+
+  /**
+   * A fresh app-wide reporter per test: `appVersionReporter` is a module singleton whose
+   * start() is idempotent and which keeps its last report in memory.
+   */
+  function freshAppReporter(): typeof appVersionReporter {
+    let reporter: typeof appVersionReporter | undefined;
+    jest.isolateModules(() => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      reporter = require('@/data/app-version-report/app-version-reporter')
+        .appVersionReporter as typeof appVersionReporter;
+    });
+    if (!reporter) throw new Error('reporter module did not load');
+    return reporter;
+  }
+
+  function storedUva(): FakeUva {
+    return {
       id: UVA_ID,
       userID: USER_ID,
       enabled: true,
@@ -654,7 +713,11 @@ describe('app-wide app version reporter', () => {
       appVersion: null,
       appVersionReportedAt: null,
     };
-    mockQuery.mockResolvedValue(stored);
+  }
+
+  it('saves only the two version fields on the session UVA after a sync', async () => {
+    const stored = storedUva();
+    phoneUvas = [stored];
 
     await sessionService.setInfo({ userID: USER_ID, uvaID: UVA_ID });
     appVersionReporter.start();
@@ -676,6 +739,60 @@ describe('app-wide app version reporter', () => {
       ),
     });
     expect(mockAsyncStorage.get(LAST_APP_VERSION_REPORT_KEY)).toContain(UVA_ID);
-    addEventListener.mockRestore();
+  });
+
+  it('reports on the first sync after the login, when the session uvaID is not on the phone', async () => {
+    // Seen in develop (#76): right after the login the session holds the first UVA of the
+    // UVAbyUserID API query, which DataStore does not have; the auth gate replaces it only
+    // after the first sync. The report must not wait for that (nor for the foreground).
+    const STALE_UVA_ID = '00000000-0000-4000-8000-0000000000cc';
+    const stored = storedUva();
+    phoneUvas = [
+      { id: OTHER_UVA_ID, userID: OTHER_USER_ID, enabled: true },
+      stored,
+    ];
+    await sessionService.setInfo({ userID: USER_ID, uvaID: STALE_UVA_ID });
+    freshAppReporter().start();
+
+    datastore('syncQueriesReady');
+    await flush();
+
+    expect(mockSave).toHaveBeenCalledTimes(1);
+    expect(mockSave.mock.calls[0][0]).toMatchObject({
+      id: UVA_ID,
+      userID: USER_ID,
+      appVersion: '2.3.1',
+    });
+    expect(reportLogs()).toEqual([
+      '[app-version-report] trigger=sync outcome=reported write=yes',
+    ]);
+  });
+
+  it('logs each attempt with its trigger and decision, without ids', async () => {
+    phoneUvas = [];
+    await sessionService.setInfo({ userID: USER_ID, uvaID: UVA_ID });
+    freshAppReporter().start();
+
+    // The UVA is not on the phone yet: nothing is written and the log says why.
+    datastore('syncQueriesReady');
+    await flush();
+    expect(mockSave).not.toHaveBeenCalled();
+
+    phoneUvas = [storedUva()];
+    datastore('syncQueriesReady');
+    await flush();
+    datastore('syncQueriesReady');
+    await flush();
+
+    const logs = reportLogs();
+    expect(logs).toEqual([
+      '[app-version-report] trigger=sync outcome=no-uva detail=no-uva-id write=no',
+      '[app-version-report] trigger=sync outcome=reported write=yes',
+      '[app-version-report] trigger=sync outcome=up-to-date write=no',
+    ]);
+    for (const line of logs) {
+      expect(line).not.toContain(USER_ID);
+      expect(line).not.toContain(UVA_ID);
+    }
   });
 });
