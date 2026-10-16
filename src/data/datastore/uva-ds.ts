@@ -13,6 +13,7 @@
 import { DataStore } from '@aws-amplify/datastore';
 import { UVA } from '@/data/models';
 import SessionService from '@/data/session/session';
+import type { AppVersionReport } from '@/domain/app-version-report/app-version-report';
 
 interface UVAUpdateDate {
   latitude?: string;
@@ -66,6 +67,41 @@ export class UvaDSService {
       console.error('Error fetching UVA', error);
       throw error;
     }
+  }
+
+  /**
+   * Writes the app version report on the UVA (#76): both fields together, nothing else.
+   * @param {UVA} uva - The UVA as read from DataStore.
+   * @param {AppVersionReport} report - Version and UTC ISO 8601 date.
+   * @returns {Promise<UVA>} The saved UVA.
+   */
+  static async saveAppVersionReport(
+    uva: UVA,
+    report: AppVersionReport,
+  ): Promise<UVA> {
+    return DataStore.save(
+      UVA.copyOf(uva, (updated) => {
+        updated.appVersion = report.appVersion;
+        updated.appVersionReportedAt = report.appVersionReportedAt;
+      }),
+    );
+  }
+
+  /**
+   * Calls the listener with the id of every changed UVA, local or synced (#76).
+   * DataStore.clear() at sign-out closes the subscription: subscribe again after the next
+   * 'ready'.
+   * @param {(uvaId: string) => void} listener - Called on each change.
+   * @returns {() => void} The unsubscribe function.
+   */
+  static observeUVAs(listener: (uvaId: string) => void): () => void {
+    const subscription = DataStore.observe(UVA).subscribe({
+      next: ({ element }) => listener(element.id),
+      error: (error: unknown) => {
+        console.error('Error observing the UVA', error);
+      },
+    });
+    return () => subscription.unsubscribe();
   }
 
   /**

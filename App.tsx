@@ -33,6 +33,10 @@ bootstrapAmplify();
 import { subscribeToSync } from '@/data/amplify-bootstrap/sync-monitor';
 subscribeToSync();
 
+// ─── Step 5b: report the app version on the UVA after each sync (#76) ────────
+import { appVersionReporter } from '@/data/app-version-report/app-version-reporter';
+appVersionReporter.start();
+
 // ─── Step 6: AppUsage session tracking ───────────────────────────────────────
 import { initAppUsage } from '@/data/view/app-usage';
 initAppUsage();
