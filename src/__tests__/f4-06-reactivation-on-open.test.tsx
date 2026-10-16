@@ -2,10 +2,11 @@
  * F4-06 (#61) — The "Tu estación fue reactivada" notice when the reactivation is detected at
  * app open (the RACIMO or the UVA was re-enabled while the app was closed).
  *
- * Cause (the develop test account has two UVAs): the login stores the first UVA of the API
- * and the auth gate replaced it, at the next start, with the first one of DataStore. The
- * reactivation memory is per UVA, so the start compared the reactivated station against a
- * UVA it had never seen disabled and stayed silent. The auth gate now keeps the session's UVA.
+ * Cause (the develop test account has two UVAs): the login stores the first UVA of the API.
+ * At the next start the provider records the reactivation for that UVA during the sync, but
+ * the auth gate then replaced it with the first UVA of DataStore, and the evaluation on
+ * 'ready' read that other UVA, with no memory, so Home never saw the pending notice. The auth
+ * gate now keeps the session's UVA.
  *
  * Real RegistrationLockService, provider, notice hook, auth gate and UvaDSService over
  * in-memory storage and a DataStore mock. All data is synthetic.
@@ -307,14 +308,21 @@ describe.each([
     mockUvas = [uva(OTHER_UVA_ID, true), uva(UVA_ID, true)];
     mockRacimos.set(RACIMO_ID, { id: RACIMO_ID, enabled: true });
 
+    // As in the app: during the sync (before 'ready') the provider evaluates the session's
+    // UVA and records the reactivation; then the auth gate runs, and the 'ready' event
+    // re-evaluates with whatever UVA the gate left in the session, before Home is mounted.
     const view = await render(<App splash />);
+    await waitFor(() => expect(storedRecord().reactivationPending).toBe(true));
     await runAuthGate();
-    expect(mockSession.uvaID).toBe(UVA_ID);
+    await act(async () => {
+      mockHubListeners.datastore?.({ payload: { event: 'ready' } });
+    });
 
     await view.rerender(<App splash={false} />);
     await waitFor(() =>
       expect(view.getByTestId('probe').props.children).toBe('none|reactivated'),
     );
+    expect(mockSession.uvaID).toBe(UVA_ID);
     expect(storedRecord(OTHER_UVA_ID)).toEqual({});
   });
 });
