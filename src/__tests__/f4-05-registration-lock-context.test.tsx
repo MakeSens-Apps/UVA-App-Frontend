@@ -22,18 +22,23 @@ jest.mock('aws-amplify/utils', () => ({
   },
 }));
 
-const mockObserveNext: { current?: (msg: unknown) => void } = {};
+// Last observer per model (F4-06 #61: the provider observes the UVA and its RACIMO).
+const mockObserveNext: Record<string, ((msg: unknown) => void) | undefined> =
+  {};
 jest.mock('@aws-amplify/datastore', () => ({
   DataStore: {
-    observe: jest.fn(() => ({
+    observe: jest.fn((model: { name: string }) => ({
       subscribe: (observer: { next: (msg: unknown) => void }) => {
-        mockObserveNext.current = observer.next;
+        mockObserveNext[model.name] = observer.next;
         return { unsubscribe: jest.fn() };
       },
     })),
   },
 }));
-jest.mock('@/data/models', () => ({ UVA: function UVA() {} }));
+jest.mock('@/data/models', () => ({
+  UVA: function UVA() {},
+  RACIMO: function RACIMO() {},
+}));
 
 jest.mock('@react-navigation/native', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -44,6 +49,10 @@ jest.mock('@react-navigation/native', () => {
 const UNLOCKED = {
   uvaId: null,
   uvaStatus: 'unknown',
+  racimoId: null,
+  racimoStatus: 'unknown',
+  racimoName: null,
+  stationStatus: 'unknown',
   reason: null,
   reactivationPending: false,
 };
@@ -55,6 +64,10 @@ jest.mock('@/data/registration-lock/registration-lock-service', () => ({
   UNLOCKED_STATE: {
     uvaId: null,
     uvaStatus: 'unknown',
+    racimoId: null,
+    racimoStatus: 'unknown',
+    racimoName: null,
+    stationStatus: 'unknown',
     reason: null,
     reactivationPending: false,
   },
@@ -66,6 +79,8 @@ jest.mock('@/data/registration-lock/registration-lock-service', () => ({
     clearForSignOut: () => mockClearForSignOut(),
   },
 }));
+
+type Fn = { name: string };
 
 // eslint-disable-next-line import/first
 import {
@@ -106,8 +121,10 @@ describe('RegistrationLockContext', () => {
 
   it('re-evaluates after a sync (ready, UVA modelSynced) and on a local UVA change', async () => {
     const disabled = {
+      ...UNLOCKED,
       uvaId: 'uva-0001',
       uvaStatus: 'disabled',
+      stationStatus: 'disabled',
       reason: 'uva-disabled',
       reactivationPending: false,
     };
@@ -141,16 +158,16 @@ describe('RegistrationLockContext', () => {
       });
     });
     await act(async () => {
-      mockObserveNext.current?.({ element: { id: 'uva-0001' } });
+      mockObserveNext.UVA?.({ element: { id: 'uva-0001' } });
     });
     await act(async () => {
-      mockObserveNext.current?.({ element: { id: 'uva-other' } });
+      mockObserveNext.UVA?.({ element: { id: 'uva-other' } });
     });
     // ready + UVA modelSynced + own UVA observed = 3 (Measurement and another UVA ignored).
     expect(mockEvaluate).toHaveBeenCalledTimes(3);
   });
 
-  it('after each full sync it observes the UVA again and reads the policy (B3)', async () => {
+  it('after each full sync it observes the UVA and its RACIMO again and reads the policy (B3)', async () => {
     const { DataStore } = jest.requireMock('@aws-amplify/datastore') as {
       DataStore: { observe: jest.Mock };
     };
@@ -160,21 +177,28 @@ describe('RegistrationLockContext', () => {
       </RegistrationLockProvider>,
     );
     await waitFor(() => expect(mockEvaluate).toHaveBeenCalled());
-    expect(DataStore.observe).toHaveBeenCalledTimes(1);
+    // The UVA and, since #61, its RACIMO.
+    expect(
+      DataStore.observe.mock.calls.map(([model]) => (model as Fn).name),
+    ).toEqual(['UVA', 'RACIMO']);
     mockRefreshVersionPolicy.mockClear();
 
     // DataStore.clear() at sign-out closed the observer; the next login syncs again.
     await act(async () => {
       mockHubListeners.datastore({ payload: { event: 'ready' } });
     });
-    expect(DataStore.observe).toHaveBeenCalledTimes(2);
+    expect(
+      DataStore.observe.mock.calls.map(([model]) => (model as Fn).name),
+    ).toEqual(['UVA', 'RACIMO', 'UVA', 'RACIMO']);
     expect(mockRefreshVersionPolicy).toHaveBeenCalledTimes(1);
   });
 
   it('sign-out forgets the per-UVA memory and unlocks the state', async () => {
     mockEvaluate.mockResolvedValue({
+      ...UNLOCKED,
       uvaId: 'uva-0001',
       uvaStatus: 'disabled',
+      stationStatus: 'disabled',
       reason: 'uva-disabled',
       reactivationPending: false,
     });
@@ -195,8 +219,10 @@ describe('RegistrationLockContext', () => {
 
   it('reactivation notice: shown on the first visit and consumed, never again', async () => {
     mockEvaluate.mockResolvedValue({
+      ...UNLOCKED,
       uvaId: 'uva-0001',
       uvaStatus: 'enabled',
+      stationStatus: 'enabled',
       reason: null,
       reactivationPending: true,
     });
@@ -216,8 +242,10 @@ describe('RegistrationLockContext', () => {
 
     // Already consumed in storage: the service reports it as no longer pending.
     mockEvaluate.mockResolvedValue({
+      ...UNLOCKED,
       uvaId: 'uva-0001',
       uvaStatus: 'enabled',
+      stationStatus: 'enabled',
       reason: null,
       reactivationPending: false,
     });
@@ -234,8 +262,10 @@ describe('RegistrationLockContext', () => {
 
   it('a lock hides the reactivation notice and does not consume it', async () => {
     mockEvaluate.mockResolvedValue({
+      ...UNLOCKED,
       uvaId: 'uva-0001',
       uvaStatus: 'enabled',
+      stationStatus: 'enabled',
       reason: 'update-required',
       reactivationPending: true,
     });

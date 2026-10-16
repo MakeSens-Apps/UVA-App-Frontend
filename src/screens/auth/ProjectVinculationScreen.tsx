@@ -13,6 +13,11 @@
  *   - showError: inline error card "El código ingresado es incorrecto."
  *   - Salir link → Login
  *
+ * F4-06 (#61): a RACIMO that is not active does not admit new participants. Its code shows
+ * "Este RACIMO no está activo y no admite nuevos participantes" in the same error card and
+ * nothing is written in session. The register form comes back here with
+ * `racimoInactive` if the RACIMO is deactivated before the UVA is created.
+ *
  * B14 specifics:
  *   - ELIMINADO el bypass __DEV__ TODO(B14) de ValidateProjectScreen
  *   - Uses useSyncContext().waitForSync() (replaces SyncMonitorDSService.waitForSyncDataStore())
@@ -71,13 +76,22 @@ interface VinculationFormValues {
   code: string;
 }
 
+export const INVALID_CODE_MESSAGE = 'El código ingresado es incorrecto.';
+export const RACIMO_INACTIVE_LINK_MESSAGE =
+  'Este RACIMO no está activo y no admite nuevos participantes';
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ProjectVinculationScreen({
   navigation,
+  route,
 }: Props): React.JSX.Element {
   const { theme } = useTheme();
-  const [showError, setShowError] = useState(false);
+  const racimoInactiveParam = route.params?.racimoInactive ?? false;
+  const [errorMessage, setErrorMessage] = useState<string | null>(
+    racimoInactiveParam ? RACIMO_INACTIVE_LINK_MESSAGE : null,
+  );
+  const showError = errorMessage !== null;
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
   // Personalized message: user name from session (original: {{user?.name}})
@@ -139,21 +153,38 @@ export function ProjectVinculationScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // F4-06 (#61): back from the register form because the RACIMO was deactivated. The
+  // message is set while rendering when the param arrives, and the effect only clears the
+  // param so the next return shows it again.
+  const [seenInactiveParam, setSeenInactiveParam] =
+    useState(racimoInactiveParam);
+  if (racimoInactiveParam !== seenInactiveParam) {
+    setSeenInactiveParam(racimoInactiveParam);
+    if (racimoInactiveParam) setErrorMessage(RACIMO_INACTIVE_LINK_MESSAGE);
+  }
+  useEffect(() => {
+    if (racimoInactiveParam) {
+      navigation.setParams({ racimoInactive: undefined });
+    }
+  }, [racimoInactiveParam, navigation]);
+
   // ─── goToValidateProject ────────────────────────────────────────────────
 
   const goToValidateProject = handleSubmit(async (data) => {
     setLoading(true);
-    setShowError(false);
+    setErrorMessage(null);
     try {
-      const found = await SetupRacimoService.getRACIMOByCode(data.code);
-      if (found) {
+      const lookup = await SetupRacimoService.getRACIMOByCode(data.code);
+      if (lookup === 'found') {
         navigation.navigate('ValidateProject', { racimoCode: data.code });
+      } else if (lookup === 'inactive') {
+        setErrorMessage(RACIMO_INACTIVE_LINK_MESSAGE);
       } else {
-        setShowError(true);
+        setErrorMessage(INVALID_CODE_MESSAGE);
       }
     } catch (err) {
       console.error('getRACIMOByCode error:', err);
-      setShowError(true);
+      setErrorMessage(INVALID_CODE_MESSAGE);
     } finally {
       setLoading(false);
     }
@@ -286,7 +317,7 @@ export function ProjectVinculationScreen({
                   maxLength={6}
                   onBlur={onBlur}
                   onChangeText={(t) => {
-                    setShowError(false);
+                    setErrorMessage(null);
                     onChange(t.toUpperCase());
                   }}
                   value={value}
@@ -308,7 +339,7 @@ export function ProjectVinculationScreen({
                   },
                 ]}
               >
-                El código ingresado es incorrecto.
+                {errorMessage}
               </Text>
             </View>
           )}

@@ -15,6 +15,9 @@ export const onCreateRACIMO =
     Name
     LinkageCode
     Configuration
+    enabled
+    disabledAt
+    disabledPeriods
     UVAs {
       nextToken
       startedAt
@@ -49,6 +52,9 @@ export const onUpdateRACIMO =
     Name
     LinkageCode
     Configuration
+    enabled
+    disabledAt
+    disabledPeriods
     UVAs {
       nextToken
       startedAt
@@ -83,6 +89,9 @@ export const onDeleteRACIMO =
     Name
     LinkageCode
     Configuration
+    enabled
+    disabledAt
+    disabledPeriods
     UVAs {
       nextToken
       startedAt
@@ -456,6 +465,10 @@ export const onCreateUser = /* GraphQL */ `subscription OnCreateUser(
       altitude
       fields
       enabled
+      disabledAt
+      disabledPeriods
+      appVersion
+      appVersionReportedAt
       createdAt
       userID
       racimoID
@@ -511,6 +524,10 @@ export const onUpdateUser = /* GraphQL */ `subscription OnUpdateUser(
       altitude
       fields
       enabled
+      disabledAt
+      disabledPeriods
+      appVersion
+      appVersionReportedAt
       createdAt
       userID
       racimoID
@@ -566,6 +583,10 @@ export const onDeleteUser = /* GraphQL */ `subscription OnDeleteUser(
       altitude
       fields
       enabled
+      disabledAt
+      disabledPeriods
+      appVersion
+      appVersionReportedAt
       createdAt
       userID
       racimoID
@@ -598,6 +619,10 @@ export const onCreateUVA = /* GraphQL */ `subscription OnCreateUVA(
     altitude
     fields
     enabled
+    disabledAt
+    disabledPeriods
+    appVersion
+    appVersionReportedAt
     createdAt
     userID
     User {
@@ -643,6 +668,10 @@ export const onUpdateUVA = /* GraphQL */ `subscription OnUpdateUVA(
     altitude
     fields
     enabled
+    disabledAt
+    disabledPeriods
+    appVersion
+    appVersionReportedAt
     createdAt
     userID
     User {
@@ -688,6 +717,10 @@ export const onDeleteUVA = /* GraphQL */ `subscription OnDeleteUVA(
     altitude
     fields
     enabled
+    disabledAt
+    disabledPeriods
+    appVersion
+    appVersionReportedAt
     createdAt
     userID
     User {

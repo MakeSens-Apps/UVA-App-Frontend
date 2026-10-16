@@ -282,10 +282,10 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
           // every focus, restores the original ordering and also handles a midnight
           // rollover while the app stays open. It is a no-op once today's row exists.
           // F4-05 (#60): the streak still breaks as today, but no recovery is proposed
-          // while the station is disabled (P34).
+          // while the station is disabled (P34), also by an inactive RACIMO (#61).
           const lock = await refreshRegistrationLock();
           await UserProgressDSService.recalculateDailyProgress({
-            proposeStreakRecovery: canProposeStreakRecovery(lock.uvaStatus),
+            proposeStreakRecovery: canProposeStreakRecovery(lock.stationStatus),
           });
 
           // getLastUserProgressPure: pure read, no side-effects (R-28)
@@ -383,9 +383,11 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* F4-05 (#60): UVA disabled / update required / reactivated (once) */}
+        {/* F4-05 (#60) and F4-06 (#61): RACIMO not active / UVA disabled / update required /
+            reactivated (once) */}
         <RegistrationLockNotice
           reason={lockNotice.reason}
+          racimoName={lockNotice.racimoName}
           showReactivated={lockNotice.showReactivated}
           testID="home-registration-lock"
         />

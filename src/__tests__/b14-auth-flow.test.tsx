@@ -136,7 +136,7 @@ jest.mock('@/domain/setup/setup-racimo', () => ({
   SetupRacimoService: {
     getUVA: (...a: unknown[]) => mockGetUVA(...a),
     getRACIMOByCode: (...a: unknown[]) => mockGetRACIMOByCode(...a),
-    createNewUVA: jest.fn().mockResolvedValue(true),
+    createNewUVA: jest.fn().mockResolvedValue('created'),
     updateUVA: jest.fn().mockResolvedValue(true),
   },
 }));
@@ -695,13 +695,13 @@ describe('ProjectVinculationScreen — code validation', () => {
     expect(btn.props.accessibilityState?.disabled).toBe(false);
   });
 
-  it('shows error card when getRACIMOByCode returns false', async () => {
+  it("shows error card when getRACIMOByCode returns 'not-found'", async () => {
     mockGetParametersUser.mockResolvedValue({
       userID: 'uid123',
       name: 'Carlos',
     });
     mockGetUVA.mockResolvedValue(false);
-    mockGetRACIMOByCode.mockResolvedValue(false);
+    mockGetRACIMOByCode.mockResolvedValue('not-found');
 
     const nav = makeNav();
     const { getByTestId } = await render(
@@ -734,7 +734,7 @@ describe('ProjectVinculationScreen — code validation', () => {
       name: 'Carlos',
     });
     mockGetUVA.mockResolvedValue(false);
-    mockGetRACIMOByCode.mockResolvedValue(true);
+    mockGetRACIMOByCode.mockResolvedValue('found');
 
     const nav = makeNav();
     const { getByTestId } = await render(

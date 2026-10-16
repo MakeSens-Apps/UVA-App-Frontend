@@ -224,7 +224,7 @@ function setupForm(): void {
   });
   mockGetUVA.mockResolvedValue(false);
   mockLookupUVA.mockResolvedValue('none');
-  mockCreateNewUVA.mockResolvedValue(true);
+  mockCreateNewUVA.mockResolvedValue('created');
   mockUpdateUVA.mockResolvedValue(true);
 }
 
@@ -355,7 +355,7 @@ describe('#67 — RegisterProjectForm never creates a second UVA', () => {
   });
 
   it('double tap while the first submit is in flight: createNewUVA runs once', async () => {
-    const pending = deferred<boolean>();
+    const pending = deferred<string>();
     mockCreateNewUVA.mockReturnValueOnce(pending.promise);
     const { getByTestId, navigate } = await renderForm();
 
@@ -371,7 +371,7 @@ describe('#67 — RegisterProjectForm never creates a second UVA', () => {
       onPress();
     });
     await act(async () => {
-      pending.resolve(true);
+      pending.resolve('created');
     });
 
     expect(mockCreateNewUVA).toHaveBeenCalledTimes(1);
@@ -409,7 +409,7 @@ describe('#67 — RegisterProjectForm never creates a second UVA', () => {
   });
 
   it('creation fails: does not update the fields nor go to RegisterCompleted, and a retry may create it', async () => {
-    mockCreateNewUVA.mockResolvedValueOnce(false);
+    mockCreateNewUVA.mockResolvedValueOnce('failed');
     const { getByTestId, navigate } = await renderForm();
 
     await fireEvent.press(getByTestId('submit-button'));

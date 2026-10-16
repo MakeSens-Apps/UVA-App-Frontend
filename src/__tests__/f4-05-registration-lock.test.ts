@@ -36,9 +36,10 @@ jest.mock('@/data/storage/preferences', () => ({
   },
 }));
 
-const mockSession: { uvaID?: string; userID?: string } = {
+const mockSession: { uvaID?: string; userID?: string; racimoID?: string } = {
   uvaID: 'uva-0001',
   userID: 'user-0001',
+  racimoID: 'racimo-test-1',
 };
 jest.mock('@/data/session/session', () => ({
   sessionService: { getInfo: jest.fn(() => Promise.resolve(mockSession)) },
@@ -48,6 +49,18 @@ const mockUvas = new Map<string, { id: string; enabled?: boolean | null }>();
 const mockGetUVA = jest.fn((id: string) => Promise.resolve(mockUvas.get(id)));
 jest.mock('@/data/datastore/uva-ds', () => ({
   UvaDSService: { getUVA: (id: string) => mockGetUVA(id) },
+}));
+// F4-06 (#61): the service also reads the RACIMO; these tests keep it active so they still
+// exercise the UVA rules of #60 only.
+const mockRacimos = new Map<
+  string,
+  { id: string; Name?: string | null; enabled?: boolean | null }
+>();
+const mockGetRACIMO = jest.fn((id: string) =>
+  Promise.resolve(mockRacimos.get(id)),
+);
+jest.mock('@/data/datastore/racimo-ds', () => ({
+  RacimoDSService: { getRACIMO: (id: string) => mockGetRACIMO(id) },
 }));
 const mockEnsureSessionUvaID = jest.fn(() =>
   Promise.resolve<string | undefined>(undefined),
@@ -198,7 +211,7 @@ describe('resolveRegistrationLock', () => {
     expect(shouldPauseReminders('uva-disabled')).toBe(true);
     expect(shouldPauseReminders('update-required')).toBe(true);
     expect(shouldPauseReminders(null)).toBe(false);
-    // Decided on the UVA status, so it holds whatever reason #61 puts first.
+    // Decided on the station status (UVA + RACIMO), not on the prioritized reason.
     expect(canProposeStreakRecovery('disabled')).toBe(false);
     expect(canProposeStreakRecovery('enabled')).toBe(true);
     expect(canProposeStreakRecovery('unknown')).toBe(true);
@@ -305,8 +318,15 @@ describe('RegistrationLockService', () => {
   beforeEach(() => {
     mockStorage.clear();
     mockUvas.clear();
+    mockRacimos.clear();
+    mockRacimos.set('racimo-test-1', {
+      id: 'racimo-test-1',
+      Name: 'Prueba sintética',
+      enabled: true,
+    });
     mockSession.uvaID = 'uva-0001';
     mockSession.userID = 'user-0001';
+    mockSession.racimoID = 'racimo-test-1';
     mockInstalledVersion = '2.3.1';
     mockReminders.paused = false;
     jest.clearAllMocks();
@@ -318,6 +338,10 @@ describe('RegistrationLockService', () => {
     expect(state).toEqual({
       uvaId: 'uva-0001',
       uvaStatus: 'unknown',
+      racimoId: 'racimo-test-1',
+      racimoStatus: 'active',
+      racimoName: 'Prueba sintética',
+      stationStatus: 'unknown',
       reason: null,
       reactivationPending: false,
     });

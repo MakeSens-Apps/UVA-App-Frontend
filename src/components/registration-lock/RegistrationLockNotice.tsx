@@ -1,7 +1,8 @@
 /**
- * RegistrationLockNotice (F4-05, #60 — ADR-005).
+ * RegistrationLockNotice (F4-05 #60 and F4-06 #61 — ADR-005).
  *
  * The single notice at the top of Home and Measurement:
+ *   - RACIMO not active (#61): warning with the current name of the RACIMO.
  *   - UVA disabled: warning, no reason and no request button.
  *   - Update required: warning with an "Actualizar" button that opens the store.
  *   - Reactivated: green notice, shown once (the caller decides when).
@@ -16,6 +17,16 @@ import { fontFamilyForWeight } from '@/theme/theme';
 import { openAppStoreListing } from '@/native/device/appVersion';
 import type { RegistrationLockReason } from '@/domain/registration-lock/registration-lock';
 
+/**
+ * "RACIMO not active" notice (#61). The name is the one currently synced, so a rename from
+ * the dashboard shows up here.
+ */
+export function racimoInactiveMessage(racimoName?: string | null): string {
+  const name = racimoName?.trim();
+  return name
+    ? `Tu RACIMO ${name} no está activo. Puedes ver tu histórico`
+    : 'Tu RACIMO no está activo. Puedes ver tu histórico';
+}
 export const UVA_DISABLED_MESSAGE =
   'Tu estación fue deshabilitada por el administrador de tu RACIMO. Puedes ver tu histórico. Si crees que es un error, comunícate con él.';
 export const UPDATE_REQUIRED_MESSAGE =
@@ -24,28 +35,41 @@ export const UVA_REACTIVATED_MESSAGE =
   'Tu estación fue reactivada, ya puedes registrar';
 
 /** Text for each lock reason in the notice. */
-export const LOCK_MESSAGES: Record<RegistrationLockReason, string> = {
-  'uva-disabled': UVA_DISABLED_MESSAGE,
-  'update-required': UPDATE_REQUIRED_MESSAGE,
-};
+export function lockMessage(
+  reason: RegistrationLockReason,
+  racimoName?: string | null,
+): string {
+  switch (reason) {
+    case 'racimo-inactive':
+      return racimoInactiveMessage(racimoName);
+    case 'uva-disabled':
+      return UVA_DISABLED_MESSAGE;
+    case 'update-required':
+      return UPDATE_REQUIRED_MESSAGE;
+  }
+}
 
 /**
  * Short text for the toast shown when the register is left or saving is refused. The toast
  * fits two lines, so the full message stays in the notice the person lands on.
  */
 export const LOCK_TOAST_MESSAGES: Record<RegistrationLockReason, string> = {
+  'racimo-inactive': 'Tu RACIMO no está activo, no puedes registrar',
   'uva-disabled': 'Tu estación está deshabilitada, no puedes registrar',
   'update-required': UPDATE_REQUIRED_MESSAGE,
 };
 
 interface Props {
   reason: RegistrationLockReason | null;
+  /** Current name of the RACIMO, used by the 'racimo-inactive' notice. */
+  racimoName?: string | null;
   showReactivated: boolean;
   testID?: string;
 }
 
 export function RegistrationLockNotice({
   reason,
+  racimoName,
   showReactivated,
   testID = 'registration-lock-notice',
 }: Props): React.JSX.Element | null {
@@ -73,7 +97,7 @@ export function RegistrationLockNotice({
             },
           ]}
         >
-          {LOCK_MESSAGES[reason]}
+          {lockMessage(reason, racimoName)}
         </Text>
         {reason === 'update-required' && (
           <TouchableOpacity

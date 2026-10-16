@@ -1,10 +1,11 @@
 /**
- * RegistrationLockContext (F4-05, #60 — ADR-005). Shared with #61.
+ * RegistrationLockContext (F4-05 #60 and F4-06 #61 — ADR-005).
  *
  * Reactive wrapper of registrationLockService. Re-evaluates the lock:
  *   - on mount and whenever the app comes back to the foreground;
- *   - after every DataStore sync ('ready', or 'modelSynced' of UVA) and on local UVA
- *     changes (DataStore.observe), so a reactivation applies on the next sync;
+ *   - after every DataStore sync ('ready', or 'modelSynced' of UVA or RACIMO) and on local
+ *     changes of the UVA or its RACIMO (DataStore.observe), so a deactivation or a
+ *     reactivation applies on the next sync;
  *   - after reading the minimum-version policy, on mount and when the network comes back.
  * At sign-out it forgets the per-UVA memory, so another account never sees a foreign notice.
  */
@@ -23,7 +24,7 @@ import { AppState } from 'react-native';
 import { DataStore } from '@aws-amplify/datastore';
 import { Hub } from 'aws-amplify/utils';
 import { useFocusEffect } from '@react-navigation/native';
-import { UVA } from '@/data/models';
+import { RACIMO, UVA } from '@/data/models';
 import {
   registrationLockService,
   UNLOCKED_STATE,
@@ -105,9 +106,12 @@ export function RegistrationLockProvider({
       if (event === 'ready') {
         // DataStore.clear() at sign-out closes every observer: subscribe again after each
         // full sync, and read the policy now that there may be a session.
-        observeUva();
+        observeStation();
         void refreshVersionPolicy();
-      } else if (event === 'modelSynced' && data?.model?.name === 'UVA') {
+      } else if (
+        event === 'modelSynced' &&
+        (data?.model?.name === 'UVA' || data?.model?.name === 'RACIMO')
+      ) {
         void refresh();
       } else if (event === 'networkStatus' && data?.active) {
         void refreshVersionPolicy();
@@ -122,8 +126,10 @@ export function RegistrationLockProvider({
     });
 
     let uvaSubscription: { unsubscribe: () => void } | undefined;
-    function observeUva(): void {
+    let racimoSubscription: { unsubscribe: () => void } | undefined;
+    function observeStation(): void {
       uvaSubscription?.unsubscribe();
+      racimoSubscription?.unsubscribe();
       try {
         uvaSubscription = DataStore.observe(UVA).subscribe({
           next: ({ element }) => {
@@ -138,14 +144,30 @@ export function RegistrationLockProvider({
         uvaSubscription = undefined;
         console.error('Error observing the UVA', error);
       }
+      // F4-06 (#61): the dashboard deactivates or reactivates the RACIMO, or renames it.
+      try {
+        racimoSubscription = DataStore.observe(RACIMO).subscribe({
+          next: ({ element }) => {
+            const current = stateRef.current.racimoId;
+            if (!current || element?.id === current) void refresh();
+          },
+          error: (error: unknown) => {
+            console.error('Error observing the RACIMO', error);
+          },
+        });
+      } catch (error) {
+        racimoSubscription = undefined;
+        console.error('Error observing the RACIMO', error);
+      }
     }
-    observeUva();
+    observeStation();
 
     return () => {
       appStateSub.remove();
       unsubscribeDatastore();
       unsubscribeAuth();
       uvaSubscription?.unsubscribe();
+      racimoSubscription?.unsubscribe();
     };
   }, [applyState, refresh, refreshVersionPolicy]);
 
@@ -174,6 +196,8 @@ export function useRegistrationLock(): RegistrationLockContextValue {
 export interface RegistrationLockNotice {
   /** Lock shown at the top of the screen, or null. */
   reason: RegistrationLockReason | null;
+  /** Current name of the RACIMO, for the "RACIMO not active" notice (#61). */
+  racimoName: string | null;
   /** Green "Tu estación fue reactivada" notice, only on the first visit after it. */
   showReactivated: boolean;
 }
@@ -223,6 +247,7 @@ export function useRegistrationLockNotice(
 
   return {
     reason: state.reason,
+    racimoName: state.racimoName,
     showReactivated: showReactivated && state.reason === null,
   };
 }

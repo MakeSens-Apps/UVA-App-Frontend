@@ -8,13 +8,23 @@
  */
 
 import { Preferences } from '@/data/storage/preferences';
-import type { KnownUvaStatus } from '@/domain/registration-lock/registration-lock';
+import type {
+  KnownRacimoStatus,
+  KnownUvaStatus,
+} from '@/domain/registration-lock/registration-lock';
 
 export const UVA_STATUS_STORE_KEY = 'registrationLockUvaStatus';
 
 export interface UvaStatusRecord {
+  /** Last station status (UVA + RACIMO since #61): decides the reactivation notice. */
   lastStatus?: KnownUvaStatus;
   reactivationPending?: boolean;
+  /** Last status of the UVA itself, kept for read errors (F4-06, #61). */
+  lastUvaStatus?: KnownUvaStatus;
+  /** Last RACIMO read for this UVA, kept for read errors (F4-06, #61). */
+  racimoId?: string;
+  racimoStatus?: KnownRacimoStatus;
+  racimoName?: string | null;
 }
 
 type UvaStatusMap = Record<string, UvaStatusRecord>;

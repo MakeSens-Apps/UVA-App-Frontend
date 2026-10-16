@@ -1,13 +1,15 @@
 /**
- * RegistrationLockService (F4-05, #60 — ADR-005). Shared with #61.
+ * RegistrationLockService (F4-05 #60 and F4-06 #61 — ADR-005).
  *
  * Evaluates, with the data already on the phone, whether the person can register
  * measurements:
+ *   - the RACIMO of the UVA as last synced by DataStore (#61), with its current name;
  *   - the UVA as last synced by DataStore (offline it keeps using that state, decision 12);
  *   - the minimum-version policy (cached value; refreshed from S3 with refreshVersionPolicy).
  *
  * Side effects it owns:
- *   - Remembers the last status per UVA and raises the one-time reactivation notice.
+ *   - Remembers the last station status (UVA + RACIMO) per UVA and raises the one-time
+ *     reactivation notice.
  *   - Pauses the daily reminders while registering is blocked and reschedules them when it
  *     is allowed again, without touching the person's reminder preference.
  *
@@ -18,17 +20,22 @@
 import { sessionService } from '@/data/session/session';
 import { UvaDSService } from '@/data/datastore/uva-ds';
 import { UserDSService } from '@/data/datastore/user-ds';
+import { RacimoDSService } from '@/data/datastore/racimo-ds';
 import { localRemindersService } from '@/native/notifications/LocalRemindersService';
 import { getInstalledAppVersion } from '@/native/device/appVersion';
 import {
   detectReactivation,
+  getEffectiveRacimoStatus,
   getEffectiveUvaStatus,
+  getStationStatus,
   isUpdateRequired,
   resolveRegistrationLock,
   shouldPauseReminders,
 } from '@/domain/registration-lock/registration-lock';
 import type {
   KnownUvaStatus,
+  KnownRacimoStatus,
+  RacimoStatus,
   RegistrationLockReason,
   UvaStatus,
 } from '@/domain/registration-lock/registration-lock';
@@ -40,7 +47,21 @@ import { uvaStatusStore } from './uva-status-store';
 
 export interface RegistrationLockState {
   uvaId: string | null;
+  /**
+   * The UVA's own status, without its RACIMO. Diagnostic only: decisions that depend on the
+   * station being usable (streak recovery, reactivation) must read `stationStatus`.
+   */
   uvaStatus: UvaStatus;
+  /** RACIMO of the UVA (null if it could not be resolved). */
+  racimoId: string | null;
+  racimoStatus: RacimoStatus;
+  /** Current name of the RACIMO as synced (it can change from the dashboard). */
+  racimoName: string | null;
+  /**
+   * UVA + RACIMO combined (getStationStatus): what decides streak recovery and the
+   * reactivation notice, because an inactive RACIMO makes its UVAs behave as disabled.
+   */
+  stationStatus: UvaStatus;
   /** Why registering is blocked, or null if it is allowed. */
   reason: RegistrationLockReason | null;
   /** The "Tu estación fue reactivada" notice has not been shown yet. */
@@ -50,9 +71,19 @@ export interface RegistrationLockState {
 export const UNLOCKED_STATE: RegistrationLockState = {
   uvaId: null,
   uvaStatus: 'unknown',
+  racimoId: null,
+  racimoStatus: 'unknown',
+  racimoName: null,
+  stationStatus: 'unknown',
   reason: null,
   reactivationPending: false,
 };
+
+interface RacimoRead {
+  status: RacimoStatus;
+  name: string | null;
+  failed: boolean;
+}
 
 export class RegistrationLockService {
   /** undefined = not read yet; null = never known (no requirement). */
@@ -61,6 +92,11 @@ export class RegistrationLockService {
   private remindersPaused: boolean | undefined = undefined;
   /** Last status read from DataStore in this app session, per UVA. */
   private lastKnown = new Map<string, KnownUvaStatus>();
+  /** Last RACIMO read from DataStore in this app session, per RACIMO. */
+  private lastKnownRacimo = new Map<
+    string,
+    { status: KnownRacimoStatus; name: string | null }
+  >();
   /** Serializes evaluations so concurrent callers do not race on storage and reminders. */
   private queue: Promise<unknown> = Promise.resolve();
 
@@ -103,6 +139,7 @@ export class RegistrationLockService {
     return this.enqueue(async () => {
       await uvaStatusStore.clear();
       this.lastKnown.clear();
+      this.lastKnownRacimo.clear();
       this.remindersPaused = undefined;
       localRemindersService.setRemindersPaused(false);
     });
@@ -121,13 +158,13 @@ export class RegistrationLockService {
     const uvaId = await this.resolveUvaId();
 
     let uvaStatus: UvaStatus = 'unknown';
+    let uvaRacimoId: string | null = null;
     let readFailed = false;
     if (uvaId) {
       try {
-        uvaStatus = getEffectiveUvaStatus(
-          await UvaDSService.getUVA(uvaId),
-          now,
-        );
+        const uva = await UvaDSService.getUVA(uvaId);
+        uvaStatus = getEffectiveUvaStatus(uva, now);
+        uvaRacimoId = uva?.racimoID ?? null;
       } catch (error) {
         // A read error is not "not synced yet" (decision 12): keep the last known status
         // so a transient failure neither lifts the lock nor reschedules reminders.
@@ -138,6 +175,7 @@ export class RegistrationLockService {
     }
     if (uvaId && uvaStatus !== 'unknown' && !readFailed) {
       this.lastKnown.set(uvaId, uvaStatus);
+      await this.rememberUva(uvaId, uvaStatus);
     }
 
     if (this.minimumVersion === undefined) {
@@ -147,15 +185,114 @@ export class RegistrationLockService {
       getInstalledAppVersion(),
       this.minimumVersion,
     );
-    const reason = resolveRegistrationLock({ uvaStatus, updateRequired });
+    // The UVA's own racimoID is the source of truth; the session one covers a UVA that has
+    // not reached the phone yet.
+    const racimoId =
+      uvaRacimoId ?? (await sessionService.getInfo()).racimoID ?? null;
+    const racimo = racimoId
+      ? await this.readRacimo(racimoId, uvaId)
+      : { status: 'unknown' as const, name: null, failed: false };
+
+    const reason = resolveRegistrationLock({
+      racimoStatus: racimo.status,
+      uvaStatus,
+      updateRequired,
+    });
+    const stationStatus = getStationStatus(uvaStatus, racimo.status);
 
     const reactivationPending = uvaId
-      ? await this.trackReactivation(uvaId, readFailed ? 'unknown' : uvaStatus)
+      ? await this.trackReactivation(
+          uvaId,
+          readFailed || racimo.failed ? 'unknown' : stationStatus,
+        )
       : false;
 
     await this.applyReminders(reason);
 
-    return { uvaId, uvaStatus, reason, reactivationPending };
+    return {
+      uvaId,
+      uvaStatus,
+      racimoId,
+      racimoStatus: racimo.status,
+      racimoName: racimo.name,
+      stationStatus,
+      reason,
+      reactivationPending,
+    };
+  }
+
+  /**
+   * Reads the RACIMO from DataStore. A read error keeps the last status seen in this app
+   * session, else the one remembered for this UVA (else unknown), so a transient failure
+   * does not lift the lock — the same rule as for the UVA (B2 in #60).
+   */
+  private async readRacimo(
+    racimoId: string,
+    uvaId: string | null,
+  ): Promise<RacimoRead> {
+    try {
+      const racimo = await RacimoDSService.getRACIMO(racimoId);
+      const status = getEffectiveRacimoStatus(racimo);
+      const name = racimo?.Name?.trim() || null;
+      if (status !== 'unknown') {
+        this.lastKnownRacimo.set(racimoId, { status, name });
+        if (uvaId) await this.rememberRacimo(uvaId, racimoId, status, name);
+      }
+      return { status, name, failed: false };
+    } catch (error) {
+      console.error(
+        'Error reading the RACIMO for the registration lock',
+        error,
+      );
+      const known =
+        this.lastKnownRacimo.get(racimoId) ??
+        (uvaId ? await this.rememberedRacimo(uvaId, racimoId) : undefined);
+      return {
+        status: known?.status ?? 'unknown',
+        name: known?.name ?? null,
+        failed: true,
+      };
+    }
+  }
+
+  /** Saves the RACIMO status for this UVA, only when it changed. */
+  private async rememberRacimo(
+    uvaId: string,
+    racimoId: string,
+    status: KnownRacimoStatus,
+    name: string | null,
+  ): Promise<void> {
+    try {
+      const record = await uvaStatusStore.get(uvaId);
+      if (
+        record.racimoId !== racimoId ||
+        record.racimoStatus !== status ||
+        (record.racimoName ?? null) !== name
+      ) {
+        await uvaStatusStore.update(uvaId, {
+          racimoId,
+          racimoStatus: status,
+          racimoName: name,
+        });
+      }
+    } catch (error) {
+      console.error('Error remembering the RACIMO status', error);
+    }
+  }
+
+  /** RACIMO status remembered for this UVA, if it is the same RACIMO. */
+  private async rememberedRacimo(
+    uvaId: string,
+    racimoId: string,
+  ): Promise<{ status: KnownRacimoStatus; name: string | null } | undefined> {
+    try {
+      const record = await uvaStatusStore.get(uvaId);
+      if (record.racimoId !== racimoId || !record.racimoStatus)
+        return undefined;
+      return { status: record.racimoStatus, name: record.racimoName ?? null };
+    } catch {
+      return undefined;
+    }
   }
 
   /** Last status seen in this app session, else the one remembered for this UVA. */
@@ -163,9 +300,32 @@ export class RegistrationLockService {
     const inMemory = this.lastKnown.get(uvaId);
     if (inMemory) return inMemory;
     try {
-      return (await uvaStatusStore.get(uvaId)).lastStatus ?? 'unknown';
+      const record = await uvaStatusStore.get(uvaId);
+      // lastStatus holds the station status since #61 (an inactive RACIMO makes it
+      // 'disabled'), so it only stands for the UVA in records written before #61, which
+      // have no RACIMO fields.
+      return (
+        record.lastUvaStatus ??
+        (record.racimoStatus ? undefined : record.lastStatus) ??
+        'unknown'
+      );
     } catch {
       return 'unknown';
+    }
+  }
+
+  /** Saves the UVA's own status, only when it changed (read errors fall back to it). */
+  private async rememberUva(
+    uvaId: string,
+    status: KnownUvaStatus,
+  ): Promise<void> {
+    try {
+      const record = await uvaStatusStore.get(uvaId);
+      if (record.lastUvaStatus !== status) {
+        await uvaStatusStore.update(uvaId, { lastUvaStatus: status });
+      }
+    } catch (error) {
+      console.error('Error remembering the UVA status', error);
     }
   }
 

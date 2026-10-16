@@ -11,8 +11,12 @@
  *   - Decision 13: a global minimum version (public/app/version-policy.json). An empty
  *     minimum means no requirement.
  *   - Notice order when several apply: RACIMO inactive (#61), UVA disabled, update required.
+ *   - RACIMO (F4-06, #61): active if `enabled !== false` (an unset `enabled` counts as active,
+ *     unlike the UVA). A RACIMO that is not on the phone yet is UNKNOWN and does not lock.
+ *     An inactive RACIMO makes its UVAs behave as disabled; the reactivation notice is
+ *     decided on the combined UVA + RACIMO status.
  *
- * No React Native imports: this module is shared with #61 and tested in plain Jest.
+ * No React Native imports: this module is shared by #60 and #61 and tested in plain Jest.
  */
 
 import type { GamificationEventSubtype } from '@/domain/gamification/gamification-alerts-types';
@@ -22,13 +26,21 @@ export const UVA_UNSET_ENABLED_CUTOFF = new Date('2026-11-25T05:00:00Z');
 
 export type UvaStatus = 'enabled' | 'disabled' | 'unknown';
 
+export type RacimoStatus = 'active' | 'inactive' | 'unknown';
+
+export type KnownRacimoStatus = Exclude<RacimoStatus, 'unknown'>;
+
 /**
  * Why registering is blocked. Ordered by priority (ADR-005: RACIMO inactive, UVA disabled,
- * update required). #61 adds 'racimo-inactive' at the head of LOCK_REASON_PRIORITY.
+ * update required).
  */
-export type RegistrationLockReason = 'uva-disabled' | 'update-required';
+export type RegistrationLockReason =
+  | 'racimo-inactive'
+  | 'uva-disabled'
+  | 'update-required';
 
 export const LOCK_REASON_PRIORITY: readonly RegistrationLockReason[] = [
+  'racimo-inactive',
   'uva-disabled',
   'update-required',
 ];
@@ -52,6 +64,47 @@ export function getEffectiveUvaStatus(
   return now.getTime() < UVA_UNSET_ENABLED_CUTOFF.getTime()
     ? 'enabled'
     : 'disabled';
+}
+
+export interface RacimoEnabledSnapshot {
+  enabled?: boolean | null;
+}
+
+/**
+ * Effective status of the RACIMO (ADR-005: `enabled !== false` is active, with no cut-off).
+ * @param racimo - The RACIMO as stored on the phone, or undefined/null if it has not synced yet.
+ */
+export function getEffectiveRacimoStatus(
+  racimo: RacimoEnabledSnapshot | null | undefined,
+): RacimoStatus {
+  if (!racimo) return 'unknown';
+  return racimo.enabled === false ? 'inactive' : 'active';
+}
+
+/** True when linking to this RACIMO must be refused (only a known inactive RACIMO). */
+export function isRacimoClosedToNewParticipants(
+  racimo: RacimoEnabledSnapshot | null | undefined,
+): boolean {
+  return getEffectiveRacimoStatus(racimo) === 'inactive';
+}
+
+/**
+ * Status of the station as the person lives it: the UVA's own status combined with its
+ * RACIMO's (an inactive RACIMO makes its UVAs behave as disabled, ADR-005).
+ * - Disabled if either one is known to block.
+ * - Unknown if either one has not synced yet, so a reactivation is never inferred from a
+ *   half-synced phone (for instance the UVA arriving before its RACIMO after a data reset).
+ * - Enabled otherwise.
+ */
+export function getStationStatus(
+  uvaStatus: UvaStatus,
+  racimoStatus: RacimoStatus,
+): UvaStatus {
+  if (uvaStatus === 'disabled' || racimoStatus === 'inactive') {
+    return 'disabled';
+  }
+  if (uvaStatus === 'unknown' || racimoStatus === 'unknown') return 'unknown';
+  return 'enabled';
 }
 
 // ─── Minimum version ─────────────────────────────────────────────────────────
@@ -112,18 +165,21 @@ export function isUpdateRequired(
 // ─── Combined lock ───────────────────────────────────────────────────────────
 
 export interface RegistrationLockInput {
+  /** Absent = RACIMO not evaluated (counts as unknown, never locks). */
+  racimoStatus?: RacimoStatus;
   uvaStatus: UvaStatus;
   updateRequired: boolean;
 }
 
 /**
  * The single reason shown to the person, or null if registering is allowed.
- * Unknown UVA status never locks (decision 12).
+ * Unknown UVA or RACIMO status never locks (decision 12).
  */
 export function resolveRegistrationLock(
   input: RegistrationLockInput,
 ): RegistrationLockReason | null {
   const active: Record<RegistrationLockReason, boolean> = {
+    'racimo-inactive': input.racimoStatus === 'inactive',
     'uva-disabled': input.uvaStatus === 'disabled',
     'update-required': input.updateRequired,
   };
@@ -139,11 +195,11 @@ export function shouldPauseReminders(
 
 /**
  * Streak recovery is hidden only while the station is disabled (P34, decision O6).
- * Decided on the UVA status, not on the prioritized reason, so it still holds when #61
- * puts 'racimo-inactive' ahead of 'uva-disabled'.
+ * Decided on the station status (UVA + RACIMO, see getStationStatus), not on the prioritized
+ * reason, so an update requirement alone never hides it.
  */
-export function canProposeStreakRecovery(uvaStatus: UvaStatus): boolean {
-  return uvaStatus !== 'disabled';
+export function canProposeStreakRecovery(stationStatus: UvaStatus): boolean {
+  return stationStatus !== 'disabled';
 }
 
 /**
@@ -152,8 +208,8 @@ export function canProposeStreakRecovery(uvaStatus: UvaStatus): boolean {
  */
 export function withoutStreakRecoveryProposals<
   T extends { subtype?: GamificationEventSubtype },
->(alerts: T[], uvaStatus: UvaStatus): T[] {
-  if (canProposeStreakRecovery(uvaStatus)) return alerts;
+>(alerts: T[], stationStatus: UvaStatus): T[] {
+  if (canProposeStreakRecovery(stationStatus)) return alerts;
   return alerts.filter((alert) => alert.subtype !== 'streak_recovery');
 }
 

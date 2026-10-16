@@ -1028,6 +1028,7 @@ describe('F4-05 — Profile and Alerts hide "Recupera tu racha" with the station
       ...lockMock.UNLOCKED,
       uvaId: 'uva-0001',
       uvaStatus,
+      stationStatus: uvaStatus,
       reason: uvaStatus === 'disabled' ? 'uva-disabled' : null,
     };
   }

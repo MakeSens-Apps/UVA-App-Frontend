@@ -2,78 +2,15 @@
 /* eslint-disable */
 //  This file was automatically generated and should not be edited.
 
-export type CreateRACIMOInput = {
-  id?: string | null;
-  Name: string;
-  LinkageCode: string;
-  Configuration?: string | null;
-  _version?: number | null;
-};
-
-export type ModelRACIMOConditionInput = {
-  Name?: ModelStringInput | null;
-  LinkageCode?: ModelStringInput | null;
-  Configuration?: ModelStringInput | null;
-  and?: Array<ModelRACIMOConditionInput | null> | null;
-  or?: Array<ModelRACIMOConditionInput | null> | null;
-  not?: ModelRACIMOConditionInput | null;
-  _deleted?: ModelBooleanInput | null;
-  createdAt?: ModelStringInput | null;
-  updatedAt?: ModelStringInput | null;
-};
-
-export type ModelStringInput = {
-  ne?: string | null;
-  eq?: string | null;
-  le?: string | null;
-  lt?: string | null;
-  ge?: string | null;
-  gt?: string | null;
-  contains?: string | null;
-  notContains?: string | null;
-  between?: Array<string | null> | null;
-  beginsWith?: string | null;
-  attributeExists?: boolean | null;
-  attributeType?: ModelAttributeTypes | null;
-  size?: ModelSizeInput | null;
-};
-
-export enum ModelAttributeTypes {
-  binary = 'binary',
-  binarySet = 'binarySet',
-  bool = 'bool',
-  list = 'list',
-  map = 'map',
-  number = 'number',
-  numberSet = 'numberSet',
-  string = 'string',
-  stringSet = 'stringSet',
-  _null = '_null',
-}
-
-export type ModelSizeInput = {
-  ne?: number | null;
-  eq?: number | null;
-  le?: number | null;
-  lt?: number | null;
-  ge?: number | null;
-  gt?: number | null;
-  between?: Array<number | null> | null;
-};
-
-export type ModelBooleanInput = {
-  ne?: boolean | null;
-  eq?: boolean | null;
-  attributeExists?: boolean | null;
-  attributeType?: ModelAttributeTypes | null;
-};
-
 export type RACIMO = {
   __typename: 'RACIMO';
   id: string;
   Name: string;
   LinkageCode: string;
   Configuration?: string | null;
+  enabled?: boolean | null;
+  disabledAt?: string | null;
+  disabledPeriods?: string | null;
   UVAs?: ModelUVAConnection | null;
   GamificationEvents?: ModelGamificationEventConnection | null;
   AppUsageEvents?: ModelAppUsageEventConnection | null;
@@ -99,6 +36,10 @@ export type UVA = {
   altitude?: string | null;
   fields?: string | null;
   enabled?: boolean | null;
+  disabledAt?: string | null;
+  disabledPeriods?: string | null;
+  appVersion?: string | null;
+  appVersionReportedAt?: string | null;
   createdAt?: string | null;
   userID: string;
   User: User;
@@ -226,11 +167,264 @@ export type Measurement = {
   owner?: string | null;
 };
 
+export type ModelRACIMOFilterInput = {
+  id?: ModelIDInput | null;
+  Name?: ModelStringInput | null;
+  LinkageCode?: ModelStringInput | null;
+  Configuration?: ModelStringInput | null;
+  enabled?: ModelBooleanInput | null;
+  disabledAt?: ModelStringInput | null;
+  disabledPeriods?: ModelStringInput | null;
+  createdAt?: ModelStringInput | null;
+  updatedAt?: ModelStringInput | null;
+  and?: Array<ModelRACIMOFilterInput | null> | null;
+  or?: Array<ModelRACIMOFilterInput | null> | null;
+  not?: ModelRACIMOFilterInput | null;
+  _deleted?: ModelBooleanInput | null;
+};
+
+export type ModelIDInput = {
+  ne?: string | null;
+  eq?: string | null;
+  le?: string | null;
+  lt?: string | null;
+  ge?: string | null;
+  gt?: string | null;
+  contains?: string | null;
+  notContains?: string | null;
+  between?: Array<string | null> | null;
+  beginsWith?: string | null;
+  attributeExists?: boolean | null;
+  attributeType?: ModelAttributeTypes | null;
+  size?: ModelSizeInput | null;
+};
+
+export enum ModelAttributeTypes {
+  binary = 'binary',
+  binarySet = 'binarySet',
+  bool = 'bool',
+  list = 'list',
+  map = 'map',
+  number = 'number',
+  numberSet = 'numberSet',
+  string = 'string',
+  stringSet = 'stringSet',
+  _null = '_null',
+}
+
+export type ModelSizeInput = {
+  ne?: number | null;
+  eq?: number | null;
+  le?: number | null;
+  lt?: number | null;
+  ge?: number | null;
+  gt?: number | null;
+  between?: Array<number | null> | null;
+};
+
+export type ModelStringInput = {
+  ne?: string | null;
+  eq?: string | null;
+  le?: string | null;
+  lt?: string | null;
+  ge?: string | null;
+  gt?: string | null;
+  contains?: string | null;
+  notContains?: string | null;
+  between?: Array<string | null> | null;
+  beginsWith?: string | null;
+  attributeExists?: boolean | null;
+  attributeType?: ModelAttributeTypes | null;
+  size?: ModelSizeInput | null;
+};
+
+export type ModelBooleanInput = {
+  ne?: boolean | null;
+  eq?: boolean | null;
+  attributeExists?: boolean | null;
+  attributeType?: ModelAttributeTypes | null;
+};
+
+export type ModelRACIMOConnection = {
+  __typename: 'ModelRACIMOConnection';
+  items: Array<RACIMO | null>;
+  nextToken?: string | null;
+  startedAt?: number | null;
+};
+
+export type ModelMeasurementFilterInput = {
+  id?: ModelIDInput | null;
+  type?: ModelStringInput | null;
+  data?: ModelStringInput | null;
+  logs?: ModelStringInput | null;
+  ts?: ModelStringInput | null;
+  task?: ModelStringInput | null;
+  uvaID?: ModelIDInput | null;
+  createdAt?: ModelStringInput | null;
+  updatedAt?: ModelStringInput | null;
+  and?: Array<ModelMeasurementFilterInput | null> | null;
+  or?: Array<ModelMeasurementFilterInput | null> | null;
+  not?: ModelMeasurementFilterInput | null;
+  _deleted?: ModelBooleanInput | null;
+  owner?: ModelStringInput | null;
+};
+
+export type ModelStringKeyConditionInput = {
+  eq?: string | null;
+  le?: string | null;
+  lt?: string | null;
+  ge?: string | null;
+  gt?: string | null;
+  between?: Array<string | null> | null;
+  beginsWith?: string | null;
+};
+
+export enum ModelSortDirection {
+  ASC = 'ASC',
+  DESC = 'DESC',
+}
+
+export type ModelUserProgressFilterInput = {
+  id?: ModelIDInput | null;
+  ts?: ModelStringInput | null;
+  Seed?: ModelIntInput | null;
+  Streak?: ModelIntInput | null;
+  Milestones?: ModelStringInput | null;
+  SaveStreak?: ModelBooleanInput | null;
+  completedTasks?: ModelIntInput | null;
+  additionalInfo?: ModelStringInput | null;
+  userID?: ModelIDInput | null;
+  createdAt?: ModelStringInput | null;
+  updatedAt?: ModelStringInput | null;
+  and?: Array<ModelUserProgressFilterInput | null> | null;
+  or?: Array<ModelUserProgressFilterInput | null> | null;
+  not?: ModelUserProgressFilterInput | null;
+  _deleted?: ModelBooleanInput | null;
+};
+
+export type ModelIntInput = {
+  ne?: number | null;
+  eq?: number | null;
+  le?: number | null;
+  lt?: number | null;
+  ge?: number | null;
+  gt?: number | null;
+  between?: Array<number | null> | null;
+  attributeExists?: boolean | null;
+  attributeType?: ModelAttributeTypes | null;
+};
+
+export type ModelGamificationEventFilterInput = {
+  id?: ModelIDInput | null;
+  userID?: ModelIDInput | null;
+  racimoID?: ModelIDInput | null;
+  eventType?: ModelStringInput | null;
+  ts?: ModelStringInput | null;
+  data?: ModelStringInput | null;
+  isUnclean?: ModelBooleanInput | null;
+  createdAt?: ModelStringInput | null;
+  updatedAt?: ModelStringInput | null;
+  and?: Array<ModelGamificationEventFilterInput | null> | null;
+  or?: Array<ModelGamificationEventFilterInput | null> | null;
+  not?: ModelGamificationEventFilterInput | null;
+  _deleted?: ModelBooleanInput | null;
+};
+
+export type ModelAppUsageEventFilterInput = {
+  id?: ModelIDInput | null;
+  userID?: ModelIDInput | null;
+  racimoID?: ModelIDInput | null;
+  sessionID?: ModelStringInput | null;
+  screenName?: ModelStringInput | null;
+  ts?: ModelStringInput | null;
+  action?: ModelStringInput | null;
+  duration?: ModelIntInput | null;
+  createdAt?: ModelStringInput | null;
+  updatedAt?: ModelStringInput | null;
+  and?: Array<ModelAppUsageEventFilterInput | null> | null;
+  or?: Array<ModelAppUsageEventFilterInput | null> | null;
+  not?: ModelAppUsageEventFilterInput | null;
+  _deleted?: ModelBooleanInput | null;
+};
+
+export type ModelUserFilterInput = {
+  id?: ModelIDInput | null;
+  Name?: ModelStringInput | null;
+  LastName?: ModelStringInput | null;
+  PhoneNumber?: ModelStringInput | null;
+  Email?: ModelStringInput | null;
+  Rank?: ModelStringInput | null;
+  uvaID?: ModelIDInput | null;
+  createdAt?: ModelStringInput | null;
+  updatedAt?: ModelStringInput | null;
+  and?: Array<ModelUserFilterInput | null> | null;
+  or?: Array<ModelUserFilterInput | null> | null;
+  not?: ModelUserFilterInput | null;
+  _deleted?: ModelBooleanInput | null;
+};
+
+export type ModelUserConnection = {
+  __typename: 'ModelUserConnection';
+  items: Array<User | null>;
+  nextToken?: string | null;
+  startedAt?: number | null;
+};
+
+export type ModelUVAFilterInput = {
+  id?: ModelIDInput | null;
+  latitude?: ModelStringInput | null;
+  longitude?: ModelStringInput | null;
+  altitude?: ModelStringInput | null;
+  fields?: ModelStringInput | null;
+  enabled?: ModelBooleanInput | null;
+  disabledAt?: ModelStringInput | null;
+  disabledPeriods?: ModelStringInput | null;
+  appVersion?: ModelStringInput | null;
+  appVersionReportedAt?: ModelStringInput | null;
+  createdAt?: ModelStringInput | null;
+  userID?: ModelIDInput | null;
+  racimoID?: ModelIDInput | null;
+  updatedAt?: ModelStringInput | null;
+  and?: Array<ModelUVAFilterInput | null> | null;
+  or?: Array<ModelUVAFilterInput | null> | null;
+  not?: ModelUVAFilterInput | null;
+  _deleted?: ModelBooleanInput | null;
+};
+
+export type CreateRACIMOInput = {
+  id?: string | null;
+  Name: string;
+  LinkageCode: string;
+  Configuration?: string | null;
+  enabled?: boolean | null;
+  disabledAt?: string | null;
+  disabledPeriods?: string | null;
+  _version?: number | null;
+};
+
+export type ModelRACIMOConditionInput = {
+  Name?: ModelStringInput | null;
+  LinkageCode?: ModelStringInput | null;
+  Configuration?: ModelStringInput | null;
+  enabled?: ModelBooleanInput | null;
+  disabledAt?: ModelStringInput | null;
+  disabledPeriods?: ModelStringInput | null;
+  and?: Array<ModelRACIMOConditionInput | null> | null;
+  or?: Array<ModelRACIMOConditionInput | null> | null;
+  not?: ModelRACIMOConditionInput | null;
+  _deleted?: ModelBooleanInput | null;
+  createdAt?: ModelStringInput | null;
+  updatedAt?: ModelStringInput | null;
+};
+
 export type UpdateRACIMOInput = {
   id: string;
   Name?: string | null;
   LinkageCode?: string | null;
   Configuration?: string | null;
+  enabled?: boolean | null;
+  disabledAt?: string | null;
+  disabledPeriods?: string | null;
   _version?: number | null;
 };
 
@@ -264,22 +458,6 @@ export type ModelMeasurementConditionInput = {
   createdAt?: ModelStringInput | null;
   updatedAt?: ModelStringInput | null;
   owner?: ModelStringInput | null;
-};
-
-export type ModelIDInput = {
-  ne?: string | null;
-  eq?: string | null;
-  le?: string | null;
-  lt?: string | null;
-  ge?: string | null;
-  gt?: string | null;
-  contains?: string | null;
-  notContains?: string | null;
-  between?: Array<string | null> | null;
-  beginsWith?: string | null;
-  attributeExists?: boolean | null;
-  attributeType?: ModelAttributeTypes | null;
-  size?: ModelSizeInput | null;
 };
 
 export type UpdateMeasurementInput = {
@@ -326,18 +504,6 @@ export type ModelUserProgressConditionInput = {
   _deleted?: ModelBooleanInput | null;
   createdAt?: ModelStringInput | null;
   updatedAt?: ModelStringInput | null;
-};
-
-export type ModelIntInput = {
-  ne?: number | null;
-  eq?: number | null;
-  le?: number | null;
-  lt?: number | null;
-  ge?: number | null;
-  gt?: number | null;
-  between?: Array<number | null> | null;
-  attributeExists?: boolean | null;
-  attributeType?: ModelAttributeTypes | null;
 };
 
 export type UpdateUserProgressInput = {
@@ -495,6 +661,10 @@ export type CreateUVAInput = {
   altitude?: string | null;
   fields?: string | null;
   enabled?: boolean | null;
+  disabledAt?: string | null;
+  disabledPeriods?: string | null;
+  appVersion?: string | null;
+  appVersionReportedAt?: string | null;
   createdAt?: string | null;
   userID: string;
   racimoID: string;
@@ -507,6 +677,10 @@ export type ModelUVAConditionInput = {
   altitude?: ModelStringInput | null;
   fields?: ModelStringInput | null;
   enabled?: ModelBooleanInput | null;
+  disabledAt?: ModelStringInput | null;
+  disabledPeriods?: ModelStringInput | null;
+  appVersion?: ModelStringInput | null;
+  appVersionReportedAt?: ModelStringInput | null;
   createdAt?: ModelStringInput | null;
   userID?: ModelIDInput | null;
   racimoID?: ModelIDInput | null;
@@ -524,6 +698,10 @@ export type UpdateUVAInput = {
   altitude?: string | null;
   fields?: string | null;
   enabled?: boolean | null;
+  disabledAt?: string | null;
+  disabledPeriods?: string | null;
+  appVersion?: string | null;
+  appVersionReportedAt?: string | null;
   createdAt?: string | null;
   userID?: string | null;
   racimoID?: string | null;
@@ -535,154 +713,14 @@ export type DeleteUVAInput = {
   _version?: number | null;
 };
 
-export type ModelRACIMOFilterInput = {
-  id?: ModelIDInput | null;
-  Name?: ModelStringInput | null;
-  LinkageCode?: ModelStringInput | null;
-  Configuration?: ModelStringInput | null;
-  createdAt?: ModelStringInput | null;
-  updatedAt?: ModelStringInput | null;
-  and?: Array<ModelRACIMOFilterInput | null> | null;
-  or?: Array<ModelRACIMOFilterInput | null> | null;
-  not?: ModelRACIMOFilterInput | null;
-  _deleted?: ModelBooleanInput | null;
-};
-
-export type ModelRACIMOConnection = {
-  __typename: 'ModelRACIMOConnection';
-  items: Array<RACIMO | null>;
-  nextToken?: string | null;
-  startedAt?: number | null;
-};
-
-export type ModelMeasurementFilterInput = {
-  id?: ModelIDInput | null;
-  type?: ModelStringInput | null;
-  data?: ModelStringInput | null;
-  logs?: ModelStringInput | null;
-  ts?: ModelStringInput | null;
-  task?: ModelStringInput | null;
-  uvaID?: ModelIDInput | null;
-  createdAt?: ModelStringInput | null;
-  updatedAt?: ModelStringInput | null;
-  and?: Array<ModelMeasurementFilterInput | null> | null;
-  or?: Array<ModelMeasurementFilterInput | null> | null;
-  not?: ModelMeasurementFilterInput | null;
-  _deleted?: ModelBooleanInput | null;
-  owner?: ModelStringInput | null;
-};
-
-export type ModelStringKeyConditionInput = {
-  eq?: string | null;
-  le?: string | null;
-  lt?: string | null;
-  ge?: string | null;
-  gt?: string | null;
-  between?: Array<string | null> | null;
-  beginsWith?: string | null;
-};
-
-export enum ModelSortDirection {
-  ASC = 'ASC',
-  DESC = 'DESC',
-}
-
-export type ModelUserProgressFilterInput = {
-  id?: ModelIDInput | null;
-  ts?: ModelStringInput | null;
-  Seed?: ModelIntInput | null;
-  Streak?: ModelIntInput | null;
-  Milestones?: ModelStringInput | null;
-  SaveStreak?: ModelBooleanInput | null;
-  completedTasks?: ModelIntInput | null;
-  additionalInfo?: ModelStringInput | null;
-  userID?: ModelIDInput | null;
-  createdAt?: ModelStringInput | null;
-  updatedAt?: ModelStringInput | null;
-  and?: Array<ModelUserProgressFilterInput | null> | null;
-  or?: Array<ModelUserProgressFilterInput | null> | null;
-  not?: ModelUserProgressFilterInput | null;
-  _deleted?: ModelBooleanInput | null;
-};
-
-export type ModelGamificationEventFilterInput = {
-  id?: ModelIDInput | null;
-  userID?: ModelIDInput | null;
-  racimoID?: ModelIDInput | null;
-  eventType?: ModelStringInput | null;
-  ts?: ModelStringInput | null;
-  data?: ModelStringInput | null;
-  isUnclean?: ModelBooleanInput | null;
-  createdAt?: ModelStringInput | null;
-  updatedAt?: ModelStringInput | null;
-  and?: Array<ModelGamificationEventFilterInput | null> | null;
-  or?: Array<ModelGamificationEventFilterInput | null> | null;
-  not?: ModelGamificationEventFilterInput | null;
-  _deleted?: ModelBooleanInput | null;
-};
-
-export type ModelAppUsageEventFilterInput = {
-  id?: ModelIDInput | null;
-  userID?: ModelIDInput | null;
-  racimoID?: ModelIDInput | null;
-  sessionID?: ModelStringInput | null;
-  screenName?: ModelStringInput | null;
-  ts?: ModelStringInput | null;
-  action?: ModelStringInput | null;
-  duration?: ModelIntInput | null;
-  createdAt?: ModelStringInput | null;
-  updatedAt?: ModelStringInput | null;
-  and?: Array<ModelAppUsageEventFilterInput | null> | null;
-  or?: Array<ModelAppUsageEventFilterInput | null> | null;
-  not?: ModelAppUsageEventFilterInput | null;
-  _deleted?: ModelBooleanInput | null;
-};
-
-export type ModelUserFilterInput = {
-  id?: ModelIDInput | null;
-  Name?: ModelStringInput | null;
-  LastName?: ModelStringInput | null;
-  PhoneNumber?: ModelStringInput | null;
-  Email?: ModelStringInput | null;
-  Rank?: ModelStringInput | null;
-  uvaID?: ModelIDInput | null;
-  createdAt?: ModelStringInput | null;
-  updatedAt?: ModelStringInput | null;
-  and?: Array<ModelUserFilterInput | null> | null;
-  or?: Array<ModelUserFilterInput | null> | null;
-  not?: ModelUserFilterInput | null;
-  _deleted?: ModelBooleanInput | null;
-};
-
-export type ModelUserConnection = {
-  __typename: 'ModelUserConnection';
-  items: Array<User | null>;
-  nextToken?: string | null;
-  startedAt?: number | null;
-};
-
-export type ModelUVAFilterInput = {
-  id?: ModelIDInput | null;
-  latitude?: ModelStringInput | null;
-  longitude?: ModelStringInput | null;
-  altitude?: ModelStringInput | null;
-  fields?: ModelStringInput | null;
-  enabled?: ModelBooleanInput | null;
-  createdAt?: ModelStringInput | null;
-  userID?: ModelIDInput | null;
-  racimoID?: ModelIDInput | null;
-  updatedAt?: ModelStringInput | null;
-  and?: Array<ModelUVAFilterInput | null> | null;
-  or?: Array<ModelUVAFilterInput | null> | null;
-  not?: ModelUVAFilterInput | null;
-  _deleted?: ModelBooleanInput | null;
-};
-
 export type ModelSubscriptionRACIMOFilterInput = {
   id?: ModelSubscriptionIDInput | null;
   Name?: ModelSubscriptionStringInput | null;
   LinkageCode?: ModelSubscriptionStringInput | null;
   Configuration?: ModelSubscriptionStringInput | null;
+  enabled?: ModelSubscriptionBooleanInput | null;
+  disabledAt?: ModelSubscriptionStringInput | null;
+  disabledPeriods?: ModelSubscriptionStringInput | null;
   createdAt?: ModelSubscriptionStringInput | null;
   updatedAt?: ModelSubscriptionStringInput | null;
   and?: Array<ModelSubscriptionRACIMOFilterInput | null> | null;
@@ -718,6 +756,11 @@ export type ModelSubscriptionStringInput = {
   beginsWith?: string | null;
   in?: Array<string | null> | null;
   notIn?: Array<string | null> | null;
+};
+
+export type ModelSubscriptionBooleanInput = {
+  ne?: boolean | null;
+  eq?: boolean | null;
 };
 
 export type ModelSubscriptionMeasurementFilterInput = {
@@ -763,11 +806,6 @@ export type ModelSubscriptionIntInput = {
   between?: Array<number | null> | null;
   in?: Array<number | null> | null;
   notIn?: Array<number | null> | null;
-};
-
-export type ModelSubscriptionBooleanInput = {
-  ne?: boolean | null;
-  eq?: boolean | null;
 };
 
 export type ModelSubscriptionGamificationEventFilterInput = {
@@ -823,6 +861,10 @@ export type ModelSubscriptionUVAFilterInput = {
   altitude?: ModelSubscriptionStringInput | null;
   fields?: ModelSubscriptionStringInput | null;
   enabled?: ModelSubscriptionBooleanInput | null;
+  disabledAt?: ModelSubscriptionStringInput | null;
+  disabledPeriods?: ModelSubscriptionStringInput | null;
+  appVersion?: ModelSubscriptionStringInput | null;
+  appVersionReportedAt?: ModelSubscriptionStringInput | null;
   createdAt?: ModelSubscriptionStringInput | null;
   racimoID?: ModelSubscriptionIDInput | null;
   updatedAt?: ModelSubscriptionStringInput | null;
@@ -830,693 +872,6 @@ export type ModelSubscriptionUVAFilterInput = {
   or?: Array<ModelSubscriptionUVAFilterInput | null> | null;
   _deleted?: ModelBooleanInput | null;
   userID?: ModelStringInput | null;
-};
-
-export type CreateRACIMOMutationVariables = {
-  input: CreateRACIMOInput;
-  condition?: ModelRACIMOConditionInput | null;
-};
-
-export type CreateRACIMOMutation = {
-  createRACIMO?: {
-    __typename: 'RACIMO';
-    id: string;
-    Name: string;
-    LinkageCode: string;
-    Configuration?: string | null;
-    UVAs?: {
-      __typename: 'ModelUVAConnection';
-      nextToken?: string | null;
-      startedAt?: number | null;
-    } | null;
-    GamificationEvents?: {
-      __typename: 'ModelGamificationEventConnection';
-      nextToken?: string | null;
-      startedAt?: number | null;
-    } | null;
-    AppUsageEvents?: {
-      __typename: 'ModelAppUsageEventConnection';
-      nextToken?: string | null;
-      startedAt?: number | null;
-    } | null;
-    createdAt: string;
-    updatedAt: string;
-    _version: number;
-    _deleted?: boolean | null;
-    _lastChangedAt: number;
-  } | null;
-};
-
-export type UpdateRACIMOMutationVariables = {
-  input: UpdateRACIMOInput;
-  condition?: ModelRACIMOConditionInput | null;
-};
-
-export type UpdateRACIMOMutation = {
-  updateRACIMO?: {
-    __typename: 'RACIMO';
-    id: string;
-    Name: string;
-    LinkageCode: string;
-    Configuration?: string | null;
-    UVAs?: {
-      __typename: 'ModelUVAConnection';
-      nextToken?: string | null;
-      startedAt?: number | null;
-    } | null;
-    GamificationEvents?: {
-      __typename: 'ModelGamificationEventConnection';
-      nextToken?: string | null;
-      startedAt?: number | null;
-    } | null;
-    AppUsageEvents?: {
-      __typename: 'ModelAppUsageEventConnection';
-      nextToken?: string | null;
-      startedAt?: number | null;
-    } | null;
-    createdAt: string;
-    updatedAt: string;
-    _version: number;
-    _deleted?: boolean | null;
-    _lastChangedAt: number;
-  } | null;
-};
-
-export type DeleteRACIMOMutationVariables = {
-  input: DeleteRACIMOInput;
-  condition?: ModelRACIMOConditionInput | null;
-};
-
-export type DeleteRACIMOMutation = {
-  deleteRACIMO?: {
-    __typename: 'RACIMO';
-    id: string;
-    Name: string;
-    LinkageCode: string;
-    Configuration?: string | null;
-    UVAs?: {
-      __typename: 'ModelUVAConnection';
-      nextToken?: string | null;
-      startedAt?: number | null;
-    } | null;
-    GamificationEvents?: {
-      __typename: 'ModelGamificationEventConnection';
-      nextToken?: string | null;
-      startedAt?: number | null;
-    } | null;
-    AppUsageEvents?: {
-      __typename: 'ModelAppUsageEventConnection';
-      nextToken?: string | null;
-      startedAt?: number | null;
-    } | null;
-    createdAt: string;
-    updatedAt: string;
-    _version: number;
-    _deleted?: boolean | null;
-    _lastChangedAt: number;
-  } | null;
-};
-
-export type CreateMeasurementMutationVariables = {
-  input: CreateMeasurementInput;
-  condition?: ModelMeasurementConditionInput | null;
-};
-
-export type CreateMeasurementMutation = {
-  createMeasurement?: {
-    __typename: 'Measurement';
-    id: string;
-    type: string;
-    data?: string | null;
-    logs?: string | null;
-    ts: string;
-    task?: string | null;
-    uvaID: string;
-    createdAt: string;
-    updatedAt: string;
-    _version: number;
-    _deleted?: boolean | null;
-    _lastChangedAt: number;
-    owner?: string | null;
-  } | null;
-};
-
-export type UpdateMeasurementMutationVariables = {
-  input: UpdateMeasurementInput;
-  condition?: ModelMeasurementConditionInput | null;
-};
-
-export type UpdateMeasurementMutation = {
-  updateMeasurement?: {
-    __typename: 'Measurement';
-    id: string;
-    type: string;
-    data?: string | null;
-    logs?: string | null;
-    ts: string;
-    task?: string | null;
-    uvaID: string;
-    createdAt: string;
-    updatedAt: string;
-    _version: number;
-    _deleted?: boolean | null;
-    _lastChangedAt: number;
-    owner?: string | null;
-  } | null;
-};
-
-export type DeleteMeasurementMutationVariables = {
-  input: DeleteMeasurementInput;
-  condition?: ModelMeasurementConditionInput | null;
-};
-
-export type DeleteMeasurementMutation = {
-  deleteMeasurement?: {
-    __typename: 'Measurement';
-    id: string;
-    type: string;
-    data?: string | null;
-    logs?: string | null;
-    ts: string;
-    task?: string | null;
-    uvaID: string;
-    createdAt: string;
-    updatedAt: string;
-    _version: number;
-    _deleted?: boolean | null;
-    _lastChangedAt: number;
-    owner?: string | null;
-  } | null;
-};
-
-export type CreateUserProgressMutationVariables = {
-  input: CreateUserProgressInput;
-  condition?: ModelUserProgressConditionInput | null;
-};
-
-export type CreateUserProgressMutation = {
-  createUserProgress?: {
-    __typename: 'UserProgress';
-    id: string;
-    ts: string;
-    Seed?: number | null;
-    Streak?: number | null;
-    Milestones?: string | null;
-    SaveStreak?: boolean | null;
-    completedTasks?: number | null;
-    additionalInfo?: string | null;
-    userID: string;
-    createdAt: string;
-    updatedAt: string;
-    _version: number;
-    _deleted?: boolean | null;
-    _lastChangedAt: number;
-  } | null;
-};
-
-export type UpdateUserProgressMutationVariables = {
-  input: UpdateUserProgressInput;
-  condition?: ModelUserProgressConditionInput | null;
-};
-
-export type UpdateUserProgressMutation = {
-  updateUserProgress?: {
-    __typename: 'UserProgress';
-    id: string;
-    ts: string;
-    Seed?: number | null;
-    Streak?: number | null;
-    Milestones?: string | null;
-    SaveStreak?: boolean | null;
-    completedTasks?: number | null;
-    additionalInfo?: string | null;
-    userID: string;
-    createdAt: string;
-    updatedAt: string;
-    _version: number;
-    _deleted?: boolean | null;
-    _lastChangedAt: number;
-  } | null;
-};
-
-export type DeleteUserProgressMutationVariables = {
-  input: DeleteUserProgressInput;
-  condition?: ModelUserProgressConditionInput | null;
-};
-
-export type DeleteUserProgressMutation = {
-  deleteUserProgress?: {
-    __typename: 'UserProgress';
-    id: string;
-    ts: string;
-    Seed?: number | null;
-    Streak?: number | null;
-    Milestones?: string | null;
-    SaveStreak?: boolean | null;
-    completedTasks?: number | null;
-    additionalInfo?: string | null;
-    userID: string;
-    createdAt: string;
-    updatedAt: string;
-    _version: number;
-    _deleted?: boolean | null;
-    _lastChangedAt: number;
-  } | null;
-};
-
-export type CreateGamificationEventMutationVariables = {
-  input: CreateGamificationEventInput;
-  condition?: ModelGamificationEventConditionInput | null;
-};
-
-export type CreateGamificationEventMutation = {
-  createGamificationEvent?: {
-    __typename: 'GamificationEvent';
-    id: string;
-    userID: string;
-    racimoID: string;
-    eventType: string;
-    ts: string;
-    data?: string | null;
-    isUnclean?: boolean | null;
-    createdAt: string;
-    updatedAt: string;
-    _version: number;
-    _deleted?: boolean | null;
-    _lastChangedAt: number;
-  } | null;
-};
-
-export type UpdateGamificationEventMutationVariables = {
-  input: UpdateGamificationEventInput;
-  condition?: ModelGamificationEventConditionInput | null;
-};
-
-export type UpdateGamificationEventMutation = {
-  updateGamificationEvent?: {
-    __typename: 'GamificationEvent';
-    id: string;
-    userID: string;
-    racimoID: string;
-    eventType: string;
-    ts: string;
-    data?: string | null;
-    isUnclean?: boolean | null;
-    createdAt: string;
-    updatedAt: string;
-    _version: number;
-    _deleted?: boolean | null;
-    _lastChangedAt: number;
-  } | null;
-};
-
-export type DeleteGamificationEventMutationVariables = {
-  input: DeleteGamificationEventInput;
-  condition?: ModelGamificationEventConditionInput | null;
-};
-
-export type DeleteGamificationEventMutation = {
-  deleteGamificationEvent?: {
-    __typename: 'GamificationEvent';
-    id: string;
-    userID: string;
-    racimoID: string;
-    eventType: string;
-    ts: string;
-    data?: string | null;
-    isUnclean?: boolean | null;
-    createdAt: string;
-    updatedAt: string;
-    _version: number;
-    _deleted?: boolean | null;
-    _lastChangedAt: number;
-  } | null;
-};
-
-export type CreateAppUsageEventMutationVariables = {
-  input: CreateAppUsageEventInput;
-  condition?: ModelAppUsageEventConditionInput | null;
-};
-
-export type CreateAppUsageEventMutation = {
-  createAppUsageEvent?: {
-    __typename: 'AppUsageEvent';
-    id: string;
-    userID: string;
-    racimoID: string;
-    sessionID: string;
-    screenName: string;
-    ts: string;
-    action: string;
-    duration?: number | null;
-    createdAt: string;
-    updatedAt: string;
-    _version: number;
-    _deleted?: boolean | null;
-    _lastChangedAt: number;
-  } | null;
-};
-
-export type UpdateAppUsageEventMutationVariables = {
-  input: UpdateAppUsageEventInput;
-  condition?: ModelAppUsageEventConditionInput | null;
-};
-
-export type UpdateAppUsageEventMutation = {
-  updateAppUsageEvent?: {
-    __typename: 'AppUsageEvent';
-    id: string;
-    userID: string;
-    racimoID: string;
-    sessionID: string;
-    screenName: string;
-    ts: string;
-    action: string;
-    duration?: number | null;
-    createdAt: string;
-    updatedAt: string;
-    _version: number;
-    _deleted?: boolean | null;
-    _lastChangedAt: number;
-  } | null;
-};
-
-export type DeleteAppUsageEventMutationVariables = {
-  input: DeleteAppUsageEventInput;
-  condition?: ModelAppUsageEventConditionInput | null;
-};
-
-export type DeleteAppUsageEventMutation = {
-  deleteAppUsageEvent?: {
-    __typename: 'AppUsageEvent';
-    id: string;
-    userID: string;
-    racimoID: string;
-    sessionID: string;
-    screenName: string;
-    ts: string;
-    action: string;
-    duration?: number | null;
-    createdAt: string;
-    updatedAt: string;
-    _version: number;
-    _deleted?: boolean | null;
-    _lastChangedAt: number;
-  } | null;
-};
-
-export type CreateUserMutationVariables = {
-  input: CreateUserInput;
-  condition?: ModelUserConditionInput | null;
-};
-
-export type CreateUserMutation = {
-  createUser?: {
-    __typename: 'User';
-    id: string;
-    Name: string;
-    LastName: string;
-    PhoneNumber: string;
-    Email?: string | null;
-    Rank?: string | null;
-    UserProgresses?: {
-      __typename: 'ModelUserProgressConnection';
-      nextToken?: string | null;
-      startedAt?: number | null;
-    } | null;
-    GamificationEvents?: {
-      __typename: 'ModelGamificationEventConnection';
-      nextToken?: string | null;
-      startedAt?: number | null;
-    } | null;
-    AppUsageEvents?: {
-      __typename: 'ModelAppUsageEventConnection';
-      nextToken?: string | null;
-      startedAt?: number | null;
-    } | null;
-    uvaID?: string | null;
-    UVA?: {
-      __typename: 'UVA';
-      id: string;
-      latitude?: string | null;
-      longitude?: string | null;
-      altitude?: string | null;
-      fields?: string | null;
-      enabled?: boolean | null;
-      createdAt?: string | null;
-      userID: string;
-      racimoID: string;
-      updatedAt: string;
-      _version: number;
-      _deleted?: boolean | null;
-      _lastChangedAt: number;
-    } | null;
-    createdAt: string;
-    updatedAt: string;
-    _version: number;
-    _deleted?: boolean | null;
-    _lastChangedAt: number;
-  } | null;
-};
-
-export type UpdateUserMutationVariables = {
-  input: UpdateUserInput;
-  condition?: ModelUserConditionInput | null;
-};
-
-export type UpdateUserMutation = {
-  updateUser?: {
-    __typename: 'User';
-    id: string;
-    Name: string;
-    LastName: string;
-    PhoneNumber: string;
-    Email?: string | null;
-    Rank?: string | null;
-    UserProgresses?: {
-      __typename: 'ModelUserProgressConnection';
-      nextToken?: string | null;
-      startedAt?: number | null;
-    } | null;
-    GamificationEvents?: {
-      __typename: 'ModelGamificationEventConnection';
-      nextToken?: string | null;
-      startedAt?: number | null;
-    } | null;
-    AppUsageEvents?: {
-      __typename: 'ModelAppUsageEventConnection';
-      nextToken?: string | null;
-      startedAt?: number | null;
-    } | null;
-    uvaID?: string | null;
-    UVA?: {
-      __typename: 'UVA';
-      id: string;
-      latitude?: string | null;
-      longitude?: string | null;
-      altitude?: string | null;
-      fields?: string | null;
-      enabled?: boolean | null;
-      createdAt?: string | null;
-      userID: string;
-      racimoID: string;
-      updatedAt: string;
-      _version: number;
-      _deleted?: boolean | null;
-      _lastChangedAt: number;
-    } | null;
-    createdAt: string;
-    updatedAt: string;
-    _version: number;
-    _deleted?: boolean | null;
-    _lastChangedAt: number;
-  } | null;
-};
-
-export type DeleteUserMutationVariables = {
-  input: DeleteUserInput;
-  condition?: ModelUserConditionInput | null;
-};
-
-export type DeleteUserMutation = {
-  deleteUser?: {
-    __typename: 'User';
-    id: string;
-    Name: string;
-    LastName: string;
-    PhoneNumber: string;
-    Email?: string | null;
-    Rank?: string | null;
-    UserProgresses?: {
-      __typename: 'ModelUserProgressConnection';
-      nextToken?: string | null;
-      startedAt?: number | null;
-    } | null;
-    GamificationEvents?: {
-      __typename: 'ModelGamificationEventConnection';
-      nextToken?: string | null;
-      startedAt?: number | null;
-    } | null;
-    AppUsageEvents?: {
-      __typename: 'ModelAppUsageEventConnection';
-      nextToken?: string | null;
-      startedAt?: number | null;
-    } | null;
-    uvaID?: string | null;
-    UVA?: {
-      __typename: 'UVA';
-      id: string;
-      latitude?: string | null;
-      longitude?: string | null;
-      altitude?: string | null;
-      fields?: string | null;
-      enabled?: boolean | null;
-      createdAt?: string | null;
-      userID: string;
-      racimoID: string;
-      updatedAt: string;
-      _version: number;
-      _deleted?: boolean | null;
-      _lastChangedAt: number;
-    } | null;
-    createdAt: string;
-    updatedAt: string;
-    _version: number;
-    _deleted?: boolean | null;
-    _lastChangedAt: number;
-  } | null;
-};
-
-export type CreateUVAMutationVariables = {
-  input: CreateUVAInput;
-  condition?: ModelUVAConditionInput | null;
-};
-
-export type CreateUVAMutation = {
-  createUVA?: {
-    __typename: 'UVA';
-    id: string;
-    latitude?: string | null;
-    longitude?: string | null;
-    altitude?: string | null;
-    fields?: string | null;
-    enabled?: boolean | null;
-    createdAt?: string | null;
-    userID: string;
-    User: {
-      __typename: 'User';
-      id: string;
-      Name: string;
-      LastName: string;
-      PhoneNumber: string;
-      Email?: string | null;
-      Rank?: string | null;
-      uvaID?: string | null;
-      createdAt: string;
-      updatedAt: string;
-      _version: number;
-      _deleted?: boolean | null;
-      _lastChangedAt: number;
-    };
-    Measurements?: {
-      __typename: 'ModelMeasurementConnection';
-      nextToken?: string | null;
-      startedAt?: number | null;
-    } | null;
-    racimoID: string;
-    updatedAt: string;
-    _version: number;
-    _deleted?: boolean | null;
-    _lastChangedAt: number;
-  } | null;
-};
-
-export type UpdateUVAMutationVariables = {
-  input: UpdateUVAInput;
-  condition?: ModelUVAConditionInput | null;
-};
-
-export type UpdateUVAMutation = {
-  updateUVA?: {
-    __typename: 'UVA';
-    id: string;
-    latitude?: string | null;
-    longitude?: string | null;
-    altitude?: string | null;
-    fields?: string | null;
-    enabled?: boolean | null;
-    createdAt?: string | null;
-    userID: string;
-    User: {
-      __typename: 'User';
-      id: string;
-      Name: string;
-      LastName: string;
-      PhoneNumber: string;
-      Email?: string | null;
-      Rank?: string | null;
-      uvaID?: string | null;
-      createdAt: string;
-      updatedAt: string;
-      _version: number;
-      _deleted?: boolean | null;
-      _lastChangedAt: number;
-    };
-    Measurements?: {
-      __typename: 'ModelMeasurementConnection';
-      nextToken?: string | null;
-      startedAt?: number | null;
-    } | null;
-    racimoID: string;
-    updatedAt: string;
-    _version: number;
-    _deleted?: boolean | null;
-    _lastChangedAt: number;
-  } | null;
-};
-
-export type DeleteUVAMutationVariables = {
-  input: DeleteUVAInput;
-  condition?: ModelUVAConditionInput | null;
-};
-
-export type DeleteUVAMutation = {
-  deleteUVA?: {
-    __typename: 'UVA';
-    id: string;
-    latitude?: string | null;
-    longitude?: string | null;
-    altitude?: string | null;
-    fields?: string | null;
-    enabled?: boolean | null;
-    createdAt?: string | null;
-    userID: string;
-    User: {
-      __typename: 'User';
-      id: string;
-      Name: string;
-      LastName: string;
-      PhoneNumber: string;
-      Email?: string | null;
-      Rank?: string | null;
-      uvaID?: string | null;
-      createdAt: string;
-      updatedAt: string;
-      _version: number;
-      _deleted?: boolean | null;
-      _lastChangedAt: number;
-    };
-    Measurements?: {
-      __typename: 'ModelMeasurementConnection';
-      nextToken?: string | null;
-      startedAt?: number | null;
-    } | null;
-    racimoID: string;
-    updatedAt: string;
-    _version: number;
-    _deleted?: boolean | null;
-    _lastChangedAt: number;
-  } | null;
 };
 
 export type GetMoonPhaseQueryVariables = {
@@ -1539,6 +894,9 @@ export type GetRACIMOQuery = {
     Name: string;
     LinkageCode: string;
     Configuration?: string | null;
+    enabled?: boolean | null;
+    disabledAt?: string | null;
+    disabledPeriods?: string | null;
     UVAs?: {
       __typename: 'ModelUVAConnection';
       nextToken?: string | null;
@@ -1577,6 +935,9 @@ export type ListRACIMOSQuery = {
       Name: string;
       LinkageCode: string;
       Configuration?: string | null;
+      enabled?: boolean | null;
+      disabledAt?: string | null;
+      disabledPeriods?: string | null;
       createdAt: string;
       updatedAt: string;
       _version: number;
@@ -1604,6 +965,9 @@ export type SyncRACIMOSQuery = {
       Name: string;
       LinkageCode: string;
       Configuration?: string | null;
+      enabled?: boolean | null;
+      disabledAt?: string | null;
+      disabledPeriods?: string | null;
       createdAt: string;
       updatedAt: string;
       _version: number;
@@ -2185,6 +1549,10 @@ export type GetUserQuery = {
       altitude?: string | null;
       fields?: string | null;
       enabled?: boolean | null;
+      disabledAt?: string | null;
+      disabledPeriods?: string | null;
+      appVersion?: string | null;
+      appVersionReportedAt?: string | null;
       createdAt?: string | null;
       userID: string;
       racimoID: string;
@@ -2273,6 +1641,10 @@ export type GetUVAQuery = {
     altitude?: string | null;
     fields?: string | null;
     enabled?: boolean | null;
+    disabledAt?: string | null;
+    disabledPeriods?: string | null;
+    appVersion?: string | null;
+    appVersionReportedAt?: string | null;
     createdAt?: string | null;
     userID: string;
     User: {
@@ -2320,6 +1692,10 @@ export type ListUVASQuery = {
       altitude?: string | null;
       fields?: string | null;
       enabled?: boolean | null;
+      disabledAt?: string | null;
+      disabledPeriods?: string | null;
+      appVersion?: string | null;
+      appVersionReportedAt?: string | null;
       createdAt?: string | null;
       userID: string;
       racimoID: string;
@@ -2351,6 +1727,10 @@ export type SyncUVASQuery = {
       altitude?: string | null;
       fields?: string | null;
       enabled?: boolean | null;
+      disabledAt?: string | null;
+      disabledPeriods?: string | null;
+      appVersion?: string | null;
+      appVersionReportedAt?: string | null;
       createdAt?: string | null;
       userID: string;
       racimoID: string;
@@ -2383,6 +1763,10 @@ export type UVAbyUserIDQuery = {
       altitude?: string | null;
       fields?: string | null;
       enabled?: boolean | null;
+      disabledAt?: string | null;
+      disabledPeriods?: string | null;
+      appVersion?: string | null;
+      appVersionReportedAt?: string | null;
       createdAt?: string | null;
       userID: string;
       racimoID: string;
@@ -2416,6 +1800,10 @@ export type UVAsByRacimoIDQuery = {
       altitude?: string | null;
       fields?: string | null;
       enabled?: boolean | null;
+      disabledAt?: string | null;
+      disabledPeriods?: string | null;
+      appVersion?: string | null;
+      appVersionReportedAt?: string | null;
       createdAt?: string | null;
       userID: string;
       racimoID: string;
@@ -2426,6 +1814,726 @@ export type UVAsByRacimoIDQuery = {
     } | null>;
     nextToken?: string | null;
     startedAt?: number | null;
+  } | null;
+};
+
+export type CreateRACIMOMutationVariables = {
+  input: CreateRACIMOInput;
+  condition?: ModelRACIMOConditionInput | null;
+};
+
+export type CreateRACIMOMutation = {
+  createRACIMO?: {
+    __typename: 'RACIMO';
+    id: string;
+    Name: string;
+    LinkageCode: string;
+    Configuration?: string | null;
+    enabled?: boolean | null;
+    disabledAt?: string | null;
+    disabledPeriods?: string | null;
+    UVAs?: {
+      __typename: 'ModelUVAConnection';
+      nextToken?: string | null;
+      startedAt?: number | null;
+    } | null;
+    GamificationEvents?: {
+      __typename: 'ModelGamificationEventConnection';
+      nextToken?: string | null;
+      startedAt?: number | null;
+    } | null;
+    AppUsageEvents?: {
+      __typename: 'ModelAppUsageEventConnection';
+      nextToken?: string | null;
+      startedAt?: number | null;
+    } | null;
+    createdAt: string;
+    updatedAt: string;
+    _version: number;
+    _deleted?: boolean | null;
+    _lastChangedAt: number;
+  } | null;
+};
+
+export type UpdateRACIMOMutationVariables = {
+  input: UpdateRACIMOInput;
+  condition?: ModelRACIMOConditionInput | null;
+};
+
+export type UpdateRACIMOMutation = {
+  updateRACIMO?: {
+    __typename: 'RACIMO';
+    id: string;
+    Name: string;
+    LinkageCode: string;
+    Configuration?: string | null;
+    enabled?: boolean | null;
+    disabledAt?: string | null;
+    disabledPeriods?: string | null;
+    UVAs?: {
+      __typename: 'ModelUVAConnection';
+      nextToken?: string | null;
+      startedAt?: number | null;
+    } | null;
+    GamificationEvents?: {
+      __typename: 'ModelGamificationEventConnection';
+      nextToken?: string | null;
+      startedAt?: number | null;
+    } | null;
+    AppUsageEvents?: {
+      __typename: 'ModelAppUsageEventConnection';
+      nextToken?: string | null;
+      startedAt?: number | null;
+    } | null;
+    createdAt: string;
+    updatedAt: string;
+    _version: number;
+    _deleted?: boolean | null;
+    _lastChangedAt: number;
+  } | null;
+};
+
+export type DeleteRACIMOMutationVariables = {
+  input: DeleteRACIMOInput;
+  condition?: ModelRACIMOConditionInput | null;
+};
+
+export type DeleteRACIMOMutation = {
+  deleteRACIMO?: {
+    __typename: 'RACIMO';
+    id: string;
+    Name: string;
+    LinkageCode: string;
+    Configuration?: string | null;
+    enabled?: boolean | null;
+    disabledAt?: string | null;
+    disabledPeriods?: string | null;
+    UVAs?: {
+      __typename: 'ModelUVAConnection';
+      nextToken?: string | null;
+      startedAt?: number | null;
+    } | null;
+    GamificationEvents?: {
+      __typename: 'ModelGamificationEventConnection';
+      nextToken?: string | null;
+      startedAt?: number | null;
+    } | null;
+    AppUsageEvents?: {
+      __typename: 'ModelAppUsageEventConnection';
+      nextToken?: string | null;
+      startedAt?: number | null;
+    } | null;
+    createdAt: string;
+    updatedAt: string;
+    _version: number;
+    _deleted?: boolean | null;
+    _lastChangedAt: number;
+  } | null;
+};
+
+export type CreateMeasurementMutationVariables = {
+  input: CreateMeasurementInput;
+  condition?: ModelMeasurementConditionInput | null;
+};
+
+export type CreateMeasurementMutation = {
+  createMeasurement?: {
+    __typename: 'Measurement';
+    id: string;
+    type: string;
+    data?: string | null;
+    logs?: string | null;
+    ts: string;
+    task?: string | null;
+    uvaID: string;
+    createdAt: string;
+    updatedAt: string;
+    _version: number;
+    _deleted?: boolean | null;
+    _lastChangedAt: number;
+    owner?: string | null;
+  } | null;
+};
+
+export type UpdateMeasurementMutationVariables = {
+  input: UpdateMeasurementInput;
+  condition?: ModelMeasurementConditionInput | null;
+};
+
+export type UpdateMeasurementMutation = {
+  updateMeasurement?: {
+    __typename: 'Measurement';
+    id: string;
+    type: string;
+    data?: string | null;
+    logs?: string | null;
+    ts: string;
+    task?: string | null;
+    uvaID: string;
+    createdAt: string;
+    updatedAt: string;
+    _version: number;
+    _deleted?: boolean | null;
+    _lastChangedAt: number;
+    owner?: string | null;
+  } | null;
+};
+
+export type DeleteMeasurementMutationVariables = {
+  input: DeleteMeasurementInput;
+  condition?: ModelMeasurementConditionInput | null;
+};
+
+export type DeleteMeasurementMutation = {
+  deleteMeasurement?: {
+    __typename: 'Measurement';
+    id: string;
+    type: string;
+    data?: string | null;
+    logs?: string | null;
+    ts: string;
+    task?: string | null;
+    uvaID: string;
+    createdAt: string;
+    updatedAt: string;
+    _version: number;
+    _deleted?: boolean | null;
+    _lastChangedAt: number;
+    owner?: string | null;
+  } | null;
+};
+
+export type CreateUserProgressMutationVariables = {
+  input: CreateUserProgressInput;
+  condition?: ModelUserProgressConditionInput | null;
+};
+
+export type CreateUserProgressMutation = {
+  createUserProgress?: {
+    __typename: 'UserProgress';
+    id: string;
+    ts: string;
+    Seed?: number | null;
+    Streak?: number | null;
+    Milestones?: string | null;
+    SaveStreak?: boolean | null;
+    completedTasks?: number | null;
+    additionalInfo?: string | null;
+    userID: string;
+    createdAt: string;
+    updatedAt: string;
+    _version: number;
+    _deleted?: boolean | null;
+    _lastChangedAt: number;
+  } | null;
+};
+
+export type UpdateUserProgressMutationVariables = {
+  input: UpdateUserProgressInput;
+  condition?: ModelUserProgressConditionInput | null;
+};
+
+export type UpdateUserProgressMutation = {
+  updateUserProgress?: {
+    __typename: 'UserProgress';
+    id: string;
+    ts: string;
+    Seed?: number | null;
+    Streak?: number | null;
+    Milestones?: string | null;
+    SaveStreak?: boolean | null;
+    completedTasks?: number | null;
+    additionalInfo?: string | null;
+    userID: string;
+    createdAt: string;
+    updatedAt: string;
+    _version: number;
+    _deleted?: boolean | null;
+    _lastChangedAt: number;
+  } | null;
+};
+
+export type DeleteUserProgressMutationVariables = {
+  input: DeleteUserProgressInput;
+  condition?: ModelUserProgressConditionInput | null;
+};
+
+export type DeleteUserProgressMutation = {
+  deleteUserProgress?: {
+    __typename: 'UserProgress';
+    id: string;
+    ts: string;
+    Seed?: number | null;
+    Streak?: number | null;
+    Milestones?: string | null;
+    SaveStreak?: boolean | null;
+    completedTasks?: number | null;
+    additionalInfo?: string | null;
+    userID: string;
+    createdAt: string;
+    updatedAt: string;
+    _version: number;
+    _deleted?: boolean | null;
+    _lastChangedAt: number;
+  } | null;
+};
+
+export type CreateGamificationEventMutationVariables = {
+  input: CreateGamificationEventInput;
+  condition?: ModelGamificationEventConditionInput | null;
+};
+
+export type CreateGamificationEventMutation = {
+  createGamificationEvent?: {
+    __typename: 'GamificationEvent';
+    id: string;
+    userID: string;
+    racimoID: string;
+    eventType: string;
+    ts: string;
+    data?: string | null;
+    isUnclean?: boolean | null;
+    createdAt: string;
+    updatedAt: string;
+    _version: number;
+    _deleted?: boolean | null;
+    _lastChangedAt: number;
+  } | null;
+};
+
+export type UpdateGamificationEventMutationVariables = {
+  input: UpdateGamificationEventInput;
+  condition?: ModelGamificationEventConditionInput | null;
+};
+
+export type UpdateGamificationEventMutation = {
+  updateGamificationEvent?: {
+    __typename: 'GamificationEvent';
+    id: string;
+    userID: string;
+    racimoID: string;
+    eventType: string;
+    ts: string;
+    data?: string | null;
+    isUnclean?: boolean | null;
+    createdAt: string;
+    updatedAt: string;
+    _version: number;
+    _deleted?: boolean | null;
+    _lastChangedAt: number;
+  } | null;
+};
+
+export type DeleteGamificationEventMutationVariables = {
+  input: DeleteGamificationEventInput;
+  condition?: ModelGamificationEventConditionInput | null;
+};
+
+export type DeleteGamificationEventMutation = {
+  deleteGamificationEvent?: {
+    __typename: 'GamificationEvent';
+    id: string;
+    userID: string;
+    racimoID: string;
+    eventType: string;
+    ts: string;
+    data?: string | null;
+    isUnclean?: boolean | null;
+    createdAt: string;
+    updatedAt: string;
+    _version: number;
+    _deleted?: boolean | null;
+    _lastChangedAt: number;
+  } | null;
+};
+
+export type CreateAppUsageEventMutationVariables = {
+  input: CreateAppUsageEventInput;
+  condition?: ModelAppUsageEventConditionInput | null;
+};
+
+export type CreateAppUsageEventMutation = {
+  createAppUsageEvent?: {
+    __typename: 'AppUsageEvent';
+    id: string;
+    userID: string;
+    racimoID: string;
+    sessionID: string;
+    screenName: string;
+    ts: string;
+    action: string;
+    duration?: number | null;
+    createdAt: string;
+    updatedAt: string;
+    _version: number;
+    _deleted?: boolean | null;
+    _lastChangedAt: number;
+  } | null;
+};
+
+export type UpdateAppUsageEventMutationVariables = {
+  input: UpdateAppUsageEventInput;
+  condition?: ModelAppUsageEventConditionInput | null;
+};
+
+export type UpdateAppUsageEventMutation = {
+  updateAppUsageEvent?: {
+    __typename: 'AppUsageEvent';
+    id: string;
+    userID: string;
+    racimoID: string;
+    sessionID: string;
+    screenName: string;
+    ts: string;
+    action: string;
+    duration?: number | null;
+    createdAt: string;
+    updatedAt: string;
+    _version: number;
+    _deleted?: boolean | null;
+    _lastChangedAt: number;
+  } | null;
+};
+
+export type DeleteAppUsageEventMutationVariables = {
+  input: DeleteAppUsageEventInput;
+  condition?: ModelAppUsageEventConditionInput | null;
+};
+
+export type DeleteAppUsageEventMutation = {
+  deleteAppUsageEvent?: {
+    __typename: 'AppUsageEvent';
+    id: string;
+    userID: string;
+    racimoID: string;
+    sessionID: string;
+    screenName: string;
+    ts: string;
+    action: string;
+    duration?: number | null;
+    createdAt: string;
+    updatedAt: string;
+    _version: number;
+    _deleted?: boolean | null;
+    _lastChangedAt: number;
+  } | null;
+};
+
+export type CreateUserMutationVariables = {
+  input: CreateUserInput;
+  condition?: ModelUserConditionInput | null;
+};
+
+export type CreateUserMutation = {
+  createUser?: {
+    __typename: 'User';
+    id: string;
+    Name: string;
+    LastName: string;
+    PhoneNumber: string;
+    Email?: string | null;
+    Rank?: string | null;
+    UserProgresses?: {
+      __typename: 'ModelUserProgressConnection';
+      nextToken?: string | null;
+      startedAt?: number | null;
+    } | null;
+    GamificationEvents?: {
+      __typename: 'ModelGamificationEventConnection';
+      nextToken?: string | null;
+      startedAt?: number | null;
+    } | null;
+    AppUsageEvents?: {
+      __typename: 'ModelAppUsageEventConnection';
+      nextToken?: string | null;
+      startedAt?: number | null;
+    } | null;
+    uvaID?: string | null;
+    UVA?: {
+      __typename: 'UVA';
+      id: string;
+      latitude?: string | null;
+      longitude?: string | null;
+      altitude?: string | null;
+      fields?: string | null;
+      enabled?: boolean | null;
+      disabledAt?: string | null;
+      disabledPeriods?: string | null;
+      appVersion?: string | null;
+      appVersionReportedAt?: string | null;
+      createdAt?: string | null;
+      userID: string;
+      racimoID: string;
+      updatedAt: string;
+      _version: number;
+      _deleted?: boolean | null;
+      _lastChangedAt: number;
+    } | null;
+    createdAt: string;
+    updatedAt: string;
+    _version: number;
+    _deleted?: boolean | null;
+    _lastChangedAt: number;
+  } | null;
+};
+
+export type UpdateUserMutationVariables = {
+  input: UpdateUserInput;
+  condition?: ModelUserConditionInput | null;
+};
+
+export type UpdateUserMutation = {
+  updateUser?: {
+    __typename: 'User';
+    id: string;
+    Name: string;
+    LastName: string;
+    PhoneNumber: string;
+    Email?: string | null;
+    Rank?: string | null;
+    UserProgresses?: {
+      __typename: 'ModelUserProgressConnection';
+      nextToken?: string | null;
+      startedAt?: number | null;
+    } | null;
+    GamificationEvents?: {
+      __typename: 'ModelGamificationEventConnection';
+      nextToken?: string | null;
+      startedAt?: number | null;
+    } | null;
+    AppUsageEvents?: {
+      __typename: 'ModelAppUsageEventConnection';
+      nextToken?: string | null;
+      startedAt?: number | null;
+    } | null;
+    uvaID?: string | null;
+    UVA?: {
+      __typename: 'UVA';
+      id: string;
+      latitude?: string | null;
+      longitude?: string | null;
+      altitude?: string | null;
+      fields?: string | null;
+      enabled?: boolean | null;
+      disabledAt?: string | null;
+      disabledPeriods?: string | null;
+      appVersion?: string | null;
+      appVersionReportedAt?: string | null;
+      createdAt?: string | null;
+      userID: string;
+      racimoID: string;
+      updatedAt: string;
+      _version: number;
+      _deleted?: boolean | null;
+      _lastChangedAt: number;
+    } | null;
+    createdAt: string;
+    updatedAt: string;
+    _version: number;
+    _deleted?: boolean | null;
+    _lastChangedAt: number;
+  } | null;
+};
+
+export type DeleteUserMutationVariables = {
+  input: DeleteUserInput;
+  condition?: ModelUserConditionInput | null;
+};
+
+export type DeleteUserMutation = {
+  deleteUser?: {
+    __typename: 'User';
+    id: string;
+    Name: string;
+    LastName: string;
+    PhoneNumber: string;
+    Email?: string | null;
+    Rank?: string | null;
+    UserProgresses?: {
+      __typename: 'ModelUserProgressConnection';
+      nextToken?: string | null;
+      startedAt?: number | null;
+    } | null;
+    GamificationEvents?: {
+      __typename: 'ModelGamificationEventConnection';
+      nextToken?: string | null;
+      startedAt?: number | null;
+    } | null;
+    AppUsageEvents?: {
+      __typename: 'ModelAppUsageEventConnection';
+      nextToken?: string | null;
+      startedAt?: number | null;
+    } | null;
+    uvaID?: string | null;
+    UVA?: {
+      __typename: 'UVA';
+      id: string;
+      latitude?: string | null;
+      longitude?: string | null;
+      altitude?: string | null;
+      fields?: string | null;
+      enabled?: boolean | null;
+      disabledAt?: string | null;
+      disabledPeriods?: string | null;
+      appVersion?: string | null;
+      appVersionReportedAt?: string | null;
+      createdAt?: string | null;
+      userID: string;
+      racimoID: string;
+      updatedAt: string;
+      _version: number;
+      _deleted?: boolean | null;
+      _lastChangedAt: number;
+    } | null;
+    createdAt: string;
+    updatedAt: string;
+    _version: number;
+    _deleted?: boolean | null;
+    _lastChangedAt: number;
+  } | null;
+};
+
+export type CreateUVAMutationVariables = {
+  input: CreateUVAInput;
+  condition?: ModelUVAConditionInput | null;
+};
+
+export type CreateUVAMutation = {
+  createUVA?: {
+    __typename: 'UVA';
+    id: string;
+    latitude?: string | null;
+    longitude?: string | null;
+    altitude?: string | null;
+    fields?: string | null;
+    enabled?: boolean | null;
+    disabledAt?: string | null;
+    disabledPeriods?: string | null;
+    appVersion?: string | null;
+    appVersionReportedAt?: string | null;
+    createdAt?: string | null;
+    userID: string;
+    User: {
+      __typename: 'User';
+      id: string;
+      Name: string;
+      LastName: string;
+      PhoneNumber: string;
+      Email?: string | null;
+      Rank?: string | null;
+      uvaID?: string | null;
+      createdAt: string;
+      updatedAt: string;
+      _version: number;
+      _deleted?: boolean | null;
+      _lastChangedAt: number;
+    };
+    Measurements?: {
+      __typename: 'ModelMeasurementConnection';
+      nextToken?: string | null;
+      startedAt?: number | null;
+    } | null;
+    racimoID: string;
+    updatedAt: string;
+    _version: number;
+    _deleted?: boolean | null;
+    _lastChangedAt: number;
+  } | null;
+};
+
+export type UpdateUVAMutationVariables = {
+  input: UpdateUVAInput;
+  condition?: ModelUVAConditionInput | null;
+};
+
+export type UpdateUVAMutation = {
+  updateUVA?: {
+    __typename: 'UVA';
+    id: string;
+    latitude?: string | null;
+    longitude?: string | null;
+    altitude?: string | null;
+    fields?: string | null;
+    enabled?: boolean | null;
+    disabledAt?: string | null;
+    disabledPeriods?: string | null;
+    appVersion?: string | null;
+    appVersionReportedAt?: string | null;
+    createdAt?: string | null;
+    userID: string;
+    User: {
+      __typename: 'User';
+      id: string;
+      Name: string;
+      LastName: string;
+      PhoneNumber: string;
+      Email?: string | null;
+      Rank?: string | null;
+      uvaID?: string | null;
+      createdAt: string;
+      updatedAt: string;
+      _version: number;
+      _deleted?: boolean | null;
+      _lastChangedAt: number;
+    };
+    Measurements?: {
+      __typename: 'ModelMeasurementConnection';
+      nextToken?: string | null;
+      startedAt?: number | null;
+    } | null;
+    racimoID: string;
+    updatedAt: string;
+    _version: number;
+    _deleted?: boolean | null;
+    _lastChangedAt: number;
+  } | null;
+};
+
+export type DeleteUVAMutationVariables = {
+  input: DeleteUVAInput;
+  condition?: ModelUVAConditionInput | null;
+};
+
+export type DeleteUVAMutation = {
+  deleteUVA?: {
+    __typename: 'UVA';
+    id: string;
+    latitude?: string | null;
+    longitude?: string | null;
+    altitude?: string | null;
+    fields?: string | null;
+    enabled?: boolean | null;
+    disabledAt?: string | null;
+    disabledPeriods?: string | null;
+    appVersion?: string | null;
+    appVersionReportedAt?: string | null;
+    createdAt?: string | null;
+    userID: string;
+    User: {
+      __typename: 'User';
+      id: string;
+      Name: string;
+      LastName: string;
+      PhoneNumber: string;
+      Email?: string | null;
+      Rank?: string | null;
+      uvaID?: string | null;
+      createdAt: string;
+      updatedAt: string;
+      _version: number;
+      _deleted?: boolean | null;
+      _lastChangedAt: number;
+    };
+    Measurements?: {
+      __typename: 'ModelMeasurementConnection';
+      nextToken?: string | null;
+      startedAt?: number | null;
+    } | null;
+    racimoID: string;
+    updatedAt: string;
+    _version: number;
+    _deleted?: boolean | null;
+    _lastChangedAt: number;
   } | null;
 };
 
@@ -2440,6 +2548,9 @@ export type OnCreateRACIMOSubscription = {
     Name: string;
     LinkageCode: string;
     Configuration?: string | null;
+    enabled?: boolean | null;
+    disabledAt?: string | null;
+    disabledPeriods?: string | null;
     UVAs?: {
       __typename: 'ModelUVAConnection';
       nextToken?: string | null;
@@ -2474,6 +2585,9 @@ export type OnUpdateRACIMOSubscription = {
     Name: string;
     LinkageCode: string;
     Configuration?: string | null;
+    enabled?: boolean | null;
+    disabledAt?: string | null;
+    disabledPeriods?: string | null;
     UVAs?: {
       __typename: 'ModelUVAConnection';
       nextToken?: string | null;
@@ -2508,6 +2622,9 @@ export type OnDeleteRACIMOSubscription = {
     Name: string;
     LinkageCode: string;
     Configuration?: string | null;
+    enabled?: boolean | null;
+    disabledAt?: string | null;
+    disabledPeriods?: string | null;
     UVAs?: {
       __typename: 'ModelUVAConnection';
       nextToken?: string | null;
@@ -2857,6 +2974,10 @@ export type OnCreateUserSubscription = {
       altitude?: string | null;
       fields?: string | null;
       enabled?: boolean | null;
+      disabledAt?: string | null;
+      disabledPeriods?: string | null;
+      appVersion?: string | null;
+      appVersionReportedAt?: string | null;
       createdAt?: string | null;
       userID: string;
       racimoID: string;
@@ -2911,6 +3032,10 @@ export type OnUpdateUserSubscription = {
       altitude?: string | null;
       fields?: string | null;
       enabled?: boolean | null;
+      disabledAt?: string | null;
+      disabledPeriods?: string | null;
+      appVersion?: string | null;
+      appVersionReportedAt?: string | null;
       createdAt?: string | null;
       userID: string;
       racimoID: string;
@@ -2965,6 +3090,10 @@ export type OnDeleteUserSubscription = {
       altitude?: string | null;
       fields?: string | null;
       enabled?: boolean | null;
+      disabledAt?: string | null;
+      disabledPeriods?: string | null;
+      appVersion?: string | null;
+      appVersionReportedAt?: string | null;
       createdAt?: string | null;
       userID: string;
       racimoID: string;
@@ -2995,6 +3124,10 @@ export type OnCreateUVASubscription = {
     altitude?: string | null;
     fields?: string | null;
     enabled?: boolean | null;
+    disabledAt?: string | null;
+    disabledPeriods?: string | null;
+    appVersion?: string | null;
+    appVersionReportedAt?: string | null;
     createdAt?: string | null;
     userID: string;
     User: {
@@ -3039,6 +3172,10 @@ export type OnUpdateUVASubscription = {
     altitude?: string | null;
     fields?: string | null;
     enabled?: boolean | null;
+    disabledAt?: string | null;
+    disabledPeriods?: string | null;
+    appVersion?: string | null;
+    appVersionReportedAt?: string | null;
     createdAt?: string | null;
     userID: string;
     User: {
@@ -3083,6 +3220,10 @@ export type OnDeleteUVASubscription = {
     altitude?: string | null;
     fields?: string | null;
     enabled?: boolean | null;
+    disabledAt?: string | null;
+    disabledPeriods?: string | null;
+    appVersion?: string | null;
+    appVersionReportedAt?: string | null;
     createdAt?: string | null;
     userID: string;
     User: {
