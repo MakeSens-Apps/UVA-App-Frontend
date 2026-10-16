@@ -69,8 +69,11 @@ interface ReporterDeps {
   isOnline: () => boolean;
   /** Calls the listener each time the app comes back to the foreground. */
   onForeground: (listener: () => void) => void;
-  /** Calls the listener on every local change of a UVA. Returns the unsubscribe function. */
-  observeUvas: (listener: () => void) => () => void;
+  /**
+   * Calls the listener with the id of every changed UVA (local or synced). Returns the
+   * unsubscribe function.
+   */
+  observeUvas: (listener: (uvaId: string) => void) => () => void;
   now?: () => Date;
 }
 
@@ -86,10 +89,17 @@ export function createAppVersionReporter(
 ): AppVersionReporter {
   const now = deps.now ?? (() => new Date());
   let started = false;
-  /** Incremented at sign-out: a report started before it must not write anything. */
+  /** Incremented at sign-out: a report requested before it must not write anything. */
   let generation = 0;
   /** A report already queued and not started yet: new triggers join it. */
   let pending: Promise<AppVersionReportOutcome> | null = null;
+  /**
+   * Last report written in this app session. Checked before AsyncStorage so that, if the
+   * storage fails, the echo of our own UVA write never triggers another write.
+   */
+  let lastInMemory: LastAppVersionReport | null = null;
+  /** UVA of the last report attempt: UVA changes of other people are ignored. */
+  let knownUvaId: string | null = null;
   let stopObserving: (() => void) | undefined;
   let queue: Promise<unknown> = Promise.resolve();
 
@@ -110,17 +120,21 @@ export function createAppVersionReporter(
     }
   }
 
-  async function doReport(): Promise<AppVersionReportOutcome> {
-    const startedIn = generation;
+  async function doReport(
+    requestedIn: number,
+  ): Promise<AppVersionReportOutcome> {
+    // Requested before a sign-out: never write the previous person's UVA.
+    if (generation !== requestedIn) return 'no-uva';
     try {
       const appVersion = deps.getInstalledVersion();
       if (!appVersion) return 'no-version';
 
       const { userId, uvaId } = await deps.getOwner();
       if (!userId || !uvaId) return 'no-uva';
+      knownUvaId = uvaId;
 
       const at = now();
-      const last = await readLast();
+      const last = lastInMemory ?? (await readLast());
       if (!shouldReportAppVersion(last, uvaId, appVersion, at)) {
         return 'up-to-date';
       }
@@ -131,20 +145,26 @@ export function createAppVersionReporter(
       if (uva.userID !== userId) return 'not-owner';
 
       // Signed out while reading: never write the previous person's UVA.
-      if (generation !== startedIn) return 'no-uva';
+      if (generation !== requestedIn) return 'no-uva';
       const report = buildAppVersionReport(appVersion, at);
       await deps.saveReport(uva, report);
-      if (generation !== startedIn) return 'reported';
+      if (generation !== requestedIn) return 'reported';
 
       const record: LastAppVersionReport = {
         uvaId,
         appVersion,
         reportedAt: report.appVersionReportedAt,
       };
-      await deps.storage.setItem(
-        LAST_APP_VERSION_REPORT_KEY,
-        JSON.stringify(record),
-      );
+      lastInMemory = record;
+      try {
+        await deps.storage.setItem(
+          LAST_APP_VERSION_REPORT_KEY,
+          JSON.stringify(record),
+        );
+      } catch (error) {
+        // The UVA is already written: the in-memory record avoids writing it again.
+        console.error('Error saving the last app version report', error);
+      }
       return 'reported';
     } catch (error) {
       console.error('Error reporting the app version', error);
@@ -154,9 +174,10 @@ export function createAppVersionReporter(
 
   function report(): Promise<AppVersionReportOutcome> {
     if (pending) return pending;
+    const requestedIn = generation;
     const run = enqueue(() => {
-      pending = null;
-      return doReport();
+      if (pending === run) pending = null;
+      return doReport(requestedIn);
     });
     pending = run;
     return run;
@@ -165,7 +186,9 @@ export function createAppVersionReporter(
   function observeUvas(): void {
     stopObserving?.();
     try {
-      stopObserving = deps.observeUvas(() => {
+      stopObserving = deps.observeUvas((uvaId) => {
+        // Unknown UVA yet (just registered): any UVA may be ours.
+        if (knownUvaId !== null && uvaId !== knownUvaId) return;
         if (deps.isOnline()) void report();
       });
     } catch (error) {
@@ -201,6 +224,9 @@ export function createAppVersionReporter(
       Hub.listen('auth', (hubData) => {
         if (hubData.payload.event === 'signedOut') {
           generation += 1;
+          pending = null;
+          lastInMemory = null;
+          knownUvaId = null;
           void forget();
         }
       });

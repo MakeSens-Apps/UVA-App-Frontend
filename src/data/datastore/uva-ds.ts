@@ -88,14 +88,15 @@ export class UvaDSService {
   }
 
   /**
-   * Calls the listener on every local change of a UVA (#76). DataStore.clear() at sign-out
-   * closes the subscription: subscribe again after the next 'ready'.
-   * @param {() => void} listener - Called on each change.
+   * Calls the listener with the id of every changed UVA, local or synced (#76).
+   * DataStore.clear() at sign-out closes the subscription: subscribe again after the next
+   * 'ready'.
+   * @param {(uvaId: string) => void} listener - Called on each change.
    * @returns {() => void} The unsubscribe function.
    */
-  static observeUVAs(listener: () => void): () => void {
+  static observeUVAs(listener: (uvaId: string) => void): () => void {
     const subscription = DataStore.observe(UVA).subscribe({
-      next: () => listener(),
+      next: ({ element }) => listener(element.id),
       error: (error: unknown) => {
         console.error('Error observing the UVA', error);
       },

@@ -252,8 +252,10 @@ describe('app version reporter', () => {
   let saved: { uva: FakeUva; report: Record<string, string> }[];
   let saveError: Error | null;
   let foreground: (() => void) | undefined;
-  let uvaObserver: (() => void) | undefined;
+  let uvaObserver: ((uvaId: string) => void) | undefined;
   let online: boolean;
+  let storageFails: boolean;
+  let echoOnSave: boolean;
   let storage: Map<string, string>;
 
   function makeReporter() {
@@ -261,6 +263,7 @@ describe('app version reporter', () => {
       storage: {
         getItem: async (k) => storage.get(k) ?? null,
         setItem: async (k, v) => {
+          if (storageFails) throw new Error('disk full');
           storage.set(k, v);
         },
         removeItem: async (k) => {
@@ -277,6 +280,8 @@ describe('app version reporter', () => {
           report: { ...report },
         });
         uva = { ...(u as unknown as FakeUva), ...report };
+        // DataStore.observe emits our own write while the save is running.
+        if (echoOnSave) uvaObserver?.(u.id);
       },
       isOnline: () => online,
       onForeground: (listener) => {
@@ -303,6 +308,8 @@ describe('app version reporter', () => {
     foreground = undefined;
     uvaObserver = undefined;
     online = true;
+    storageFails = false;
+    echoOnSave = false;
     storage = new Map();
   });
 
@@ -528,20 +535,95 @@ describe('app version reporter', () => {
     owner = { userId: USER_ID, uvaId: UVA_ID };
     uva = { id: UVA_ID, userID: USER_ID, enabled: true };
     online = false;
-    uvaObserver?.();
+    uvaObserver?.(UVA_ID);
     await flush();
     expect(saved).toHaveLength(0);
 
     // The UVA arrives by subscription while connected.
     online = true;
-    uvaObserver?.();
+    uvaObserver?.(UVA_ID);
     await flush();
     expect(saved).toHaveLength(1);
 
     // The write itself is observed again: no second write.
-    uvaObserver?.();
+    uvaObserver?.(UVA_ID);
     await flush();
     expect(saved).toHaveLength(1);
+  });
+
+  it('ignores changes of other UVAs once the own UVA is known', async () => {
+    makeReporter();
+    datastore('ready');
+    datastore('syncQueriesReady');
+    await flush();
+    expect(saved).toHaveLength(1);
+
+    // Next day: a UVA of another member changes; only our own UVA triggers a report.
+    clock = new Date(2026, 9, 16, 9, 0);
+    uvaObserver?.(OTHER_UVA_ID);
+    await flush();
+    expect(saved).toHaveLength(1);
+
+    uvaObserver?.(UVA_ID);
+    await flush();
+    expect(saved).toHaveLength(2);
+  });
+
+  it('writes once even if the phone storage fails and the write is observed', async () => {
+    const consoleError = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    makeReporter();
+    datastore('ready');
+    storageFails = true;
+    echoOnSave = true;
+    datastore('syncQueriesReady');
+    await flush();
+    uvaObserver?.(UVA_ID);
+    await flush();
+    expect(saved).toHaveLength(1);
+    consoleError.mockRestore();
+  });
+
+  it('drops a report requested before the sign-out', async () => {
+    let releaseRead: (() => void) | undefined;
+    const reporter = createAppVersionReporter({
+      storage: {
+        getItem: async (k) => storage.get(k) ?? null,
+        setItem: async (k, v) => {
+          storage.set(k, v);
+        },
+        removeItem: async (k) => {
+          storage.delete(k);
+        },
+      },
+      getInstalledVersion: () => '2.3.1',
+      getOwner: async () => owner,
+      readUva: () =>
+        new Promise((resolve) => {
+          releaseRead = () => resolve(uva as unknown as UVA);
+        }),
+      saveReport: async (u, report) => {
+        saved.push({ uva: u as unknown as FakeUva, report: { ...report } });
+      },
+      isOnline: () => true,
+      onForeground: () => undefined,
+      observeUvas: () => () => undefined,
+      now: () => clock,
+    });
+    reporter.start();
+
+    const first = reporter.report();
+    await flush();
+    const queued = reporter.report();
+    auth('signedOut');
+    releaseRead?.();
+    await flush();
+    releaseRead?.();
+
+    await expect(first).resolves.toBe('no-uva');
+    await expect(queued).resolves.toBe('no-uva');
+    expect(saved).toHaveLength(0);
   });
 
   it('subscribes to the UVA again after each DataStore start', async () => {
