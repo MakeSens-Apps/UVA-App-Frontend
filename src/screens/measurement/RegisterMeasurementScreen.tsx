@@ -36,7 +36,9 @@
  *   - IonModal → ConfirmModal / View modal (B10)
  *   - Router.navigate → navigation.navigate (typed AppStackParamList)
  *   - location.go → removed (no window.location)
- *   - applyBlurFilter → not needed (modal overlay handles it)
+ *   - applyBlurFilter → not reproducible on Android (no blur across the native
+ *     Modal window): replaced by a 0.5 dark scrim + a solid white surface for the
+ *     confirmation (see CONFIRM_MODAL_BACKDROP_OPACITY)
  *
  * Risks: R-07, R-08, R-18, R-35, R-31, R-15
  */
@@ -121,13 +123,25 @@ export const CONFIRM_MODAL_BLUR_INTENSITY = 20;
  * 62 % WHITE wash that LIGHTENS the page and blurs nothing, which is exactly the
  * "el fondo se ve poco oscurecido" reported on the Redmi Note 10S (2026-09-10).
  *
- * Fix: a faint neutral blur tint (`tint="default"` → rgba(255,255,255,0.06) at
- * intensity 20) plus an explicit dark scrim at the SAME opacity Ionic actually
- * renders for every other ion-modal in this app (0.32, measured on screen-03).
- * The scrim sits behind the modal content, so the title/cards/button keep their
- * full contrast.
+ * First fix (2026-09-10): a faint neutral blur tint (`tint="default"` →
+ * rgba(255,255,255,0.06) at intensity 20) plus an explicit dark scrim at 0.32, the
+ * opacity Ionic renders for the OTHER ion-modals of the app (screen-03).
+ *
+ * Device report v2.3.1 (2026-10-27, "el contraste en las vistas de corroboración es
+ * terrible"): 0.32 over the Gray-50 form is a light grey that leaves the form almost
+ * as readable as before, so "Verifica los datos 🧐" — which had no surface of its
+ * own — collided with the crisp cards/button behind it. In the original the form was
+ * never readable under this modal: ion-content got `.blur { filter: blur(5px) }`
+ * (applyBlurFilter) AND both the backdrop and the modal content had
+ * `backdrop-filter: blur(20px)` (register-measurement.page.scss:136-154), which
+ * turned the page into an unreadable frosted wash. Without blur on Android the
+ * de-emphasis has to come from darkening, so the scrim now uses the opacity this
+ * modal itself declares in the original: `--backdrop-opacity: 0.5`
+ * (register-measurement.page.scss:136-138). The modal content gets a solid surface
+ * (see `modalWrapper`). The scrim sits behind the modal content, so the
+ * title/cards/button keep their full contrast.
  */
-export const CONFIRM_MODAL_BACKDROP_OPACITY = 0.32;
+export const CONFIRM_MODAL_BACKDROP_OPACITY = 0.5;
 
 // ─── Local measurement state type ─────────────────────────────────────────────
 
@@ -1090,18 +1104,40 @@ export function RegisterMeasurementScreen({
             </View>
           ) : (
             // ── Confirmation phase ────────────────────────────────────────────
-            /* D-35: there is NO white container card in the original. `.wrapper`
-               only sets `margin-inline: 10px` and the modal part is transparent
-               (`.custom-modal_confirmation::part(content) { background: transparent }`,
-               register-measurement.page.scss:147-154), so the title, the measurement
-               cards and the button float straight over the blurred form — see
-               docs/evidence/measurement/screen-09 and screen-20. */
+            /* In the original the modal part is transparent
+               (`.custom-modal_confirmation::part(content) { background: transparent;
+               backdrop-filter: blur(20px) }`, register-measurement.page.scss:147-154)
+               and the form behind is blurred too (`.blur { filter: blur(5px) }`), so
+               the title floated over a frosted, unreadable page (screen-09/screen-20).
+               Android cannot blur across the native Modal window, so the transparent
+               wrapper let the title collide with the CRISP form behind it (device
+               report v2.3.1). The frosted panel is rendered as a solid white surface
+               — the same surface as the "guardados" phase (`.modal_saved`: white,
+               1px Gray-200, radius 10) — and the title lives INSIDE it.
+               Vertical padding keeps a tall summary clear of the status bar (the
+               Modal is `statusBarTranslucent`) and of the navigation bar. */
             <ScrollView
               style={styles.modalScroll}
-              contentContainerStyle={styles.modalScrollContent}
+              contentContainerStyle={[
+                styles.modalScrollContent,
+                {
+                  paddingTop: insets.top + 16,
+                  paddingBottom: insets.bottom + 16,
+                },
+              ]}
               showsVerticalScrollIndicator={false}
+              testID="confirm-modal-scroll"
             >
-              <View style={styles.modalWrapper} testID="confirm-modal-wrapper">
+              <View
+                style={[
+                  styles.modalWrapper,
+                  {
+                    backgroundColor: theme.colors.white,
+                    borderColor: theme.colors.gray[200],
+                  },
+                ]}
+                testID="confirm-modal-wrapper"
+              >
                 <Text
                   style={[
                     styles.modalTitle,
@@ -1110,6 +1146,7 @@ export function RegisterMeasurementScreen({
                       color: theme.colors.gray[700],
                     },
                   ]}
+                  testID="confirm-modal-title"
                 >
                   Verifica los datos 🧐
                 </Text>
@@ -1395,13 +1432,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   /**
-   * D-35 — `.wrapper` is nothing but `margin-inline: 10px`
-   * (register-measurement.page.scss:147-149). NO background, NO border, NO radius:
-   * the content floats over the blurred form.
+   * `.wrapper { margin-inline: 10px }` (register-measurement.page.scss:147-149) plus
+   * a SOLID surface standing in for the original's frosted `backdrop-filter: blur(20px)`
+   * panel, which Android cannot render (device report v2.3.1). Same look as the
+   * "guardados" card (`.modal_saved`, global.scss:523-531): radius 10, 1px Gray-200
+   * border. `backgroundColor` / `borderColor` come from the theme at render time.
+   * The title's own 10px margin sets the top spacing.
    */
   modalWrapper: {
     marginHorizontal: 10,
     alignSelf: 'stretch',
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingTop: 4,
+    paddingBottom: 12,
   },
   // `.title_modal_confirmation`: 18px / 600, --Colors-Gray-700, centred,
   // with the mixin's 10px block margins (register-measurement.page.scss:155-163).

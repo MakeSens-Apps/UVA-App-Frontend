@@ -364,7 +364,13 @@ jest.mock('expo-blur', () => {
 import React from 'react';
 import { Dimensions, StyleSheet } from 'react-native';
 import type { TextStyle, ViewStyle } from 'react-native';
-import { act, render, fireEvent, waitFor } from '@testing-library/react-native';
+import {
+  act,
+  render,
+  fireEvent,
+  waitFor,
+  within,
+} from '@testing-library/react-native';
 
 import {
   MeasurementScreen,
@@ -812,17 +818,52 @@ describe('RegisterMeasurementScreen — confirmation modal (D-35)', () => {
     return utils;
   }
 
-  it('floats over the blurred form with no white container card', async () => {
+  it('draws the confirmation on a solid surface, like the "guardados" card', async () => {
     const { getByTestId } = await openConfirm();
 
     const wrapper = flattenStyle<ViewStyle>(
       getByTestId('confirm-modal-wrapper').props.style,
     );
-    // `.wrapper { margin-inline: 10px }` and nothing else.
+    // Device report v2.3.1: the transparent wrapper let the title collide with the
+    // crisp form behind it (Android cannot reproduce the original's blur). The
+    // `.wrapper { margin-inline: 10px }` keeps its margin and gains the
+    // `.modal_saved` surface: white, 1px Gray-200, radius 10.
     expect(wrapper.marginHorizontal).toBe(10);
-    expect(wrapper.backgroundColor).toBeUndefined();
-    expect(wrapper.borderRadius).toBeUndefined();
-    expect(wrapper.padding).toBeUndefined();
+    expect(wrapper.backgroundColor).toBe('#FFFFFF');
+    expect(wrapper.borderColor).toBe('#E5E5E5');
+    expect(wrapper.borderWidth).toBe(1);
+    expect(wrapper.borderRadius).toBe(10);
+    expect(wrapper.paddingHorizontal).toBeGreaterThan(0);
+    expect(wrapper.paddingBottom).toBeGreaterThan(0);
+  });
+
+  it('keeps the title, the cards and the button INSIDE the modal surface', async () => {
+    const { getByTestId } = await openConfirm();
+    const surface = within(getByTestId('confirm-modal-wrapper'));
+
+    // The title is no longer painted straight over the backdrop.
+    const title = surface.getByTestId('confirm-modal-title');
+    expect(title).toHaveTextContent('Verifica los datos 🧐');
+    const titleStyle = flattenStyle<TextStyle>(title.props.style);
+    expect(titleStyle.color).toBe('#404040'); // --Colors-Gray-700, on white
+    expect(titleStyle.fontSize).toBe(18);
+    expect(titleStyle.fontFamily).toBe('Montserrat-600');
+
+    expect(surface.getByTestId('confirm-card-0')).toBeTruthy();
+    expect(surface.getByTestId('confirm-save-button')).toBeTruthy();
+  });
+
+  it('keeps the summary clear of the status bar and the navigation bar', async () => {
+    const { getByTestId } = await openConfirm();
+    const content = flattenStyle<ViewStyle>(
+      getByTestId('confirm-modal-scroll').props.contentContainerStyle,
+    );
+    // The Modal is statusBarTranslucent: without top padding a tall summary on a
+    // 360×640 screen would start under the status bar.
+    expect(content.paddingTop).toBeGreaterThanOrEqual(16);
+    expect(content.paddingBottom).toBeGreaterThanOrEqual(16);
+    expect(content.flexGrow).toBe(1);
+    expect(content.justifyContent).toBe('center');
   });
 
   it('shows the value as separated underlined digits, not a joined string', async () => {
