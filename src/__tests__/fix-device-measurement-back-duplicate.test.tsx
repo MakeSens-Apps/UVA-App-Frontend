@@ -598,7 +598,13 @@ describe('#3 — backdrop del modal "Verifica los datos" / "… guardados"', () 
    * `<BlurView>` degrada a un rectángulo plano `getBackgroundColor(intensity,tint)`.
    * Con el `intensity={80} tint="light"` anterior eso era `rgba(249,249,249,0.624)`:
    * un lavado BLANCO del 62 % que ACLARA el fondo — el "se ve poco oscurecido" del
-   * reporte. Se sustituye por tinte neutro + capa oscura explícita a 0.32.
+   * reporte. Se sustituyó por tinte neutro + capa oscura explícita a 0.32.
+   *
+   * Reporte v2.3.1 (2026-10-27): 0.32 seguía dejando el formulario casi igual de
+   * legible y el título "Verifica los datos" se encimaba con él. En el original el
+   * formulario nunca era legible bajo este modal (`.blur { filter: blur(5px) }` +
+   * `backdrop-filter: blur(20px)`), así que sin blur la capa oscura usa la opacidad
+   * que este modal declara en el original: `--backdrop-opacity: 0.5`.
    */
   async function openConfirm() {
     const props = makeRegisterProps('flow1');
@@ -640,10 +646,10 @@ describe('#3 — backdrop del modal "Verifica los datos" / "… guardados"', () 
     expect(blur.props.intensity).toBeLessThan(80);
   });
 
-  it('pinta una capa oscura a la opacidad de backdrop que Ionic realmente renderiza', async () => {
+  it('pinta una capa oscura a la opacidad que este modal declara en el original (0.5)', async () => {
     const { getByTestId } = await openConfirm();
 
-    expect(CONFIRM_MODAL_BACKDROP_OPACITY).toBe(0.32);
+    expect(CONFIRM_MODAL_BACKDROP_OPACITY).toBe(0.5);
 
     const scrim = flattenStyle<ViewStyle>(
       getByTestId('modal-backdrop-scrim').props.style,
