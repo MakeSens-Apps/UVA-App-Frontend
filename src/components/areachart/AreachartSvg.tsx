@@ -121,6 +121,21 @@ export function parseDateSafe(dateString: string): Date {
 }
 
 /**
+ * Line height of a y-axis label (font size × Chart.js' 1.2 line height).
+ * Used for Chart.js' `maxDigits = ceil(axisLength / lineHeight)`.
+ */
+const Y_LABEL_LINE_HEIGHT = 12;
+
+/**
+ * `maxDigits + 1` of the Historial chart (220px tall → 170px plot):
+ * `ceil(170 / 12) + 1 = 16`.  Default divisor for `niceYTicks`' `minSpacing`.
+ */
+const DEFAULT_Y_TICK_SLOTS = 16;
+
+/** Chart.js defaults: `categoryPercentage` 0.8 × `barPercentage` 0.9. */
+const BAR_FILL_RATIO = 0.8 * 0.9;
+
+/**
  * Compute "nice" Y-axis ticks that cover [dataMin, dataMax].
  * Mirrors Chart.js default linear scale behaviour: picks a step size
  * and generates 4-7 ticks.
@@ -129,10 +144,19 @@ export function parseDateSafe(dateString: string): Date {
  * clamped to those values — exactly as Chart.js does when you pass explicit
  * `scales.y.min` / `scales.y.max`.
  *
+ * A hard bound that lands too close to the neighbouring nice tick REPLACES it
+ * instead of being added next to it, as Chart.js `generateTicks` does
+ * (`almostEquals(tick, max, relativeLabelSize(...))`): with the rain range
+ * 0–210 the ticks are 0, 50, 100, 150, 210 — not …, 200, 210, whose labels
+ * overlap.  "Too close" is Chart.js' `minSpacing = range / (maxDigits + 1)`.
+ *
  * @param {number} dataMin - minimum data value (or ymin prop).
  * @param {number} dataMax - maximum data value (or ymax prop).
  * @param {number|undefined} hardMin - optional explicit lower bound (ymin prop).
  * @param {number|undefined} hardMax - optional explicit upper bound (ymax prop).
+ * @param {number|undefined} minSpacing - smallest gap (data units) allowed
+ *   between a hard bound and its neighbouring tick; defaults to the value for
+ *   the 220px chart of the Historial screen.
  * @returns {number[]} tick values (ascending), clamped to hard bounds when provided.
  */
 export function niceYTicks(
@@ -140,6 +164,7 @@ export function niceYTicks(
   dataMax: number,
   hardMin?: number,
   hardMax?: number,
+  minSpacing?: number,
 ): number[] {
   const domainMin = hardMin !== undefined ? hardMin : dataMin;
   const domainMax = hardMax !== undefined ? hardMax : dataMax;
@@ -185,7 +210,71 @@ export function niceYTicks(
   ) {
     ticks.push(lastVal);
   }
+
+  // Chart.js: a nice tick too close to an explicit bound gives way to it.
+  const spacing = minSpacing ?? range / DEFAULT_Y_TICK_SLOTS;
+  if (
+    hardMax !== undefined &&
+    ticks.length > 2 &&
+    ticks[ticks.length - 1] - ticks[ticks.length - 2] < spacing
+  ) {
+    ticks.splice(ticks.length - 2, 1);
+  }
+  if (
+    hardMin !== undefined &&
+    ticks.length > 2 &&
+    ticks[1] - ticks[0] < spacing
+  ) {
+    ticks.splice(1, 1);
+  }
   return ticks;
+}
+
+/**
+ * Chart.js' `minSpacing` for a vertical axis of `plotH` pixels: the gap, in data
+ * units, under which two tick labels would overlap.
+ *
+ * @param {number} range - y domain size (max - min).
+ * @param {number} plotH - plot height in px.
+ * @returns {number} minimum spacing in data units.
+ */
+export function yTickMinSpacing(range: number, plotH: number): number {
+  const maxDigits = Math.ceil(Math.max(1, plotH) / Y_LABEL_LINE_HEIGHT);
+  return range / (maxDigits + 1);
+}
+
+/**
+ * Bar width of Chart.js' bar controller on a time axis
+ * (`computeMinSampleSize` + `computeFitCategoryTraits`): the smallest pixel
+ * distance between consecutive data points AND between consecutive x-axis
+ * ticks (starting from the plot width), times `categoryPercentage` 0.8 ×
+ * `barPercentage` 0.9.
+ *
+ * It depends on the time scale, not on how many records there are: one rain
+ * record in a month is ~2 days wide (3-day tick spacing), a run of
+ * consecutive days is 0.72 day wide.  The previous `plotW / (n * 1.5)` made a
+ * single record 2/3 of the plot wide.
+ *
+ * @param {number[]} pointXs - screen x of the data points (ascending).
+ * @param {number[]} tickXs - screen x of the x-axis ticks (ascending).
+ * @param {number} plotW - plot width in px.
+ * @returns {number} bar width in px (at least 2).
+ */
+export function barWidthPx(
+  pointXs: number[],
+  tickXs: number[],
+  plotW: number,
+): number {
+  let min = plotW;
+  const scan = (xs: number[]) => {
+    for (let i = 1; i < xs.length; i++) {
+      const gap = Math.abs(xs[i] - xs[i - 1]);
+      if (gap > 0) min = Math.min(min, gap);
+    }
+  };
+  scan(pointXs);
+  scan(tickXs);
+  return Math.max(2, min * BAR_FILL_RATIO);
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -370,6 +459,8 @@ const TOOLTIP_TITLE_MARGIN = 6;
 const CARET_SIZE = 5;
 /** Gap between the highlighted point and the tooltip box. */
 const TOOLTIP_GAP = 4;
+/** Original `pointRadius: 1` of the line datasets. */
+const DATA_POINT_RADIUS = 1;
 /** Chart.js default `pointHoverRadius: 4`. */
 const ACTIVE_POINT_RADIUS = 4;
 /** Line box of the title / of every body line (Chart.js lineHeight 1.2). */
@@ -726,8 +817,15 @@ function AreachartSvg({
   const rawYMax = ymax !== undefined ? ymax : Math.max(...allY);
 
   const yTicks = useMemo(
-    () => niceYTicks(rawYMin, rawYMax, ymin, ymax),
-    [rawYMin, rawYMax, ymin, ymax],
+    () =>
+      niceYTicks(
+        rawYMin,
+        rawYMax,
+        ymin,
+        ymax,
+        yTickMinSpacing(rawYMax - rawYMin, plotH),
+      ),
+    [rawYMin, rawYMax, ymin, ymax, plotH],
   );
 
   const yDomainMin = yTicks[0];
@@ -824,6 +922,18 @@ function AreachartSvg({
     selection && selection.key === dataSignature ? selection.index : null;
 
   const plotRight = PAD_LEFT + plotW;
+
+  // Chart.js bar width: from the time scale (data + tick spacing), not from
+  // the number of records.
+  const barW = useMemo(
+    () =>
+      barWidthPx(
+        pointXs,
+        xTicks.map((ts) => PAD_LEFT + ((ts - xDomainMin) / xRange) * plotW),
+        plotW,
+      ),
+    [pointXs, xTicks, xDomainMin, xRange, plotW],
+  );
 
   const handleTouch = useCallback(
     (e: GestureResponderEvent) => {
@@ -1009,16 +1119,20 @@ function AreachartSvg({
           // Original: `gradient = this.borderColor` for bar charts (no gradient).
           chartDatum.map((d) => {
             const cx = mapX(d.x);
-            const barW = Math.max(2, plotW / (chartDatum.length * 1.5));
+            // Clipped to the plot area, so a bar on the first/last day of the
+            // month never paints over the y-axis labels or past the edge.
+            const left = Math.max(PAD_LEFT, cx - barW / 2);
+            const right = Math.min(plotRight, cx + barW / 2);
+            if (right <= left) return null;
             const barTop = mapY(Math.max(d.y, yDomainMin));
             const barBottom = mapY(Math.max(yDomainMin, 0));
             const barH = Math.max(1, barBottom - barTop);
             return (
               <Rect
                 key={`bar-${d.x}`}
-                x={cx - barW / 2}
+                x={left}
                 y={barTop}
-                width={barW}
+                width={right - left}
                 height={barH}
                 fill={borderColor}
               />
@@ -1047,6 +1161,21 @@ function AreachartSvg({
             />
           </>
         )}
+
+        {/* Data points: the original line datasets use `pointRadius: 1`
+            (areachart.component.ts:196,207). They are what shows a day with
+            no neighbours (a single Tem/Hum record draws no line or band). */}
+        {chartType !== 'bar'
+          ? chartDatum.map((d, i) => (
+              <Circle
+                key={`point-${d.x}`}
+                cx={pointXs[i]}
+                cy={mapY(d.y)}
+                r={DATA_POINT_RADIUS}
+                fill={borderColor}
+              />
+            ))
+          : null}
 
         {/* Highlighted datum — Chart.js hover point (radius 4) plus a thin
             index line, the visual cue of `mode: 'index'`. */}
